@@ -1,0 +1,339 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  OFFICE
+  FIELD
+}
+
+enum JobStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum ChangeOrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum CalendarEventType {
+  MILESTONE
+  TASK_DUE
+  COMPLETION
+  DAY_OFF
+  CUSTOM
+}
+
+// ── Auth models (NextAuth Prisma adapter) ────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(FIELD)
+  active        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  laborEntries   LaborEntry[]
+  materials      Material[]
+  photos         Photo[]
+  notes          Note[]
+  changeOrders   ChangeOrder[]
+  foremanJobs    Job[]          @relation("ForemanJobs")
+  assignedTasks  Task[]         @relation("TaskAssignee")
+  createdTasks   Task[]         @relation("TaskCreator")
+  taskEvents     TaskEvent[]
+  calendarEvents CalendarEvent[]
+  savedTasks     SavedTask[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── Jobs ─────────────────────────────────────────────────────────────────────
+
+model Job {
+  id                String    @id @default(cuid())
+  jobNumber         String    @unique
+  jobName           String
+  address           String?
+  city              String?
+  state             String?
+  zip               String?
+  gcCompany         String?
+  gcContactName     String?
+  gcPhone           String?
+  gcEmail           String?
+  ownerName         String?
+  ownerPhone        String?
+  ownerEmail        String?
+  foremanId         String?
+  scopeOfWork       String?   @db.Text
+  contractStartDate DateTime?
+  completionDate    DateTime?
+  permitNumber      String?
+  inspectionContact String?
+  inspectionPhone   String?
+  status            JobStatus @default(ACTIVE)
+  contractValue     Decimal?  @db.Decimal(12, 2)
+  laborBudgetHours  Float?
+  materialBudget    Decimal?  @db.Decimal(12, 2)
+  calendarColor     String?
+  // Summary tab settings
+  blendedLaborRate   Decimal?  @db.Decimal(10, 2)
+  // Direct cost fields (Summary tab)
+  subcontractorCost  Decimal?  @db.Decimal(12, 2)
+  equipmentCost      Decimal?  @db.Decimal(12, 2)
+  equipmentBillPct   Float?
+  otherCosts         Json?
+  // Markup percentages
+  laborMarkupPct     Float?
+  subMarkupPct       Float?
+  equipmentMarkupPct Float?
+  // Archive
+  archived           Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  foreman        User?           @relation("ForemanJobs", fields: [foremanId], references: [id])
+  laborEntries   LaborEntry[]
+  materials      Material[]
+  photos         Photo[]
+  notes          Note[]
+  changeOrders   ChangeOrder[]
+  tasks          Task[]
+  calendarEvents CalendarEvent[]
+  payments       Payment[]
+}
+
+// ── Payments ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  id        String   @id @default(cuid())
+  jobId     String
+  date      DateTime
+  amount    Decimal  @db.Decimal(12, 2)
+  note      String?
+  createdAt DateTime @default(now())
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+// ── Labor ────────────────────────────────────────────────────────────────────
+
+model LaborEntry {
+  id              String   @id @default(cuid())
+  jobId           String
+  userId          String   // the worker
+  date            DateTime
+  hours           Float
+  submittedByName String?  // name snapshot of who entered this record
+  createdAt       DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Materials ────────────────────────────────────────────────────────────────
+
+model Material {
+  id          String   @id @default(cuid())
+  jobId       String
+  userId      String
+  date        DateTime
+  vendor      String?
+  description String
+  amount      Decimal  @db.Decimal(12, 2)
+  fileUrl     String?
+  fileName    String?
+  createdAt   DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Photos ───────────────────────────────────────────────────────────────────
+
+model Photo {
+  id        String   @id @default(cuid())
+  jobId     String
+  userId    String
+  url       String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Notes ────────────────────────────────────────────────────────────────────
+
+model Note {
+  id        String   @id @default(cuid())
+  jobId     String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Change Orders ────────────────────────────────────────────────────────────
+
+model ChangeOrder {
+  id                 String            @id @default(cuid())
+  jobId              String
+  requestedById      String
+  description        String            @db.Text
+  location           String?
+  reason             String?
+  requestedByName    String?
+  estimatedHours     Float?
+  estimatedMaterials Decimal?          @db.Decimal(12, 2)
+  status             ChangeOrderStatus @default(PENDING)
+  adminNotes         String?           @db.Text
+  approvedValue      Decimal?          @db.Decimal(12, 2)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  job         Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  requestedBy User               @relation(fields: [requestedById], references: [id])
+  photos      ChangeOrderPhoto[]
+}
+
+model ChangeOrderPhoto {
+  id            String      @id @default(cuid())
+  changeOrderId String
+  url           String
+  createdAt     DateTime    @default(now())
+
+  changeOrder ChangeOrder @relation(fields: [changeOrderId], references: [id], onDelete: Cascade)
+}
+
+// ── Tasks ────────────────────────────────────────────────────────────────────
+
+model SavedTask {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  sortOrder   Int      @default(0)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User   @relation(fields: [createdById], references: [id])
+  tasks     Task[]
+}
+
+model Task {
+  id           String     @id @default(cuid())
+  jobId        String
+  savedTaskId  String?
+  title        String
+  description  String?
+  status       TaskStatus @default(OPEN)
+  assigneeId   String?
+  ballInCourt  String?
+  dueDate      DateTime?
+  createdById  String
+  completedAt  DateTime?
+  completedBy  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  job        Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  savedTask  SavedTask? @relation(fields: [savedTaskId], references: [id])
+  assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator    User       @relation("TaskCreator", fields: [createdById], references: [id])
+  events     TaskEvent[]
+}
+
+model TaskEvent {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  action    String
+  note      String?
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Calendar ─────────────────────────────────────────────────────────────────
+
+model CalendarEvent {
+  id        String            @id @default(cuid())
+  jobId     String?
+  userId    String
+  type      CalendarEventType
+  title     String
+  date      DateTime
+  endDate   DateTime?
+  allDay            Boolean           @default(true)
+  note              String?
+  recurrence        String?           @default("NONE")
+  recurrenceEndDate DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  job  Job?  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User  @relation(fields: [userId], references: [id])
+}
