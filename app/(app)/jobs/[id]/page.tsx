@@ -47,7 +47,8 @@ export default async function JobPage({ params }: PageProps) {
           include: { user: { select: { name: true } } },
         },
         changeOrders: {
-          select: { id: true, status: true, approvedValue: true },
+          orderBy: { coNumber: "asc" },
+          include: { requestedBy: { select: { name: true } } },
         },
         payments: {
           orderBy: { date: "desc" },
@@ -78,6 +79,8 @@ export default async function JobPage({ params }: PageProps) {
     materials: job.materials.map((m) => ({ ...m, amount: m.amount.toNumber() })),
     changeOrders: job.changeOrders.map((co) => ({
       ...co,
+      estimatedLaborCost: co.estimatedLaborCost?.toNumber() ?? null,
+      estimatedMaterials: co.estimatedMaterials?.toNumber() ?? null,
       approvedValue: co.approvedValue?.toNumber() ?? null,
     })),
     payments: job.payments.map((p) => ({ ...p, amount: p.amount.toNumber() })),

@@ -241,11 +241,14 @@ model ChangeOrder {
   id                 String            @id @default(cuid())
   jobId              String
   requestedById      String
+  coNumber           Int?
+  date               DateTime?
   description        String            @db.Text
   location           String?
   reason             String?
   requestedByName    String?
   estimatedHours     Float?
+  estimatedLaborCost Decimal?          @db.Decimal(12, 2)
   estimatedMaterials Decimal?          @db.Decimal(12, 2)
   status             ChangeOrderStatus @default(PENDING)
   adminNotes         String?           @db.Text

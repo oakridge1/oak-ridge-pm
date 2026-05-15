@@ -127,3 +127,81 @@ export async function deleteTask(taskId: string) {
   await prisma.task.delete({ where: { id: taskId } });
   if (task) revalidatePath(`/jobs/${task.jobId}`);
 }
+
+// ── Change Orders ──────────────────────────────────────────────────────────────
+
+export async function createChangeOrder(
+  jobId: string,
+  input: {
+    description: string;
+    date?: string | null;
+    location?: string | null;
+    reason?: string | null;
+    requestedByName?: string | null;
+    estimatedHours?: number | null;
+    estimatedLaborCost?: number | null;
+    estimatedMaterials?: number | null;
+  }
+) {
+  const session = await requireActive();
+
+  const description = input.description.trim();
+  if (!description) throw new Error("Description is required.");
+
+  const coCount = await prisma.changeOrder.count({ where: { jobId } });
+
+  await prisma.changeOrder.create({
+    data: {
+      jobId,
+      requestedById: session.user.id,
+      coNumber: coCount + 1,
+      date: input.date ? new Date(input.date) : null,
+      description,
+      location: input.location?.trim() || null,
+      reason: input.reason?.trim() || null,
+      requestedByName: input.requestedByName?.trim() || null,
+      estimatedHours: input.estimatedHours ?? null,
+      estimatedLaborCost: input.estimatedLaborCost ?? null,
+      estimatedMaterials: input.estimatedMaterials ?? null,
+    },
+  });
+
+  revalidatePath(`/jobs/${jobId}`);
+}
+
+export async function updateChangeOrder(
+  coId: string,
+  input: {
+    status?: "PENDING" | "APPROVED" | "REJECTED";
+    approvedValue?: number | null;
+    adminNotes?: string | null;
+  }
+) {
+  const session = await requireActive();
+  if (session.user.role !== "ADMIN") throw new Error("Only ADMIN can review change orders.");
+
+  const co = await prisma.changeOrder.findUnique({ where: { id: coId }, select: { jobId: true } });
+  if (!co) throw new Error("Change order not found.");
+
+  await prisma.changeOrder.update({
+    where: { id: coId },
+    data: {
+      status: input.status,
+      approvedValue: input.approvedValue ?? null,
+      adminNotes: input.adminNotes?.trim() || null,
+    },
+  });
+
+  revalidatePath(`/jobs/${co.jobId}`);
+}
+
+export async function deleteChangeOrder(coId: string) {
+  const session = await requireActive();
+  if (session.user.role !== "ADMIN") throw new Error("Only ADMIN can delete change orders.");
+
+  const co = await prisma.changeOrder.findUnique({ where: { id: coId }, select: { jobId: true } });
+  if (!co) throw new Error("Change order not found.");
+
+  await prisma.changeOrder.delete({ where: { id: coId } });
+  revalidatePath(`/jobs/${co.jobId}`);
+}

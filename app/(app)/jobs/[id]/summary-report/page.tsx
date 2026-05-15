@@ -72,7 +72,10 @@ export default async function JobSummaryReportPage({ params }: PageProps) {
       `}</style>
 
       <div className="no-print fixed top-4 right-4 z-50 flex gap-2">
-        <PrintButton />
+        <PrintButton
+          href={`/api/jobs/${id}/pdf?type=summary`}
+          fileName={`${job.jobNumber}_${job.jobName.replace(/[^a-z0-9]/gi, "_")}_Summary.pdf`}
+        />
         <a href={`/jobs/${id}`} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200">
           ← Back
         </a>
