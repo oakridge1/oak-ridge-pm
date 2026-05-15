@@ -7,7 +7,16 @@ import type { Role } from "@/app/generated/prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  providers: [Google],
+  providers: [
+    Google({
+      // Allow pre-seeded users (inserted directly into the User table) to sign
+      // in via Google OAuth for the first time.  Without this, NextAuth throws
+      // OAuthAccountNotLinked when it finds an existing User row with a matching
+      // email but no linked Account — causing a silent redirect loop to /login.
+      // Safe with Google because Google verifies email ownership.
+      allowDangerousEmailAccountLinking: true,
+    }),
+  ],
   session: { strategy: "database" },
   // Required for Vercel and other reverse-proxy hosts — trusts the
   // X-Forwarded-Host header so OAuth callbacks resolve to the correct URL
