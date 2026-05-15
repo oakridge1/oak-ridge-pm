@@ -56,7 +56,7 @@ export async function createInspection(
         inspectorName: input.inspectorName ?? null,
         correctionNotes: input.correctionNotes ?? null,
         loggedBy: session.user.name ?? session.user.email ?? "Unknown",
-      }).catch(() => {});
+      }).catch((err) => console.error("[notify]", err));
     }
   }
 
@@ -117,7 +117,7 @@ export async function updateInspection(
         inspectorName: input.inspectorName ?? null,
         correctionNotes: input.correctionNotes ?? null,
         loggedBy: session.user.name ?? session.user.email ?? "Unknown",
-      }).catch(() => {});
+      }).catch((err) => console.error("[notify]", err));
     }
   }
 

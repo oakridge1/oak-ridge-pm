@@ -11,6 +11,7 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string; invoiceId: string }> }
 ) {
+  try {
   const session = await auth();
   if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
   if (session.user.role === "FIELD") return new NextResponse("Forbidden", { status: 403 });
@@ -85,4 +86,11 @@ export async function GET(
       "Content-Disposition": `inline; filename="${filename}"`,
     },
   });
+  } catch (err) {
+    console.error("[Invoice PDF] Error generating PDF:", err);
+    return new NextResponse(
+      `PDF generation failed: ${err instanceof Error ? err.message : String(err)}`,
+      { status: 500 }
+    );
+  }
 }

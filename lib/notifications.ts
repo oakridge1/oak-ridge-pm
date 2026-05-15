@@ -6,10 +6,15 @@ const FROM = process.env.EMAIL_FROM;
 const PASS = process.env.GMAIL_APP_PASSWORD;
 
 function getTransport() {
-  if (!FROM || !PASS) {
-    console.warn("[notifications] EMAIL_FROM or GMAIL_APP_PASSWORD not set — skipping email.");
+  if (!FROM) {
+    console.error("[notifications] ❌ EMAIL_FROM env var is not set — email is disabled.");
     return null;
   }
+  if (!PASS) {
+    console.error("[notifications] ❌ GMAIL_APP_PASSWORD env var is not set — email is disabled. Add it to Vercel → Settings → Environment Variables.");
+    return null;
+  }
+  console.log(`[notifications] creating transport for ${FROM}`);
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
@@ -22,18 +27,21 @@ async function send(to: string | string[], subject: string, text: string, html: 
   const transport = getTransport();
   if (!transport) return;
   const toList = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
-  if (toList.length === 0) return;
+  if (toList.length === 0) {
+    console.warn("[notifications] send called with empty recipient list — skipping");
+    return;
+  }
   try {
-    await transport.sendMail({
+    const info = await transport.sendMail({
       from: `"Oak Ridge PM" <${FROM}>`,
       to: toList.join(", "),
       subject,
       text,
       html,
     });
-    console.log(`[notifications] sent "${subject}" → ${toList.join(", ")}`);
+    console.log(`[notifications] ✓ sent "${subject}" → ${toList.join(", ")} (messageId: ${info.messageId})`);
   } catch (err) {
-    console.error("[notifications] send error:", err);
+    console.error(`[notifications] ✗ FAILED to send "${subject}" → ${toList.join(", ")}:`, err);
   }
 }
 

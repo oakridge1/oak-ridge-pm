@@ -40,7 +40,7 @@ export async function addNote(jobId: string, content: string) {
       content: trimmed,
       postedBy: session.user.name ?? session.user.email ?? "Unknown",
       posterRole: session.user.role,
-    }).catch(() => {});
+    }).catch((err) => console.error("[notify]", err));
   }
 
   revalidatePath(`/jobs/${jobId}`);
@@ -91,7 +91,7 @@ export async function addJobTask(jobId: string, fd: FormData) {
           jobName: job.jobName,
           jobId,
           assignedBy: session.user.name ?? session.user.email ?? "Unknown",
-        }).catch(() => {});
+        }).catch((err) => console.error("[notify]", err));
       }
     }
     // Notify ball in court users
@@ -108,7 +108,7 @@ export async function addJobTask(jobId: string, fd: FormData) {
           jobName: job.jobName,
           jobId,
           updatedBy: session.user.name ?? session.user.email ?? "Unknown",
-        }).catch(() => {});
+        }).catch((err) => console.error("[notify]", err));
       }
     }
   }
@@ -141,7 +141,7 @@ export async function completeTask(taskId: string) {
         jobName: job.jobName,
         jobId: task.jobId,
         completedBy: completedByName,
-      }).catch(() => {});
+      }).catch((err) => console.error("[notify]", err));
     }
     revalidatePath(`/jobs/${task.jobId}`);
   }
@@ -253,7 +253,7 @@ export async function createChangeOrder(
       coNumber,
       description,
       submittedBy: session.user.name ?? session.user.email ?? "Unknown",
-    }).catch(() => {});
+    }).catch((err) => console.error("[notify]", err));
   }
 
   revalidatePath(`/jobs/${jobId}`);
@@ -309,7 +309,7 @@ export async function updateChangeOrder(
       status: newStatus,
       adminNotes: input.adminNotes ?? co.adminNotes,
       approvedValue: input.approvedValue ?? co.approvedValue?.toNumber() ?? null,
-    }).catch(() => {});
+    }).catch((err) => console.error("[notify]", err));
   }
 
   revalidatePath(`/jobs/${co.jobId}`);

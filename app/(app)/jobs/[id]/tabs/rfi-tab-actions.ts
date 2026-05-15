@@ -106,7 +106,7 @@ export async function updateRfi(
       rfiNumber: existing.rfiNumber,
       subject: existing.subject,
       answer: input.answer ?? existing.answer,
-    }).catch(() => {});
+    }).catch((err) => console.error("[notify]", err));
   }
 
   revalidatePath(`/jobs/${existing.jobId}`);
