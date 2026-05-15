@@ -26,6 +26,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
 
+    async redirect({ url, baseUrl }) {
+      // Allow relative URLs (e.g. callbackUrl="/")
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allow same-origin absolute URLs
+      try {
+        if (new URL(url).origin === new URL(baseUrl).origin) return url;
+      } catch {
+        // malformed URL — fall through
+      }
+      // Cross-origin (e.g. NEXTAUTH_URL=http://localhost:3000 on Vercel):
+      // redirect to the app root rather than back to /login.
+      // The login page will then forward active users to / and pending users to /pending.
+      return baseUrl;
+    },
+
     async session({ session, user }) {
       if (session.user) {
         try {
