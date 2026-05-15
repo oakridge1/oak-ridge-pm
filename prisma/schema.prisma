@@ -42,6 +42,36 @@ enum CalendarEventType {
   CUSTOM
 }
 
+enum InspectionType {
+  UNDERGROUND
+  ROUGH_IN
+  SERVICE
+  FIRE_ALARM
+  SPECIAL
+  FINAL
+}
+
+enum InspectionResult {
+  PASS
+  FAIL
+}
+
+enum RfiStatus {
+  OPEN
+  ANSWERED
+}
+
+enum DocumentCategory {
+  PLANS
+  SPECIFICATIONS
+  PERMITS
+  SUBMITTALS
+  SUBCONTRACTS
+  INSPECTION_REPORTS
+  CLOSEOUT
+  OTHER
+}
+
 // ── Auth models (NextAuth Prisma adapter) ────────────────────────────────────
 
 model User {
@@ -68,6 +98,9 @@ model User {
   taskEvents     TaskEvent[]
   calendarEvents CalendarEvent[]
   savedTasks     SavedTask[]
+  inspections    Inspection[]   @relation("InspectionCreator")
+  rfis           Rfi[]          @relation("RfiSubmitter")
+  documents      Document[]     @relation("DocumentUploader")
 }
 
 model Account {
@@ -160,6 +193,9 @@ model Job {
   tasks          Task[]
   calendarEvents CalendarEvent[]
   payments       Payment[]
+  inspections    Inspection[]
+  rfis           Rfi[]
+  documents      Document[]
 }
 
 // ── Payments ─────────────────────────────────────────────────────────────────
@@ -339,4 +375,69 @@ model CalendarEvent {
 
   job  Job?  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   user User  @relation(fields: [userId], references: [id])
+}
+
+// ── Inspections ───────────────────────────────────────────────────────────────
+
+model Inspection {
+  id              String            @id @default(cuid())
+  jobId           String
+  createdById     String
+  type            InspectionType
+  dateCalled      DateTime?
+  dateScheduled   DateTime?
+  inspectorName   String?
+  inspectorPhone  String?
+  result          InspectionResult?
+  correctionNotes String?           @db.Text
+  reinspectDate   DateTime?
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdBy User @relation("InspectionCreator", fields: [createdById], references: [id])
+}
+
+// ── RFIs ─────────────────────────────────────────────────────────────────────
+
+model Rfi {
+  id            String    @id @default(cuid())
+  jobId         String
+  submittedById String
+  rfiNumber     Int
+  subject       String
+  description   String?   @db.Text
+  submittedTo   String?
+  submittedToEmail String?
+  status        RfiStatus @default(OPEN)
+  dueDate       DateTime?
+  answeredDate  DateTime?
+  answer        String?   @db.Text
+  fileUrl       String?
+  fileName      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  job         Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  submittedBy User @relation("RfiSubmitter", fields: [submittedById], references: [id])
+
+  @@unique([jobId, rfiNumber])
+}
+
+// ── Document Vault ────────────────────────────────────────────────────────────
+
+model Document {
+  id           String           @id @default(cuid())
+  jobId        String
+  uploadedById String
+  category     DocumentCategory @default(OTHER)
+  name         String
+  fileUrl      String
+  fileName     String
+  fileSize     Int?
+  createdAt    DateTime         @default(now())
+
+  job        Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation("DocumentUploader", fields: [uploadedById], references: [id])
 }

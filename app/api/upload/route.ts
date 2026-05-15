@@ -8,6 +8,7 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET_MAP: Record<string, string> = {
   jobPhoto: "job-photos",
   materialAttachment: "material-attachments",
+  jobDocument: "job-documents",
 };
 
 export async function POST(req: NextRequest) {

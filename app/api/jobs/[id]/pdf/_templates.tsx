@@ -715,3 +715,281 @@ export function ChangeOrderDoc({ data }: { data: ChangeOrderDocData }) {
     </Document>
   );
 }
+
+// ── Inspection PDF ─────────────────────────────────────────────────────────────
+
+const INSPECTION_LABELS: Record<string, string> = {
+  UNDERGROUND: "Underground",
+  ROUGH_IN: "Rough-In",
+  SERVICE: "Service",
+  FIRE_ALARM: "Fire Alarm",
+  SPECIAL: "Special Inspection",
+  FINAL: "Final",
+};
+
+export type InspectionDocData = {
+  jobNumber: string;
+  jobName: string;
+  type: string;
+  dateCalled: Date | string | null;
+  dateScheduled: Date | string | null;
+  inspectorName: string | null;
+  inspectorPhone: string | null;
+  result: "PASS" | "FAIL" | null;
+  correctionNotes: string | null;
+  reinspectDate: Date | string | null;
+  notes: string | null;
+  createdAt: Date | string;
+  createdBy: { name: string | null };
+};
+
+export function InspectionDoc({ data }: { data: InspectionDocData }) {
+  const today = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const typeLabel = INSPECTION_LABELS[data.type] ?? data.type;
+  const isPassed = data.result === "PASS";
+  const isFailed = data.result === "FAIL";
+  const resultColor = isFailed ? "#dc2626" : isPassed ? "#16a34a" : "#555555";
+  const resultText = isFailed ? "FAIL" : isPassed ? "PASS" : "PENDING";
+
+  return (
+    <Document>
+      <Page size="LETTER" style={S.page}>
+        <View style={S.headerRow}>
+          <View>
+            <Text style={S.brandLabel}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={S.jobName}>{data.jobName}</Text>
+            <Text style={S.jobNum}>Job #{data.jobNumber}</Text>
+          </View>
+          <View style={S.headerRight}>
+            <Text style={S.headerRightTitle}>Inspection Record</Text>
+            <Text style={S.headerRightDate}>{typeLabel}</Text>
+          </View>
+        </View>
+
+        <View style={{
+          backgroundColor: isFailed ? "#fef2f2" : isPassed ? "#f0fff4" : "#f5f5f5",
+          borderWidth: 2,
+          borderColor: resultColor,
+          borderStyle: "solid",
+          borderRadius: 6,
+          padding: 12,
+          marginBottom: 18,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
+          <View>
+            <Text style={{ fontSize: 7, color: GRAY, marginBottom: 3 }}>INSPECTION TYPE</Text>
+            <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY }}>{typeLabel}</Text>
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ fontSize: 7, color: GRAY, marginBottom: 3 }}>RESULT</Text>
+            <Text style={{ fontSize: 18, fontFamily: "Helvetica-Bold", color: resultColor }}>{resultText}</Text>
+          </View>
+        </View>
+
+        <View style={S.section}>
+          <Text style={S.sectionTitle}>INSPECTION DETAILS</Text>
+          <View style={S.infoGrid}>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Date Called</Text>
+              <Text style={S.infoValue}>{fmtDate(data.dateCalled)}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Date Scheduled</Text>
+              <Text style={S.infoValue}>{fmtDate(data.dateScheduled)}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Inspector</Text>
+              <Text style={S.infoValue}>{data.inspectorName ?? "—"}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Phone</Text>
+              <Text style={S.infoValue}>{data.inspectorPhone ?? "—"}</Text>
+            </View>
+            {data.reinspectDate ? (
+              <View style={S.infoCell}>
+                <Text style={S.infoLabel}>Re-Inspect Date</Text>
+                <Text style={[S.infoValue, { color: "#d97706" }]}>{fmtDate(data.reinspectDate)}</Text>
+              </View>
+            ) : null}
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Logged By</Text>
+              <Text style={S.infoValue}>{data.createdBy.name ?? "Unknown"}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Date Logged</Text>
+              <Text style={S.infoValue}>{fmtDate(data.createdAt)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {data.correctionNotes ? (
+          <View style={S.section}>
+            <Text style={[S.sectionTitle, { color: "#dc2626" }]}>CORRECTIONS REQUIRED</Text>
+            <View style={{
+              backgroundColor: "#fef2f2",
+              borderLeftWidth: 3,
+              borderLeftColor: "#dc2626",
+              borderLeftStyle: "solid",
+              padding: 10,
+              borderRadius: 3,
+            }}>
+              <Text style={{ fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 }}>{data.correctionNotes}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {data.notes ? (
+          <View style={S.section}>
+            <Text style={S.sectionTitle}>NOTES</Text>
+            <Text style={{ fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 }}>{data.notes}</Text>
+          </View>
+        ) : null}
+
+        <View style={S.footer} fixed>
+          <Text style={S.footerText}>Oak Ridge Electrical LLC — Confidential</Text>
+          <Text style={S.footerText}>Generated {today}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+// ── RFI PDF ───────────────────────────────────────────────────────────────────
+
+export type RfiDocData = {
+  jobNumber: string;
+  jobName: string;
+  rfiNumber: number;
+  subject: string;
+  description: string | null;
+  submittedTo: string | null;
+  submittedToEmail: string | null;
+  status: "OPEN" | "ANSWERED";
+  dueDate: Date | string | null;
+  answeredDate: Date | string | null;
+  answer: string | null;
+  createdAt: Date | string;
+  submittedBy: { name: string | null };
+};
+
+export function RfiDoc({ data }: { data: RfiDocData }) {
+  const today = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const rfiLabel = `RFI-${String(data.rfiNumber).padStart(3, "0")}`;
+  const isAnswered = data.status === "ANSWERED";
+
+  return (
+    <Document>
+      <Page size="LETTER" style={S.page}>
+        <View style={S.headerRow}>
+          <View>
+            <Text style={S.brandLabel}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={S.jobName}>{data.jobName}</Text>
+            <Text style={S.jobNum}>Job #{data.jobNumber}</Text>
+          </View>
+          <View style={S.headerRight}>
+            <Text style={S.headerRightTitle}>Request for Information</Text>
+            <Text style={S.headerRightDate}>{rfiLabel}</Text>
+          </View>
+        </View>
+
+        <View style={{
+          backgroundColor: isAnswered ? "#f0fff4" : "#fff8f5",
+          borderWidth: 1,
+          borderColor: isAnswered ? "#16a34a" : ORANGE,
+          borderStyle: "solid",
+          borderRadius: 6,
+          padding: 10,
+          marginBottom: 18,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
+          <View>
+            <Text style={{ fontSize: 7, color: GRAY, marginBottom: 2 }}>RFI NUMBER</Text>
+            <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY }}>{rfiLabel}</Text>
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ fontSize: 7, color: GRAY, marginBottom: 2 }}>STATUS</Text>
+            <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: isAnswered ? "#16a34a" : ORANGE }}>
+              {isAnswered ? "ANSWERED" : "OPEN"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={S.section}>
+          <Text style={S.sectionTitle}>REQUEST DETAILS</Text>
+          <View style={{ marginBottom: 10 }}>
+            <Text style={[S.infoLabel, { marginBottom: 3 }]}>SUBJECT</Text>
+            <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: NAVY }}>{data.subject}</Text>
+          </View>
+          <View style={S.infoGrid}>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Submitted To</Text>
+              <Text style={S.infoValue}>{data.submittedTo ?? "—"}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Email</Text>
+              <Text style={S.infoValue}>{data.submittedToEmail ?? "—"}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Submitted By</Text>
+              <Text style={S.infoValue}>{data.submittedBy.name ?? "Unknown"}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Date Submitted</Text>
+              <Text style={S.infoValue}>{fmtDate(data.createdAt)}</Text>
+            </View>
+            <View style={S.infoCell}>
+              <Text style={S.infoLabel}>Due Date</Text>
+              <Text style={S.infoValue}>{fmtDate(data.dueDate)}</Text>
+            </View>
+            {isAnswered ? (
+              <View style={S.infoCell}>
+                <Text style={S.infoLabel}>Date Answered</Text>
+                <Text style={S.infoValue}>{fmtDate(data.answeredDate)}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {data.description ? (
+          <View style={S.section}>
+            <Text style={S.sectionTitle}>DESCRIPTION</Text>
+            <Text style={{ fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 }}>{data.description}</Text>
+          </View>
+        ) : null}
+
+        {isAnswered && data.answer ? (
+          <View style={S.section}>
+            <Text style={[S.sectionTitle, { color: "#16a34a" }]}>RESPONSE</Text>
+            <View style={{
+              backgroundColor: "#f0fff4",
+              borderLeftWidth: 3,
+              borderLeftColor: "#16a34a",
+              borderLeftStyle: "solid",
+              padding: 10,
+              borderRadius: 3,
+            }}>
+              <Text style={{ fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 }}>{data.answer}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={S.footer} fixed>
+          <Text style={S.footerText}>Oak Ridge Electrical LLC — Confidential</Text>
+          <Text style={S.footerText}>Generated {today}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}

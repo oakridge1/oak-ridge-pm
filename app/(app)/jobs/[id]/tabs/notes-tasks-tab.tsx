@@ -111,14 +111,28 @@ function fmtDate(d: Date | string | null | undefined) {
 
 // ── Task components ───────────────────────────────────────────────────────────
 
+function parseBallInCourt(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as string[];
+  } catch {
+    // Legacy plain-text value — return as single item
+    return [raw];
+  }
+  return [];
+}
+
 function TaskRow({
   task,
   role,
   jobId,
+  fieldUsers,
 }: {
   task: Task;
   role: Role;
   jobId: string;
+  fieldUsers: FieldUser[];
 }) {
   const [pending, startTransition] = useTransition();
   const isDone = task.status === "COMPLETED";
@@ -168,12 +182,16 @@ function TaskRow({
               {task.assignee.name}
             </span>
           )}
-          {task.ballInCourt && (
-            <span className="flex items-center gap-1 text-xs text-[#FF5910] font-medium">
-              <ArrowRight className="w-3 h-3" />
-              {task.ballInCourt}
-            </span>
-          )}
+          {parseBallInCourt(task.ballInCourt).map((id) => {
+            const u = fieldUsers.find((f) => f.id === id);
+            const label = u?.name ?? id;
+            return (
+              <span key={id} className="flex items-center gap-1 text-xs text-[#FF5910] font-medium bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">
+                <ArrowRight className="w-3 h-3" />
+                {label}
+              </span>
+            );
+          })}
           {task.dueDate && !isDone && (
             <span className="flex items-center gap-1 text-xs text-gray-400">
               <Clock className="w-3 h-3" />
@@ -284,13 +302,24 @@ function AddJobTaskForm({
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1">
-          Ball in Court (who owns it now)
+          Ball in Court
         </label>
-        <input
-          name="ballInCourt"
-          placeholder="e.g. GC, Owner, Foreman…"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
-        />
+        <div className="border border-gray-300 rounded-lg px-3 py-2 bg-white space-y-1.5 max-h-36 overflow-y-auto">
+          {fieldUsers.map((u) => (
+            <label key={u.id} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="ballInCourt"
+                value={u.id}
+                className="rounded border-gray-300 text-[#002D72] focus:ring-[#002D72]"
+              />
+              <span className="text-sm text-gray-700">{u.name ?? u.id}</span>
+            </label>
+          ))}
+          {fieldUsers.length === 0 && (
+            <p className="text-xs text-gray-400">No active users</p>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2 justify-end">
         <button
@@ -839,7 +868,7 @@ export function NotesTasksTab({
               </p>
             )}
             {savedTaskInstances.map((task) => (
-              <TaskRow key={task.id} task={task} role={role} jobId={job.id} />
+              <TaskRow key={task.id} task={task} role={role} jobId={job.id} fieldUsers={fieldUsers} />
             ))}
 
             {/* Apply unapplied templates */}
@@ -880,7 +909,7 @@ export function NotesTasksTab({
               </p>
             )}
             {jobTaskInstances.map((task) => (
-              <TaskRow key={task.id} task={task} role={role} jobId={job.id} />
+              <TaskRow key={task.id} task={task} role={role} jobId={job.id} fieldUsers={fieldUsers} />
             ))}
             {showAddTask ? (
               <AddJobTaskForm

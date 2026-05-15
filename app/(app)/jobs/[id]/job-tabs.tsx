@@ -9,6 +9,9 @@ import {
   ClipboardList,
   Calendar,
   BarChart3,
+  ClipboardCheck,
+  HelpCircle,
+  FolderOpen,
 } from "lucide-react";
 import { JobInfoTab } from "./tabs/job-info-tab";
 import { LaborTab } from "./tabs/labor-tab";
@@ -17,6 +20,9 @@ import { PhotosTab } from "./tabs/photos-tab";
 import { SummaryTab } from "./tabs/summary-tab";
 import { NotesTasksTab } from "./tabs/notes-tasks-tab";
 import { CalendarTab } from "./tabs/calendar-tab";
+import { InspectionsTab } from "./tabs/inspections-tab";
+import { RfiTab } from "./tabs/rfi-tab";
+import { DocumentsTab } from "./tabs/documents-tab";
 import type { Role } from "@/app/generated/prisma/client";
 
 type Tab = {
@@ -41,6 +47,21 @@ const TABS: Tab[] = [
     id: "calendar",
     label: "Calendar",
     icon: <Calendar className="w-4 h-4" />,
+  },
+  {
+    id: "inspections",
+    label: "Inspections",
+    icon: <ClipboardCheck className="w-4 h-4" />,
+  },
+  {
+    id: "rfi",
+    label: "RFI",
+    icon: <HelpCircle className="w-4 h-4" />,
+  },
+  {
+    id: "documents",
+    label: "Documents",
+    icon: <FolderOpen className="w-4 h-4" />,
   },
   {
     id: "summary",
@@ -134,6 +155,19 @@ export function JobTabs({
             role={role}
             currentUserId={currentUserId}
           />
+        )}
+        {activeTab === "inspections" && (
+          <InspectionsTab job={job} role={role} />
+        )}
+        {activeTab === "rfi" && (
+          <RfiTab
+            job={job}
+            role={role}
+            currentUserName={currentUserName}
+          />
+        )}
+        {activeTab === "documents" && (
+          <DocumentsTab job={job} role={role} />
         )}
         {activeTab === "summary" && (
           <SummaryTab job={job} role={role} />

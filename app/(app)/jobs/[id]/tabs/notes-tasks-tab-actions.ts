@@ -3,6 +3,14 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import {
+  notifyNewNote,
+  notifyTaskAssigned,
+  notifyBallInCourt,
+  notifyTaskCompleted,
+  notifyCoSubmitted,
+  notifyCoReviewed,
+} from "@/lib/notifications";
 
 async function requireActive() {
   const session = await auth();
@@ -23,6 +31,18 @@ export async function addNote(jobId: string, content: string) {
     },
   });
 
+  // Notify admins/office if a field user posts a note
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobName: true } });
+  if (job) {
+    notifyNewNote({
+      jobName: job.jobName,
+      jobId,
+      content: trimmed,
+      postedBy: session.user.name ?? session.user.email ?? "Unknown",
+      posterRole: session.user.role,
+    }).catch(() => {});
+  }
+
   revalidatePath(`/jobs/${jobId}`);
 }
 
@@ -33,7 +53,11 @@ export async function addJobTask(jobId: string, fd: FormData) {
   if (!title) throw new Error("Task title is required.");
 
   const assigneeId = (fd.get("assigneeId") as string | null)?.trim() || null;
-  const ballInCourt = (fd.get("ballInCourt") as string | null)?.trim() || null;
+  // ballInCourt is stored as a JSON array of user IDs: '["id1","id2"]'
+  const ballInCourtRaw = fd.getAll("ballInCourt") as string[];
+  const ballInCourt = ballInCourtRaw.length > 0
+    ? JSON.stringify(ballInCourtRaw)
+    : null;
   const dueDateRaw = (fd.get("dueDate") as string | null)?.trim() || null;
   const dueDate = dueDateRaw ? new Date(dueDateRaw) : null;
   const description = (fd.get("description") as string | null)?.trim() || null;
@@ -50,24 +74,77 @@ export async function addJobTask(jobId: string, fd: FormData) {
     },
   });
 
+  // Fire notifications (non-blocking)
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobName: true } });
+  if (job) {
+    // Notify assignee
+    if (assigneeId) {
+      const assignee = await prisma.user.findUnique({
+        where: { id: assigneeId },
+        select: { email: true, name: true },
+      });
+      if (assignee) {
+        notifyTaskAssigned({
+          assigneeEmail: assignee.email,
+          assigneeName: assignee.name,
+          taskTitle: title,
+          jobName: job.jobName,
+          jobId,
+          assignedBy: session.user.name ?? session.user.email ?? "Unknown",
+        }).catch(() => {});
+      }
+    }
+    // Notify ball in court users
+    if (ballInCourtRaw.length > 0) {
+      const bicUsers = await prisma.user.findMany({
+        where: { id: { in: ballInCourtRaw }, active: true },
+        select: { email: true },
+      });
+      const emails = bicUsers.map((u) => u.email).filter((e) => e !== session.user.email);
+      if (emails.length > 0) {
+        notifyBallInCourt({
+          userEmails: emails,
+          taskTitle: title,
+          jobName: job.jobName,
+          jobId,
+          updatedBy: session.user.name ?? session.user.email ?? "Unknown",
+        }).catch(() => {});
+      }
+    }
+  }
+
   revalidatePath(`/jobs/${jobId}`);
 }
 
 export async function completeTask(taskId: string) {
   const session = await requireActive();
+  const completedByName = session.user.name ?? session.user.email ?? "Unknown";
 
   await prisma.task.update({
     where: { id: taskId },
     data: {
       status: "COMPLETED",
       completedAt: new Date(),
-      completedBy: session.user.name ?? session.user.email ?? "Unknown",
+      completedBy: completedByName,
     },
   });
 
-  // Get jobId for revalidation
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { jobId: true } });
-  if (task) revalidatePath(`/jobs/${task.jobId}`);
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { jobId: true, title: true },
+  });
+  if (task) {
+    const job = await prisma.job.findUnique({ where: { id: task.jobId }, select: { jobName: true } });
+    if (job) {
+      notifyTaskCompleted({
+        taskTitle: task.title,
+        jobName: job.jobName,
+        jobId: task.jobId,
+        completedBy: completedByName,
+      }).catch(() => {});
+    }
+    revalidatePath(`/jobs/${task.jobId}`);
+  }
 }
 
 export async function reopenTask(taskId: string) {
@@ -150,11 +227,12 @@ export async function createChangeOrder(
 
   const coCount = await prisma.changeOrder.count({ where: { jobId } });
 
+  const coNumber = coCount + 1;
   await prisma.changeOrder.create({
     data: {
       jobId,
       requestedById: session.user.id,
-      coNumber: coCount + 1,
+      coNumber,
       date: input.date ? new Date(input.date) : null,
       description,
       location: input.location?.trim() || null,
@@ -165,6 +243,18 @@ export async function createChangeOrder(
       estimatedMaterials: input.estimatedMaterials ?? null,
     },
   });
+
+  // Notify admins/office of new CO
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobName: true } });
+  if (job) {
+    notifyCoSubmitted({
+      jobName: job.jobName,
+      jobId,
+      coNumber,
+      description,
+      submittedBy: session.user.name ?? session.user.email ?? "Unknown",
+    }).catch(() => {});
+  }
 
   revalidatePath(`/jobs/${jobId}`);
 }
@@ -180,7 +270,18 @@ export async function updateChangeOrder(
   const session = await requireActive();
   if (session.user.role !== "ADMIN") throw new Error("Only ADMIN can review change orders.");
 
-  const co = await prisma.changeOrder.findUnique({ where: { id: coId }, select: { jobId: true } });
+  const co = await prisma.changeOrder.findUnique({
+    where: { id: coId },
+    select: {
+      jobId: true,
+      status: true,
+      coNumber: true,
+      approvedValue: true,
+      adminNotes: true,
+      requestedBy: { select: { email: true, name: true } },
+      job: { select: { jobName: true } },
+    },
+  });
   if (!co) throw new Error("Change order not found.");
 
   await prisma.changeOrder.update({
@@ -191,6 +292,25 @@ export async function updateChangeOrder(
       adminNotes: input.adminNotes?.trim() || null,
     },
   });
+
+  // Notify requester if status changed to APPROVED or REJECTED
+  const newStatus = input.status;
+  if (
+    newStatus &&
+    newStatus !== co.status &&
+    (newStatus === "APPROVED" || newStatus === "REJECTED")
+  ) {
+    notifyCoReviewed({
+      requesterEmail: co.requestedBy.email,
+      requesterName: co.requestedBy.name,
+      jobName: co.job.jobName,
+      jobId: co.jobId,
+      coNumber: co.coNumber,
+      status: newStatus,
+      adminNotes: input.adminNotes ?? co.adminNotes,
+      approvedValue: input.approvedValue ?? co.approvedValue?.toNumber() ?? null,
+    }).catch(() => {});
+  }
 
   revalidatePath(`/jobs/${co.jobId}`);
 }
