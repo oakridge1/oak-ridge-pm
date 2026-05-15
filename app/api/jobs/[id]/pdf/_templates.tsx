@@ -993,3 +993,423 @@ export function RfiDoc({ data }: { data: RfiDocData }) {
     </Document>
   );
 }
+
+// ── Standard Invoice ──────────────────────────────────────────────────────────
+
+export type StandardInvoiceData = {
+  jobNumber: string;
+  jobName: string;
+  gcCompany: string | null;
+  gcContactName: string | null;
+  gcEmail: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  contractStartDate: Date | string | null;
+  invoiceNumber: number;
+  invoiceDate: Date | string;
+  periodTo: Date | string | null;
+  amount: number;
+  retainagePct: number | null;
+  retainageHeld: number | null;
+  lineItems: { label: string; amount: number }[];
+  notes: string | null;
+  previouslyInvoiced: number;
+};
+
+const IS = StyleSheet.create({
+  page: { fontFamily: "Helvetica", fontSize: 9, padding: 40, color: "#1a1a1a", backgroundColor: "#fff" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 },
+  brandBlock: {},
+  brand: { fontSize: 7, fontFamily: "Helvetica-Bold", color: ORANGE, letterSpacing: 1 },
+  company: { fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY, marginTop: 3 },
+  address: { fontSize: 8, color: GRAY, marginTop: 2, lineHeight: 1.4 },
+  invoiceLabel: { fontSize: 22, fontFamily: "Helvetica-Bold", color: NAVY, textAlign: "right" },
+  invoiceNum: { fontSize: 10, color: GRAY, textAlign: "right", marginTop: 2 },
+  invoiceDate: { fontSize: 8, color: LIGHT, textAlign: "right", marginTop: 2 },
+  divider: { borderBottomWidth: 2, borderBottomColor: NAVY, borderBottomStyle: "solid", marginBottom: 16 },
+  twoCol: { flexDirection: "row", gap: 24, marginBottom: 20 },
+  col: { flex: 1 },
+  colLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, letterSpacing: 0.5, marginBottom: 5 },
+  colValue: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 },
+  colValueBold: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1a1a1a" },
+  table: { marginBottom: 16 },
+  tableHead: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: NAVY, borderBottomStyle: "solid", paddingBottom: 4, marginBottom: 2 },
+  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid", paddingVertical: 5 },
+  colDesc: { flex: 1, fontSize: 8 },
+  colAmt: { width: 80, fontSize: 8, textAlign: "right" },
+  colDescH: { flex: 1, fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY },
+  colAmtH: { width: 80, fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textAlign: "right" },
+  subtotalSection: { alignItems: "flex-end", marginBottom: 16 },
+  invSubtotalRow: { flexDirection: "row", justifyContent: "space-between", width: 240, paddingVertical: 3, borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid" },
+  subtotalLabel: { fontSize: 8, color: GRAY },
+  subtotalValue: { fontSize: 8, textAlign: "right" },
+  totalBox: { backgroundColor: "#f0f4ff", padding: 12, borderRadius: 6, alignItems: "flex-end", marginBottom: 16 },
+  totalBoxLabel: { fontSize: 8, color: GRAY, marginBottom: 3 },
+  totalBoxAmount: { fontSize: 18, fontFamily: "Helvetica-Bold", color: NAVY },
+  notesBox: { backgroundColor: "#f9fafb", borderRadius: 6, padding: 10, marginBottom: 16 },
+  notesLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 4 },
+  notesText: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 },
+  remitBox: { borderWidth: 1, borderColor: BORDER, borderStyle: "solid", borderRadius: 6, padding: 12, marginBottom: 8 },
+  remitLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 5 },
+  invFooter: {
+    position: "absolute", bottom: 30, left: 40, right: 40,
+    flexDirection: "row", justifyContent: "space-between",
+    borderTopWidth: 1, borderTopColor: BORDER, borderTopStyle: "solid", paddingTop: 6,
+  },
+  invFooterText: { fontSize: 7, color: LIGHT },
+});
+
+export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
+  const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const retainageHeld = data.retainageHeld ?? (data.retainagePct ? data.amount * data.retainagePct / 100 : 0);
+  const currentPaymentDue = data.amount - retainageHeld;
+  const lineItems = data.lineItems ?? [];
+
+  return (
+    <Document>
+      <Page size="LETTER" style={IS.page}>
+        {/* Header */}
+        <View style={IS.header}>
+          <View style={IS.brandBlock}>
+            <Text style={IS.brand}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={IS.company}>Oak Ridge Electrical</Text>
+            <Text style={IS.address}>76 Oak Ridge Road{"\n"}Weare, NH 03281{"\n"}oakridgeelectric@gmail.com</Text>
+          </View>
+          <View>
+            <Text style={IS.invoiceLabel}>INVOICE</Text>
+            <Text style={IS.invoiceNum}>#{String(data.invoiceNumber).padStart(3, "0")}</Text>
+            <Text style={IS.invoiceDate}>Date: {fmtDate(data.invoiceDate)}</Text>
+            {data.periodTo ? <Text style={IS.invoiceDate}>Period To: {fmtDate(data.periodTo)}</Text> : null}
+          </View>
+        </View>
+        <View style={IS.divider} />
+
+        {/* Bill To + Job Info */}
+        <View style={IS.twoCol}>
+          <View style={IS.col}>
+            <Text style={IS.colLabel}>BILL TO</Text>
+            {data.gcCompany ? <Text style={IS.colValueBold}>{data.gcCompany}</Text> : null}
+            {data.gcContactName ? <Text style={IS.colValue}>{data.gcContactName}</Text> : null}
+            {data.gcEmail ? <Text style={IS.colValue}>{data.gcEmail}</Text> : null}
+          </View>
+          <View style={IS.col}>
+            <Text style={IS.colLabel}>PROJECT</Text>
+            <Text style={IS.colValueBold}>{data.jobName}</Text>
+            <Text style={IS.colValue}>Job #{data.jobNumber}</Text>
+            {data.address ? <Text style={IS.colValue}>{data.address}{data.city ? `, ${data.city}` : ""}{data.state ? `, ${data.state}` : ""}</Text> : null}
+            {data.contractStartDate ? <Text style={IS.colValue}>Contract Date: {fmtDate(data.contractStartDate)}</Text> : null}
+          </View>
+        </View>
+
+        {/* Line Items */}
+        {lineItems.length > 0 ? (
+          <View style={IS.table}>
+            <View style={IS.tableHead}>
+              <Text style={IS.colDescH}>Description</Text>
+              <Text style={IS.colAmtH}>Amount</Text>
+            </View>
+            {lineItems.map((li, i) => (
+              <View key={i} style={IS.tableRow}>
+                <Text style={IS.colDesc}>{li.label}</Text>
+                <Text style={[IS.colAmt, { color: "#1a1a1a" }]}>{fmt$(li.amount)}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Subtotals */}
+        <View style={IS.subtotalSection}>
+          {data.previouslyInvoiced > 0 ? (
+            <View style={IS.invSubtotalRow}>
+              <Text style={IS.subtotalLabel}>Previously Invoiced</Text>
+              <Text style={IS.subtotalValue}>({fmt$(data.previouslyInvoiced)})</Text>
+            </View>
+          ) : null}
+          {retainageHeld > 0 ? (
+            <View style={IS.invSubtotalRow}>
+              <Text style={IS.subtotalLabel}>Retainage ({data.retainagePct ?? 0}%)</Text>
+              <Text style={IS.subtotalValue}>({fmt$(retainageHeld)})</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Total box */}
+        <View style={IS.totalBox}>
+          <Text style={IS.totalBoxLabel}>{retainageHeld > 0 ? "Current Payment Due" : "Amount Due"}</Text>
+          <Text style={IS.totalBoxAmount}>{fmt$(retainageHeld > 0 ? currentPaymentDue : data.amount)}</Text>
+        </View>
+
+        {/* Notes */}
+        {data.notes ? (
+          <View style={IS.notesBox}>
+            <Text style={IS.notesLabel}>NOTES</Text>
+            <Text style={IS.notesText}>{data.notes}</Text>
+          </View>
+        ) : null}
+
+        {/* Remit to */}
+        <View style={IS.remitBox}>
+          <Text style={IS.remitLabel}>REMIT PAYMENT TO</Text>
+          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>Oak Ridge Electrical LLC</Text>
+          <Text style={{ fontSize: 9, color: GRAY, lineHeight: 1.5 }}>76 Oak Ridge Road{"\n"}Weare, NH 03281</Text>
+        </View>
+
+        <View style={IS.invFooter} fixed>
+          <Text style={IS.invFooterText}>Oak Ridge Electrical LLC · oakridgeelectric@gmail.com</Text>
+          <Text style={IS.invFooterText}>Generated {today}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+// ── AIA G702 / G703 ───────────────────────────────────────────────────────────
+
+export type AiaData = {
+  jobNumber: string;
+  jobName: string;
+  ownerName: string | null;
+  gcCompany: string | null;
+  gcContactName: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  contractStartDate: Date | string | null;
+  applicationNo: number;
+  invoiceDate: Date | string;
+  periodTo: Date | string | null;
+  originalContractSum: number;
+  netChangeByChangeOrders: number;
+  contractSumToDate: number;
+  totalCompletedAndStored: number;
+  retainagePct: number;
+  previousCertificates: number;
+  currentPaymentDue: number;
+  balanceToFinish: number;
+  lineItems: {
+    no: number;
+    description: string;
+    scheduledValue: number;
+    previouslyBilled: number;
+    thisPeriod: number;
+    stored: number;
+  }[];
+  notes: string | null;
+};
+
+const AS = StyleSheet.create({
+  page: { fontFamily: "Helvetica", fontSize: 8, padding: 36, color: "#1a1a1a" },
+  title: { fontSize: 11, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 2 },
+  subtitle: { fontSize: 8, color: GRAY, marginBottom: 12 },
+  aiaBox: { borderWidth: 1, borderColor: "#ccc", borderStyle: "solid", padding: 8, marginBottom: 8, borderRadius: 3, flex: 1 },
+  aiaBoxTitle: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 4 },
+  aiaRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  aiaLineRow: { flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid", paddingVertical: 3 },
+  aiaLineLabel: { fontSize: 8, color: GRAY, flex: 1 },
+  aiaLineNum: { fontSize: 8, fontFamily: "Helvetica-Bold", textAlign: "right", width: 90 },
+  aiaLineNumBlue: { fontSize: 8, fontFamily: "Helvetica-Bold", textAlign: "right", width: 90, color: NAVY },
+  aiaSectionHeader: { fontSize: 9, fontFamily: "Helvetica-Bold", color: NAVY, marginTop: 12, marginBottom: 6, borderBottomWidth: 2, borderBottomColor: NAVY, borderBottomStyle: "solid", paddingBottom: 3 },
+  g703Head: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: NAVY, borderBottomStyle: "solid", paddingBottom: 3, marginBottom: 2 },
+  g703Row: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid", paddingVertical: 4 },
+  g703No:   { width: 20, fontSize: 7 },
+  g703Desc: { flex: 1, fontSize: 7 },
+  g703Sv:   { width: 60, fontSize: 7, textAlign: "right" },
+  g703Prev: { width: 60, fontSize: 7, textAlign: "right" },
+  g703This: { width: 60, fontSize: 7, textAlign: "right" },
+  g703Stor: { width: 50, fontSize: 7, textAlign: "right" },
+  g703Tot:  { width: 60, fontSize: 7, textAlign: "right" },
+  g703Pct:  { width: 30, fontSize: 7, textAlign: "right" },
+  g703Bal:  { width: 60, fontSize: 7, textAlign: "right" },
+  aiaFooter: {
+    position: "absolute", bottom: 28, left: 36, right: 36,
+    flexDirection: "row", justifyContent: "space-between",
+    borderTopWidth: 1, borderTopColor: BORDER, borderTopStyle: "solid", paddingTop: 5,
+  },
+  aiaFooterText: { fontSize: 7, color: LIGHT },
+});
+
+export function AiaDoc({ data }: { data: AiaData }) {
+  const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const retainageHeld = data.totalCompletedAndStored * (data.retainagePct / 100);
+  const totalEarnedLessRetainage = data.totalCompletedAndStored - retainageHeld;
+  const lineItems = data.lineItems ?? [];
+
+  return (
+    <Document>
+      {/* Page 1 — G702 */}
+      <Page size="LETTER" style={AS.page}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+          <View>
+            <Text style={AS.title}>AIA Document G702</Text>
+            <Text style={AS.subtitle}>Application and Certificate for Payment</Text>
+            <Text style={{ fontSize: 7, color: LIGHT }}>Oak Ridge Electrical LLC · 76 Oak Ridge Rd, Weare NH 03281</Text>
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: NAVY }}>Application No: {data.applicationNo}</Text>
+            <Text style={{ fontSize: 8, color: GRAY }}>Date: {fmtDate(data.invoiceDate)}</Text>
+            {data.periodTo ? <Text style={{ fontSize: 8, color: GRAY }}>Period To: {fmtDate(data.periodTo)}</Text> : null}
+          </View>
+        </View>
+
+        <View style={AS.aiaRow}>
+          <View style={AS.aiaBox}>
+            <Text style={AS.aiaBoxTitle}>PROJECT</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>{data.jobName}</Text>
+            <Text style={{ fontSize: 8, color: GRAY }}>Job #{data.jobNumber}</Text>
+            {data.address ? <Text style={{ fontSize: 8, color: GRAY }}>{data.address}{data.city ? `, ${data.city}` : ""}{data.state ? `, ${data.state}` : ""}</Text> : null}
+          </View>
+          <View style={AS.aiaBox}>
+            <Text style={AS.aiaBoxTitle}>TO OWNER / VIA</Text>
+            {data.ownerName ? <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>{data.ownerName}</Text> : null}
+            {data.gcCompany ? <Text style={{ fontSize: 8, color: GRAY }}>Via: {data.gcCompany}</Text> : null}
+            {data.gcContactName ? <Text style={{ fontSize: 8, color: GRAY }}>{data.gcContactName}</Text> : null}
+          </View>
+          <View style={AS.aiaBox}>
+            <Text style={AS.aiaBoxTitle}>FROM CONTRACTOR</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>Oak Ridge Electrical LLC</Text>
+            <Text style={{ fontSize: 8, color: GRAY }}>76 Oak Ridge Road, Weare NH 03281</Text>
+            {data.contractStartDate ? <Text style={{ fontSize: 8, color: GRAY }}>Contract: {fmtDate(data.contractStartDate)}</Text> : null}
+          </View>
+        </View>
+
+        <Text style={AS.aiaSectionHeader}>CONTRACTOR{"'"}S APPLICATION FOR PAYMENT</Text>
+
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>1. Original Contract Sum</Text>
+          <Text style={AS.aiaLineNum}>{fmt$(data.originalContractSum)}</Text>
+        </View>
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>2. Net Change by Change Orders</Text>
+          <Text style={AS.aiaLineNum}>{fmt$(data.netChangeByChangeOrders)}</Text>
+        </View>
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>3. Contract Sum to Date (1 + 2)</Text>
+          <Text style={AS.aiaLineNumBlue}>{fmt$(data.contractSumToDate)}</Text>
+        </View>
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>4. Total Completed {"&"} Stored to Date (Column G on G703)</Text>
+          <Text style={AS.aiaLineNum}>{fmt$(data.totalCompletedAndStored)}</Text>
+        </View>
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>5. Retainage ({data.retainagePct}%)</Text>
+          <Text style={AS.aiaLineNum}>{fmt$(retainageHeld)}</Text>
+        </View>
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>6. Total Earned Less Retainage (4 - 5)</Text>
+          <Text style={AS.aiaLineNumBlue}>{fmt$(totalEarnedLessRetainage)}</Text>
+        </View>
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>7. Less Previous Certificates for Payment</Text>
+          <Text style={AS.aiaLineNum}>({fmt$(data.previousCertificates)})</Text>
+        </View>
+        <View style={[AS.aiaLineRow, { borderBottomWidth: 2, borderBottomColor: NAVY }]}>
+          <Text style={[AS.aiaLineLabel, { fontFamily: "Helvetica-Bold" }]}>8. CURRENT PAYMENT DUE (6 - 7)</Text>
+          <Text style={[AS.aiaLineNumBlue, { fontSize: 11 }]}>{fmt$(data.currentPaymentDue)}</Text>
+        </View>
+        <View style={AS.aiaLineRow}>
+          <Text style={AS.aiaLineLabel}>9. Balance to Finish, Including Retainage (3 - 6)</Text>
+          <Text style={AS.aiaLineNum}>{fmt$(data.balanceToFinish)}</Text>
+        </View>
+
+        {data.notes ? (
+          <View style={{ marginTop: 12, backgroundColor: "#f9fafb", borderRadius: 4, padding: 8 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 4 }}>NOTES</Text>
+            <Text style={{ fontSize: 8, color: "#1a1a1a", lineHeight: 1.5 }}>{data.notes}</Text>
+          </View>
+        ) : null}
+
+        <View style={{ marginTop: 16, flexDirection: "row", gap: 24 }}>
+          <View style={{ flex: 1, borderTopWidth: 1, borderTopColor: "#aaa", borderTopStyle: "solid", paddingTop: 6 }}>
+            <Text style={{ fontSize: 7, color: GRAY }}>Contractor Signature</Text>
+            <View style={{ height: 28 }} />
+            <Text style={{ fontSize: 8 }}>Oak Ridge Electrical LLC</Text>
+            <Text style={{ fontSize: 7, color: LIGHT }}>Date: _______________</Text>
+          </View>
+          <View style={{ flex: 1, borderTopWidth: 1, borderTopColor: "#aaa", borderTopStyle: "solid", paddingTop: 6 }}>
+            <Text style={{ fontSize: 7, color: GRAY }}>Architect / Owner Certification</Text>
+            <View style={{ height: 28 }} />
+            <Text style={{ fontSize: 7, color: LIGHT }}>Date: _______________</Text>
+          </View>
+        </View>
+
+        <View style={AS.aiaFooter} fixed>
+          <Text style={AS.aiaFooterText}>AIA G702 — Oak Ridge Electrical LLC — Job #{data.jobNumber}</Text>
+          <Text style={AS.aiaFooterText}>Generated {today}</Text>
+        </View>
+      </Page>
+
+      {/* Page 2 — G703 Continuation Sheet */}
+      {lineItems.length > 0 ? (
+        <Page size="LETTER" style={AS.page}>
+          <Text style={AS.title}>AIA Document G703</Text>
+          <Text style={AS.subtitle}>Continuation Sheet — Application No: {data.applicationNo} · {data.jobName} (#{data.jobNumber})</Text>
+
+          <View style={AS.g703Head}>
+            <Text style={AS.g703No}>A</Text>
+            <Text style={AS.g703Desc}>B — Description of Work</Text>
+            <Text style={AS.g703Sv}>C — Sched. Value</Text>
+            <Text style={AS.g703Prev}>D — Prev. Billed</Text>
+            <Text style={AS.g703This}>E — This Period</Text>
+            <Text style={AS.g703Stor}>F — Stored</Text>
+            <Text style={AS.g703Tot}>G — Total</Text>
+            <Text style={AS.g703Pct}>%</Text>
+            <Text style={AS.g703Bal}>H — Balance</Text>
+          </View>
+
+          {lineItems.map((li) => {
+            const total = li.previouslyBilled + li.thisPeriod + li.stored;
+            const pct = li.scheduledValue > 0 ? Math.round((total / li.scheduledValue) * 100) : 0;
+            const balance = li.scheduledValue - total;
+            return (
+              <View key={li.no} style={AS.g703Row}>
+                <Text style={AS.g703No}>{li.no}</Text>
+                <Text style={AS.g703Desc}>{li.description}</Text>
+                <Text style={AS.g703Sv}>{fmt$(li.scheduledValue)}</Text>
+                <Text style={AS.g703Prev}>{fmt$(li.previouslyBilled)}</Text>
+                <Text style={AS.g703This}>{fmt$(li.thisPeriod)}</Text>
+                <Text style={AS.g703Stor}>{fmt$(li.stored)}</Text>
+                <Text style={AS.g703Tot}>{fmt$(total)}</Text>
+                <Text style={AS.g703Pct}>{pct}%</Text>
+                <Text style={AS.g703Bal}>{fmt$(balance)}</Text>
+              </View>
+            );
+          })}
+
+          <View style={[AS.g703Row, { borderBottomWidth: 2, borderBottomColor: NAVY, backgroundColor: "#f0f4ff" }]}>
+            <Text style={[AS.g703No, { fontFamily: "Helvetica-Bold" }]} />
+            <Text style={[AS.g703Desc, { fontFamily: "Helvetica-Bold", fontSize: 8 }]}>GRAND TOTAL</Text>
+            <Text style={[AS.g703Sv, { fontFamily: "Helvetica-Bold", fontSize: 8, color: NAVY }]}>
+              {fmt$(lineItems.reduce((s, li) => s + li.scheduledValue, 0))}
+            </Text>
+            <Text style={[AS.g703Prev, { fontFamily: "Helvetica-Bold", fontSize: 8 }]}>
+              {fmt$(lineItems.reduce((s, li) => s + li.previouslyBilled, 0))}
+            </Text>
+            <Text style={[AS.g703This, { fontFamily: "Helvetica-Bold", fontSize: 8, color: NAVY }]}>
+              {fmt$(lineItems.reduce((s, li) => s + li.thisPeriod, 0))}
+            </Text>
+            <Text style={[AS.g703Stor, { fontFamily: "Helvetica-Bold", fontSize: 8 }]}>
+              {fmt$(lineItems.reduce((s, li) => s + li.stored, 0))}
+            </Text>
+            <Text style={[AS.g703Tot, { fontFamily: "Helvetica-Bold", fontSize: 8, color: NAVY }]}>
+              {fmt$(lineItems.reduce((s, li) => s + li.previouslyBilled + li.thisPeriod + li.stored, 0))}
+            </Text>
+            <Text style={[AS.g703Pct, { fontFamily: "Helvetica-Bold", fontSize: 8 }]}>
+              {lineItems.reduce((s, li) => s + li.scheduledValue, 0) > 0
+                ? Math.round((lineItems.reduce((s, li) => s + li.previouslyBilled + li.thisPeriod + li.stored, 0) / lineItems.reduce((s, li) => s + li.scheduledValue, 0)) * 100)
+                : 0}%
+            </Text>
+            <Text style={[AS.g703Bal, { fontFamily: "Helvetica-Bold", fontSize: 8 }]}>
+              {fmt$(lineItems.reduce((s, li) => s + li.scheduledValue - li.previouslyBilled - li.thisPeriod - li.stored, 0))}
+            </Text>
+          </View>
+
+          <View style={AS.aiaFooter} fixed>
+            <Text style={AS.aiaFooterText}>AIA G703 — Oak Ridge Electrical LLC — Job #{data.jobNumber}</Text>
+            <Text style={AS.aiaFooterText}>Generated {today}</Text>
+          </View>
+        </Page>
+      ) : null}
+    </Document>
+  );
+}

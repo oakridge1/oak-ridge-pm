@@ -5,18 +5,35 @@ import { useRouter } from "next/navigation";
 import {
   DollarSign, Clock, Package, BarChart3, TrendingUp,
   Edit2, Save, X, Plus, Trash2, CreditCard, RefreshCw,
+  FileText, ChevronDown, ChevronUp, Send, CheckCircle2,
 } from "lucide-react";
 import {
   updateDirectCosts, updateMarkups,
   addOtherCost, deleteOtherCost,
   addPayment, deletePayment,
   updateContractBudget,
+  createInvoice, updateInvoiceStatus, deleteInvoice,
 } from "./summary-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
 
 type OtherCost = { id: string; description: string; amount: number };
-type PaymentEntry = { id: string; date: Date; amount: number; note: string | null };
+type PaymentEntry = {
+  id: string; date: Date; amount: number; note: string | null;
+  checkNumber: string | null; reference: string | null;
+  includesRetainageRelease: boolean;
+  invoice: { id: string; invoiceNumber: number } | null;
+};
+type InvoiceEntry = {
+  id: string; invoiceNumber: number; type: "STANDARD" | "AIA";
+  date: Date; periodTo: Date | null; applicationNo: number | null;
+  status: "DRAFT" | "SENT" | "PARTIALLY_PAID" | "PAID";
+  amount: number; retainagePct: number | null; retainageHeld: number | null;
+  lineItems: unknown; notes: string | null;
+  payments: { id: string; amount: number }[];
+};
 type ChangeOrder = { id: string; status: string; approvedValue: number | null };
+
+type LineItem = { label: string; amount: number };
 
 interface SummaryTabProps {
   job: {
@@ -38,6 +55,7 @@ interface SummaryTabProps {
     materials: { amount: number }[];
     changeOrders: ChangeOrder[];
     payments: PaymentEntry[];
+    invoices: InvoiceEntry[];
   };
   role: Role;
 }
@@ -85,6 +103,19 @@ function Row({ label, value, sub, accent, negative, bold }: {
       </span>
     </div>
   );
+}
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: InvoiceEntry["status"] }) {
+  const map: Record<InvoiceEntry["status"], { label: string; cls: string }> = {
+    DRAFT:         { label: "Draft",         cls: "bg-gray-100 text-gray-600" },
+    SENT:          { label: "Sent",           cls: "bg-blue-100 text-blue-700" },
+    PARTIALLY_PAID:{ label: "Partial",        cls: "bg-orange-100 text-orange-700" },
+    PAID:          { label: "Paid",           cls: "bg-green-100 text-green-700" },
+  };
+  const { label, cls } = map[status];
+  return <span className={`inline-flex text-xs font-semibold px-2 py-0.5 rounded-full ${cls}`}>{label}</span>;
 }
 
 // ── Direct Costs Card ─────────────────────────────────────────────────────────
@@ -143,7 +174,6 @@ function DirectCostsCard({ job, role, computed }: {
     <SectionCard icon={<DollarSign className="w-4 h-4" />} title="Direct Costs">
       {error && <p className="text-xs text-red-500 py-2">{error}</p>}
 
-      {/* Edit / Save toolbar — ADMIN only */}
       {role === "ADMIN" && (
         <div className="flex items-center justify-end gap-2 pt-3 pb-1 border-b border-gray-100 mb-1">
           {!editing ? (
@@ -188,8 +218,7 @@ function DirectCostsCard({ job, role, computed }: {
       </div>
 
       {/* Materials row */}
-      <Row label="Materials" value={fmt$(computed.materialsCost)}
-        sub="From Materials tab" />
+      <Row label="Materials" value={fmt$(computed.materialsCost)} sub="From Materials tab" />
 
       {/* Subcontractors */}
       <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
@@ -369,99 +398,6 @@ function MarkupsCard({ job, role, computed }: {
   );
 }
 
-// ── Payment Log Card ──────────────────────────────────────────────────────────
-
-function PaymentLogCard({ job, role, revisedContract }: {
-  job: SummaryTabProps["job"]; role: Role; revisedContract: number;
-}) {
-  const [showForm, setShowForm] = useState(false);
-  const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
-  const [amountInput, setAmountInput] = useState("");
-  const [noteInput, setNoteInput] = useState("");
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  const payments = job.payments.map(p => ({ ...p, date: new Date(p.date) }));
-  const totalBilled = payments.reduce((s, p) => s + p.amount, 0);
-  const balance = revisedContract - totalBilled;
-
-  function handleAdd() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        await addPayment(job.id, dateInput, amountInput, noteInput);
-        setAmountInput(""); setNoteInput(""); setShowForm(false);
-      } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
-    });
-  }
-
-  return (
-    <SectionCard icon={<CreditCard className="w-4 h-4" />} title="Payment Log">
-      {error && <p className="text-xs text-red-500 py-2">{error}</p>}
-
-      {payments.length === 0 ? (
-        <p className="text-sm text-gray-400 py-3">No payments recorded yet.</p>
-      ) : (
-        payments.map(p => (
-          <div key={p.id} className="flex items-start gap-3 py-2.5 border-b border-gray-100">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900">{fmt$(p.amount)}</p>
-              <p className="text-xs text-gray-400">{fmtDate(p.date)}{p.note ? ` · ${p.note}` : ""}</p>
-            </div>
-            {role === "ADMIN" && (
-              <button onClick={() => startTransition(() => deletePayment(p.id, job.id))}
-                className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        ))
-      )}
-
-      {role === "ADMIN" && (
-        showForm ? (
-          <div className="py-3 space-y-2 border-b border-gray-100">
-            <div className="grid grid-cols-2 gap-2">
-              <input type="date" value={dateInput} onChange={e => setDateInput(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
-              <input type="number" value={amountInput} onChange={e => setAmountInput(e.target.value)}
-                placeholder="Amount" step="0.01" min="0"
-                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
-              <input value={noteInput} onChange={e => setNoteInput(e.target.value)}
-                placeholder="Note (optional)" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => { setShowForm(false); setError(null); }} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-              <button onClick={handleAdd} disabled={pending || !amountInput}
-                className="bg-[#002D72] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
-                {pending ? "Saving…" : "Add Payment"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="py-2.5 border-b border-gray-100">
-            <button onClick={() => setShowForm(true)}
-              className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
-              <Plus className="w-3.5 h-3.5" /> Record Payment
-            </button>
-          </div>
-        )
-      )}
-
-      <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-        <p className="text-sm font-bold text-gray-900">Total Billed to Date</p>
-        <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalBilled)}</span>
-      </div>
-      <div className="flex items-center justify-between py-3">
-        <p className="text-sm font-bold text-gray-900">Balance Remaining to Bill</p>
-        <span className={`text-sm font-bold tabular-nums ${balance < 0 ? "text-red-600" : "text-green-700"}`}>
-          {fmt$(balance)}
-        </span>
-      </div>
-    </SectionCard>
-  );
-}
-
 // ── Contract & Billing Card ───────────────────────────────────────────────────
 
 function ContractBillingCard({ job, role, computed }: {
@@ -583,13 +519,459 @@ function ContractBillingCard({ job, role, computed }: {
   );
 }
 
+// ── Invoice Log Card ──────────────────────────────────────────────────────────
+
+function InvoiceLogCard({ job, role, grossBilling, computed }: {
+  job: SummaryTabProps["job"];
+  role: Role;
+  grossBilling: number;
+  computed: {
+    laborCost: number | null;
+    materialsCost: number;
+    subCost: number;
+    equipmentCost: number;
+    otherTotal: number;
+    laborMarkup: number | null;
+    subMarkup: number;
+    equipMarkup: number;
+  };
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
+  const [showPayForm, setShowPayForm] = useState<string | null>(null); // invoiceId
+
+  // New invoice form state
+  const [invType, setInvType] = useState<"STANDARD" | "AIA">("STANDARD");
+  const [invDate, setInvDate] = useState(new Date().toISOString().slice(0, 10));
+  const [invPeriodTo, setInvPeriodTo] = useState("");
+  const [invAppNo, setInvAppNo] = useState("");
+  const [invAmount, setInvAmount] = useState(grossBilling.toFixed(2));
+  const [invRetainagePct, setInvRetainagePct] = useState("0");
+  const [invNotes, setInvNotes] = useState("");
+
+  // Payment form state
+  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payAmount, setPayAmount] = useState("");
+  const [payCheck, setPayCheck] = useState("");
+  const [payRef, setPayRef] = useState("");
+  const [payRetainage, setPayRetainage] = useState(false);
+  const [payNote, setPayNote] = useState("");
+
+  const invoices = job.invoices.map(inv => ({ ...inv, date: new Date(inv.date), periodTo: inv.periodTo ? new Date(inv.periodTo) : null }));
+  const totalInvoiced = invoices.reduce((s, inv) => s + inv.amount, 0);
+  const totalPaid = job.payments.reduce((s, p) => s + p.amount, 0);
+  const outstanding = totalInvoiced - totalPaid;
+
+  // Auto-generate line items from computed values
+  function buildLineItems(): LineItem[] {
+    const items: LineItem[] = [];
+    if (computed.laborCost != null) {
+      const laborTotal = (computed.laborCost ?? 0) + (computed.laborMarkup ?? 0);
+      if (laborTotal > 0) items.push({ label: "Labor" + (job.laborMarkupPct ? ` (incl. ${job.laborMarkupPct}% markup)` : ""), amount: laborTotal });
+    }
+    if (computed.materialsCost > 0) items.push({ label: "Materials", amount: computed.materialsCost });
+    if (computed.subCost > 0) {
+      const subTotal = computed.subCost + computed.subMarkup;
+      items.push({ label: "Subcontractors" + (job.subMarkupPct ? ` (incl. ${job.subMarkupPct}% markup)` : ""), amount: subTotal });
+    }
+    if (computed.equipmentCost > 0) {
+      const equipTotal = computed.equipmentCost + computed.equipMarkup;
+      items.push({ label: "Equipment Rental" + (job.equipmentMarkupPct ? ` (incl. ${job.equipmentMarkupPct}% markup)` : ""), amount: equipTotal });
+    }
+    const otherCosts = (job.otherCosts as OtherCost[] | null) ?? [];
+    for (const oc of otherCosts) {
+      items.push({ label: oc.description, amount: oc.amount });
+    }
+    return items;
+  }
+
+  function handleCreate() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await createInvoice(job.id, {
+          type: invType,
+          date: invDate,
+          periodTo: invPeriodTo,
+          applicationNo: invAppNo,
+          amount: invAmount,
+          retainagePct: invRetainagePct,
+          notes: invNotes,
+          lineItems: buildLineItems(),
+        });
+        setShowForm(false);
+        setInvAmount(grossBilling.toFixed(2));
+        setInvNotes(""); setInvPeriodTo(""); setInvAppNo(""); setInvRetainagePct("0");
+      } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
+    });
+  }
+
+  function handleMarkSent(invoiceId: string) {
+    startTransition(async () => {
+      try {
+        await updateInvoiceStatus(invoiceId, job.id, "SENT");
+      } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
+    });
+  }
+
+  function handleDelete(invoiceId: string) {
+    if (!confirm("Delete this draft invoice?")) return;
+    startTransition(async () => {
+      try {
+        await deleteInvoice(invoiceId, job.id);
+      } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
+    });
+  }
+
+  function handleAddPayment(invoiceId: string) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await addPayment(job.id, payDate, payAmount, payNote, invoiceId, payCheck, payRef, payRetainage);
+        setShowPayForm(null);
+        setPayAmount(""); setPayCheck(""); setPayRef(""); setPayNote(""); setPayRetainage(false);
+      } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
+    });
+  }
+
+  return (
+    <SectionCard icon={<FileText className="w-4 h-4" />} title="Invoices">
+      {error && <p className="text-xs text-red-500 py-2">{error}</p>}
+
+      {/* Invoice list */}
+      {invoices.length === 0 ? (
+        <p className="text-sm text-gray-400 py-3">No invoices created yet.</p>
+      ) : (
+        invoices.map(inv => {
+          const invPaid = inv.payments.reduce((s, p) => s + p.amount, 0);
+          const isExpanded = expandedInvoice === inv.id;
+          const label = inv.type === "AIA"
+            ? `AIA Application #${inv.applicationNo ?? inv.invoiceNumber}`
+            : `Invoice #${String(inv.invoiceNumber).padStart(3, "0")}`;
+          const pdfUrl = inv.type === "AIA"
+            ? `/api/jobs/${job.id}/pdf/aia/${inv.id}`
+            : `/api/jobs/${job.id}/pdf/invoice/${inv.id}`;
+
+          return (
+            <div key={inv.id} className="border-b border-gray-100 last:border-b-0">
+              {/* Invoice header row */}
+              <div className="flex items-center gap-2 py-2.5">
+                <button onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}
+                  className="p-0.5 text-gray-400 hover:text-gray-700">
+                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-gray-900">{label}</span>
+                    <StatusBadge status={inv.status} />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {fmtDate(inv.date)}
+                    {inv.periodTo ? ` · Period to: ${fmtDate(inv.periodTo)}` : ""}
+                    {inv.retainagePct ? ` · ${inv.retainagePct}% retainage` : ""}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-gray-900 tabular-nums">{fmt$(inv.amount)}</p>
+                  {invPaid > 0 && (
+                    <p className="text-xs text-gray-400">{fmt$(invPaid)} paid</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Expanded actions */}
+              {isExpanded && (
+                <div className="pb-3 pl-6 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {/* PDF download */}
+                    <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+                      <FileText className="w-3.5 h-3.5" /> Download PDF
+                    </a>
+
+                    {/* Mark Sent */}
+                    {role === "ADMIN" && inv.status === "DRAFT" && (
+                      <button onClick={() => handleMarkSent(inv.id)} disabled={pending}
+                        className="flex items-center gap-1.5 text-xs font-medium text-blue-700 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-60">
+                        <Send className="w-3.5 h-3.5" /> Mark Sent
+                      </button>
+                    )}
+
+                    {/* Record Payment */}
+                    {role === "ADMIN" && inv.status !== "PAID" && inv.status !== "DRAFT" && (
+                      <button onClick={() => setShowPayForm(showPayForm === inv.id ? null : inv.id)}
+                        className="flex items-center gap-1.5 text-xs font-medium text-green-700 border border-green-200 px-2.5 py-1.5 rounded-lg hover:bg-green-50 transition-colors">
+                        <CreditCard className="w-3.5 h-3.5" /> Record Payment
+                      </button>
+                    )}
+
+                    {/* Mark Paid manually */}
+                    {role === "ADMIN" && (inv.status === "SENT" || inv.status === "PARTIALLY_PAID") && (
+                      <button onClick={() => startTransition(() => updateInvoiceStatus(inv.id, job.id, "PAID"))}
+                        disabled={pending}
+                        className="flex items-center gap-1.5 text-xs font-medium text-green-700 border border-green-200 px-2.5 py-1.5 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-60">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Mark Paid
+                      </button>
+                    )}
+
+                    {/* Delete draft */}
+                    {role === "ADMIN" && inv.status === "DRAFT" && (
+                      <button onClick={() => handleDelete(inv.id)} disabled={pending}
+                        className="flex items-center gap-1.5 text-xs font-medium text-red-600 border border-red-200 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-60">
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  {inv.notes && (
+                    <p className="text-xs text-gray-500 italic">{inv.notes}</p>
+                  )}
+
+                  {/* Payment form */}
+                  {showPayForm === inv.id && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-semibold text-green-800">Record Payment</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
+                          className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)}
+                          placeholder="Amount" step="0.01" min="0"
+                          className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        <input value={payCheck} onChange={e => setPayCheck(e.target.value)}
+                          placeholder="Check #" className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        <input value={payRef} onChange={e => setPayRef(e.target.value)}
+                          placeholder="Reference / ACH #" className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        <input value={payNote} onChange={e => setPayNote(e.target.value)}
+                          placeholder="Note (optional)" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-500" />
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input type="checkbox" checked={payRetainage} onChange={e => setPayRetainage(e.target.checked)}
+                          className="rounded" />
+                        Includes retainage release
+                      </label>
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => { setShowPayForm(null); setError(null); }}
+                          className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+                        <button onClick={() => handleAddPayment(inv.id)} disabled={pending || !payAmount}
+                          className="bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-800 disabled:opacity-60">
+                          {pending ? "Saving…" : "Save Payment"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+
+      {/* Create new invoice */}
+      {role === "ADMIN" && (
+        showForm ? (
+          <div className="py-3 space-y-3 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-700">New Invoice</p>
+            {/* Type toggle */}
+            <div className="flex gap-2">
+              {(["STANDARD", "AIA"] as const).map(t => (
+                <button key={t} onClick={() => setInvType(t)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    invType === t ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300 hover:border-[#002D72]/50"
+                  }`}>
+                  {t === "AIA" ? "AIA G702/G703" : "Standard"}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Invoice Date *</label>
+                <input type="date" value={invDate} onChange={e => setInvDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Amount *</label>
+                <input type="number" value={invAmount} onChange={e => setInvAmount(e.target.value)}
+                  step="0.01" min="0"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              </div>
+              {invType === "AIA" && (
+                <>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Period To</label>
+                    <input type="date" value={invPeriodTo} onChange={e => setInvPeriodTo(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Application No.</label>
+                    <input type="number" value={invAppNo} onChange={e => setInvAppNo(e.target.value)}
+                      placeholder="Auto"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  </div>
+                </>
+              )}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Retainage %</label>
+                <input type="number" value={invRetainagePct} onChange={e => setInvRetainagePct(e.target.value)}
+                  step="0.1" min="0" max="100" placeholder="0"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Notes</label>
+                <input value={invNotes} onChange={e => setInvNotes(e.target.value)}
+                  placeholder="Optional notes…"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              </div>
+            </div>
+            {parseFloat(invRetainagePct || "0") > 0 && parseFloat(invAmount || "0") > 0 && (
+              <p className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1.5">
+                Retainage held: {fmt$(parseFloat(invAmount) * parseFloat(invRetainagePct) / 100)} ·
+                Current Payment Due: {fmt$(parseFloat(invAmount) * (1 - parseFloat(invRetainagePct) / 100))}
+              </p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setShowForm(false); setError(null); }}
+                className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+              <button onClick={handleCreate} disabled={pending || !invDate || !invAmount}
+                className="bg-[#002D72] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                {pending ? "Creating…" : "Create Invoice"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-2.5 border-t border-gray-100">
+            <button onClick={() => setShowForm(true)}
+              className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+              <Plus className="w-3.5 h-3.5" /> Create Invoice
+            </button>
+          </div>
+        )
+      )}
+
+      {/* Totals */}
+      <div className="border-t border-gray-200 mt-1">
+        <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+          <p className="text-sm font-semibold text-gray-700">Total Invoiced</p>
+          <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalInvoiced)}</span>
+        </div>
+        <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+          <p className="text-sm font-semibold text-gray-700">Total Received</p>
+          <span className="text-sm font-bold text-green-700 tabular-nums">{fmt$(totalPaid)}</span>
+        </div>
+        <div className="flex items-center justify-between py-3">
+          <p className="text-sm font-bold text-gray-900">Outstanding Balance</p>
+          <span className={`text-sm font-bold tabular-nums ${outstanding < 0 ? "text-red-600" : outstanding === 0 ? "text-green-700" : "text-orange-600"}`}>
+            {fmt$(outstanding)}
+          </span>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+// ── Payment Log Card ──────────────────────────────────────────────────────────
+
+function PaymentLogCard({ job, role }: {
+  job: SummaryTabProps["job"]; role: Role;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
+  const [amountInput, setAmountInput] = useState("");
+  const [noteInput, setNoteInput] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const payments = job.payments.map(p => ({ ...p, date: new Date(p.date) }));
+
+  function handleAdd() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await addPayment(job.id, dateInput, amountInput, noteInput);
+        setAmountInput(""); setNoteInput(""); setShowForm(false);
+      } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
+    });
+  }
+
+  return (
+    <SectionCard icon={<CreditCard className="w-4 h-4" />} title="Payment Log">
+      {error && <p className="text-xs text-red-500 py-2">{error}</p>}
+
+      {payments.length === 0 ? (
+        <p className="text-sm text-gray-400 py-3">No payments recorded yet.</p>
+      ) : (
+        payments.map(p => (
+          <div key={p.id} className="flex items-start gap-3 py-2.5 border-b border-gray-100">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-medium text-gray-900">{fmt$(p.amount)}</p>
+                {p.invoice && (
+                  <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
+                    Inv #{String(p.invoice.invoiceNumber).padStart(3, "0")}
+                  </span>
+                )}
+                {p.includesRetainageRelease && (
+                  <span className="text-xs bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">Ret. Release</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {fmtDate(p.date)}
+                {p.checkNumber ? ` · Ck #${p.checkNumber}` : ""}
+                {p.reference ? ` · ${p.reference}` : ""}
+                {p.note ? ` · ${p.note}` : ""}
+              </p>
+            </div>
+            {role === "ADMIN" && (
+              <button onClick={() => startTransition(() => deletePayment(p.id, job.id))}
+                className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ))
+      )}
+
+      {role === "ADMIN" && (
+        showForm ? (
+          <div className="py-3 space-y-2 border-b border-gray-100">
+            <p className="text-xs text-gray-500">Use "Record Payment" on an invoice above to link it, or add a standalone payment here.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="date" value={dateInput} onChange={e => setDateInput(e.target.value)}
+                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+              <input type="number" value={amountInput} onChange={e => setAmountInput(e.target.value)}
+                placeholder="Amount" step="0.01" min="0"
+                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+              <input value={noteInput} onChange={e => setNoteInput(e.target.value)}
+                placeholder="Note (optional)" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setShowForm(false); setError(null); }} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+              <button onClick={handleAdd} disabled={pending || !amountInput}
+                className="bg-[#002D72] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                {pending ? "Saving…" : "Add Payment"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-2.5 border-b border-gray-100">
+            <button onClick={() => setShowForm(true)}
+              className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+              <Plus className="w-3.5 h-3.5" /> Add Standalone Payment
+            </button>
+          </div>
+        )
+      )}
+    </SectionCard>
+  );
+}
+
 // ── Main SummaryTab ───────────────────────────────────────────────────────────
 
 export function SummaryTab({ job, role }: SummaryTabProps) {
   const router = useRouter();
 
-  // Refresh server data every time this tab becomes active so totals reflect
-  // any labor/material entries added while on other tabs.
   useEffect(() => {
     router.refresh();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -620,9 +1002,6 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
   const grossBilling = totalDirectCosts + totalMarkup;
   const pctComplete = revisedContract > 0 ? (grossBilling / revisedContract) * 100 : 0;
 
-  const totalBilled = (job.payments ?? []).reduce((s, p) => s + p.amount, 0);
-  const balanceToBill = revisedContract - totalBilled;
-
   return (
     <div className="p-5 space-y-5">
       {/* Data freshness note + refresh */}
@@ -650,8 +1029,16 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
       {/* Contract & Billing */}
       <ContractBillingCard job={job} role={role} computed={{ approvedCOs, revisedContract, totalDirectCosts, totalMarkup, grossBilling, pctComplete }} />
 
+      {/* Invoice Log */}
+      <InvoiceLogCard
+        job={job}
+        role={role}
+        grossBilling={grossBilling}
+        computed={{ laborCost, materialsCost, subCost, equipmentCost, otherTotal, laborMarkup, subMarkup, equipMarkup }}
+      />
+
       {/* Payment Log */}
-      <PaymentLogCard job={job} role={role} revisedContract={revisedContract} />
+      <PaymentLogCard job={job} role={role} />
     </div>
   );
 }

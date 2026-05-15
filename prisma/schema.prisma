@@ -72,6 +72,18 @@ enum DocumentCategory {
   OTHER
 }
 
+enum InvoiceType {
+  STANDARD
+  AIA
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+}
+
 // ── Auth models (NextAuth Prisma adapter) ────────────────────────────────────
 
 model User {
@@ -101,6 +113,7 @@ model User {
   inspections    Inspection[]   @relation("InspectionCreator")
   rfis           Rfi[]          @relation("RfiSubmitter")
   documents      Document[]     @relation("DocumentUploader")
+  invoices       Invoice[]      @relation("InvoiceCreator")
 }
 
 model Account {
@@ -193,22 +206,55 @@ model Job {
   tasks          Task[]
   calendarEvents CalendarEvent[]
   payments       Payment[]
+  invoices       Invoice[]
   inspections    Inspection[]
   rfis           Rfi[]
   documents      Document[]
 }
 
+// ── Invoices ──────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id            String        @id @default(cuid())
+  jobId         String
+  createdById   String
+  invoiceNumber Int
+  type          InvoiceType   @default(STANDARD)
+  date          DateTime
+  periodTo      DateTime?
+  applicationNo Int?
+  status        InvoiceStatus @default(DRAFT)
+  amount        Decimal       @db.Decimal(12, 2)
+  retainagePct  Float?
+  retainageHeld Decimal?      @db.Decimal(12, 2)
+  lineItems     Json?
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  job       Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("InvoiceCreator", fields: [createdById], references: [id])
+  payments  Payment[]
+
+  @@unique([jobId, invoiceNumber])
+}
+
 // ── Payments ─────────────────────────────────────────────────────────────────
 
 model Payment {
-  id        String   @id @default(cuid())
-  jobId     String
-  date      DateTime
-  amount    Decimal  @db.Decimal(12, 2)
-  note      String?
-  createdAt DateTime @default(now())
+  id                       String   @id @default(cuid())
+  jobId                    String
+  invoiceId                String?
+  date                     DateTime
+  amount                   Decimal  @db.Decimal(12, 2)
+  checkNumber              String?
+  reference                String?
+  includesRetainageRelease Boolean  @default(false)
+  note                     String?
+  createdAt                DateTime @default(now())
 
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job     Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 }
 
 // ── Labor ────────────────────────────────────────────────────────────────────

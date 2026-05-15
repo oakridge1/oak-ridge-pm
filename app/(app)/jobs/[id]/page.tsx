@@ -13,7 +13,7 @@ export default async function JobPage({ params }: PageProps) {
   const session = await auth();
   if (!session?.user?.active) redirect("/login");
 
-  const [job, fieldUsers] = await Promise.all([
+  const [job, fieldUsers, allCalendarEvents] = await Promise.all([
     prisma.job.findUnique({
       where: { id },
       include: {
@@ -52,6 +52,11 @@ export default async function JobPage({ params }: PageProps) {
         },
         payments: {
           orderBy: { date: "desc" },
+          include: { invoice: { select: { id: true, invoiceNumber: true } } },
+        },
+        invoices: {
+          orderBy: { invoiceNumber: "asc" },
+          include: { createdBy: { select: { name: true } }, payments: { select: { id: true, amount: true } } },
         },
         inspections: {
           orderBy: { createdAt: "asc" },
@@ -71,6 +76,14 @@ export default async function JobPage({ params }: PageProps) {
       where: { active: true },
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
+    }),
+    prisma.calendarEvent.findMany({
+      where: { job: { status: { in: ["ACTIVE", "ON_HOLD"] } } },
+      orderBy: { date: "asc" },
+      include: {
+        user: { select: { name: true } },
+        job: { select: { id: true, jobName: true, jobNumber: true, calendarColor: true } },
+      },
     }),
   ]);
 
@@ -96,6 +109,12 @@ export default async function JobPage({ params }: PageProps) {
       approvedValue: co.approvedValue?.toNumber() ?? null,
     })),
     payments: job.payments.map((p) => ({ ...p, amount: p.amount.toNumber() })),
+    invoices: job.invoices.map((inv) => ({
+      ...inv,
+      amount: inv.amount.toNumber(),
+      retainageHeld: inv.retainageHeld?.toNumber() ?? null,
+      payments: inv.payments.map((p) => ({ ...p, amount: p.amount.toNumber() })),
+    })),
   };
 
   const canViewReports = session.user.role === "ADMIN" || session.user.role === "OFFICE";
@@ -145,6 +164,7 @@ export default async function JobPage({ params }: PageProps) {
         currentUserName={session.user.name ?? "Unknown"}
         fieldUsers={fieldUsers}
         savedTasks={savedTasks}
+        allCalendarEvents={allCalendarEvents}
       />
     </div>
   );

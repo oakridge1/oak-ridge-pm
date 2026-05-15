@@ -30,15 +30,21 @@ type Task = {
   status: string;
 };
 
+type AllJobEvent = CalEvent & {
+  job: { id: string; jobName: string; jobNumber: string; calendarColor: string | null } | null;
+};
+
 interface CalendarTabProps {
   job: {
     id: string;
+    jobNumber: string;
     completionDate: Date | null;
     calendarEvents: CalEvent[];
     tasks: Task[];
   };
   role: Role;
   currentUserId: string;
+  allCalendarEvents?: AllJobEvent[];
 }
 
 const EVENT_TYPE_COLORS: Record<CalendarEventType, string> = {
@@ -131,7 +137,7 @@ function buildAllEvents(
   return events;
 }
 
-export function CalendarTab({ job, role, currentUserId }: CalendarTabProps) {
+export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }: CalendarTabProps) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth()); // 0-indexed
@@ -140,8 +146,19 @@ export function CalendarTab({ job, role, currentUserId }: CalendarTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [recurrenceType, setRecurrenceType] = useState("NONE");
+  const [viewMode, setViewMode] = useState<"job" | "company">("job");
 
-  const allEvents = buildAllEvents(job.calendarEvents, job.tasks, job.completionDate, year, month);
+  // Build company-wide events by adapting AllJobEvent to CalEvent
+  const companyCalEvents: CalEvent[] = allCalendarEvents.map((e) => ({
+    ...e,
+    title: e.job ? `${e.job.jobNumber} — ${e.title}` : e.title,
+  }));
+
+  const activeEvents = viewMode === "company" ? companyCalEvents : job.calendarEvents;
+  const activeTasks = viewMode === "company" ? [] : job.tasks;
+  const activeCompletionDate = viewMode === "company" ? null : job.completionDate;
+
+  const allEvents = buildAllEvents(activeEvents, activeTasks, activeCompletionDate, year, month);
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11); }
@@ -186,6 +203,26 @@ export function CalendarTab({ job, role, currentUserId }: CalendarTabProps) {
 
   return (
     <div className="p-5">
+      {/* View toggle */}
+      <div className="flex items-center gap-1 mb-4 bg-gray-100 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setViewMode("job")}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            viewMode === "job" ? "bg-white text-[#002D72] shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          This Job
+        </button>
+        <button
+          onClick={() => setViewMode("company")}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            viewMode === "company" ? "bg-white text-[#002D72] shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          All Jobs
+        </button>
+      </div>
+
       {/* Month navigation */}
       <div className="flex items-center justify-between mb-4">
         <button

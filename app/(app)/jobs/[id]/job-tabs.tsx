@@ -78,6 +78,7 @@ interface JobTabsProps {
   currentUserName: string;
   fieldUsers: { id: string; name: string | null; role: Role }[];
   savedTasks: { id: string; title: string; description: string | null; sortOrder: number }[];
+  allCalendarEvents?: any[];
 }
 
 export function JobTabs({
@@ -87,6 +88,7 @@ export function JobTabs({
   currentUserName,
   fieldUsers,
   savedTasks,
+  allCalendarEvents = [],
 }: JobTabsProps) {
   const [activeTab, setActiveTab] = useState("info");
 
@@ -154,6 +156,7 @@ export function JobTabs({
             job={job}
             role={role}
             currentUserId={currentUserId}
+            allCalendarEvents={allCalendarEvents}
           />
         )}
         {activeTab === "inspections" && (
