@@ -23,7 +23,7 @@ import {
 type JobInfoTabProps = {
   job: Job & { foreman: { id: string; name: string | null } | null; archived: boolean };
   role: Role;
-  fieldUsers: { id: string; name: string | null }[];
+  fieldUsers: { id: string; name: string | null; role: Role }[];
 };
 
 function Field({
@@ -105,7 +105,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
   const [deletePending, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [archivePending, startArchiveTransition] = useTransition();
-  const canEdit = role === "ADMIN" || role === "OFFICE";
+  const canEdit = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -168,7 +168,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
             >
               <option value="">— Unassigned —</option>
-              {fieldUsers.map((u) => (
+              {fieldUsers.filter(u => u.role === "FOREMAN" || u.role === "ADMIN").map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>

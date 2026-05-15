@@ -29,8 +29,7 @@ type Tab = {
   id: string;
   label: string;
   icon: React.ReactNode;
-  adminOnly?: boolean;
-  hideFromField?: boolean;
+  hideFromTeammate?: boolean;
 };
 
 const TABS: Tab[] = [
@@ -67,7 +66,7 @@ const TABS: Tab[] = [
     id: "summary",
     label: "Summary",
     icon: <BarChart3 className="w-4 h-4" />,
-    hideFromField: true,
+    hideFromTeammate: true,
   },
 ];
 
@@ -79,6 +78,7 @@ interface JobTabsProps {
   fieldUsers: { id: string; name: string | null; role: Role }[];
   savedTasks: { id: string; title: string; description: string | null; sortOrder: number }[];
   allCalendarEvents?: any[];
+  canViewSummary?: boolean;
 }
 
 export function JobTabs({
@@ -89,11 +89,15 @@ export function JobTabs({
   fieldUsers,
   savedTasks,
   allCalendarEvents = [],
+  canViewSummary = false,
 }: JobTabsProps) {
   const [activeTab, setActiveTab] = useState("info");
 
   const visibleTabs = TABS.filter((t) => {
-    if (t.hideFromField && role === "FIELD") return false;
+    if (t.hideFromTeammate) {
+      if (role === "TEAMMATE") return false;
+      if (role === "FOREMAN" && !canViewSummary) return false;
+    }
     return true;
   });
 

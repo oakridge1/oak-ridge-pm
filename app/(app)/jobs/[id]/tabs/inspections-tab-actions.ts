@@ -27,7 +27,7 @@ export async function createInspection(
   }
 ) {
   const session = await requireActive();
-  if (session.user.role === "FIELD") throw new Error("Field users cannot create inspections.");
+  if (session.user.role === "TEAMMATE") throw new Error("Teammates cannot create inspections.");
 
   const inspection = await prisma.inspection.create({
     data: {
@@ -78,7 +78,7 @@ export async function updateInspection(
   }
 ) {
   const session = await requireActive();
-  if (session.user.role === "FIELD") throw new Error("Field users cannot edit inspections.");
+  if (session.user.role === "TEAMMATE") throw new Error("Teammates cannot edit inspections.");
 
   const existing = await prisma.inspection.findUnique({
     where: { id: inspectionId },

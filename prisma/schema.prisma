@@ -12,7 +12,14 @@ datasource db {
 enum Role {
   ADMIN
   OFFICE
-  FIELD
+  FOREMAN
+  TEAMMATE
+}
+
+enum CalendarRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
 }
 
 enum JobStatus {
@@ -92,7 +99,7 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  role          Role      @default(FIELD)
+  role          Role      @default(TEAMMATE)
   active        Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -105,6 +112,7 @@ model User {
   notes          Note[]
   changeOrders   ChangeOrder[]
   foremanJobs    Job[]          @relation("ForemanJobs")
+  createdJobs    Job[]          @relation("JobCreator")
   assignedTasks  Task[]         @relation("TaskAssignee")
   createdTasks   Task[]         @relation("TaskCreator")
   taskEvents     TaskEvent[]
@@ -114,6 +122,8 @@ model User {
   rfis           Rfi[]          @relation("RfiSubmitter")
   documents      Document[]     @relation("DocumentUploader")
   invoices       Invoice[]      @relation("InvoiceCreator")
+  calendarRequests         CalendarRequest[] @relation("CalendarRequestSubmitter")
+  reviewedCalendarRequests CalendarRequest[] @relation("CalendarRequestReviewer")
 }
 
 model Account {
@@ -194,22 +204,25 @@ model Job {
   equipmentMarkupPct Float?
   // Archive
   archived           Boolean   @default(false)
+  createdById        String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  foreman        User?           @relation("ForemanJobs", fields: [foremanId], references: [id])
-  laborEntries   LaborEntry[]
-  materials      Material[]
-  photos         Photo[]
-  notes          Note[]
-  changeOrders   ChangeOrder[]
-  tasks          Task[]
-  calendarEvents CalendarEvent[]
-  payments       Payment[]
-  invoices       Invoice[]
-  inspections    Inspection[]
-  rfis           Rfi[]
-  documents      Document[]
+  foreman          User?             @relation("ForemanJobs", fields: [foremanId], references: [id])
+  createdBy        User?             @relation("JobCreator", fields: [createdById], references: [id])
+  laborEntries     LaborEntry[]
+  materials        Material[]
+  photos           Photo[]
+  notes            Note[]
+  changeOrders     ChangeOrder[]
+  tasks            Task[]
+  calendarEvents   CalendarEvent[]
+  calendarRequests CalendarRequest[]
+  payments         Payment[]
+  invoices         Invoice[]
+  inspections      Inspection[]
+  rfis             Rfi[]
+  documents        Document[]
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -486,4 +499,26 @@ model Document {
 
   job        Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   uploadedBy User @relation("DocumentUploader", fields: [uploadedById], references: [id])
+}
+
+// ── Calendar Requests (Teammate → Foreman/Admin approval) ────────────────────
+
+model CalendarRequest {
+  id            String                @id @default(cuid())
+  jobId         String
+  requestedById String
+  date          DateTime
+  timeOfDay     String?
+  description   String
+  reason        String?
+  status        CalendarRequestStatus @default(PENDING)
+  reviewedById  String?
+  reviewNotes   String?
+  reviewedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  job         Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  requestedBy User  @relation("CalendarRequestSubmitter", fields: [requestedById], references: [id])
+  reviewedBy  User? @relation("CalendarRequestReviewer", fields: [reviewedById], references: [id])
 }

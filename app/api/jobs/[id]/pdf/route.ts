@@ -21,7 +21,7 @@ export async function GET(
   const session = await auth();
   if (!session?.user?.active)
     return new NextResponse("Unauthorized", { status: 401 });
-  if (session.user.role === "FIELD")
+  if (session.user.role === "TEAMMATE")
     return new NextResponse("Forbidden", { status: 403 });
 
   const { searchParams } = new URL(request.url);

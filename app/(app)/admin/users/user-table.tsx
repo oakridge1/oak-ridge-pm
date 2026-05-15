@@ -23,7 +23,8 @@ interface UserTableProps {
 const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Admin",
   OFFICE: "Office",
-  FIELD: "Field",
+  FOREMAN: "Foreman",
+  TEAMMATE: "Teammate",
 };
 
 function UserAvatar({ user }: { user: UserRow }) {
@@ -119,7 +120,7 @@ function UserRowMobile({
           disabled={isSelf}
           className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#002D72]"
         >
-          {(["ADMIN", "OFFICE", "FIELD"] as Role[]).map((r) => (
+          {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map((r) => (
             <option key={r} value={r}>{ROLE_LABELS[r]}</option>
           ))}
         </select>
@@ -217,7 +218,7 @@ function UserRowDesktop({
           disabled={isSelf}
           className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#002D72]"
         >
-          {(["ADMIN", "OFFICE", "FIELD"] as Role[]).map((r) => (
+          {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map((r) => (
             <option key={r} value={r}>{ROLE_LABELS[r]}</option>
           ))}
         </select>
@@ -268,7 +269,7 @@ function UserRowDesktop({
 function AddUserForm({ onDone }: { onDone: () => void }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<Role>("FIELD");
+  const [role, setRole] = useState<Role>("TEAMMATE");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -308,7 +309,7 @@ function AddUserForm({ onDone }: { onDone: () => void }) {
           <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
           <select value={role} onChange={e => setRole(e.target.value as Role)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]">
-            {(["ADMIN", "OFFICE", "FIELD"] as Role[]).map(r => (
+            {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map(r => (
               <option key={r} value={r}>{ROLE_LABELS[r]}</option>
             ))}
           </select>

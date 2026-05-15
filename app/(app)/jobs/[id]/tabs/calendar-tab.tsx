@@ -10,7 +10,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { addCalendarEvent, deleteCalendarEvent } from "./calendar-tab-actions";
-import type { Role, CalendarEventType } from "@/app/generated/prisma/client";
+import { submitCalendarRequest, reviewCalendarRequest } from "./calendar-request-actions";
+import type { Role, CalendarEventType, CalendarRequestStatus } from "@/app/generated/prisma/client";
 
 type CalEvent = {
   id: string;
@@ -34,12 +35,25 @@ type AllJobEvent = CalEvent & {
   job: { id: string; jobName: string; jobNumber: string; calendarColor: string | null } | null;
 };
 
+type CalendarRequest = {
+  id: string;
+  date: Date;
+  timeOfDay: string | null;
+  description: string;
+  reason: string | null;
+  status: CalendarRequestStatus;
+  requestedBy: { name: string | null; email: string };
+  createdAt: Date;
+};
+
 interface CalendarTabProps {
   job: {
     id: string;
     jobNumber: string;
+    foremanId?: string | null;
     completionDate: Date | null;
     calendarEvents: CalEvent[];
+    calendarRequests?: CalendarRequest[];
     tasks: Task[];
   };
   role: Role;
@@ -143,10 +157,18 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
   const [month, setMonth] = useState(today.getMonth()); // 0-indexed
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [recurrenceType, setRecurrenceType] = useState("NONE");
   const [viewMode, setViewMode] = useState<"job" | "company">("job");
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+
+  const isTeammate = role === "TEAMMATE";
+  const isForemanOnJob = role === "FOREMAN" && job.foremanId === currentUserId;
+  const canReviewRequests = role === "ADMIN" || isForemanOnJob;
+  const pendingRequests = (job.calendarRequests ?? []).filter((r) => r.status === "PENDING");
 
   // Build company-wide events by adapting AllJobEvent to CalEvent
   const companyCalEvents: CalEvent[] = allCalendarEvents.map((e) => ({
@@ -364,7 +386,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                       <p className="text-xs text-gray-600 mt-0.5">{ev.note}</p>
                     )}
                   </div>
-                  {!ev.isAuto && role === "ADMIN" && (
+                  {!ev.isAuto && (role === "ADMIN" || role === "FOREMAN") && (
                     <button
                       onClick={() =>
                         startTransition(() =>
@@ -383,9 +405,153 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
         </div>
       )}
 
-      {/* Add event */}
+      {/* Pending calendar requests — visible to ADMIN and assigned FOREMAN */}
+      {canReviewRequests && pendingRequests.length > 0 && (
+        <div className="mt-4 border border-amber-200 rounded-xl overflow-hidden">
+          <div className="bg-amber-50 px-4 py-2 border-b border-amber-200">
+            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
+              Pending Calendar Requests ({pendingRequests.length})
+            </p>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pendingRequests.map((req) => (
+              <div key={req.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {new Date(req.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                      {req.timeOfDay && <span className="text-gray-500 ml-1">· {req.timeOfDay}</span>}
+                    </p>
+                    <p className="text-sm text-gray-700 mt-0.5">{req.description}</p>
+                    {req.reason && <p className="text-xs text-gray-500 mt-0.5 italic">{req.reason}</p>}
+                    <p className="text-xs text-gray-400 mt-1">
+                      Requested by {req.requestedBy.name ?? req.requestedBy.email}
+                    </p>
+                  </div>
+                  {reviewingId === req.id ? (
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        onClick={() => startTransition(async () => {
+                          try { await reviewCalendarRequest(req.id, "APPROVED"); setReviewingId(null); }
+                          catch { setReviewingId(null); }
+                        })}
+                        disabled={pending}
+                        className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-60"
+                      >
+                        ✓ Approve
+                      </button>
+                      <button
+                        onClick={() => startTransition(async () => {
+                          try { await reviewCalendarRequest(req.id, "DENIED"); setReviewingId(null); }
+                          catch { setReviewingId(null); }
+                        })}
+                        disabled={pending}
+                        className="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-60"
+                      >
+                        ✗ Deny
+                      </button>
+                      <button
+                        onClick={() => setReviewingId(null)}
+                        className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setReviewingId(req.id)}
+                      className="text-xs px-3 py-1.5 border border-amber-300 text-amber-700 rounded-lg font-medium hover:bg-amber-100 shrink-0"
+                    >
+                      Review
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add event / Request event */}
       <div className="mt-4">
-        {!showAddForm ? (
+        {isTeammate ? (
+          // TEAMMATE: request flow
+          !showRequestForm ? (
+            <button
+              onClick={() => setShowRequestForm(true)}
+              className="flex items-center gap-1.5 text-sm text-[#FF5910] hover:text-orange-600 font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Request Calendar Event
+            </button>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setRequestError(null);
+                const fd = new FormData(e.currentTarget);
+                const form = e.currentTarget;
+                startTransition(async () => {
+                  try {
+                    await submitCalendarRequest(job.id, {
+                      date: fd.get("date") as string,
+                      timeOfDay: (fd.get("timeOfDay") as string | null) ?? undefined,
+                      description: fd.get("description") as string,
+                      reason: (fd.get("reason") as string | null) ?? undefined,
+                    });
+                    setShowRequestForm(false);
+                    form.reset();
+                  } catch (err) {
+                    setRequestError(err instanceof Error ? err.message : "Failed to submit request.");
+                  }
+                });
+              }}
+              className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3"
+            >
+              <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#FF5910]" />
+                Request Calendar Event
+              </h4>
+              <p className="text-xs text-orange-700">Your request will be sent to your foreman and admin for approval.</p>
+              {requestError && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded">{requestError}</p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Date <span className="text-red-500">*</span></label>
+                  <input name="date" type="date" required
+                    defaultValue={selectedDay?.toISOString().slice(0, 10) ?? new Date().toISOString().slice(0, 10)}
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF5910]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Time (optional)</label>
+                  <input name="timeOfDay" type="text" placeholder="e.g. 9:00 AM"
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF5910]" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
+                <input name="description" required placeholder="What is this event?"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF5910]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Reason (optional)</label>
+                <input name="reason" placeholder="Why is this needed?"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF5910]" />
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button type="button" onClick={() => { setShowRequestForm(false); setRequestError(null); }}
+                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors">Cancel</button>
+                <button type="submit" disabled={pending}
+                  className="bg-[#FF5910] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-60 transition-colors">
+                  {pending ? "Submitting…" : "Submit Request"}
+                </button>
+              </div>
+            </form>
+          )
+        ) : (
+          // ADMIN / FOREMAN / OFFICE: direct add flow
+          !showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium transition-colors"
@@ -414,18 +580,16 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                 </label>
                 <select
                   name="type"
-                  defaultValue={role === "FIELD" ? "DAY_OFF" : "MILESTONE"}
+                  defaultValue="MILESTONE"
                   className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
                 >
-                  {role === "ADMIN" && (
+                  {(role === "ADMIN" || role === "FOREMAN") && (
                     <>
                       <option value="MILESTONE">Milestone</option>
                       <option value="CUSTOM">Custom</option>
                     </>
                   )}
-                  {(role === "ADMIN" || role === "OFFICE") && (
-                    <option value="TASK_DUE">Task Due</option>
-                  )}
+                  <option value="TASK_DUE">Task Due</option>
                   <option value="DAY_OFF">Day Off</option>
                 </select>
               </div>
@@ -487,7 +651,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
               </button>
             </div>
           </form>
-        )}
+        ))}
       </div>
 
       {/* Legend */}

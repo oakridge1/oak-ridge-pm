@@ -355,7 +355,7 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
                 </label>
                 <select
                   name="type"
-                  defaultValue={role === "FIELD" ? "DAY_OFF" : "MILESTONE"}
+                  defaultValue={role === "TEAMMATE" ? "DAY_OFF" : "MILESTONE"}
                   className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
                 >
                   {role === "ADMIN" && (
@@ -364,7 +364,7 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
                       <option value="CUSTOM">Custom</option>
                     </>
                   )}
-                  {role !== "FIELD" && (
+                  {role !== "TEAMMATE" && (
                     <option value="TASK_DUE">Task Due</option>
                   )}
                   <option value="DAY_OFF">Day Off</option>

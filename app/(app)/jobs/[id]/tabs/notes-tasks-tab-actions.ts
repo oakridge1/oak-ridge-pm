@@ -149,8 +149,8 @@ export async function completeTask(taskId: string) {
 
 export async function reopenTask(taskId: string) {
   const session = await requireActive();
-  if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE") {
-    throw new Error("Only ADMIN or OFFICE can reopen tasks.");
+  if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE" && session.user.role !== "FOREMAN") {
+    throw new Error("Only ADMIN, OFFICE, or FOREMAN can reopen tasks.");
   }
 
   await prisma.task.update({
@@ -168,8 +168,8 @@ export async function reopenTask(taskId: string) {
 
 export async function applySavedTaskToJob(jobId: string, savedTaskId: string) {
   const session = await requireActive();
-  if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE") {
-    throw new Error("Only ADMIN or OFFICE can apply saved task templates.");
+  if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE" && session.user.role !== "FOREMAN") {
+    throw new Error("Only ADMIN, OFFICE, or FOREMAN can apply saved task templates.");
   }
 
   const template = await prisma.savedTask.findUnique({ where: { id: savedTaskId } });
@@ -268,7 +268,6 @@ export async function updateChangeOrder(
   }
 ) {
   const session = await requireActive();
-  if (session.user.role !== "ADMIN") throw new Error("Only ADMIN can review change orders.");
 
   const co = await prisma.changeOrder.findUnique({
     where: { id: coId },
@@ -279,10 +278,19 @@ export async function updateChangeOrder(
       approvedValue: true,
       adminNotes: true,
       requestedBy: { select: { email: true, name: true } },
-      job: { select: { jobName: true } },
+      job: { select: { jobName: true, foremanId: true } },
     },
   });
   if (!co) throw new Error("Change order not found.");
+
+  // Permission: ADMIN always; FOREMAN only if assigned to this job
+  if (session.user.role !== "ADMIN") {
+    if (session.user.role === "FOREMAN" && co.job.foremanId === session.user.id) {
+      // allowed
+    } else {
+      throw new Error("Only ADMIN or the assigned foreman can review change orders.");
+    }
+  }
 
   await prisma.changeOrder.update({
     where: { id: coId },

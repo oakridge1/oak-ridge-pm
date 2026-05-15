@@ -15,18 +15,20 @@ type UserRow = {
   createdAt: Date;
 };
 
-const ROLES: Role[] = ["ADMIN", "OFFICE", "FIELD"];
+const ROLES: Role[] = ["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"];
 
 const roleLabel: Record<Role, string> = {
   ADMIN: "Admin",
   OFFICE: "Office",
-  FIELD: "Field",
+  FOREMAN: "Foreman",
+  TEAMMATE: "Teammate",
 };
 
 const roleBg: Record<Role, string> = {
   ADMIN: "bg-purple-100 text-purple-800",
   OFFICE: "bg-blue-100 text-blue-800",
-  FIELD: "bg-green-100 text-greeneen-800",
+  FOREMAN: "bg-orange-100 text-orange-800",
+  TEAMMATE: "bg-green-100 text-green-800",
 };
 
 export function UserTable({

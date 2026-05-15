@@ -14,7 +14,7 @@ export async function GET(
   try {
   const session = await auth();
   if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
-  if (session.user.role === "FIELD") return new NextResponse("Forbidden", { status: 403 });
+  if (session.user.role === "TEAMMATE") return new NextResponse("Forbidden", { status: 403 });
 
   const { id: jobId, invoiceId } = await params;
 

@@ -9,7 +9,7 @@ export async function updateJobInfo(jobId: string, fd: FormData) {
   const session = await auth();
   if (
     !session?.user?.active ||
-    (session.user.role !== "ADMIN" && session.user.role !== "OFFICE")
+    (session.user.role !== "ADMIN" && session.user.role !== "OFFICE" && session.user.role !== "FOREMAN")
   ) {
     throw new Error("Unauthorized");
   }

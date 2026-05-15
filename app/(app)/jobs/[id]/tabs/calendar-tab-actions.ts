@@ -24,11 +24,11 @@ export async function addCalendarEvent(jobId: string, fd: FormData) {
   if (!title) throw new Error("Event title is required.");
   if (!dateRaw) throw new Error("Event date is required.");
 
-  if (session.user.role === "FIELD" && type !== "DAY_OFF") {
-    throw new Error("Field users can only add Day Off events.");
+  if (session.user.role === "TEAMMATE" && type !== "DAY_OFF") {
+    throw new Error("Teammates can only add Day Off events.");
   }
-  if ((type === "MILESTONE" || type === "CUSTOM") && session.user.role !== "ADMIN") {
-    throw new Error("Only ADMIN can add Milestone or Custom events.");
+  if ((type === "MILESTONE" || type === "CUSTOM") && session.user.role !== "ADMIN" && session.user.role !== "FOREMAN") {
+    throw new Error("Only ADMIN or FOREMAN can add Milestone or Custom events.");
   }
 
   await prisma.calendarEvent.create({
@@ -50,8 +50,8 @@ export async function addCalendarEvent(jobId: string, fd: FormData) {
 
 export async function deleteCalendarEvent(eventId: string, jobId: string) {
   const session = await requireActive();
-  if (session.user.role !== "ADMIN") {
-    throw new Error("Only ADMIN can delete calendar events.");
+  if (session.user.role !== "ADMIN" && session.user.role !== "FOREMAN") {
+    throw new Error("Only ADMIN or FOREMAN can delete calendar events.");
   }
 
   await prisma.calendarEvent.delete({ where: { id: eventId } });

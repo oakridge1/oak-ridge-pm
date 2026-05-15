@@ -11,7 +11,7 @@ export default async function JobReportPage({ params }: PageProps) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.active) redirect("/login");
-  if (session.user.role === "FIELD") redirect(`/jobs/${id}`);
+  if (session.user.role === "TEAMMATE") redirect(`/jobs/${id}`);
 
   const job = await prisma.job.findUnique({
     where: { id },

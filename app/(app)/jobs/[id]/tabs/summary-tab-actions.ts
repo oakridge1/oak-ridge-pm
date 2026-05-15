@@ -12,6 +12,22 @@ async function requireAdmin() {
   return session;
 }
 
+async function requireAdminOrForemanOnJob(jobId: string) {
+  const session = await auth();
+  if (!session?.user?.active) throw new Error("Unauthorized");
+  if (session.user.role === "ADMIN") return session;
+  if (session.user.role === "FOREMAN") {
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { foremanId: true, createdById: true },
+    });
+    if (job && (job.foremanId === session.user.id || job.createdById === session.user.id)) {
+      return session;
+    }
+  }
+  throw new Error("Only ADMIN or the assigned foreman can perform this action.");
+}
+
 // ── Direct Costs ───────────────────────────────────────────────────────────────
 
 export async function updateDirectCosts(
@@ -109,7 +125,7 @@ export async function createInvoice(jobId: string, data: {
   notes: string;
   lineItems: { label: string; amount: number }[];
 }) {
-  const session = await requireAdmin();
+  const session = await requireAdminOrForemanOnJob(jobId);
 
   if (!data.date) throw new Error("Invoice date is required.");
   if (!data.amount || parseFloat(data.amount) <= 0) throw new Error("Amount must be greater than 0.");

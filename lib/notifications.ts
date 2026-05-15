@@ -23,6 +23,14 @@ function getTransport() {
   });
 }
 
+async function getAdminEmails(): Promise<string[]> {
+  const users = await prisma.user.findMany({
+    where: { active: true, role: "ADMIN" },
+    select: { email: true },
+  });
+  return users.map((u) => u.email);
+}
+
 async function send(to: string | string[], subject: string, text: string, html: string) {
   const transport = getTransport();
   if (!transport) return;
@@ -31,15 +39,23 @@ async function send(to: string | string[], subject: string, text: string, html: 
     console.warn("[notifications] send called with empty recipient list — skipping");
     return;
   }
+  // Auto-BCC all admins on every outbound email (if not already in toList)
+  let bcc: string[] = [];
+  try {
+    const adminEmails = await getAdminEmails();
+    bcc = adminEmails.filter((e) => !toList.includes(e));
+  } catch { /* don't block email on BCC lookup failure */ }
+
   try {
     const info = await transport.sendMail({
       from: `"Oak Ridge PM" <${FROM}>`,
       to: toList.join(", "),
+      bcc: bcc.length > 0 ? bcc.join(", ") : undefined,
       subject,
       text,
       html,
     });
-    console.log(`[notifications] ✓ sent "${subject}" → ${toList.join(", ")} (messageId: ${info.messageId})`);
+    console.log(`[notifications] ✓ sent "${subject}" → ${toList.join(", ")}${bcc.length > 0 ? ` (bcc: ${bcc.join(", ")})` : ""} (messageId: ${info.messageId})`);
   } catch (err) {
     console.error(`[notifications] ✗ FAILED to send "${subject}" → ${toList.join(", ")}:`, err);
   }
@@ -237,7 +253,7 @@ export async function notifyNewNote(params: {
   posterRole: string;
 }) {
   const { jobName, jobId, content, postedBy, posterRole } = params;
-  if (posterRole !== "FIELD") return;
+  if (posterRole !== "TEAMMATE" && posterRole !== "FOREMAN") return;
   const url = jobUrl(jobId);
   const emails = await getAdminOfficeEmails();
   if (emails.length === 0) return;
@@ -331,6 +347,82 @@ export async function notifyRfiAnswered(params: {
       ${answerHtml}
       <br/>
       ${btn(url, "View RFI →")}
+    `)
+  );
+}
+
+// ── Calendar request submitted (Teammate → Foreman/Admin) ─────────────────────
+
+export async function notifyCalendarRequestSubmitted(params: {
+  jobName: string;
+  jobId: string;
+  requestId: string;
+  date: string;
+  description: string;
+  reason: string | null;
+  submittedBy: string;
+  foremanEmail: string | null;
+}) {
+  const { jobName, jobId, date, description, reason, submittedBy, foremanEmail } = params;
+  const url = jobUrl(jobId);
+  const adminEmails = await getAdminOfficeEmails();
+  const recipients = [...new Set([...(foremanEmail ? [foremanEmail] : []), ...adminEmails])];
+  if (recipients.length === 0) return;
+  const reasonHtml = reason
+    ? `<p style="margin:4px 0 0;font-size:13px;color:#666"><em>Reason: ${reason}</em></p>`
+    : "";
+  await send(
+    recipients,
+    `Calendar request — ${jobName}`,
+    `${submittedBy} submitted a calendar request for ${jobName} on ${date}.\n\n${description}\n${reason ? `Reason: ${reason}` : ""}\n\n${url}`,
+    wrap(`
+      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">📅 Calendar Request</h2>
+      <p style="margin:0 0 16px"><strong>${submittedBy}</strong> submitted a calendar request for <strong>${jobName}</strong>.</p>
+      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+        <strong>${date}</strong><br/>
+        <span style="font-size:13px;color:#444">${description}</span>
+        ${reasonHtml}
+      </div>
+      ${btn(url, "Review Request →")}
+    `)
+  );
+}
+
+// ── Calendar request approved / denied ────────────────────────────────────────
+
+export async function notifyCalendarRequestDecision(params: {
+  requesterEmail: string;
+  requesterName: string | null;
+  jobName: string;
+  jobId: string;
+  date: string;
+  description: string;
+  status: "APPROVED" | "DENIED";
+  reviewNotes: string | null;
+  reviewedBy: string;
+}) {
+  const { requesterEmail, requesterName, jobName, jobId, date, description, status, reviewNotes, reviewedBy } = params;
+  const name = requesterName ?? requesterEmail;
+  const url = jobUrl(jobId);
+  const approved = status === "APPROVED";
+  const color = approved ? "#16a34a" : "#dc2626";
+  const word = approved ? "Approved" : "Denied";
+  const noteLine = reviewNotes
+    ? `<p style="margin:6px 0 0;font-size:13px;color:#444"><em>${reviewNotes}</em></p>`
+    : "";
+  await send(
+    requesterEmail,
+    `Calendar request ${word.toLowerCase()} — ${jobName}`,
+    `Hi ${name},\n\nYour calendar request for ${jobName} on ${date} has been ${word.toLowerCase()} by ${reviewedBy}.\n\n${reviewNotes ?? ""}\n\n${url}`,
+    wrap(`
+      <h2 style="font-size:18px;color:${color};margin:0 0 12px">Calendar Request ${word}</h2>
+      <p style="margin:0 0 16px">Hi <strong>${name}</strong>, your calendar request has been <strong style="color:${color}">${word.toLowerCase()}</strong> by ${reviewedBy}.</p>
+      <div style="background:#f9f9f9;border-left:4px solid ${color};padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+        <strong>${date}</strong><br/>
+        <span style="font-size:13px;color:#444">${description}</span>
+        ${noteLine}
+      </div>
+      ${btn(url, "View Job →")}
     `)
   );
 }

@@ -34,6 +34,10 @@ export default async function JobPage({ params }: PageProps) {
           orderBy: { date: "asc" },
           include: { user: { select: { name: true } } },
         },
+        calendarRequests: {
+          orderBy: { createdAt: "desc" },
+          include: { requestedBy: { select: { name: true, email: true } } },
+        },
         laborEntries: {
           orderBy: { date: "desc" },
           include: { user: { select: { id: true, name: true } } },
@@ -117,7 +121,12 @@ export default async function JobPage({ params }: PageProps) {
     })),
   };
 
-  const canViewReports = session.user.role === "ADMIN" || session.user.role === "OFFICE";
+  const role = session.user.role;
+  const isForemanOnThisJob =
+    role === "FOREMAN" &&
+    (job.foremanId === session.user.id || job.createdById === session.user.id);
+  const canViewSummary = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
+  const canViewReports = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
   const reportUrl = `/jobs/${id}/report`;
   const summaryUrl = `/jobs/${id}/summary-report`;
   const shareBody = encodeURIComponent(
@@ -159,12 +168,13 @@ export default async function JobPage({ params }: PageProps) {
       </div>
       <JobTabs
         job={serializedJob}
-        role={session.user.role}
+        role={role}
         currentUserId={session.user.id}
         currentUserName={session.user.name ?? "Unknown"}
         fieldUsers={fieldUsers}
         savedTasks={savedTasks}
         allCalendarEvents={allCalendarEvents}
+        canViewSummary={canViewSummary}
       />
     </div>
   );
