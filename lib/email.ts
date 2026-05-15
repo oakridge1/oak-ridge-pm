@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
+import { APP_URL } from "@/lib/app-url";
 
 const FROM = process.env.EMAIL_FROM;
 const PASS = process.env.GMAIL_APP_PASSWORD;
-const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
 function getTransport() {
   if (!FROM || !PASS) {

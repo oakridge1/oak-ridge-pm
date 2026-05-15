@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { APP_URL } from "@/lib/app-url";
 import type { Role } from "@/app/generated/prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -27,18 +28,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async redirect({ url, baseUrl }) {
+      // Use the hard-coded APP_URL as the authority so this callback never
+      // depends on NextAuth correctly inferring baseUrl from headers.
+      const origin = APP_URL || baseUrl;
+
       // Allow relative URLs (e.g. callbackUrl="/")
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith("/")) return `${origin}${url}`;
+
       // Allow same-origin absolute URLs
       try {
-        if (new URL(url).origin === new URL(baseUrl).origin) return url;
+        if (new URL(url).origin === new URL(origin).origin) return url;
       } catch {
         // malformed URL — fall through
       }
-      // Cross-origin (e.g. NEXTAUTH_URL=http://localhost:3000 on Vercel):
-      // redirect to the app root rather than back to /login.
-      // The login page will then forward active users to / and pending users to /pending.
-      return baseUrl;
+
+      // Cross-origin or stale localhost URL → send to app root.
+      // The login page forwards active users to / and inactive users to /pending.
+      return origin;
     },
 
     async session({ session, user }) {
