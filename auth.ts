@@ -67,14 +67,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             console.warn(`[auth] session: no DB user for id=${user.id} email=${user.email}`);
           }
           session.user.id = user.id;
-          session.user.role = (dbUser?.role ?? "FIELD") as Role;
+          session.user.role = (dbUser?.role ?? "TEAMMATE") as Role;
           session.user.active = dbUser?.active ?? false;
           console.log(`[auth] session ok: email=${user.email} active=${session.user.active} role=${session.user.role}`);
         } catch (err) {
           console.error("[auth] session callback DB error:", err);
           // Keep user logged in but flag inactive so they land on /pending
           session.user.id = user.id;
-          session.user.role = "FIELD" as Role;
+          session.user.role = "TEAMMATE" as Role;
           session.user.active = false;
         }
       }
