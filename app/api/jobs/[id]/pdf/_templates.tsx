@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, StyleSheet, Image } from "@react-pdf/renderer";
 
 const NAVY = "#002D72";
 const ORANGE = "#FF5910";
@@ -1015,47 +1015,70 @@ export type StandardInvoiceData = {
   lineItems: { label: string; amount: number }[];
   notes: string | null;
   previouslyInvoiced: number;
+  // New Oak Ridge format fields
+  invoiceKind?: string | null;
+  scopeOfWork?: string | null;
+  contractValue?: number | null;
+  approvedCOs?: { coNumber: number | null; description: string; approvedValue: number }[];
+  logoSrc?: string;  // base64 data URI or file path
 };
 
 const IS = StyleSheet.create({
-  page: { fontFamily: "Helvetica", fontSize: 9, padding: 40, color: "#1a1a1a", backgroundColor: "#fff" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 },
-  brandBlock: {},
-  brand: { fontSize: 7, fontFamily: "Helvetica-Bold", color: ORANGE, letterSpacing: 1 },
-  company: { fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY, marginTop: 3 },
-  address: { fontSize: 8, color: GRAY, marginTop: 2, lineHeight: 1.4 },
-  invoiceLabel: { fontSize: 22, fontFamily: "Helvetica-Bold", color: NAVY, textAlign: "right" },
-  invoiceNum: { fontSize: 10, color: GRAY, textAlign: "right", marginTop: 2 },
-  invoiceDate: { fontSize: 8, color: LIGHT, textAlign: "right", marginTop: 2 },
-  divider: { borderBottomWidth: 2, borderBottomColor: NAVY, borderBottomStyle: "solid", marginBottom: 16 },
-  twoCol: { flexDirection: "row", gap: 24, marginBottom: 20 },
+  page: { fontFamily: "Helvetica", fontSize: 9, padding: 45, color: "#1a1a1a", backgroundColor: "#fff" },
+  // Centered header block
+  headerCenter: { alignItems: "center", marginBottom: 10 },
+  logo: { width: 64, height: 64, marginBottom: 6 },
+  companyName: { fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY, textAlign: "center", letterSpacing: 1 },
+  companyInfo: { fontSize: 8, color: GRAY, textAlign: "center", marginTop: 2, lineHeight: 1.5 },
+  // Dividers
+  heavyDivider: { borderBottomWidth: 3, borderBottomColor: NAVY, borderBottomStyle: "solid", marginVertical: 10 },
+  thinDivider: { borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid", marginVertical: 8 },
+  // Invoice title row
+  titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 4 },
+  invoiceTitle: { fontSize: 26, fontFamily: "Helvetica-Bold", color: NAVY },
+  invoiceKindLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: ORANGE, textAlign: "right", marginBottom: 2 },
+  invoiceNumDate: { alignItems: "flex-end" },
+  invoiceNum: { fontSize: 9, color: GRAY, textAlign: "right" },
+  invoiceDate: { fontSize: 9, color: GRAY, textAlign: "right", marginTop: 1 },
+  // Two-column project info
+  twoCol: { flexDirection: "row", gap: 20, marginBottom: 16 },
   col: { flex: 1 },
-  colLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, letterSpacing: 0.5, marginBottom: 5 },
-  colValue: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 },
+  colLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.8, marginBottom: 5, textTransform: "uppercase" as const },
+  colValue: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.6 },
   colValueBold: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1a1a1a" },
-  table: { marginBottom: 16 },
-  tableHead: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: NAVY, borderBottomStyle: "solid", paddingBottom: 4, marginBottom: 2 },
-  tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid", paddingVertical: 5 },
-  colDesc: { flex: 1, fontSize: 8 },
-  colAmt: { width: 80, fontSize: 8, textAlign: "right" },
-  colDescH: { flex: 1, fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY },
-  colAmtH: { width: 80, fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, textAlign: "right" },
-  subtotalSection: { alignItems: "flex-end", marginBottom: 16 },
-  invSubtotalRow: { flexDirection: "row", justifyContent: "space-between", width: 240, paddingVertical: 3, borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid" },
-  subtotalLabel: { fontSize: 8, color: GRAY },
-  subtotalValue: { fontSize: 8, textAlign: "right" },
-  totalBox: { backgroundColor: "#f0f4ff", padding: 12, borderRadius: 6, alignItems: "flex-end", marginBottom: 16 },
-  totalBoxLabel: { fontSize: 8, color: GRAY, marginBottom: 3 },
-  totalBoxAmount: { fontSize: 18, fontFamily: "Helvetica-Bold", color: NAVY },
-  notesBox: { backgroundColor: "#f9fafb", borderRadius: 6, padding: 10, marginBottom: 16 },
-  notesLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 4 },
+  // Scope section
+  scopeLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.8, marginBottom: 6, textTransform: "uppercase" as const },
+  scopeRow: { flexDirection: "row", marginBottom: 4, gap: 6 },
+  scopeNum: { fontSize: 9, color: GRAY, width: 18 },
+  scopeText: { fontSize: 9, color: "#1a1a1a", flex: 1, lineHeight: 1.4 },
+  // Financial summary (right-aligned)
+  financialSection: { marginTop: 16, marginBottom: 16 },
+  finRow: { flexDirection: "row", justifyContent: "flex-end", paddingVertical: 3 },
+  finLabel: { fontSize: 9, color: GRAY, width: 260, textAlign: "right", paddingRight: 12 },
+  finValue: { fontSize: 9, fontFamily: "Helvetica-Bold", width: 110, textAlign: "right" },
+  finRowCO: { flexDirection: "row", justifyContent: "flex-end", paddingVertical: 3 },
+  finLabelCO: { fontSize: 9, color: ORANGE, width: 260, textAlign: "right", paddingRight: 12 },
+  finValueCO: { fontSize: 9, fontFamily: "Helvetica-Oblique", color: ORANGE, width: 110, textAlign: "right" },
+  totalRow: {
+    flexDirection: "row", justifyContent: "flex-end",
+    paddingVertical: 6, marginTop: 4,
+    borderTopWidth: 2, borderTopColor: NAVY, borderTopStyle: "solid",
+  },
+  totalLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, width: 260, textAlign: "right", paddingRight: 12 },
+  totalValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, width: 110, textAlign: "right" },
+  // Payment terms + warranty
+  termsBox: { marginBottom: 10 },
+  termsLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.8, marginBottom: 4, textTransform: "uppercase" as const },
+  termsText: { fontSize: 8, color: GRAY, lineHeight: 1.5 },
+  // Notes
+  notesBox: { backgroundColor: "#f9fafb", borderRadius: 4, padding: 8, marginBottom: 10 },
+  notesLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 3 },
   notesText: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 },
-  remitBox: { borderWidth: 1, borderColor: BORDER, borderStyle: "solid", borderRadius: 6, padding: 12, marginBottom: 8 },
-  remitLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 5 },
+  // Footer
   invFooter: {
-    position: "absolute", bottom: 30, left: 40, right: 40,
+    position: "absolute", bottom: 28, left: 45, right: 45,
     flexDirection: "row", justifyContent: "space-between",
-    borderTopWidth: 1, borderTopColor: BORDER, borderTopStyle: "solid", paddingTop: 6,
+    borderTopWidth: 1, borderTopColor: BORDER, borderTopStyle: "solid", paddingTop: 5,
   },
   invFooterText: { fontSize: 7, color: LIGHT },
 });
@@ -1063,84 +1086,146 @@ const IS = StyleSheet.create({
 export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const retainageHeld = data.retainageHeld ?? (data.retainagePct ? data.amount * data.retainagePct / 100 : 0);
-  const currentPaymentDue = data.amount - retainageHeld;
-  const lineItems = data.lineItems ?? [];
+  const approvedCOs = data.approvedCOs ?? [];
+  const contractValue = data.contractValue ?? 0;
+  const coTotal = approvedCOs.reduce((s, co) => s + co.approvedValue, 0);
+  const invoiceKind = data.invoiceKind === "FINAL_INVOICE" ? "FINAL INVOICE" : "PROGRESS PAYMENT";
+
+  // Parse scope of work into numbered items
+  const scopeItems: string[] = data.scopeOfWork
+    ? data.scopeOfWork.split(/\n+/).map(s => s.trim()).filter(Boolean)
+    : [];
+
+  const projectAddress = [data.address, data.city, data.state].filter(Boolean).join(", ");
 
   return (
     <Document>
       <Page size="LETTER" style={IS.page}>
-        {/* Header */}
-        <View style={IS.header}>
-          <View style={IS.brandBlock}>
-            <Text style={IS.brand}>OAK RIDGE ELECTRICAL LLC</Text>
-            <Text style={IS.company}>Oak Ridge Electrical</Text>
-            <Text style={IS.address}>76 Oak Ridge Road{"\n"}Weare, NH 03281{"\n"}oakridgeelectric@gmail.com</Text>
-          </View>
-          <View>
-            <Text style={IS.invoiceLabel}>INVOICE</Text>
-            <Text style={IS.invoiceNum}>#{String(data.invoiceNumber).padStart(3, "0")}</Text>
+
+        {/* ── Centered Header ── */}
+        <View style={IS.headerCenter}>
+          {data.logoSrc ? (
+            <Image src={data.logoSrc} style={IS.logo} />
+          ) : null}
+          <Text style={IS.companyName}>OAK RIDGE ELECTRICAL LLC</Text>
+          <Text style={IS.companyInfo}>76 Oak Ridge Road · Weare, NH 03281{"\n"}oakridgeelectric@gmail.com</Text>
+        </View>
+
+        <View style={IS.heavyDivider} />
+
+        {/* ── INVOICE title + kind label ── */}
+        <View style={IS.titleRow}>
+          <Text style={IS.invoiceTitle}>INVOICE</Text>
+          <View style={IS.invoiceNumDate}>
+            <Text style={IS.invoiceKindLabel}>{invoiceKind}</Text>
+            <Text style={IS.invoiceNum}>Invoice #{String(data.invoiceNumber).padStart(3, "0")}</Text>
             <Text style={IS.invoiceDate}>Date: {fmtDate(data.invoiceDate)}</Text>
             {data.periodTo ? <Text style={IS.invoiceDate}>Period To: {fmtDate(data.periodTo)}</Text> : null}
           </View>
         </View>
-        <View style={IS.divider} />
 
-        {/* Bill To + Job Info */}
+        <View style={IS.thinDivider} />
+
+        {/* ── Project Info — two columns ── */}
         <View style={IS.twoCol}>
           <View style={IS.col}>
-            <Text style={IS.colLabel}>BILL TO</Text>
+            <Text style={IS.colLabel}>From</Text>
+            <Text style={IS.colValueBold}>Oak Ridge Electrical LLC</Text>
+            <Text style={IS.colValue}>76 Oak Ridge Road{"\n"}Weare, NH 03281</Text>
+          </View>
+          <View style={IS.col}>
+            <Text style={IS.colLabel}>To / Project</Text>
             {data.gcCompany ? <Text style={IS.colValueBold}>{data.gcCompany}</Text> : null}
             {data.gcContactName ? <Text style={IS.colValue}>{data.gcContactName}</Text> : null}
             {data.gcEmail ? <Text style={IS.colValue}>{data.gcEmail}</Text> : null}
-          </View>
-          <View style={IS.col}>
-            <Text style={IS.colLabel}>PROJECT</Text>
-            <Text style={IS.colValueBold}>{data.jobName}</Text>
+            <Text style={[IS.colValueBold, { marginTop: 4 }]}>{data.jobName}</Text>
             <Text style={IS.colValue}>Job #{data.jobNumber}</Text>
-            {data.address ? <Text style={IS.colValue}>{data.address}{data.city ? `, ${data.city}` : ""}{data.state ? `, ${data.state}` : ""}</Text> : null}
+            {projectAddress ? <Text style={IS.colValue}>{projectAddress}</Text> : null}
             {data.contractStartDate ? <Text style={IS.colValue}>Contract Date: {fmtDate(data.contractStartDate)}</Text> : null}
           </View>
         </View>
 
-        {/* Line Items */}
-        {lineItems.length > 0 ? (
-          <View style={IS.table}>
-            <View style={IS.tableHead}>
-              <Text style={IS.colDescH}>Description</Text>
-              <Text style={IS.colAmtH}>Amount</Text>
-            </View>
-            {lineItems.map((li, i) => (
-              <View key={i} style={IS.tableRow}>
-                <Text style={IS.colDesc}>{li.label}</Text>
-                <Text style={[IS.colAmt, { color: "#1a1a1a" }]}>{fmt$(li.amount)}</Text>
+        <View style={IS.thinDivider} />
+
+        {/* ── Scope of Work as numbered items ── */}
+        {scopeItems.length > 0 ? (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={IS.scopeLabel}>Scope of Work</Text>
+            {scopeItems.map((item, i) => (
+              <View key={i} style={IS.scopeRow}>
+                <Text style={IS.scopeNum}>{i + 1}.</Text>
+                <Text style={IS.scopeText}>{item}</Text>
               </View>
             ))}
           </View>
         ) : null}
 
-        {/* Subtotals */}
-        <View style={IS.subtotalSection}>
-          {data.previouslyInvoiced > 0 ? (
-            <View style={IS.invSubtotalRow}>
-              <Text style={IS.subtotalLabel}>Previously Invoiced</Text>
-              <Text style={IS.subtotalValue}>({fmt$(data.previouslyInvoiced)})</Text>
+        {/* ── Financial Summary (right-aligned) ── */}
+        <View style={IS.financialSection}>
+          {contractValue > 0 ? (
+            <View style={IS.finRow}>
+              <Text style={IS.finLabel}>Contract Total</Text>
+              <Text style={IS.finValue}>{fmt$(contractValue)}</Text>
             </View>
           ) : null}
+
+          {approvedCOs.map((co, i) => (
+            <View key={i} style={IS.finRowCO}>
+              <Text style={IS.finLabelCO}>
+                Change Order {co.coNumber != null ? `#${co.coNumber}` : ""}{co.description ? ` — ${co.description}` : ""}
+              </Text>
+              <Text style={IS.finValueCO}>+{fmt$(co.approvedValue)}</Text>
+            </View>
+          ))}
+
+          {coTotal > 0 && contractValue > 0 ? (
+            <View style={[IS.finRow, { borderTopWidth: 1, borderTopColor: BORDER, borderTopStyle: "solid" }]}>
+              <Text style={IS.finLabel}>Revised Contract Total</Text>
+              <Text style={IS.finValue}>{fmt$(contractValue + coTotal)}</Text>
+            </View>
+          ) : null}
+
+          <View style={IS.totalRow}>
+            <Text style={IS.totalLabel}>INVOICE TOTAL</Text>
+            <Text style={IS.totalValue}>{fmt$(data.amount)}</Text>
+          </View>
+
           {retainageHeld > 0 ? (
-            <View style={IS.invSubtotalRow}>
-              <Text style={IS.subtotalLabel}>Retainage ({data.retainagePct ?? 0}%)</Text>
-              <Text style={IS.subtotalValue}>({fmt$(retainageHeld)})</Text>
+            <View style={IS.finRow}>
+              <Text style={IS.finLabel}>Less Retainage ({data.retainagePct ?? 0}%)</Text>
+              <Text style={IS.finValue}>({fmt$(retainageHeld)})</Text>
+            </View>
+          ) : null}
+
+          {retainageHeld > 0 ? (
+            <View style={[IS.finRow, { borderTopWidth: 2, borderTopColor: NAVY, borderTopStyle: "solid" }]}>
+              <Text style={[IS.finLabel, { color: NAVY, fontFamily: "Helvetica-Bold" }]}>CURRENT PAYMENT DUE</Text>
+              <Text style={[IS.finValue, { color: NAVY }]}>{fmt$(data.amount - retainageHeld)}</Text>
             </View>
           ) : null}
         </View>
 
-        {/* Total box */}
-        <View style={IS.totalBox}>
-          <Text style={IS.totalBoxLabel}>{retainageHeld > 0 ? "Current Payment Due" : "Amount Due"}</Text>
-          <Text style={IS.totalBoxAmount}>{fmt$(retainageHeld > 0 ? currentPaymentDue : data.amount)}</Text>
+        <View style={IS.thinDivider} />
+
+        {/* ── Payment Terms ── */}
+        <View style={IS.termsBox}>
+          <Text style={IS.termsLabel}>Payment Terms</Text>
+          <Text style={IS.termsText}>
+            Payment is due within 30 days of invoice date. Please make checks payable to Oak Ridge Electrical LLC
+            and mail to 76 Oak Ridge Road, Weare, NH 03281. For ACH payments, contact us at oakridgeelectric@gmail.com.
+          </Text>
         </View>
 
-        {/* Notes */}
+        {/* ── Warranty ── */}
+        <View style={IS.termsBox}>
+          <Text style={IS.termsLabel}>Warranty</Text>
+          <Text style={IS.termsText}>
+            Oak Ridge Electrical LLC warrants all labor and workmanship for a period of one (1) year from the date of
+            completion. This warranty covers defects in workmanship. Materials are covered by the manufacturer{"'"}s warranty.
+          </Text>
+        </View>
+
+        {/* ── Notes ── */}
         {data.notes ? (
           <View style={IS.notesBox}>
             <Text style={IS.notesLabel}>NOTES</Text>
@@ -1148,15 +1233,9 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
           </View>
         ) : null}
 
-        {/* Remit to */}
-        <View style={IS.remitBox}>
-          <Text style={IS.remitLabel}>REMIT PAYMENT TO</Text>
-          <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>Oak Ridge Electrical LLC</Text>
-          <Text style={{ fontSize: 9, color: GRAY, lineHeight: 1.5 }}>76 Oak Ridge Road{"\n"}Weare, NH 03281</Text>
-        </View>
-
+        {/* ── Footer ── */}
         <View style={IS.invFooter} fixed>
-          <Text style={IS.invFooterText}>Oak Ridge Electrical LLC · oakridgeelectric@gmail.com</Text>
+          <Text style={IS.invFooterText}>Oak Ridge Electrical LLC · 76 Oak Ridge Road, Weare NH 03281 · oakridgeelectric@gmail.com</Text>
           <Text style={IS.invFooterText}>Generated {today}</Text>
         </View>
       </Page>

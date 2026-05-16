@@ -6,6 +6,21 @@ import { prisma } from "@/lib/prisma";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { StandardInvoiceDoc } from "../../_templates";
 import React from "react";
+import fs from "fs";
+import path from "path";
+
+function getLogoSrc(): string | undefined {
+  try {
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      const buf = fs.readFileSync(logoPath);
+      return `data:image/png;base64,${buf.toString("base64")}`;
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
 
 export async function GET(
   _req: Request,
@@ -25,7 +40,14 @@ export async function GET(
         jobNumber: true, jobName: true,
         gcCompany: true, gcContactName: true, gcEmail: true,
         address: true, city: true, state: true,
+        contractValue: true,
         contractStartDate: true,
+        scopeOfWork: true,
+        changeOrders: {
+          where: { status: "APPROVED" },
+          select: { coNumber: true, description: true, approvedValue: true },
+          orderBy: { coNumber: "asc" },
+        },
         invoices: {
           where: { status: { not: "DRAFT" } },
           select: { id: true, amount: true, invoiceNumber: true },
@@ -38,7 +60,7 @@ export async function GET(
       select: {
         invoiceNumber: true, date: true, periodTo: true, amount: true,
         retainagePct: true, retainageHeld: true,
-        lineItems: true, notes: true, type: true,
+        lineItems: true, notes: true, type: true, invoiceKind: true,
       },
     }),
   ]);
@@ -52,6 +74,7 @@ export async function GET(
     .reduce((s, inv) => s + inv.amount.toNumber(), 0);
 
   const lineItems = (invoice.lineItems as { label: string; amount: number }[] | null) ?? [];
+  const logoSrc = getLogoSrc();
 
   const buf = await renderToBuffer(
     React.createElement(StandardInvoiceDoc, {
@@ -65,6 +88,13 @@ export async function GET(
         city: job.city,
         state: job.state,
         contractStartDate: job.contractStartDate,
+        contractValue: job.contractValue?.toNumber() ?? null,
+        scopeOfWork: job.scopeOfWork,
+        approvedCOs: job.changeOrders.map(co => ({
+          coNumber: co.coNumber,
+          description: co.description,
+          approvedValue: co.approvedValue?.toNumber() ?? 0,
+        })),
         invoiceNumber: invoice.invoiceNumber,
         invoiceDate: invoice.date,
         periodTo: invoice.periodTo,
@@ -74,6 +104,8 @@ export async function GET(
         lineItems,
         notes: invoice.notes,
         previouslyInvoiced,
+        invoiceKind: invoice.invoiceKind,
+        logoSrc,
       },
     }) as any
   );

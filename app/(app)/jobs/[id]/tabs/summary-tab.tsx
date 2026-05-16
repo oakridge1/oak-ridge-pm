@@ -40,6 +40,7 @@ interface SummaryTabProps {
     id: string;
     jobNumber: string;
     jobName: string;
+    jobType: "BID" | "TIME_AND_MATERIALS" | "ESTIMATE";
     contractValue: number | null;
     laborBudgetHours: number | null;
     materialBudget: number | null;
@@ -455,66 +456,83 @@ function ContractBillingCard({ job, role, computed }: {
         </div>
       )}
 
-      {/* Contract Value */}
-      <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-        <p className="text-sm text-gray-600">Original Contract Value</p>
-        {editing ? (
-          <input type="number" value={contractInput} onChange={e => setContractInput(e.target.value)}
-            placeholder="0.00" step="0.01" min="0"
-            className="w-36 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-        ) : (
-          <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(job.contractValue)}</span>
-        )}
-      </div>
-
-      {/* Labor Budget Hours */}
-      <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-        <p className="text-sm text-gray-600">Labor Budget</p>
-        {editing ? (
-          <div className="flex items-center gap-1.5">
-            <input type="number" value={hoursInput} onChange={e => setHoursInput(e.target.value)}
-              placeholder="0" step="0.5" min="0"
-              className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-            <span className="text-xs text-gray-400">hrs</span>
+      {/* Contract Value + Budget — not applicable for T&M */}
+      {job.jobType !== "TIME_AND_MATERIALS" && (
+        <>
+          {/* Contract Value */}
+          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+            <p className="text-sm text-gray-600">Original Contract Value</p>
+            {editing ? (
+              <input type="number" value={contractInput} onChange={e => setContractInput(e.target.value)}
+                placeholder="0.00" step="0.01" min="0"
+                className="w-36 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            ) : (
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(job.contractValue)}</span>
+            )}
           </div>
-        ) : (
-          <span className="text-sm font-semibold text-gray-900 tabular-nums">
-            {job.laborBudgetHours != null ? `${job.laborBudgetHours.toFixed(1)} hrs` : "—"}
-          </span>
-        )}
-      </div>
 
-      {/* Material Budget */}
-      <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-        <p className="text-sm text-gray-600">Material Budget</p>
-        {editing ? (
-          <input type="number" value={materialInput} onChange={e => setMaterialInput(e.target.value)}
-            placeholder="0.00" step="0.01" min="0"
-            className="w-36 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-        ) : (
-          <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(job.materialBudget)}</span>
-        )}
-      </div>
+          {/* Labor Budget Hours */}
+          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+            <p className="text-sm text-gray-600">Labor Budget</p>
+            {editing ? (
+              <div className="flex items-center gap-1.5">
+                <input type="number" value={hoursInput} onChange={e => setHoursInput(e.target.value)}
+                  placeholder="0" step="0.5" min="0"
+                  className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                <span className="text-xs text-gray-400">hrs</span>
+              </div>
+            ) : (
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                {job.laborBudgetHours != null ? `${job.laborBudgetHours.toFixed(1)} hrs` : "—"}
+              </span>
+            )}
+          </div>
+
+          {/* Material Budget */}
+          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
+            <p className="text-sm text-gray-600">Material Budget</p>
+            {editing ? (
+              <input type="number" value={materialInput} onChange={e => setMaterialInput(e.target.value)}
+                placeholder="0.00" step="0.01" min="0"
+                className="w-36 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            ) : (
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(job.materialBudget)}</span>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Computed rows */}
-      <Row label="Approved Change Orders" value={fmt$(approvedCOs)}
-        sub={`${job.changeOrders.filter(c => c.status === "APPROVED").length} approved COs`} />
-      <Row label="Revised Contract Total" value={fmt$(revisedContract)} accent bold />
-      <div className="border-b border-gray-100" />
       <Row label="Total Direct Costs" value={fmt$(totalDirectCosts)} />
       <Row label="Total Markup" value={fmt$(totalMarkup)} />
       <Row label="Gross Billing Amount" value={fmt$(grossBilling)} accent bold />
-      <div className="py-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <p className="text-sm text-gray-600">Percent Complete</p>
-          <span className="text-sm font-bold text-[#002D72]">{pctComplete.toFixed(1)}%</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-          <div className="bg-[#002D72] h-2.5 rounded-full transition-all"
-            style={{ width: `${Math.min(pctComplete, 100)}%` }} />
-        </div>
-        <p className="text-xs text-gray-400 mt-1">Gross Billing ÷ Revised Contract</p>
-      </div>
+
+      {/* Contract-vs-actual comparison — only for BID / ESTIMATE job types */}
+      {job.jobType !== "TIME_AND_MATERIALS" && (
+        <>
+          <div className="border-b border-gray-100" />
+          <Row label="Approved Change Orders" value={fmt$(approvedCOs)}
+            sub={`${job.changeOrders.filter(c => c.status === "APPROVED").length} approved COs`} />
+          <Row label="Revised Contract Total" value={fmt$(revisedContract)} accent bold />
+          <div className="py-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-sm text-gray-600">Percent Complete</p>
+              <span className="text-sm font-bold text-[#002D72]">{pctComplete.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div className="bg-[#002D72] h-2.5 rounded-full transition-all"
+                style={{ width: `${Math.min(pctComplete, 100)}%` }} />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Gross Billing ÷ Revised Contract</p>
+          </div>
+        </>
+      )}
+
+      {job.jobType === "TIME_AND_MATERIALS" && (
+        <p className="text-xs text-gray-400 py-3">
+          Time &amp; Materials job — billing based on running costs. No contract cap.
+        </p>
+      )}
     </SectionCard>
   );
 }
@@ -541,9 +559,11 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   const [error, setError] = useState<string | null>(null);
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
   const [showPayForm, setShowPayForm] = useState<string | null>(null); // invoiceId
+  const [duplicateWarning, setDuplicateWarning] = useState<{ invoiceNumber: number; date: string } | null>(null);
 
   // New invoice form state
   const [invType, setInvType] = useState<"STANDARD" | "AIA">("STANDARD");
+  const [invKind, setInvKind] = useState<"PROGRESS_PAYMENT" | "FINAL_INVOICE">("PROGRESS_PAYMENT");
   const [invDate, setInvDate] = useState(new Date().toISOString().slice(0, 10));
   const [invPeriodTo, setInvPeriodTo] = useState("");
   const [invAppNo, setInvAppNo] = useState("");
@@ -587,12 +607,13 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
     return items;
   }
 
-  function handleCreate() {
+  function doCreate(force = false) {
     setError(null);
     startTransition(async () => {
       try {
-        await createInvoice(job.id, {
+        const result = await createInvoice(job.id, {
           type: invType,
+          invoiceKind: invKind,
           date: invDate,
           periodTo: invPeriodTo,
           applicationNo: invAppNo,
@@ -600,13 +621,21 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
           retainagePct: invRetainagePct,
           notes: invNotes,
           lineItems: buildLineItems(),
+          force,
         });
+        if (result?.duplicate) {
+          setDuplicateWarning(result.duplicate);
+          return;
+        }
         setShowForm(false);
+        setDuplicateWarning(null);
         setInvAmount(grossBilling.toFixed(2));
         setInvNotes(""); setInvPeriodTo(""); setInvAppNo(""); setInvRetainagePct("0");
       } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
     });
   }
+
+  function handleCreate() { doCreate(false); }
 
   function handleMarkSent(invoiceId: string) {
     startTransition(async () => {
@@ -639,6 +668,28 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   return (
     <SectionCard icon={<FileText className="w-4 h-4" />} title="Invoices">
       {error && <p className="text-xs text-red-500 py-2">{error}</p>}
+
+      {/* Duplicate invoice warning */}
+      {duplicateWarning && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 my-3 space-y-3">
+          <p className="text-sm font-semibold text-amber-800">Invoice Already Exists</p>
+          <p className="text-xs text-amber-700">
+            Invoice #{String(duplicateWarning.invoiceNumber).padStart(3, "0")} was already created for{" "}
+            {new Date(duplicateWarning.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}.
+            Do you want to create another invoice for this period?
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => doCreate(true)} disabled={pending}
+              className="flex-1 bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-amber-700 disabled:opacity-60">
+              {pending ? "Creating…" : "Create Anyway"}
+            </button>
+            <button onClick={() => setDuplicateWarning(null)}
+              className="flex-1 border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-amber-50">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Invoice list */}
       {invoices.length === 0 ? (
@@ -690,6 +741,13 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                       className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                       <FileText className="w-3.5 h-3.5" /> Download PDF
                     </a>
+                    {/* Word doc download (Standard only) */}
+                    {inv.type === "STANDARD" && (
+                      <a href={`/api/jobs/${job.id}/pdf/invoice/${inv.id}/docx`}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+                        <FileText className="w-3.5 h-3.5" /> Download Word
+                      </a>
+                    )}
 
                     {/* Mark Sent */}
                     {role === "ADMIN" && inv.status === "DRAFT" && (
@@ -785,6 +843,19 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                 </button>
               ))}
             </div>
+            {/* Payment kind toggle (Standard only) */}
+            {invType === "STANDARD" && (
+              <div className="flex gap-2">
+                {(["PROGRESS_PAYMENT", "FINAL_INVOICE"] as const).map(k => (
+                  <button key={k} onClick={() => setInvKind(k)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      invKind === k ? "bg-[#FF5910] text-white border-[#FF5910]" : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+                    }`}>
+                    {k === "FINAL_INVOICE" ? "Final Invoice" : "Progress Payment"}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Invoice Date *</label>
@@ -1002,8 +1073,37 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
   const grossBilling = totalDirectCosts + totalMarkup;
   const pctComplete = revisedContract > 0 ? (grossBilling / revisedContract) * 100 : 0;
 
+  const isEstimate = job.jobType === "ESTIMATE";
+  const isTM = job.jobType === "TIME_AND_MATERIALS";
+
+  // Estimate jobs: only ADMIN sees full financials
+  if (isEstimate && role !== "ADMIN") {
+    return (
+      <div className="p-5">
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
+          <p className="text-sm font-semibold text-purple-800">Estimate — Admin Only</p>
+          <p className="text-xs text-purple-600 mt-1">Financial details for Estimate jobs are visible to admins only.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-5 space-y-5">
+      {/* Job type banner */}
+      {isTM && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+          <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Time &amp; Materials</span>
+          <span className="text-xs text-amber-700">— Running costs tracked; no fixed contract value.</span>
+        </div>
+      )}
+      {isEstimate && (
+        <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5">
+          <span className="text-xs font-semibold text-purple-800 uppercase tracking-wide">Estimate</span>
+          <span className="text-xs text-purple-700">— Pre-bid cost tracking. Not yet awarded.</span>
+        </div>
+      )}
+
       {/* Data freshness note + refresh */}
       <div className="flex items-center justify-between text-xs text-gray-400">
         <span>

@@ -16,6 +16,7 @@ import {
   addLaborEntries,
   updateLaborEntry,
   deleteLaborEntry,
+  type DuplicateLaborEntry,
 } from "./labor-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
 
@@ -148,6 +149,8 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [duplicates, setDuplicates] = useState<DuplicateLaborEntry[] | null>(null);
+  const [pendingEntries, setPendingEntries] = useState<{ userId: string; hours: number }[] | null>(null);
 
   // Normalize dates
   const entries = job.laborEntries.map((e) => ({ ...e, date: new Date(e.date) }));
@@ -174,33 +177,103 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
     });
   }
 
+  function buildEntries() {
+    return Array.from(selectedIds).map((userId) => {
+      const h = individualMode ? parseFloat(individualHours[userId] || "0") : parseFloat(sharedHours);
+      if (isNaN(h) || h <= 0) return null;
+      return { userId, hours: h };
+    }).filter(Boolean) as { userId: string; hours: number }[];
+  }
+
   function handleSubmit() {
     setError(null);
     if (!selectedIds.size) { setError("Select at least one crew member."); return; }
     if (!date) { setError("Date is required."); return; }
 
-    const entries = Array.from(selectedIds).map((userId) => {
-      const h = individualMode ? parseFloat(individualHours[userId] || "0") : parseFloat(sharedHours);
-      if (isNaN(h) || h <= 0) return null;
-      return { userId, hours: h };
-    }).filter(Boolean) as { userId: string; hours: number }[];
-
-    if (!entries.length) { setError("Hours must be greater than 0."); return; }
+    const entriesToSubmit = buildEntries();
+    if (!entriesToSubmit.length) { setError("Hours must be greater than 0."); return; }
 
     startTransition(async () => {
       try {
-        await addLaborEntries(job.id, date, entries);
-        setSelectedIds(new Set());
-        setIndividualHours({});
-        setShowForm(false);
+        const result = await addLaborEntries(job.id, date, entriesToSubmit, "check");
+        if (result?.duplicates && result.duplicates.length > 0) {
+          setDuplicates(result.duplicates);
+          setPendingEntries(entriesToSubmit);
+          return;
+        }
+        resetForm();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save.");
       }
     });
   }
 
+  function resetForm() {
+    setSelectedIds(new Set());
+    setIndividualHours({});
+    setShowForm(false);
+    setDuplicates(null);
+    setPendingEntries(null);
+  }
+
+  function handleDuplicateChoice(mode: "add" | "replace") {
+    if (!pendingEntries) return;
+    startTransition(async () => {
+      try {
+        await addLaborEntries(job.id, date, pendingEntries, mode);
+        resetForm();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to save.");
+        setDuplicates(null);
+        setPendingEntries(null);
+      }
+    });
+  }
+
   return (
     <div className="p-5">
+      {/* Duplicate Labor Warning Modal */}
+      {duplicates && duplicates.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-[#002D72] text-base mb-2">Duplicate Hours Detected</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              The following crew members already have hours logged for this date:
+            </p>
+            <ul className="mb-4 space-y-1">
+              {duplicates.map((d) => (
+                <li key={d.userId} className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <span className="font-medium">{d.userName}</span>
+                  <span className="text-gray-500"> — {d.existingHours} hrs already logged</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleDuplicateChoice("add")}
+                disabled={pending}
+                className="w-full bg-[#002D72] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-900 disabled:opacity-60 transition-colors"
+              >
+                Add Hours (keep both)
+              </button>
+              <button
+                onClick={() => handleDuplicateChoice("replace")}
+                disabled={pending}
+                className="w-full bg-[#FF5910] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-60 transition-colors"
+              >
+                Replace Existing Hours
+              </button>
+              <button
+                onClick={() => { setDuplicates(null); setPendingEntries(null); }}
+                className="w-full border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Totals bar */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="bg-gray-50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">

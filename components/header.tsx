@@ -24,7 +24,7 @@ export function Header({ userName, userRole, userImage }: HeaderProps) {
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <div className="w-9 h-9 shrink-0 relative">
             <img
-              src="/logo.jpg"
+              src="/logo.png"
               alt="Oak Ridge Electrical"
               width={36}
               height={36}

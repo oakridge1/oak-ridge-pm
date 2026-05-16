@@ -93,10 +93,15 @@ export function JobTabs({
 }: JobTabsProps) {
   const [activeTab, setActiveTab] = useState("info");
 
+  const isEstimate = job.jobType === "ESTIMATE";
+
   const visibleTabs = TABS.filter((t) => {
     if (t.hideFromTeammate) {
       if (role === "TEAMMATE") return false;
       if (role === "FOREMAN" && !canViewSummary) return false;
+      // Estimate financial data is admin-only (the tab renders a gate for non-admins,
+      // but hide the tab entirely for non-admins on estimates)
+      if (isEstimate && role !== "ADMIN") return false;
     }
     return true;
   });

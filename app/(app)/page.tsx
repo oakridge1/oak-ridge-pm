@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   const isAdmin = session?.user?.role === "ADMIN";
   const isOffice = session?.user?.role === "OFFICE";
 
-  const [jobs, archivedJobs] = await Promise.all([
+  const [allJobs, archivedJobs] = await Promise.all([
     prisma.job.findMany({
       where: { archived: false },
       orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
@@ -33,6 +33,10 @@ export default async function DashboardPage() {
       : Promise.resolve([]),
   ]);
 
+  // Split estimates from regular jobs
+  const estimateJobs = allJobs.filter((j) => j.jobType === "ESTIMATE");
+  const jobs = allJobs.filter((j) => j.jobType !== "ESTIMATE");
+
   const grouped = statusOrder.reduce<Record<string, typeof jobs>>(
     (acc, s) => ({ ...acc, [s]: jobs.filter((j) => j.status === s) }),
     {}
@@ -51,7 +55,7 @@ export default async function DashboardPage() {
         {(isAdmin || isOffice) && <CreateJobButton />}
       </div>
 
-      {jobs.length === 0 && archivedJobs.length === 0 && (
+      {allJobs.length === 0 && archivedJobs.length === 0 && (
         <div className="text-center py-20 text-gray-400">
           <p className="text-lg">No jobs yet.</p>
           {(isAdmin || isOffice) && (
@@ -76,6 +80,24 @@ export default async function DashboardPage() {
           </div>
         );
       })}
+
+      {estimateJobs.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+              Estimates
+            </h2>
+            <span className="text-xs bg-purple-100 text-purple-700 font-medium px-2 py-0.5 rounded-full">
+              {estimateJobs.length}
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {estimateJobs.map((job) => (
+              <JobCard key={job.id} job={job} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {isAdmin && archivedJobs.length > 0 && (
         <ArchivedJobsSection jobs={archivedJobs} />

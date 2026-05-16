@@ -10,16 +10,60 @@ async function requireActive() {
   return session;
 }
 
+export type DuplicateLaborEntry = {
+  userId: string;
+  userName: string;
+  date: string;
+  existingHours: number;
+  existingId: string;
+};
+
 export async function addLaborEntries(
   jobId: string,
   date: string,
-  entries: { userId: string; hours: number }[]
+  entries: { userId: string; hours: number }[],
+  mode: "check" | "add" | "replace" = "check"
 ) {
   const session = await requireActive();
   if (!entries.length) throw new Error("No entries provided.");
   if (!date) throw new Error("Date is required.");
 
   const dateObj = new Date(date);
+  // Normalize to midnight UTC for comparison
+  const dayStart = new Date(dateObj);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+  // Check for duplicates (same job + user + date)
+  const userIds = entries.map(e => e.userId);
+  const existing = await prisma.laborEntry.findMany({
+    where: {
+      jobId,
+      userId: { in: userIds },
+      date: { gte: dayStart, lt: dayEnd },
+    },
+    include: { user: { select: { name: true } } },
+  });
+
+  if (existing.length > 0 && mode === "check") {
+    // Return duplicate info for the client to handle
+    const duplicates: DuplicateLaborEntry[] = existing.map(e => ({
+      userId: e.userId,
+      userName: e.user.name ?? "Unknown",
+      date: e.date.toISOString(),
+      existingHours: e.hours,
+      existingId: e.id,
+    }));
+    return { duplicates };
+  }
+
+  if (mode === "replace" && existing.length > 0) {
+    // Delete existing entries for these users on this date
+    await prisma.laborEntry.deleteMany({
+      where: { id: { in: existing.map(e => e.id) } },
+    });
+  }
 
   await prisma.laborEntry.createMany({
     data: entries.map((e) => ({
@@ -32,6 +76,7 @@ export async function addLaborEntries(
   });
 
   revalidatePath(`/jobs/${jobId}`);
+  return { success: true };
 }
 
 export async function updateLaborEntry(

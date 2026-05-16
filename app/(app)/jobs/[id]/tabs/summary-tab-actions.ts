@@ -124,11 +124,35 @@ export async function createInvoice(jobId: string, data: {
   retainagePct: string;
   notes: string;
   lineItems: { label: string; amount: number }[];
+  invoiceKind?: string;
+  force?: boolean;
 }) {
   const session = await requireAdminOrForemanOnJob(jobId);
 
   if (!data.date) throw new Error("Invoice date is required.");
   if (!data.amount || parseFloat(data.amount) <= 0) throw new Error("Amount must be greater than 0.");
+
+  // Duplicate check: warn if an invoice already exists for the same date/period
+  if (!data.force) {
+    const invoiceDate = new Date(data.date);
+    const monthStart = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth(), 1);
+    const monthEnd = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1, 0, 23, 59, 59);
+    const existingInMonth = await prisma.invoice.findFirst({
+      where: {
+        jobId,
+        date: { gte: monthStart, lte: monthEnd },
+      },
+      select: { invoiceNumber: true, date: true },
+    });
+    if (existingInMonth) {
+      return {
+        duplicate: {
+          invoiceNumber: existingInMonth.invoiceNumber,
+          date: existingInMonth.date.toISOString(),
+        },
+      };
+    }
+  }
 
   // Auto-number: find highest existing invoice number for this job
   const last = await prisma.invoice.findFirst({
@@ -148,6 +172,7 @@ export async function createInvoice(jobId: string, data: {
       createdById: session.user.id!,
       invoiceNumber,
       type: data.type === "AIA" ? "AIA" : "STANDARD",
+      invoiceKind: data.invoiceKind || "PROGRESS_PAYMENT",
       date: new Date(data.date),
       periodTo: data.periodTo ? new Date(data.periodTo) : null,
       applicationNo: data.applicationNo ? parseInt(data.applicationNo) : null,
@@ -161,6 +186,7 @@ export async function createInvoice(jobId: string, data: {
   });
 
   revalidatePath(`/jobs/${jobId}`);
+  return { success: true };
 }
 
 export async function updateInvoiceStatus(

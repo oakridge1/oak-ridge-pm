@@ -86,6 +86,21 @@ export function CreateJobButton() {
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Job Type
+                </label>
+                <select
+                  name="jobType"
+                  defaultValue="BID"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
+                >
+                  <option value="BID">Bid</option>
+                  <option value="TIME_AND_MATERIALS">Time &amp; Materials</option>
+                  <option value="ESTIMATE">Estimate</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
                   Job Name *
                 </label>
                 <input

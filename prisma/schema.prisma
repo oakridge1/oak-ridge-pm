@@ -79,6 +79,12 @@ enum DocumentCategory {
   OTHER
 }
 
+enum JobType {
+  BID
+  TIME_AND_MATERIALS
+  ESTIMATE
+}
+
 enum InvoiceType {
   STANDARD
   AIA
@@ -187,6 +193,7 @@ model Job {
   inspectionContact String?
   inspectionPhone   String?
   status            JobStatus @default(ACTIVE)
+  jobType           JobType   @default(BID)
   contractValue     Decimal?  @db.Decimal(12, 2)
   laborBudgetHours  Float?
   materialBudget    Decimal?  @db.Decimal(12, 2)
@@ -233,6 +240,7 @@ model Invoice {
   createdById   String
   invoiceNumber Int
   type          InvoiceType   @default(STANDARD)
+  invoiceKind   String?       @default("PROGRESS_PAYMENT")
   date          DateTime
   periodTo      DateTime?
   applicationNo Int?

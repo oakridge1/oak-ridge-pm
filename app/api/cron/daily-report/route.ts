@@ -7,40 +7,22 @@ import { APP_URL } from "@/lib/app-url";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmt$(n: number) {
-  return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function fmtDate(d: Date) {
   return new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-function isToday(d: Date | null | undefined): boolean {
-  if (!d) return false;
-  const now = new Date();
-  const t = new Date(d);
-  return t.getFullYear() === now.getFullYear() &&
-    t.getMonth() === now.getMonth() &&
-    t.getDate() === now.getDate();
-}
-
-function isOverdue(d: Date | null | undefined): boolean {
-  if (!d) return false;
-  return new Date(d) < new Date(new Date().setHours(0, 0, 0, 0));
-}
-
-function wrap(body: string) {
+function wrap(body: string, title: string, date: string) {
   return `
 <div style="font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
   <div style="margin-bottom:20px">
     <span style="font-size:13px;font-weight:700;color:#FF5910;text-transform:uppercase;letter-spacing:0.1em">Oak Ridge Electrical LLC</span>
-    <h1 style="font-size:22px;font-weight:700;color:#002D72;margin:8px 0 4px">Daily Project Report</h1>
-    <p style="font-size:13px;color:#888;margin:0">${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+    <h1 style="font-size:22px;font-weight:700;color:#002D72;margin:8px 0 4px">${title}</h1>
+    <p style="font-size:13px;color:#888;margin:0">${date}</p>
     <a href="${APP_URL}" style="display:inline-block;margin-top:10px;font-size:12px;color:#002D72;text-decoration:none">→ Open Oak Ridge PM</a>
   </div>
   ${body}
   <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb" />
-  <p style="font-size:11px;color:#aaa;margin:0">Oak Ridge Electrical Project Management · Daily Report</p>
+  <p style="font-size:11px;color:#aaa;margin:0">Oak Ridge Electrical Project Management</p>
 </div>`;
 }
 
@@ -65,6 +47,13 @@ function none() {
   return `<p style="font-size:13px;color:#aaa;margin:0;padding:8px 0">None</p>`;
 }
 
+function createTransport(FROM: string, PASS: string) {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com", port: 587, secure: false,
+    auth: { user: FROM, pass: PASS },
+  });
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: Request) {
@@ -76,10 +65,18 @@ export async function GET(request: Request) {
 
   try {
     const now = new Date();
+
+    // Today (for tasks, calendar, inspections, RFIs, budget alerts)
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    // Yesterday (for activity data: labor, materials, notes, failed inspections)
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
+    const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     // Get admin emails
     const admins = await prisma.user.findMany({
@@ -91,17 +88,20 @@ export async function GET(request: Request) {
     }
     const adminEmails = admins.map((u) => u.email);
 
-    // ── Gather data ───────────────────────────────────────────────────────────
+    // ── Gather admin report data ──────────────────────────────────────────────
 
     const [
       tasksDueToday,
       tasksOverdue,
       pendingCOs,
       inspectionsToday,
-      failedInspections,
+      failedInspectionsYesterday,
       calendarToday,
       openRfis,
       activeJobs,
+      laborYesterday,
+      materialsYesterday,
+      notesYesterday,
     ] = await Promise.all([
       // Tasks due today (not completed)
       prisma.task.findMany({
@@ -130,26 +130,26 @@ export async function GET(request: Request) {
         include: { job: { select: { id: true, jobName: true, jobNumber: true } } },
       }),
 
-      // Failed inspections in last 24h
+      // Failed inspections yesterday
       prisma.inspection.findMany({
-        where: { result: "FAIL", updatedAt: { gte: oneDayAgo } },
+        where: { result: "FAIL", updatedAt: { gte: startOfYesterday, lte: endOfYesterday } },
         include: { job: { select: { id: true, jobName: true, jobNumber: true } } },
       }),
 
-      // Calendar events today across all active jobs
+      // Calendar events today
       prisma.calendarEvent.findMany({
         where: { date: { gte: startOfToday, lte: endOfToday }, job: { status: { in: ["ACTIVE", "ON_HOLD"] } } },
         include: { job: { select: { id: true, jobName: true, jobNumber: true } } },
       }),
 
-      // Open RFIs older than 7 days with no answer
+      // Open RFIs older than 7 days
       prisma.rfi.findMany({
         where: { status: "OPEN", createdAt: { lte: sevenDaysAgo } },
         include: { job: { select: { id: true, jobName: true, jobNumber: true } } },
         orderBy: { createdAt: "asc" },
       }),
 
-      // All active/on-hold jobs with financial data for budget alerts
+      // Active/on-hold jobs with financial data
       prisma.job.findMany({
         where: { status: { in: ["ACTIVE", "ON_HOLD"] }, archived: false },
         select: {
@@ -158,6 +158,33 @@ export async function GET(request: Request) {
           laborEntries: { select: { hours: true } },
           materials: { select: { amount: true } },
         },
+      }),
+
+      // Labor logged yesterday
+      prisma.laborEntry.findMany({
+        where: { date: { gte: startOfYesterday, lte: endOfYesterday } },
+        include: {
+          job: { select: { id: true, jobName: true, jobNumber: true } },
+          user: { select: { name: true } },
+        },
+        orderBy: [{ job: { jobNumber: "asc" } }, { user: { name: "asc" } }],
+      }),
+
+      // Materials entered yesterday
+      prisma.material.findMany({
+        where: { createdAt: { gte: startOfYesterday, lte: endOfYesterday } },
+        include: { job: { select: { id: true, jobName: true, jobNumber: true } } },
+        orderBy: { job: { jobNumber: "asc" } },
+      }),
+
+      // Notes posted yesterday
+      prisma.note.findMany({
+        where: { createdAt: { gte: startOfYesterday, lte: endOfYesterday } },
+        include: {
+          job: { select: { id: true, jobName: true, jobNumber: true } },
+          user: { select: { name: true } },
+        },
+        orderBy: { job: { jobNumber: "asc" } },
       }),
     ]);
 
@@ -182,11 +209,59 @@ export async function GET(request: Request) {
       }
     }
 
-    // ── Build HTML ────────────────────────────────────────────────────────────
+    // ── Build admin email HTML ────────────────────────────────────────────────
 
     const jobLink = (id: string) => `${APP_URL}/jobs/${id}`;
+    const yesterdayLabel = fmtDate(yesterday);
+    const todayLabel = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
     const sections: string[] = [];
+
+    // Hours Logged Yesterday — group by job
+    const laborByJob = laborYesterday.reduce<Record<string, { job: typeof laborYesterday[0]["job"]; entries: typeof laborYesterday }>>(
+      (acc, e) => {
+        if (!acc[e.jobId]) acc[e.jobId] = { job: e.job, entries: [] };
+        acc[e.jobId].entries.push(e);
+        return acc;
+      },
+      {}
+    );
+    sections.push(section(`⏱ Hours Logged (${yesterdayLabel})`, "#002D72",
+      Object.keys(laborByJob).length === 0 ? none() :
+      Object.values(laborByJob).map(({ job, entries }) => {
+        const totalHrs = entries.reduce((s, e) => s + e.hours, 0);
+        const crew = entries.map(e => `${e.user.name ?? "?"} (${e.hours}h)`).join(", ");
+        return row(`${job.jobNumber} — ${job.jobName}`, `${totalHrs.toFixed(1)} hrs · ${crew}`, jobLink(job.id));
+      }).join("")
+    ));
+
+    // Materials Yesterday — group by job
+    const matByJob = materialsYesterday.reduce<Record<string, { job: typeof materialsYesterday[0]["job"]; entries: typeof materialsYesterday }>>(
+      (acc, m) => {
+        if (!acc[m.jobId]) acc[m.jobId] = { job: m.job, entries: [] };
+        acc[m.jobId].entries.push(m);
+        return acc;
+      },
+      {}
+    );
+    sections.push(section(`📦 Materials Entered (${yesterdayLabel})`, "#7c3aed",
+      Object.keys(matByJob).length === 0 ? none() :
+      Object.values(matByJob).map(({ job, entries }) => {
+        const total = entries.reduce((s, m) => s + ((m.amount as any).toNumber ? (m.amount as any).toNumber() : Number(m.amount)), 0);
+        const descs = entries.map(e => e.description).join(", ");
+        return row(`${job.jobNumber} — ${job.jobName}`, `$${total.toFixed(2)} · ${descs}`, jobLink(job.id));
+      }).join("")
+    ));
+
+    // Notes Yesterday
+    sections.push(section(`📝 Notes Posted (${yesterdayLabel})`, "#374151",
+      notesYesterday.length === 0 ? none() :
+      notesYesterday.map((n) => row(
+        `${n.job.jobNumber} — ${n.job.jobName}`,
+        `${n.user.name ?? "?"}: ${n.content.length > 100 ? n.content.slice(0, 100) + "…" : n.content}`,
+        jobLink(n.job.id)
+      )).join("")
+    ));
 
     // Tasks Due Today
     sections.push(section("📋 Tasks Due Today", "#002D72",
@@ -228,10 +303,10 @@ export async function GET(request: Request) {
       )).join("")
     ));
 
-    // Failed Inspections (last 24h)
-    sections.push(section("❌ Failed Inspections (Last 24 Hours)", "#dc2626",
-      failedInspections.length === 0 ? none() :
-      failedInspections.map((ins) => row(
+    // Failed Inspections Yesterday
+    sections.push(section(`❌ Failed Inspections (${yesterdayLabel})`, "#dc2626",
+      failedInspectionsYesterday.length === 0 ? none() :
+      failedInspectionsYesterday.map((ins) => row(
         ins.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) + " — FAILED",
         `${ins.job.jobNumber} — ${ins.job.jobName}`,
         jobLink(ins.job.id)
@@ -278,15 +353,20 @@ export async function GET(request: Request) {
       )).join("")
     ));
 
-    const html = wrap(sections.join(""));
+    const html = wrap(sections.join(""), "Daily Project Report", todayLabel);
 
     const text = [
-      `Daily Project Report — ${new Date().toLocaleDateString("en-US")}`,
-      `\nTasks Due Today: ${tasksDueToday.length}`,
+      `Daily Project Report — ${todayLabel}`,
+      `\n--- ${yesterdayLabel} Activity ---`,
+      `Hours Logged: ${laborYesterday.length} entries across ${Object.keys(laborByJob).length} jobs`,
+      `Materials Entered: ${materialsYesterday.length}`,
+      `Notes Posted: ${notesYesterday.length}`,
+      `\n--- Today ---`,
+      `Tasks Due Today: ${tasksDueToday.length}`,
       `Overdue Tasks: ${tasksOverdue.length}`,
       `Pending COs: ${pendingCOs.length}`,
       `Inspections Today: ${inspectionsToday.length}`,
-      `Failed Inspections (24h): ${failedInspections.length}`,
+      `Failed Inspections (Yesterday): ${failedInspectionsYesterday.length}`,
       `Calendar Events Today: ${calendarToday.length}`,
       `Open RFIs >7 days: ${openRfis.length}`,
       `Labor Budget Alerts: ${laborAlerts.length}`,
@@ -294,7 +374,7 @@ export async function GET(request: Request) {
       `\n${APP_URL}`,
     ].join("\n");
 
-    // ── Send ──────────────────────────────────────────────────────────────────
+    // ── Send admin report ─────────────────────────────────────────────────────
 
     const FROM = process.env.EMAIL_FROM;
     const PASS = process.env.GMAIL_APP_PASSWORD;
@@ -303,21 +383,153 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, error: "Email not configured." });
     }
 
-    const transport = nodemailer.createTransport({
-      host: "smtp.gmail.com", port: 587, secure: false,
-      auth: { user: FROM, pass: PASS },
-    });
+    const transport = createTransport(FROM, PASS);
 
     await transport.sendMail({
       from: `"Oak Ridge PM" <${FROM}>`,
       to: adminEmails.join(", "),
-      subject: `Daily Report — ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`,
+      subject: `Daily Report — ${now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`,
       text,
       html,
     });
 
-    console.log(`[daily-report] ✓ sent to ${adminEmails.join(", ")}`);
-    return NextResponse.json({ ok: true, sent_to: adminEmails });
+    console.log(`[daily-report] ✓ admin report sent to ${adminEmails.join(", ")}`);
+
+    // ── Per-Foreman per-job daily emails (Step 10) ────────────────────────────
+
+    // Get all active foremen with their assigned active jobs
+    const foremen = await prisma.user.findMany({
+      where: { active: true, role: "FOREMAN" },
+      select: {
+        id: true, name: true, email: true,
+        foremanJobs: {
+          where: { status: { in: ["ACTIVE", "ON_HOLD"] }, archived: false },
+          select: {
+            id: true, jobName: true, jobNumber: true,
+            contractValue: true, blendedLaborRate: true, laborBudgetHours: true,
+            scopeOfWork: true,
+            laborEntries: { select: { hours: true, date: true, user: { select: { name: true } } } },
+            tasks: {
+              where: { status: { not: "COMPLETED" }, dueDate: { lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) } },
+              select: { title: true, dueDate: true, assignee: { select: { name: true } } },
+              orderBy: { dueDate: "asc" },
+            },
+            calendarEvents: {
+              where: { date: { gte: startOfToday, lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) } },
+              select: { title: true, date: true, type: true },
+              orderBy: { date: "asc" },
+            },
+            rfis: {
+              where: { status: "OPEN" },
+              select: { rfiNumber: true, subject: true, createdAt: true },
+            },
+            inspections: {
+              where: { dateScheduled: { gte: startOfToday } },
+              select: { type: true, dateScheduled: true },
+              orderBy: { dateScheduled: "asc" },
+            },
+          },
+        },
+      },
+    });
+
+    let foremanEmailCount = 0;
+    for (const foreman of foremen) {
+      for (const job of foreman.foremanJobs) {
+        // Yesterday's labor on this job
+        const yesterdayLabor = job.laborEntries.filter(e => {
+          const d = new Date(e.date);
+          return d >= startOfYesterday && d <= endOfYesterday;
+        });
+        const yesterdayHrs = yesterdayLabor.reduce((s, e) => s + e.hours, 0);
+        const yesterdayCrew = yesterdayLabor.map(e => `${e.user.name ?? "?"} (${e.hours}h)`).join(", ");
+
+        // Total hours + percent complete
+        const totalHrs = job.laborEntries.reduce((s, e) => s + e.hours, 0);
+        const pctComplete = job.laborBudgetHours && job.laborBudgetHours > 0
+          ? Math.round((totalHrs / job.laborBudgetHours) * 100)
+          : null;
+
+        // Open RFIs with days open
+        const openRfiList = job.rfis.map(rfi => {
+          const daysOpen = Math.floor((now.getTime() - new Date(rfi.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+          return `RFI-${String(rfi.rfiNumber).padStart(3, "0")}: ${rfi.subject} (${daysOpen}d open)`;
+        });
+
+        const foremanSections: string[] = [];
+
+        // Job header info
+        foremanSections.push(`
+<div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:16px">
+  <p style="margin:0 0 4px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.05em">Job</p>
+  <p style="margin:0;font-size:16px;font-weight:700;color:#002D72">${job.jobName}</p>
+  <p style="margin:2px 0 0;font-size:12px;color:#555">
+    #${job.jobNumber}${pctComplete != null ? ` · ${pctComplete}% complete (${totalHrs.toFixed(1)} hrs logged)` : ` · ${totalHrs.toFixed(1)} hrs logged`}
+  </p>
+</div>`);
+
+        // Yesterday's hours
+        foremanSections.push(section(
+          `Hours Yesterday (${yesterdayLabel})`, "#002D72",
+          yesterdayHrs === 0
+            ? none()
+            : row(`${yesterdayHrs.toFixed(1)} total hours`, yesterdayCrew || "No crew details")
+        ));
+
+        // Tasks due in 7 days
+        foremanSections.push(section("Tasks Due in 7 Days", "#b45309",
+          job.tasks.length === 0 ? none() :
+          job.tasks.map(t => row(
+            t.title,
+            `${t.dueDate ? fmtDate(t.dueDate) : "No due date"}${t.assignee?.name ? ` · ${t.assignee.name}` : ""}`
+          )).join("")
+        ));
+
+        // Calendar events in 7 days
+        foremanSections.push(section("Upcoming Calendar Events", "#7c3aed",
+          job.calendarEvents.length === 0 ? none() :
+          job.calendarEvents.map(ev => row(ev.title, fmtDate(ev.date))).join("")
+        ));
+
+        // Open RFIs
+        foremanSections.push(section("Open RFIs", "#dc2626",
+          openRfiList.length === 0 ? none() :
+          openRfiList.map(r => row(r, "Awaiting response")).join("")
+        ));
+
+        // Upcoming inspections
+        const upcomingInspections = job.inspections.filter(i => i.dateScheduled);
+        foremanSections.push(section("Upcoming Inspections", "#16a34a",
+          upcomingInspections.length === 0 ? none() :
+          upcomingInspections.map(i => row(
+            i.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+            i.dateScheduled ? fmtDate(i.dateScheduled) : "—"
+          )).join("")
+        ));
+
+        const foremanHtml = wrap(
+          foremanSections.join(""),
+          `Daily Job Update — ${job.jobName}`,
+          now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+        );
+
+        await transport.sendMail({
+          from: `"Oak Ridge PM" <${FROM}>`,
+          to: foreman.email,
+          subject: `Daily Update: ${job.jobName} (${job.jobNumber}) — ${now.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+          text: `Daily Update — ${job.jobName}\n${job.jobNumber}\n${yesterdayHrs > 0 ? `Yesterday: ${yesterdayHrs}h (${yesterdayCrew})` : "No hours yesterday"}\n${APP_URL}/jobs/${job.id}`,
+          html: foremanHtml,
+        });
+        foremanEmailCount++;
+      }
+    }
+
+    console.log(`[daily-report] ✓ ${foremanEmailCount} foreman job emails sent`);
+    return NextResponse.json({
+      ok: true,
+      sent_to: adminEmails,
+      foreman_emails: foremanEmailCount,
+    });
   } catch (err) {
     console.error("[daily-report] Error:", err);
     return new NextResponse(`Error: ${err instanceof Error ? err.message : String(err)}`, { status: 500 });
