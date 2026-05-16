@@ -76,6 +76,7 @@ enum DocumentCategory {
   SUBCONTRACTS
   INSPECTION_REPORTS
   CLOSEOUT
+  MATERIAL_RECEIPTS
   OTHER
 }
 
@@ -298,16 +299,17 @@ model LaborEntry {
 // ── Materials ────────────────────────────────────────────────────────────────
 
 model Material {
-  id          String   @id @default(cuid())
-  jobId       String
-  userId      String
-  date        DateTime
-  vendor      String?
-  description String
-  amount      Decimal  @db.Decimal(12, 2)
-  fileUrl     String?
-  fileName    String?
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  jobId           String
+  userId          String
+  date            DateTime
+  vendor          String?
+  description     String
+  amount          Decimal  @db.Decimal(12, 2)
+  fileUrl         String?
+  fileName        String?
+  archivedToVault Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id])
@@ -563,4 +565,16 @@ model GoogleConnection {
   updatedAt     DateTime  @updatedAt
 
   connectedBy User @relation("GoogleConnectionAdmin", fields: [connectedById], references: [id], onDelete: Cascade)
+}
+
+// ── Suppliers ─────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

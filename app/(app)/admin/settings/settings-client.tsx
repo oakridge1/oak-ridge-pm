@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle2, AlertCircle, ExternalLink, Link2Off,
-  RefreshCw, Calendar, Sheet, Building2, Bell, Upload,
+  RefreshCw, Calendar, Sheet, Building2, Bell, Upload, Truck,
+  Edit2, Trash2, Plus, X,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
+
+interface Supplier { id: string; name: string; email: string | null; phone: string | null; notes: string | null; }
 
 interface GoogleConnection {
   id: string;
@@ -66,6 +69,22 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   // Test email state
   const [testingEmail, setTestingEmail] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ ok?: boolean; recipients?: number; error?: string } | null>(null);
+
+  // Suppliers state
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliersLoaded, setSuppliersLoaded] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
+  const [supplierForm, setSupplierForm] = useState({ name: "", email: "", phone: "" });
+  const [addingSupplier, setAddingSupplier] = useState(false);
+  const [supplierSaving, setSupplierSaving] = useState(false);
+
+  // Load suppliers on mount
+  useEffect(() => {
+    fetch("/api/admin/suppliers").then(r => r.json()).then(data => {
+      setSuppliers(Array.isArray(data) ? data : []);
+      setSuppliersLoaded(true);
+    }).catch(() => setSuppliersLoaded(true));
+  }, []);
 
   // ── Google handlers ──────────────────────────────────────────────────────────
 
@@ -137,6 +156,56 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       setTestEmailResult({ error: "Request failed" });
     } finally {
       setTestingEmail(false);
+    }
+  }
+
+  // ── Supplier handlers ────────────────────────────────────────────────────────
+
+  async function handleAddSupplier() {
+    if (!supplierForm.name.trim()) return;
+    setSupplierSaving(true);
+    try {
+      const res = await fetch("/api/admin/suppliers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(supplierForm),
+      });
+      if (res.ok) {
+        const supplier = await res.json();
+        setSuppliers(prev => [...prev, supplier].sort((a, b) => a.name.localeCompare(b.name)));
+        setSupplierForm({ name: "", email: "", phone: "" });
+        setAddingSupplier(false);
+      }
+    } finally {
+      setSupplierSaving(false);
+    }
+  }
+
+  async function handleUpdateSupplier(id: string) {
+    if (!supplierForm.name.trim()) return;
+    setSupplierSaving(true);
+    try {
+      const res = await fetch(`/api/admin/suppliers/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(supplierForm),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSuppliers(prev => prev.map(s => s.id === id ? updated : s).sort((a, b) => a.name.localeCompare(b.name)));
+        setEditingSupplierId(null);
+        setSupplierForm({ name: "", email: "", phone: "" });
+      }
+    } finally {
+      setSupplierSaving(false);
+    }
+  }
+
+  async function handleDeleteSupplier(id: string) {
+    if (!confirm("Delete this supplier?")) return;
+    const res = await fetch(`/api/admin/suppliers/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setSuppliers(prev => prev.filter(s => s.id !== id));
     }
   }
 
@@ -276,6 +345,128 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             )}
           </div>
         </form>
+      </div>
+
+      {/* ── Suppliers card ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Truck className="w-5 h-5 text-[#002D72]" />
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Suppliers</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Manage your preferred electrical suppliers.</p>
+          </div>
+        </div>
+
+        {!suppliersLoaded ? (
+          <p className="text-sm text-gray-400">Loading suppliers…</p>
+        ) : (
+          <div className="space-y-2">
+            {suppliers.map(supplier => (
+              <div key={supplier.id}>
+                {editingSupplierId === supplier.id ? (
+                  <div className="border border-[#002D72]/20 rounded-lg p-3 space-y-2 bg-blue-50">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <input
+                        type="text"
+                        value={supplierForm.name}
+                        onChange={e => setSupplierForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="Supplier name *"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                      />
+                      <input
+                        type="email"
+                        value={supplierForm.email}
+                        onChange={e => setSupplierForm(f => ({ ...f, email: e.target.value }))}
+                        placeholder="Email"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                      />
+                      <input
+                        type="tel"
+                        value={supplierForm.phone}
+                        onChange={e => setSupplierForm(f => ({ ...f, phone: e.target.value }))}
+                        placeholder="Phone"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                      />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => { setEditingSupplierId(null); setSupplierForm({ name: "", email: "", phone: "" }); }}
+                        className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
+                      <button onClick={() => handleUpdateSupplier(supplier.id)} disabled={supplierSaving || !supplierForm.name.trim()}
+                        className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                        {supplierSaving ? "Saving…" : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 border border-gray-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{supplier.name}</p>
+                      {(supplier.email || supplier.phone) && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {[supplier.email, supplier.phone].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => { setEditingSupplierId(supplier.id); setSupplierForm({ name: supplier.name, email: supplier.email ?? "", phone: supplier.phone ?? "" }); }}
+                        className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteSupplier(supplier.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {addingSupplier ? (
+              <div className="border border-[#FF5910]/30 rounded-lg p-3 space-y-2 bg-orange-50">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <input
+                    type="text"
+                    value={supplierForm.name}
+                    onChange={e => setSupplierForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Supplier name *"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    autoFocus
+                  />
+                  <input
+                    type="email"
+                    value={supplierForm.email}
+                    onChange={e => setSupplierForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder="Email"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                  />
+                  <input
+                    type="tel"
+                    value={supplierForm.phone}
+                    onChange={e => setSupplierForm(f => ({ ...f, phone: e.target.value }))}
+                    placeholder="Phone"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => { setAddingSupplier(false); setSupplierForm({ name: "", email: "", phone: "" }); }}
+                    className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
+                  <button onClick={handleAddSupplier} disabled={supplierSaving || !supplierForm.name.trim()}
+                    className="bg-[#FF5910] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#e04d0e] disabled:opacity-60">
+                    {supplierSaving ? "Adding…" : "Add Supplier"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setAddingSupplier(true); setEditingSupplierId(null); setSupplierForm({ name: "", email: "", phone: "" }); }}
+                className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-dashed border-[#002D72]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#002D72] transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Add Supplier
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Notifications card ── */}

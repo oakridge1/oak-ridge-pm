@@ -278,11 +278,17 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
 
 export function MaterialsTab({ job, role }: MaterialsTabProps) {
   const [showForm, setShowForm] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const entries = job.materials.map((m) => ({ ...m, date: new Date(m.date) }));
+  // Total ALWAYS includes all entries regardless of view
   const total = entries.reduce((sum, e) => sum + e.amount, 0);
   const budget = job.materialBudget;
   const remaining = budget != null ? budget - total : null;
+
+  const VISIBLE_COUNT = 5;
+  const visibleEntries = showAll ? entries : entries.slice(0, VISIBLE_COUNT);
+  const hiddenCount = entries.length - VISIBLE_COUNT;
 
   return (
     <div className="p-5">
@@ -326,10 +332,30 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-4">
-            {entries.map((entry) => (
+            {visibleEntries.map((entry) => (
               <EntryRow key={entry.id} entry={entry} jobId={job.id} role={role} />
             ))}
           </div>
+          {!showAll && hiddenCount > 0 && (
+            <div className="px-4 py-3 border-t border-gray-100 text-center">
+              <button
+                onClick={() => setShowAll(true)}
+                className="text-sm text-[#002D72] hover:text-[#003d99] font-medium"
+              >
+                View All ({entries.length} entries) — older receipts archived to Document Vault
+              </button>
+            </div>
+          )}
+          {showAll && entries.length > VISIBLE_COUNT && (
+            <div className="px-4 py-3 border-t border-gray-100 text-center">
+              <button
+                onClick={() => setShowAll(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+              >
+                Show less
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -73,7 +73,6 @@ export async function GET(
       ? (job.otherCosts as { amount: number }[])
       : [];
     const otherTotal = otherCosts.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-    const totalDirectCosts = laborCost + materialsCost + subCost + equipCost + otherTotal;
 
     const laborMarkupPct = job.laborMarkupPct ?? 0;
     const subMarkupPct = job.subMarkupPct ?? 0;
@@ -81,10 +80,9 @@ export async function GET(
     const laborMarkup = laborCost * (laborMarkupPct / 100);
     const subMarkup = subCost * (subMarkupPct / 100);
     const equipMarkup = equipBilled * (equipMarkupPct / 100);
-    const totalMarkup = laborMarkup + subMarkup + equipMarkup;
-    const grossBilling = totalDirectCosts + totalMarkup;
+    const grossBilling = laborCost + laborMarkup + materialsCost + subCost + subMarkup + equipBilled + equipMarkup + otherTotal;
 
-    const retainagePct = invoice.retainagePct ?? 0;
+    const retainagePct = invoice.retainagePct ?? 10;
     const retainageHeld = grossBilling * (retainagePct / 100);
     const totalEarnedLessRetainage = grossBilling - retainageHeld;
 
@@ -103,6 +101,12 @@ export async function GET(
 
     // Always auto-generate G703 line items from computed values.
     // (Stored lineItems are in Standard invoice format {label,amount} — not G703 format.)
+
+    // Compute prior invoices total for proportional previouslyBilled calculation
+    const priorInvoicesTotal = job.invoices
+      .filter(inv => inv.id !== invoiceId && inv.invoiceNumber < invoice.invoiceNumber)
+      .reduce((s, inv) => s + (inv.amount?.toNumber() ?? 0), 0);
+
     const lineItems: {
       no: number; description: string; scheduledValue: number;
       previouslyBilled: number; thisPeriod: number; stored: number;
@@ -111,43 +115,53 @@ export async function GET(
 
     if (laborCost + laborMarkup > 0) {
       const suffix = laborMarkupPct > 0 ? ` (incl. ${laborMarkupPct}% markup)` : "";
+      const sv = laborCost + laborMarkup;
+      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
       lineItems.push({
         no: no++, description: `Labor${suffix}`,
-        scheduledValue: laborCost + laborMarkup, previouslyBilled: 0,
-        thisPeriod: laborCost + laborMarkup, stored: 0,
+        scheduledValue: sv, previouslyBilled: prevBilled,
+        thisPeriod: sv - prevBilled, stored: 0,
       });
     }
     if (materialsCost > 0) {
+      const sv = materialsCost;
+      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
       lineItems.push({
         no: no++, description: "Materials",
-        scheduledValue: materialsCost, previouslyBilled: 0,
-        thisPeriod: materialsCost, stored: 0,
+        scheduledValue: sv, previouslyBilled: prevBilled,
+        thisPeriod: sv - prevBilled, stored: 0,
       });
     }
     if (subCost + subMarkup > 0) {
       const suffix = subMarkupPct > 0 ? ` (incl. ${subMarkupPct}% markup)` : "";
+      const sv = subCost + subMarkup;
+      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
       lineItems.push({
         no: no++, description: `Subcontractors${suffix}`,
-        scheduledValue: subCost + subMarkup, previouslyBilled: 0,
-        thisPeriod: subCost + subMarkup, stored: 0,
+        scheduledValue: sv, previouslyBilled: prevBilled,
+        thisPeriod: sv - prevBilled, stored: 0,
       });
     }
-    if (equipCost + equipMarkup > 0) {
+    if (equipBilled + equipMarkup > 0) {
       const suffix = equipMarkupPct > 0 ? ` (incl. ${equipMarkupPct}% markup)` : "";
+      const sv = equipBilled + equipMarkup;
+      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
       lineItems.push({
         no: no++, description: `Equipment Rental${suffix}`,
-        scheduledValue: equipCost + equipMarkup, previouslyBilled: 0,
-        thisPeriod: equipCost + equipMarkup, stored: 0,
+        scheduledValue: sv, previouslyBilled: prevBilled,
+        thisPeriod: sv - prevBilled, stored: 0,
       });
     }
     for (const oc of Array.isArray(job.otherCosts)
       ? (job.otherCosts as { description: string; amount: number }[])
       : []) {
       if (oc.amount > 0) {
+        const sv = Number(oc.amount);
+        const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
         lineItems.push({
           no: no++, description: oc.description ?? "Other",
-          scheduledValue: Number(oc.amount), previouslyBilled: 0,
-          thisPeriod: Number(oc.amount), stored: 0,
+          scheduledValue: sv, previouslyBilled: prevBilled,
+          thisPeriod: sv - prevBilled, stored: 0,
         });
       }
     }

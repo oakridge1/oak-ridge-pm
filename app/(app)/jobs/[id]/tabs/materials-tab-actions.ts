@@ -43,6 +43,35 @@ export async function addMaterial(
     },
   });
 
+  // Auto-archive: materials with file receipts beyond the 5 most recent go to Document Vault
+  try {
+    const allMaterials = await prisma.material.findMany({
+      where: { jobId },
+      orderBy: { date: "desc" },
+      select: { id: true, date: true, vendor: true, description: true, fileUrl: true, fileName: true, archivedToVault: true, userId: true },
+    });
+
+    // Find materials beyond position 5 that have a file and haven't been archived
+    const toArchive = allMaterials.slice(5).filter(m => m.fileUrl && !m.archivedToVault);
+
+    for (const m of toArchive) {
+      await prisma.document.create({
+        data: {
+          jobId,
+          uploadedById: m.userId,
+          category: "MATERIAL_RECEIPTS",
+          name: [m.vendor, m.description, new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })].filter(Boolean).join(" — "),
+          fileUrl: m.fileUrl!,
+          fileName: m.fileName ?? "receipt",
+        },
+      });
+      await prisma.material.update({ where: { id: m.id }, data: { archivedToVault: true } });
+    }
+  } catch (err) {
+    console.error("[materials] archive to vault failed:", err);
+    // Non-fatal — don't block the main add
+  }
+
   revalidatePath(`/jobs/${jobId}`);
 }
 

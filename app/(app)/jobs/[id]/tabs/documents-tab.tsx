@@ -22,6 +22,7 @@ const CATEGORIES: { value: DocumentCategory; label: string }[] = [
   { value: "SUBCONTRACTS", label: "Subcontracts" },
   { value: "INSPECTION_REPORTS", label: "Inspection Reports" },
   { value: "CLOSEOUT", label: "Closeout" },
+  { value: "MATERIAL_RECEIPTS", label: "Material Receipts" },
   { value: "OTHER", label: "Other" },
 ];
 

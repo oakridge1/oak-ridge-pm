@@ -4,14 +4,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getValidAccessToken, googleFetch } from "@/lib/google";
+import { APP_URL } from "@/lib/app-url";
 
-function fmt$(n: number) {
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
-}
+const TEMPLATE_FILE_ID = "1R4r9hrg6DhahiNzE4apUGfxD3uqGVk-k";
 
 function fmtDate(d: Date | null | undefined) {
   if (!d) return "";
   return new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+}
+
+function fmt$(n: number) {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
 export async function GET(
@@ -27,18 +30,23 @@ export async function GET(
 
   const accessToken = await getValidAccessToken();
   if (!accessToken) {
-    return NextResponse.json({ error: "Google not connected" }, { status: 400 });
+    return NextResponse.json({ error: "Google not connected. Please connect your Google account in Settings." }, { status: 400 });
   }
 
+  // Fetch invoice with full job context
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
       job: {
         include: {
-          changeOrders: { where: { status: "APPROVED" }, select: { approvedValue: true } },
+          changeOrders: {
+            where: { status: "APPROVED" },
+            select: { coNumber: true, description: true, approvedValue: true },
+            orderBy: { coNumber: "asc" },
+          },
           invoices: {
             where: { type: "AIA", status: { not: "DRAFT" } },
-            select: { id: true, amount: true, invoiceNumber: true, retainagePct: true, retainageHeld: true },
+            select: { id: true, amount: true, invoiceNumber: true, retainagePct: true, retainageHeld: true, applicationNo: true },
             orderBy: { invoiceNumber: "asc" },
           },
           laborEntries: { select: { hours: true } },
@@ -53,10 +61,10 @@ export async function GET(
 
   const job = invoice.job;
 
-  // Compute AIA figures (mirrors the PDF route logic)
+  // ── Compute AIA figures ────────────────────────────────────────────────────
   const contractValue = job.contractValue?.toNumber() ?? 0;
-  const approvedCOs = job.changeOrders.reduce((s, co) => s + (co.approvedValue?.toNumber() ?? 0), 0);
-  const revisedContract = contractValue + approvedCOs;
+  const approvedCOsTotal = job.changeOrders.reduce((s, co) => s + (co.approvedValue?.toNumber() ?? 0), 0);
+  const revisedContract = contractValue + approvedCOsTotal;
 
   const totalHours = job.laborEntries.reduce((s, e) => s + (e.hours ?? 0), 0);
   const blendedRate = job.blendedLaborRate?.toNumber() ?? 0;
@@ -66,9 +74,7 @@ export async function GET(
   const equipCost = job.equipmentCost?.toNumber() ?? 0;
   const equipBillPct = job.equipmentBillPct ?? 100;
   const equipBilled = equipCost * (equipBillPct / 100);
-  const otherCosts = Array.isArray(job.otherCosts)
-    ? (job.otherCosts as { description: string; amount: number }[])
-    : [];
+  const otherCosts = Array.isArray(job.otherCosts) ? (job.otherCosts as { description: string; amount: number }[]) : [];
   const otherTotal = otherCosts.reduce((s, c) => s + (Number(c.amount) || 0), 0);
 
   const laborMarkupPct = job.laborMarkupPct ?? 0;
@@ -77,139 +83,159 @@ export async function GET(
   const laborMarkup = laborCost * (laborMarkupPct / 100);
   const subMarkup = subCost * (subMarkupPct / 100);
   const equipMarkup = equipBilled * (equipMarkupPct / 100);
-  const grossBilling = laborCost + materialsCost + subCost + equipCost + otherTotal + laborMarkup + subMarkup + equipMarkup;
+  const grossBilling = laborCost + laborMarkup + materialsCost + subCost + subMarkup + equipBilled + equipMarkup + otherTotal;
 
-  const retainagePct = invoice.retainagePct ?? 0;
+  const retainagePct = invoice.retainagePct ?? 10; // Default 10%
   const retainageHeld = grossBilling * (retainagePct / 100);
   const totalEarnedLessRetainage = grossBilling - retainageHeld;
 
+  // Previous certificates = sum of prior approved AIA invoices' net amounts
   const previousCertificates = job.invoices
     .filter((inv) => inv.id !== invoiceId && inv.invoiceNumber < invoice.invoiceNumber)
     .reduce((sum, inv) => {
       const invAmount = inv.amount?.toNumber() ?? 0;
-      const invRetainageHeld = inv.retainageHeld?.toNumber()
-        ?? (inv.retainagePct != null ? invAmount * inv.retainagePct / 100 : 0);
-      return sum + (invAmount - invRetainageHeld);
+      const invRet = inv.retainageHeld?.toNumber() ?? (inv.retainagePct != null ? invAmount * inv.retainagePct / 100 : 0);
+      return sum + (invAmount - invRet);
     }, 0);
 
   const currentPaymentDue = totalEarnedLessRetainage - previousCertificates;
   const balanceToFinish = revisedContract - totalEarnedLessRetainage;
 
-  // Build G703 line items
-  type G703Line = { no: number; description: string; scheduledValue: number; previouslyBilled: number; thisPeriod: number; stored: number };
+  const priorInvoicesTotal = job.invoices
+    .filter(inv => inv.id !== invoiceId && inv.invoiceNumber < invoice.invoiceNumber)
+    .reduce((s, inv) => s + (inv.amount?.toNumber() ?? 0), 0);
+
+  type G703Line = { itemNo: string; description: string; scheduledValue: number; previouslyBilled: number; thisPeriod: number; stored: number };
   const lineItems: G703Line[] = [];
-  let no = 1;
+
   if (laborCost + laborMarkup > 0) {
-    const suffix = laborMarkupPct > 0 ? ` (incl. ${laborMarkupPct}% markup)` : "";
-    lineItems.push({ no: no++, description: `Labor${suffix}`, scheduledValue: laborCost + laborMarkup, previouslyBilled: 0, thisPeriod: laborCost + laborMarkup, stored: 0 });
+    const sv = laborCost + laborMarkup;
+    const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
+    lineItems.push({ itemNo: "16-100", description: "Labor", scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
   }
-  if (materialsCost > 0) lineItems.push({ no: no++, description: "Materials", scheduledValue: materialsCost, previouslyBilled: 0, thisPeriod: materialsCost, stored: 0 });
+  if (materialsCost > 0) {
+    const sv = materialsCost;
+    const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
+    lineItems.push({ itemNo: "16-100", description: "Material", scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
+  }
   if (subCost + subMarkup > 0) {
-    const suffix = subMarkupPct > 0 ? ` (incl. ${subMarkupPct}% markup)` : "";
-    lineItems.push({ no: no++, description: `Subcontractors${suffix}`, scheduledValue: subCost + subMarkup, previouslyBilled: 0, thisPeriod: subCost + subMarkup, stored: 0 });
+    const sv = subCost + subMarkup;
+    const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
+    lineItems.push({ itemNo: "16-200", description: "Subcontractors", scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
   }
-  if (equipCost + equipMarkup > 0) {
-    const suffix = equipMarkupPct > 0 ? ` (incl. ${equipMarkupPct}% markup)` : "";
-    lineItems.push({ no: no++, description: `Equipment Rental${suffix}`, scheduledValue: equipCost + equipMarkup, previouslyBilled: 0, thisPeriod: equipCost + equipMarkup, stored: 0 });
-  }
-  for (const oc of otherCosts) {
-    if (oc.amount > 0) lineItems.push({ no: no++, description: oc.description ?? "Other", scheduledValue: Number(oc.amount), previouslyBilled: 0, thisPeriod: Number(oc.amount), stored: 0 });
+  // Approved COs as their own G703 rows
+  for (const co of job.changeOrders) {
+    const sv = co.approvedValue?.toNumber() ?? 0;
+    if (sv > 0) {
+      lineItems.push({
+        itemNo: `CO-${co.coNumber ?? ""}`,
+        description: co.description ?? `Change Order ${co.coNumber ?? ""}`,
+        scheduledValue: sv,
+        previouslyBilled: 0,
+        thisPeriod: sv,
+        stored: 0,
+      });
+    }
   }
 
   const appNo = invoice.applicationNo ?? invoice.invoiceNumber;
-  const title = `${job.jobNumber} - AIA G702/G703 - App #${appNo}`;
+  // Sheet name in Beth's template: AIA1 for app 1, AIA2 for app 2
+  const sheetName = appNo === 2 ? "AIA2" : "AIA1";
+
+  const copyTitle = `${job.jobNumber} - ${job.jobName} - AIA App ${appNo}`;
 
   let spreadsheetId = invoice.googleSheetId ?? null;
 
   if (!spreadsheetId) {
-    // Create new spreadsheet
-    const createRes = await googleFetch(
-      "https://sheets.googleapis.com/v4/spreadsheets",
+    // Copy Beth's template file using Google Drive API
+    const copyRes = await googleFetch(
+      `https://www.googleapis.com/drive/v3/files/${TEMPLATE_FILE_ID}/copy`,
       {
         method: "POST",
-        body: JSON.stringify({
-          properties: { title },
-          sheets: [
-            { properties: { title: "G702 - Application", sheetId: 0 } },
-            { properties: { title: "G703 - Continuation", sheetId: 1 } },
-          ],
-        }),
+        body: JSON.stringify({ name: copyTitle }),
       },
       accessToken,
     );
 
-    if (!createRes.ok) {
-      const err = await createRes.text();
-      console.error("[sheets] create failed:", err);
-      return NextResponse.json({ error: "Failed to create spreadsheet" }, { status: 500 });
+    if (!copyRes.ok) {
+      const err = await copyRes.text();
+      console.error("[sheets] Drive copy failed:", err);
+      // If Drive scope not granted yet, give helpful message
+      if (copyRes.status === 403) {
+        return NextResponse.json({
+          error: "Google Drive access not authorized. Please go to Settings → Disconnect → Reconnect Google Account to grant Drive access.",
+        }, { status: 400 });
+      }
+      return NextResponse.json({ error: `Failed to copy template: ${err}` }, { status: 500 });
     }
 
-    const created = await createRes.json() as { spreadsheetId: string };
-    spreadsheetId = created.spreadsheetId;
-
+    const copied = await copyRes.json() as { id: string };
+    spreadsheetId = copied.id;
     await prisma.invoice.update({ where: { id: invoiceId }, data: { googleSheetId: spreadsheetId } });
   }
 
-  // G702 values
-  const g702Rows = [
-    ["AIA Document G702 - Application and Certificate for Payment"],
-    [],
-    ["Project:", `${job.jobName} (${job.jobNumber})`],
-    ["Owner:", job.ownerName ?? ""],
-    ["Contractor:", job.gcCompany ?? ""],
-    ["Application No:", String(appNo)],
+  const projectAddress = [job.address, job.city, job.state].filter(Boolean).join(", ");
+
+  const g702Data = [
+    ["TO OWNER:", job.ownerName ?? ""],
+    ["PROJECT:", `${job.jobName}`],
+    ["", projectAddress],
+    ["APPLICATION NO:", String(appNo)],
+    ["PERIOD TO:", fmtDate(invoice.periodTo)],
+    ["FROM CONTRACTOR:", "Oak Ridge Electrical LLC"],
+    ["", "209 W. River Rd, Hooksett, NH 03106"],
+    ["VIA GENERAL CONTRACTOR:", job.gcCompany ?? ""],
+    ["PROJECT NOS:", job.jobNumber],
+    ["CONTRACT DATE:", fmtDate(job.contractStartDate)],
+    [""],
+    ["CONTRACTOR'S APPLICATION FOR PAYMENT"],
+    ["1. Original Contract Sum:", fmt$(contractValue)],
+    ["2. Net Change by Change Orders:", fmt$(approvedCOsTotal)],
+    ["3. Contract Sum to Date (1+2):", fmt$(revisedContract)],
+    ["4. Total Completed & Stored to Date:", fmt$(grossBilling)],
+    [`5. Retainage (${retainagePct}%):`, fmt$(retainageHeld)],
+    ["6. Total Earned Less Retainage (4-5):", fmt$(totalEarnedLessRetainage)],
+    ["7. Less Previous Certificates:", fmt$(previousCertificates)],
+    ["8. CURRENT PAYMENT DUE (6-7):", fmt$(currentPaymentDue)],
+    ["9. Balance to Finish Including Retainage:", fmt$(balanceToFinish)],
+    [""],
+    ["CHANGE ORDER SUMMARY"],
+    ...job.changeOrders.map(co => [
+      `CO #${co.coNumber ?? ""}:`, co.description ?? "", fmt$(co.approvedValue?.toNumber() ?? 0)
+    ]),
+    [""],
+    ["Contractor:", "Oak Ridge Electrical LLC"],
     ["Application Date:", fmtDate(invoice.date)],
-    ["Period To:", fmtDate(invoice.periodTo)],
-    [],
-    ["SUMMARY OF WORK"],
-    ["1. Original Contract Sum", fmt$(contractValue)],
-    ["2. Net Change by Change Orders", fmt$(approvedCOs)],
-    ["3. Contract Sum to Date (1+2)", fmt$(revisedContract)],
-    ["4. Total Completed and Stored to Date", fmt$(grossBilling)],
-    [`5. Retainage (${retainagePct}%)`, fmt$(retainageHeld)],
-    ["6. Total Earned Less Retainage (4-5)", fmt$(totalEarnedLessRetainage)],
-    ["7. Less Previous Certificates for Payment", fmt$(previousCertificates)],
-    ["8. Current Payment Due (6-7)", fmt$(currentPaymentDue)],
-    ["9. Balance to Finish Including Retainage (3-6)", fmt$(balanceToFinish)],
-    [],
-    ...(invoice.notes ? [["Notes:", invoice.notes]] : []),
+    ["State:", "New Hampshire"],
+    ["County:", "Hillsboro"],
   ];
 
-  // G703 values
-  const g703Header = ["Item No.", "Description of Work", "Scheduled Value", "Previously Billed", "This Period", "Materials Stored", "Total Completed & Stored", "% Complete"];
-  const g703Rows = [
-    ["AIA Document G703 - Continuation Sheet"],
-    [`Application No: ${appNo}`, "", `Period To: ${fmtDate(invoice.periodTo)}`],
+  const g703Header = ["Item No.", "Description of Work", "Scheduled Value", "Previously Billed", "This Period", "Materials Stored", "Total Completed & Stored", "% Complete", "Balance to Finish"];
+  const g703Data = [
+    ["AIA G703 - Continuation Sheet"],
+    [`Application No: ${appNo}`, "", `Period To: ${fmtDate(invoice.periodTo)}`, "", `Contract: ${job.jobNumber}`],
     [],
     g703Header,
-    ...lineItems.map(item => {
-      const totalCompletedAndStored = item.previouslyBilled + item.thisPeriod + item.stored;
-      const pctComplete = item.scheduledValue > 0 ? (totalCompletedAndStored / item.scheduledValue * 100).toFixed(1) + "%" : "0%";
-      return [
-        String(item.no),
-        item.description,
-        fmt$(item.scheduledValue),
-        fmt$(item.previouslyBilled),
-        fmt$(item.thisPeriod),
-        fmt$(item.stored),
-        fmt$(totalCompletedAndStored),
-        pctComplete,
-      ];
+    ...lineItems.map(li => {
+      const total = li.previouslyBilled + li.thisPeriod + li.stored;
+      const pct = li.scheduledValue > 0 ? (total / li.scheduledValue * 100).toFixed(1) + "%" : "0%";
+      const balance = li.scheduledValue - total;
+      return [li.itemNo, li.description, fmt$(li.scheduledValue), fmt$(li.previouslyBilled), fmt$(li.thisPeriod), fmt$(li.stored), fmt$(total), pct, fmt$(balance)];
     }),
     [],
     [
-      "TOTALS",
-      "",
+      "TOTALS", "",
       fmt$(lineItems.reduce((s, i) => s + i.scheduledValue, 0)),
       fmt$(lineItems.reduce((s, i) => s + i.previouslyBilled, 0)),
       fmt$(lineItems.reduce((s, i) => s + i.thisPeriod, 0)),
       fmt$(lineItems.reduce((s, i) => s + i.stored, 0)),
-      fmt$(grossBilling),
+      fmt$(lineItems.reduce((s, i) => s + i.previouslyBilled + i.thisPeriod + i.stored, 0)),
       "",
+      fmt$(lineItems.reduce((s, i) => s + i.scheduledValue - i.previouslyBilled - i.thisPeriod - i.stored, 0)),
     ],
   ];
 
-  // Write values to both sheets
+  // Write G702 data and G703 data to the target sheet in Beth's template
   const valuesRes = await googleFetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
     {
@@ -217,8 +243,14 @@ export async function GET(
       body: JSON.stringify({
         valueInputOption: "RAW",
         data: [
-          { range: "'G702 - Application'!A1", values: g702Rows },
-          { range: "'G703 - Continuation'!A1", values: g703Rows },
+          {
+            range: `'${sheetName}'!A1`,
+            values: g702Data,
+          },
+          {
+            range: `'${sheetName}'!K1`,
+            values: g703Data,
+          },
         ],
       }),
     },
@@ -226,91 +258,33 @@ export async function GET(
   );
 
   if (!valuesRes.ok) {
-    console.error("[sheets] values update failed:", await valuesRes.text());
-    return NextResponse.json({ error: "Failed to write spreadsheet data" }, { status: 500 });
+    const errText = await valuesRes.text();
+    console.error("[sheets] values write failed:", errText);
+    // Try writing to Sheet1 as fallback if sheet name doesn't match
+    const fallbackRes = await googleFetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          valueInputOption: "RAW",
+          data: [
+            { range: "Sheet1!A1", values: g702Data },
+            { range: "Sheet1!K1", values: g703Data },
+          ],
+        }),
+      },
+      accessToken,
+    );
+    if (!fallbackRes.ok) {
+      console.error("[sheets] fallback write also failed:", await fallbackRes.text());
+      // Non-fatal: return the URL anyway so Beth can access the copied template
+    }
   }
 
-  // Apply formatting
-  const formatRes = await googleFetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        requests: [
-          // G702 - bold title row
-          {
-            repeatCell: {
-              range: { sheetId: 0, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 2 },
-              cell: { userEnteredFormat: { textFormat: { bold: true, fontSize: 13 } } },
-              fields: "userEnteredFormat.textFormat",
-            },
-          },
-          // G702 - bold section header
-          {
-            repeatCell: {
-              range: { sheetId: 0, startRowIndex: 9, endRowIndex: 10, startColumnIndex: 0, endColumnIndex: 2 },
-              cell: { userEnteredFormat: { textFormat: { bold: true } } },
-              fields: "userEnteredFormat.textFormat",
-            },
-          },
-          // G702 - bold "Current Payment Due" row
-          {
-            repeatCell: {
-              range: { sheetId: 0, startRowIndex: 17, endRowIndex: 18, startColumnIndex: 0, endColumnIndex: 2 },
-              cell: { userEnteredFormat: { textFormat: { bold: true } } },
-              fields: "userEnteredFormat.textFormat",
-            },
-          },
-          // G703 - bold title
-          {
-            repeatCell: {
-              range: { sheetId: 1, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 8 },
-              cell: { userEnteredFormat: { textFormat: { bold: true, fontSize: 13 } } },
-              fields: "userEnteredFormat.textFormat",
-            },
-          },
-          // G703 - bold column headers
-          {
-            repeatCell: {
-              range: { sheetId: 1, startRowIndex: 3, endRowIndex: 4, startColumnIndex: 0, endColumnIndex: 8 },
-              cell: {
-                userEnteredFormat: {
-                  textFormat: { bold: true },
-                  backgroundColor: { red: 0, green: 0.18, blue: 0.447 },
-                  horizontalAlignment: "CENTER",
-                },
-              },
-              fields: "userEnteredFormat(textFormat,backgroundColor,horizontalAlignment)",
-            },
-          },
-          // G703 - bold totals row
-          {
-            repeatCell: {
-              range: {
-                sheetId: 1,
-                startRowIndex: 4 + lineItems.length + 1,
-                endRowIndex: 4 + lineItems.length + 2,
-                startColumnIndex: 0,
-                endColumnIndex: 8,
-              },
-              cell: { userEnteredFormat: { textFormat: { bold: true } } },
-              fields: "userEnteredFormat.textFormat",
-            },
-          },
-          // Auto-resize G702 columns
-          { autoResizeDimensions: { dimensions: { sheetId: 0, dimension: "COLUMNS", startIndex: 0, endIndex: 2 } } },
-          // Auto-resize G703 columns
-          { autoResizeDimensions: { dimensions: { sheetId: 1, dimension: "COLUMNS", startIndex: 0, endIndex: 8 } } },
-        ],
-      }),
-    },
-    accessToken,
-  );
+  // Suppress unused import warning — APP_URL used for future job links in descriptions
+  void APP_URL;
 
-  if (!formatRes.ok) {
-    console.warn("[sheets] formatting failed:", await formatRes.text());
-    // Non-fatal — data is already written
-  }
-
-  return NextResponse.json({ url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` });
+  return NextResponse.json({
+    url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+  });
 }

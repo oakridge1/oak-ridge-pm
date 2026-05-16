@@ -31,7 +31,7 @@ export async function addCalendarEvent(jobId: string, fd: FormData) {
     throw new Error("Only ADMIN or FOREMAN can add Milestone or Custom events.");
   }
 
-  await prisma.calendarEvent.create({
+  const event = await prisma.calendarEvent.create({
     data: {
       jobId,
       userId: session.user.id,
@@ -44,6 +44,33 @@ export async function addCalendarEvent(jobId: string, fd: FormData) {
     },
   });
 
+  // Real-time Google Calendar sync (best-effort — don't block if it fails)
+  try {
+    const { syncCalendarEventToGoogle } = await import("@/lib/google");
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { id: true, jobNumber: true, jobName: true },
+    });
+    const googleEventId = await syncCalendarEventToGoogle({
+      eventId: event.id,
+      title,
+      date: new Date(dateRaw),
+      allDay: true,
+      note,
+      recurrence,
+      recurrenceEndDate: endDateRaw ? new Date(endDateRaw) : null,
+      job,
+    });
+    if (googleEventId) {
+      await prisma.calendarEvent.update({
+        where: { id: event.id },
+        data: { googleEventId },
+      });
+    }
+  } catch (err) {
+    console.error("[calendar-tab] Google sync failed (non-fatal):", err);
+  }
+
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/calendar");
 }
@@ -52,6 +79,21 @@ export async function deleteCalendarEvent(eventId: string, jobId: string) {
   const session = await requireActive();
   if (session.user.role !== "ADMIN" && session.user.role !== "FOREMAN") {
     throw new Error("Only ADMIN or FOREMAN can delete calendar events.");
+  }
+
+  // Fetch the event to get googleEventId before deleting
+  const eventToDelete = await prisma.calendarEvent.findUnique({
+    where: { id: eventId },
+    select: { googleEventId: true },
+  });
+
+  if (eventToDelete?.googleEventId) {
+    try {
+      const { deleteCalendarEventFromGoogle } = await import("@/lib/google");
+      await deleteCalendarEventFromGoogle(eventToDelete.googleEventId);
+    } catch (err) {
+      console.error("[calendar-tab] Google delete sync failed (non-fatal):", err);
+    }
   }
 
   await prisma.calendarEvent.delete({ where: { id: eventId } });

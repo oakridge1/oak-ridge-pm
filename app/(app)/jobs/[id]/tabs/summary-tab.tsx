@@ -570,7 +570,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   const [invPeriodTo, setInvPeriodTo] = useState("");
   const [invAppNo, setInvAppNo] = useState("");
   const [invAmount, setInvAmount] = useState(grossBilling.toFixed(2));
-  const [invRetainagePct, setInvRetainagePct] = useState("0");
+  const [invRetainagePct, setInvRetainagePct] = useState("10");
   const [invNotes, setInvNotes] = useState("");
 
   // Payment form state

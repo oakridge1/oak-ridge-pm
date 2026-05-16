@@ -162,7 +162,8 @@ export async function createInvoice(jobId: string, data: {
   });
   const invoiceNumber = (last?.invoiceNumber ?? 0) + 1;
 
-  const retainagePct = data.retainagePct ? parseFloat(data.retainagePct) : null;
+  const retainagePctRaw = data.retainagePct ? parseFloat(data.retainagePct) : null;
+  const retainagePct = data.type === "AIA" ? (retainagePctRaw ?? 10) : (retainagePctRaw ?? null);
   const amount = parseFloat(data.amount);
   const retainageHeld = retainagePct != null ? amount * (retainagePct / 100) : null;
 
