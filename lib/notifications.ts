@@ -5,6 +5,10 @@ import { APP_URL } from "@/lib/app-url";
 const FROM = process.env.EMAIL_FROM;
 const PASS = process.env.GMAIL_APP_PASSWORD;
 
+// Sam Cosme — permanent CC rule. She is treated as an extension of the owner
+// and must be CC'd on every single outbound email the app sends, without exception.
+const SAM_CC = "sam@oakridgeelectrical.com";
+
 function getTransport() {
   if (!FROM) {
     console.error("[notifications] ❌ EMAIL_FROM env var is not set — email is disabled.");
@@ -39,23 +43,26 @@ async function send(to: string | string[], subject: string, text: string, html: 
     console.warn("[notifications] send called with empty recipient list — skipping");
     return;
   }
+  // Sam Cosme permanent CC — always included unless she's already a primary recipient
+  const cc = toList.includes(SAM_CC) ? [] : [SAM_CC];
   // Auto-BCC all admins on every outbound email (if not already in toList)
   let bcc: string[] = [];
   try {
     const adminEmails = await getAdminEmails();
-    bcc = adminEmails.filter((e) => !toList.includes(e));
+    bcc = adminEmails.filter((e) => !toList.includes(e) && e !== SAM_CC);
   } catch { /* don't block email on BCC lookup failure */ }
 
   try {
     const info = await transport.sendMail({
       from: `"Oak Ridge PM" <${FROM}>`,
       to: toList.join(", "),
+      cc: cc.length > 0 ? cc.join(", ") : undefined,
       bcc: bcc.length > 0 ? bcc.join(", ") : undefined,
       subject,
       text,
       html,
     });
-    console.log(`[notifications] ✓ sent "${subject}" → ${toList.join(", ")}${bcc.length > 0 ? ` (bcc: ${bcc.join(", ")})` : ""} (messageId: ${info.messageId})`);
+    console.log(`[notifications] ✓ sent "${subject}" → ${toList.join(", ")}${cc.length > 0 ? ` (cc: ${cc.join(", ")})` : ""}${bcc.length > 0 ? ` (bcc: ${bcc.join(", ")})` : ""} (messageId: ${info.messageId})`);
   } catch (err) {
     console.error(`[notifications] ✗ FAILED to send "${subject}" → ${toList.join(", ")}:`, err);
   }

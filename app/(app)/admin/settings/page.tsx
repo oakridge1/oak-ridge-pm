@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { GoogleSettingsClient } from "./settings-client";
+import { SettingsClient } from "./settings-client";
 
 export default async function SettingsPage({
   searchParams,
@@ -16,11 +16,28 @@ export default async function SettingsPage({
   const justConnected = sp.connected === "1";
   const connectError = sp.error ?? null;
 
-  const connection = await prisma.googleConnection.findFirst();
+  const [connection, rawSettings] = await Promise.all([
+    prisma.googleConnection.findFirst(),
+    prisma.companySettings.upsert({
+      where: { id: "singleton" },
+      update: {},
+      create: { id: "singleton" },
+    }),
+  ]);
+
+  const settings = {
+    name: rawSettings.name,
+    address: rawSettings.address,
+    city: rawSettings.city,
+    state: rawSettings.state,
+    zip: rawSettings.zip,
+    phone: rawSettings.phone,
+    email: rawSettings.email,
+    logoUrl: rawSettings.logoUrl,
+  };
 
   return (
     <div>
-      {/* Page header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#002D72]">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">
@@ -30,27 +47,18 @@ export default async function SettingsPage({
 
       {/* Admin nav */}
       <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4">
-        <a
-          href="/admin/users"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
-        >
+        <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
           Users
         </a>
-        <a
-          href="/admin/saved-tasks"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
-        >
+        <a href="/admin/saved-tasks" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
           Saved Tasks
         </a>
-        <a
-          href="/admin/settings"
-          className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5"
-        >
+        <a href="/admin/settings" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
           Settings
         </a>
       </div>
 
-      <GoogleSettingsClient
+      <SettingsClient
         connection={
           connection
             ? {
@@ -63,6 +71,7 @@ export default async function SettingsPage({
         }
         justConnected={justConnected}
         connectError={connectError}
+        companySettings={settings}
       />
     </div>
   );

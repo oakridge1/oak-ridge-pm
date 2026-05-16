@@ -1021,6 +1021,15 @@ export type StandardInvoiceData = {
   contractValue?: number | null;
   approvedCOs?: { coNumber: number | null; description: string; approvedValue: number }[];
   logoSrc?: string;  // base64 data URI or file path
+  // Company settings (overrides hardcoded defaults)
+  companyName?: string;
+  companyAddress?: string;
+  companyCity?: string;
+  companyState?: string;
+  companyZip?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyLogoUrl?: string | null;
 };
 
 const IS = StyleSheet.create({
@@ -1091,6 +1100,16 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
   const coTotal = approvedCOs.reduce((s, co) => s + co.approvedValue, 0);
   const invoiceKind = data.invoiceKind === "FINAL_INVOICE" ? "FINAL INVOICE" : "PROGRESS PAYMENT";
 
+  // Company settings with fallbacks
+  const co_name = data.companyName ?? "Oak Ridge Electrical LLC";
+  const co_address = data.companyAddress ?? "209 W. River Rd";
+  const co_city = data.companyCity ?? "Hooksett";
+  const co_state = data.companyState ?? "NH";
+  const co_zip = data.companyZip ?? "03106";
+  const co_phone = data.companyPhone ?? "603-660-4651";
+  const co_email = data.companyEmail ?? "Justin@oakridgeelectrical.com";
+  const co_cityState = `${co_city}, ${co_state} ${co_zip}`;
+
   // Parse scope of work into numbered items
   const scopeItems: string[] = data.scopeOfWork
     ? data.scopeOfWork.split(/\n+/).map(s => s.trim()).filter(Boolean)
@@ -1107,8 +1126,8 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
           {data.logoSrc ? (
             <Image src={data.logoSrc} style={IS.logo} />
           ) : null}
-          <Text style={IS.companyName}>OAK RIDGE ELECTRICAL LLC</Text>
-          <Text style={IS.companyInfo}>76 Oak Ridge Road · Weare, NH 03281{"\n"}oakridgeelectric@gmail.com</Text>
+          <Text style={IS.companyName}>{co_name.toUpperCase()}</Text>
+          <Text style={IS.companyInfo}>{co_address} · {co_cityState}{"\n"}{co_email}</Text>
         </View>
 
         <View style={IS.heavyDivider} />
@@ -1130,8 +1149,11 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
         <View style={IS.twoCol}>
           <View style={IS.col}>
             <Text style={IS.colLabel}>From</Text>
-            <Text style={IS.colValueBold}>Oak Ridge Electrical LLC</Text>
-            <Text style={IS.colValue}>76 Oak Ridge Road{"\n"}Weare, NH 03281</Text>
+            <Text style={IS.colValueBold}>{co_name}</Text>
+            <Text style={IS.colValue}>{co_address}{"\n"}{co_cityState}</Text>
+            <Text style={IS.colValue}>Justin Marceau, Owner</Text>
+            <Text style={IS.colValue}>{co_phone}</Text>
+            <Text style={IS.colValue}>{co_email}</Text>
           </View>
           <View style={IS.col}>
             <Text style={IS.colLabel}>To / Project</Text>
@@ -1211,8 +1233,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
         <View style={IS.termsBox}>
           <Text style={IS.termsLabel}>Payment Terms</Text>
           <Text style={IS.termsText}>
-            Payment is due within 30 days of invoice date. Please make checks payable to Oak Ridge Electrical LLC
-            and mail to 76 Oak Ridge Road, Weare, NH 03281. For ACH payments, contact us at oakridgeelectric@gmail.com.
+            Payment is due upon receipt of this invoice. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law. Please remit payment to: {co_name}, {co_address}, {co_cityState}
           </Text>
         </View>
 
@@ -1220,8 +1241,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
         <View style={IS.termsBox}>
           <Text style={IS.termsLabel}>Warranty</Text>
           <Text style={IS.termsText}>
-            Oak Ridge Electrical LLC warrants all labor and workmanship for a period of one (1) year from the date of
-            completion. This warranty covers defects in workmanship. Materials are covered by the manufacturer{"'"}s warranty.
+            Oak Ridge Electrical LLC provides a one-year workmanship warranty from the date of substantial completion. All installed equipment carries the applicable manufacturer&apos;s warranty. Warranty coverage does not extend to damage caused by misuse, modification by others, or conditions outside the scope of the original installation.
           </Text>
         </View>
 
@@ -1235,7 +1255,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
 
         {/* ── Footer ── */}
         <View style={IS.invFooter} fixed>
-          <Text style={IS.invFooterText}>Oak Ridge Electrical LLC · 76 Oak Ridge Road, Weare NH 03281 · oakridgeelectric@gmail.com</Text>
+          <Text style={IS.invFooterText}>Thank you for your business! {co_name} — Justin Marceau, Owner — {co_phone} | {co_email}</Text>
           <Text style={IS.invFooterText}>Generated {today}</Text>
         </View>
       </Page>

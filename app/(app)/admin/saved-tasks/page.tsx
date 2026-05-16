@@ -24,6 +24,19 @@ export default async function SavedTasksPage() {
         </p>
       </div>
 
+      {/* Admin nav */}
+      <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4">
+        <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+          Users
+        </a>
+        <a href="/admin/saved-tasks" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
+          Saved Tasks
+        </a>
+        <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+          Settings
+        </a>
+      </div>
+
       {/* Add form */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">

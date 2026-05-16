@@ -33,7 +33,7 @@ export async function GET(
 
   const { id: jobId, invoiceId } = await params;
 
-  const [job, invoice] = await Promise.all([
+  const [job, invoice, companySettings] = await Promise.all([
     prisma.job.findUnique({
       where: { id: jobId },
       select: {
@@ -63,6 +63,11 @@ export async function GET(
         lineItems: true, notes: true, type: true, invoiceKind: true,
       },
     }),
+    prisma.companySettings.upsert({
+      where: { id: "singleton" },
+      update: {},
+      create: { id: "singleton" },
+    }),
   ]);
 
   if (!job || !invoice) return new NextResponse("Not found", { status: 404 });
@@ -74,7 +79,7 @@ export async function GET(
     .reduce((s, inv) => s + (inv.amount?.toNumber?.() ?? Number(inv.amount) ?? 0), 0);
 
   const lineItems = (invoice.lineItems as { label: string; amount: number }[] | null) ?? [];
-  const logoSrc = getLogoSrc();
+  const logoSrc = getLogoSrc() ?? companySettings.logoUrl ?? undefined;
 
   const buf = await renderToBuffer(
     React.createElement(StandardInvoiceDoc, {
@@ -106,6 +111,14 @@ export async function GET(
         previouslyInvoiced,
         invoiceKind: invoice.invoiceKind,
         logoSrc,
+        companyName: companySettings.name,
+        companyAddress: companySettings.address,
+        companyCity: companySettings.city,
+        companyState: companySettings.state,
+        companyZip: companySettings.zip,
+        companyPhone: companySettings.phone,
+        companyEmail: companySettings.email,
+        companyLogoUrl: companySettings.logoUrl,
       },
     }) as any
   );

@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, AlertCircle, ExternalLink, Link2Off, RefreshCw, Calendar, Sheet } from "lucide-react";
+import {
+  CheckCircle2, AlertCircle, ExternalLink, Link2Off,
+  RefreshCw, Calendar, Sheet, Building2, Bell, Upload,
+} from "lucide-react";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 interface GoogleConnection {
   id: string;
@@ -10,10 +15,22 @@ interface GoogleConnection {
   scopes: string;
 }
 
+interface CompanySettings {
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
+  email: string;
+  logoUrl: string | null;
+}
+
 interface Props {
   connection: GoogleConnection | null;
   justConnected: boolean;
   connectError: string | null;
+  companySettings: CompanySettings;
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -24,22 +41,41 @@ const ERROR_MESSAGES: Record<string, string> = {
   config_missing: "Google OAuth credentials are not configured on the server.",
 };
 
-export function GoogleSettingsClient({ connection, justConnected, connectError }: Props) {
+const scopeLabels: Record<string, string> = {
+  "https://www.googleapis.com/auth/spreadsheets": "Google Sheets (read & write)",
+  "https://www.googleapis.com/auth/calendar": "Google Calendar (read & write)",
+  email: "Email address",
+  profile: "Basic profile info",
+};
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
+export function SettingsClient({ connection, justConnected, connectError, companySettings }: Props) {
+  // Google state
   const [disconnecting, setDisconnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ synced: number; updated: number; failed: number } | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  // Company Info state
+  const [company, setCompany] = useState<CompanySettings>(companySettings);
+  const [companySaving, setCompanySaving] = useState(false);
+  const [companySaved, setCompanySaved] = useState(false);
+  const [companyError, setCompanyError] = useState<string | null>(null);
+
+  // Test email state
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ ok?: boolean; recipients?: number; error?: string } | null>(null);
+
+  // ── Google handlers ──────────────────────────────────────────────────────────
 
   async function handleDisconnect() {
     if (!confirm("Are you sure you want to disconnect Google? This will remove all stored tokens.")) return;
     setDisconnecting(true);
     try {
       const res = await fetch("/api/google/disconnect", { method: "POST" });
-      if (res.ok) {
-        window.location.href = "/admin/settings";
-      } else {
-        alert("Failed to disconnect. Please try again.");
-      }
+      if (res.ok) window.location.href = "/admin/settings";
+      else alert("Failed to disconnect. Please try again.");
     } finally {
       setDisconnecting(false);
     }
@@ -52,11 +88,8 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
     try {
       const res = await fetch("/api/google/calendar/sync", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) {
-        setSyncError(data.error ?? "Sync failed");
-      } else {
-        setSyncResult(data);
-      }
+      if (!res.ok) setSyncError(data.error ?? "Sync failed");
+      else setSyncResult(data);
     } catch {
       setSyncError("An unexpected error occurred during sync.");
     } finally {
@@ -64,18 +97,54 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
     }
   }
 
-  const scopeLabels: Record<string, string> = {
-    "https://www.googleapis.com/auth/spreadsheets": "Google Sheets (read & write)",
-    "https://www.googleapis.com/auth/calendar": "Google Calendar (read & write)",
-    email: "Email address",
-    profile: "Basic profile info",
-  };
+  // ── Company Info handlers ────────────────────────────────────────────────────
+
+  async function handleSaveCompany(e: React.FormEvent) {
+    e.preventDefault();
+    setCompanySaving(true);
+    setCompanySaved(false);
+    setCompanyError(null);
+    try {
+      const res = await fetch("/api/admin/company-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(company),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCompanyError(data.error ?? "Failed to save settings");
+      } else {
+        setCompanySaved(true);
+        setTimeout(() => setCompanySaved(false), 3000);
+      }
+    } catch {
+      setCompanyError("An unexpected error occurred.");
+    } finally {
+      setCompanySaving(false);
+    }
+  }
+
+  // ── Test email handler ───────────────────────────────────────────────────────
+
+  async function handleTestEmail() {
+    setTestingEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await fetch("/api/admin/test-email", { method: "POST" });
+      const data = await res.json();
+      setTestEmailResult(data);
+    } catch {
+      setTestEmailResult({ error: "Request failed" });
+    } finally {
+      setTestingEmail(false);
+    }
+  }
 
   const scopeList = connection?.scopes.split(" ").filter(Boolean) ?? [];
 
   return (
     <div className="space-y-6 max-w-2xl">
-      {/* Status banners */}
+      {/* ── Status banners ── */}
       {justConnected && (
         <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm rounded-xl px-4 py-3">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -89,7 +158,184 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
         </div>
       )}
 
-      {/* Google Integration card */}
+      {/* ── Company Info card ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Building2 className="w-5 h-5 text-[#002D72]" />
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Company Info</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Used in invoice headers, PDF footers, and email signatures.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveCompany} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Company Name</label>
+              <input
+                type="text"
+                value={company.name}
+                onChange={(e) => setCompany({ ...company, name: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Street Address</label>
+              <input
+                type="text"
+                value={company.address}
+                onChange={(e) => setCompany({ ...company, address: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
+              <input
+                type="text"
+                value={company.city}
+                onChange={(e) => setCompany({ ...company, city: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">State</label>
+                <input
+                  type="text"
+                  value={company.state}
+                  onChange={(e) => setCompany({ ...company, state: e.target.value })}
+                  maxLength={2}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">ZIP</label>
+                <input
+                  type="text"
+                  value={company.zip}
+                  onChange={(e) => setCompany({ ...company, zip: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                value={company.phone}
+                onChange={(e) => setCompany({ ...company, phone: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={company.email}
+                onChange={(e) => setCompany({ ...company, email: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Logo URL</label>
+              <input
+                type="url"
+                value={company.logoUrl ?? ""}
+                onChange={(e) => setCompany({ ...company, logoUrl: e.target.value || null })}
+                placeholder="https://... (paste URL of uploaded logo)"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              />
+              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                <Upload className="w-3 h-3" />
+                Upload the logo file separately and paste the URL here. Appears on all PDF invoices.
+              </p>
+            </div>
+          </div>
+
+          {companyError && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-3 py-2">
+              <AlertCircle className="w-4 h-4 shrink-0" /> {companyError}
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={companySaving}
+              className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
+            >
+              {companySaving ? "Saving..." : "Save Company Info"}
+            </button>
+            {companySaved && (
+              <span className="flex items-center gap-1.5 text-sm text-green-700">
+                <CheckCircle2 className="w-4 h-4" /> Saved
+              </span>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* ── Notifications card ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Bell className="w-5 h-5 text-[#002D72]" />
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Notifications</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Email notification settings for the workspace.</p>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-4 space-y-3 text-sm mb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Email notifications</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
+              <CheckCircle2 className="w-3 h-3" /> Active
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Daily report delivery</span>
+            <span className="text-gray-900 font-medium">4:00 AM EST</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Sam Cosme permanent CC</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
+              <CheckCircle2 className="w-3 h-3" /> Always on
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Admin auto-BCC</span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
+              <CheckCircle2 className="w-3 h-3" /> Always on
+            </span>
+          </div>
+        </div>
+
+        {testEmailResult?.ok && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg px-3 py-2 mb-4">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Test email sent to {testEmailResult.recipients} admin{testEmailResult.recipients !== 1 ? "s" : ""} + Sam Cosme.
+          </div>
+        )}
+        {testEmailResult?.error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-3 py-2 mb-4">
+            <AlertCircle className="w-4 h-4 shrink-0" /> {testEmailResult.error}
+          </div>
+        )}
+
+        <button
+          onClick={handleTestEmail}
+          disabled={testingEmail}
+          className="flex items-center gap-2 bg-[#FF5910] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#e04d0e] transition-colors disabled:opacity-60"
+        >
+          <Bell className={`w-4 h-4 ${testingEmail ? "animate-pulse" : ""}`} />
+          {testingEmail ? "Sending..." : "Send Test Email"}
+        </button>
+      </div>
+
+      {/* ── Google Integration card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -100,7 +346,7 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
           </div>
           {connection && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
-              <CheckCircle2 className="w-3 h-3" /> Connected
+              <CheckCircle2 className="w-3 h-3" /> Active
             </span>
           )}
         </div>
@@ -124,14 +370,11 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
                 <span className="text-gray-500 w-28 shrink-0 pt-0.5">Scopes</span>
                 <ul className="space-y-0.5">
                   {scopeList.map((scope) => (
-                    <li key={scope} className="text-gray-700">
-                      {scopeLabels[scope] ?? scope}
-                    </li>
+                    <li key={scope} className="text-gray-700">{scopeLabels[scope] ?? scope}</li>
                   ))}
                 </ul>
               </div>
             </div>
-
             <div className="flex gap-3 flex-wrap">
               <a
                 href="/api/google/auth"
@@ -166,7 +409,7 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
         )}
       </div>
 
-      {/* Google Calendar Sync card — only if connected */}
+      {/* ── Google Calendar Sync card ── */}
       {connection && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-2">
@@ -177,7 +420,6 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
             Push all app calendar events to your connected Google Calendar. Events already synced
             will be updated, and new events will be created. Recurrence rules are preserved.
           </p>
-
           {syncResult && (
             <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg px-3 py-2 mb-4">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -185,14 +427,11 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
               {syncResult.failed > 0 && `, ${syncResult.failed} failed`}.
             </div>
           )}
-
           {syncError && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-3 py-2 mb-4">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              {syncError}
+              <AlertCircle className="w-4 h-4 shrink-0" /> {syncError}
             </div>
           )}
-
           <button
             onClick={handleSyncCalendar}
             disabled={syncing}
@@ -204,7 +443,7 @@ export function GoogleSettingsClient({ connection, justConnected, connectError }
         </div>
       )}
 
-      {/* AIA Invoice → Google Sheets card — only if connected */}
+      {/* ── AIA Invoice → Google Sheets card ── */}
       {connection && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-2">

@@ -96,8 +96,8 @@ export async function GET(
     const children = [
       // Company header
       para([new TextRun({ text: "OAK RIDGE ELECTRICAL LLC", bold: true, color: NAVY, size: 36, allCaps: true })], AlignmentType.CENTER),
-      para([t("76 Oak Ridge Road · Weare, NH 03281", { color: GRAY })], AlignmentType.CENTER),
-      para([t("oakridgeelectric@gmail.com", { color: GRAY })], AlignmentType.CENTER),
+      para([t("209 W. River Rd · Hooksett, NH 03106", { color: GRAY })], AlignmentType.CENTER),
+      para([t("Justin@oakridgeelectrical.com", { color: GRAY })], AlignmentType.CENTER),
       spacer(100),
 
       // INVOICE + type
@@ -123,8 +123,11 @@ export async function GET(
                 children: [
                   para([new TextRun({ text: "FROM", bold: true, color: LIGHT_GRAY, size: 16, allCaps: true })]),
                   para([new TextRun({ text: "Oak Ridge Electrical LLC", bold: true, size: 20 })]),
-                  para([t("76 Oak Ridge Road")]),
-                  para([t("Weare, NH 03281")]),
+                  para([t("209 W. River Rd")]),
+                  para([t("Hooksett, NH 03106")]),
+                  para([t("Justin Marceau, Owner")]),
+                  para([t("603-660-4651")]),
+                  para([t("Justin@oakridgeelectrical.com")]),
                 ],
               }),
               new TableCell({
@@ -210,12 +213,12 @@ export async function GET(
 
     // Payment terms
     children.push(para([new TextRun({ text: "PAYMENT TERMS", bold: true, color: NAVY, size: 20, allCaps: true })]));
-    children.push(para([t("Payment is due within 30 days of invoice date. Please make checks payable to Oak Ridge Electrical LLC and mail to 76 Oak Ridge Road, Weare, NH 03281. For ACH payments, contact us at oakridgeelectric@gmail.com.")]));
+    children.push(para([t("Payment is due upon receipt of this invoice. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law. Please remit payment to: Oak Ridge Electrical LLC, 209 W. River Rd, Hooksett, NH 03106")]));
     children.push(spacer(120));
 
     // Warranty
     children.push(para([new TextRun({ text: "WARRANTY", bold: true, color: NAVY, size: 20, allCaps: true })]));
-    children.push(para([t("Oak Ridge Electrical LLC warrants all labor and workmanship for a period of one (1) year from the date of completion. This warranty covers defects in workmanship. Materials are covered by the manufacturer's warranty.")]));
+    children.push(para([t("Oak Ridge Electrical LLC provides a one-year workmanship warranty from the date of substantial completion. All installed equipment carries the applicable manufacturer's warranty. Warranty coverage does not extend to damage caused by misuse, modification by others, or conditions outside the scope of the original installation.")]));
 
     if (invoice.notes) {
       children.push(spacer(120));

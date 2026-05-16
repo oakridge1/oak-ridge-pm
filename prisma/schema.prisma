@@ -534,6 +534,21 @@ model CalendarRequest {
   reviewedBy  User? @relation("CalendarRequestReviewer", fields: [reviewedById], references: [id])
 }
 
+// ── Company Settings (singleton) ─────────────────────────────────────────────
+
+model CompanySettings {
+  id        String   @id @default("singleton")
+  name      String   @default("Oak Ridge Electrical LLC")
+  address   String   @default("209 W. River Rd")
+  city      String   @default("Hooksett")
+  state     String   @default("NH")
+  zip       String   @default("03106")
+  phone     String   @default("603-660-4651")
+  email     String   @default("Justin@oakridgeelectrical.com")
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
+}
+
 // ── Google Integration ────────────────────────────────────────────────────────
 
 model GoogleConnection {

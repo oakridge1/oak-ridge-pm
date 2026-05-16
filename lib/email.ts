@@ -3,6 +3,7 @@ import { APP_URL } from "@/lib/app-url";
 
 const FROM = process.env.EMAIL_FROM;
 const PASS = process.env.GMAIL_APP_PASSWORD;
+const SAM_CC = "sam@oakridgeelectrical.com";
 
 function getTransport() {
   if (!FROM || !PASS) {
@@ -30,6 +31,7 @@ export async function sendWelcomeEmail(to: string, name: string | null) {
     const info = await transport.sendMail({
       from: `"Oak Ridge Electrical" <${FROM}>`,
       to,
+      cc: to !== SAM_CC ? SAM_CC : undefined,
       subject: "Your Oak Ridge PM account is active",
       text: [
         `Hi ${displayName},`,
