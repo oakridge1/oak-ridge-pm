@@ -744,6 +744,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                     {/* Word doc download (Standard only) */}
                     {inv.type === "STANDARD" && (
                       <a href={`/api/jobs/${job.id}/pdf/invoice/${inv.id}/docx`}
+                        target="_blank" rel="noopener noreferrer"
+                        download={`Invoice_${String(inv.invoiceNumber).padStart(3, "0")}.docx`}
                         className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                         <FileText className="w-3.5 h-3.5" /> Download Word
                       </a>

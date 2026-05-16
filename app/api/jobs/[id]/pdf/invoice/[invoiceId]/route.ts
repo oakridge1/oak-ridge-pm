@@ -71,7 +71,7 @@ export async function GET(
   // Previously sent invoices (before this one by number)
   const previouslyInvoiced = job.invoices
     .filter((inv) => inv.id !== invoiceId && inv.invoiceNumber < invoice.invoiceNumber)
-    .reduce((s, inv) => s + inv.amount.toNumber(), 0);
+    .reduce((s, inv) => s + (inv.amount?.toNumber?.() ?? Number(inv.amount) ?? 0), 0);
 
   const lineItems = (invoice.lineItems as { label: string; amount: number }[] | null) ?? [];
   const logoSrc = getLogoSrc();
