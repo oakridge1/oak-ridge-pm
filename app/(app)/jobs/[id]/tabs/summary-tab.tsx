@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   DollarSign, Clock, Package, BarChart3, TrendingUp,
   Edit2, Save, X, Plus, Trash2, CreditCard, RefreshCw,
-  FileText, ChevronDown, ChevronUp, Send, CheckCircle2,
+  FileText, ChevronDown, ChevronUp, Send, CheckCircle2, ExternalLink,
 } from "lucide-react";
 import {
   updateDirectCosts, updateMarkups,
@@ -560,6 +560,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
   const [showPayForm, setShowPayForm] = useState<string | null>(null); // invoiceId
   const [duplicateWarning, setDuplicateWarning] = useState<{ invoiceNumber: number; date: string } | null>(null);
+  const [sheetsLoading, setSheetsLoading] = useState<string | null>(null);
+  const [sheetsError, setSheetsError] = useState<string | null>(null);
 
   // New invoice form state
   const [invType, setInvType] = useState<"STANDARD" | "AIA">("STANDARD");
@@ -652,6 +654,24 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
         await deleteInvoice(invoiceId, job.id);
       } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
     });
+  }
+
+  async function handlePushToSheets(invoiceId: string) {
+    setSheetsLoading(invoiceId);
+    setSheetsError(null);
+    try {
+      const res = await fetch(`/api/google/sheets/${invoiceId}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setSheetsError(data.error ?? "Failed to sync to Google Sheets");
+      } else {
+        window.open(data.url, "_blank");
+      }
+    } catch {
+      setSheetsError("Failed to sync to Google Sheets");
+    } finally {
+      setSheetsLoading(null);
+    }
   }
 
   function handleAddPayment(invoiceId: string) {
@@ -783,7 +803,22 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                         <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
                     )}
+
+                    {/* Google Sheets (AIA only) */}
+                    {role === "ADMIN" && inv.type === "AIA" && (
+                      <button onClick={() => handlePushToSheets(inv.id)}
+                        disabled={sheetsLoading === inv.id}
+                        className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-60">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        {sheetsLoading === inv.id ? "Syncing..." : "Open in Sheets"}
+                      </button>
+                    )}
                   </div>
+
+                  {/* Sheets error */}
+                  {sheetsError && expandedInvoice === inv.id && (
+                    <p className="text-xs text-red-600 mt-1">{sheetsError}</p>
+                  )}
 
                   {/* Notes */}
                   {inv.notes && (

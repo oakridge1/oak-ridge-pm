@@ -130,6 +130,7 @@ model User {
   invoices       Invoice[]      @relation("InvoiceCreator")
   calendarRequests         CalendarRequest[] @relation("CalendarRequestSubmitter")
   reviewedCalendarRequests CalendarRequest[] @relation("CalendarRequestReviewer")
+  googleConnections        GoogleConnection[] @relation("GoogleConnectionAdmin")
 }
 
 model Account {
@@ -241,6 +242,7 @@ model Invoice {
   invoiceNumber Int
   type          InvoiceType   @default(STANDARD)
   invoiceKind   String?       @default("PROGRESS_PAYMENT")
+  googleSheetId String?
   date          DateTime
   periodTo      DateTime?
   applicationNo Int?
@@ -437,6 +439,7 @@ model CalendarEvent {
   note              String?
   recurrence        String?           @default("NONE")
   recurrenceEndDate DateTime?
+  googleEventId     String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -529,4 +532,20 @@ model CalendarRequest {
   job         Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
   requestedBy User  @relation("CalendarRequestSubmitter", fields: [requestedById], references: [id])
   reviewedBy  User? @relation("CalendarRequestReviewer", fields: [reviewedById], references: [id])
+}
+
+// ── Google Integration ────────────────────────────────────────────────────────
+
+model GoogleConnection {
+  id            String    @id @default(cuid())
+  email         String
+  refreshToken  String    @db.Text
+  accessToken   String?   @db.Text
+  tokenExpiry   DateTime?
+  scopes        String    @db.Text
+  connectedById String
+  connectedAt   DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  connectedBy User @relation("GoogleConnectionAdmin", fields: [connectedById], references: [id], onDelete: Cascade)
 }
