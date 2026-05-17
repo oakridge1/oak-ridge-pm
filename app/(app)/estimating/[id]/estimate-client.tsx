@@ -977,8 +977,10 @@ function AssemblyForm({ type, data, onAdd, onCancel }: {
 // Tab 3: Panel Builder
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PANEL_BOMS = BOM.filter(b => b.category === "Panels" && (b.id.startsWith("bb") || b.id.startsWith("s1") || b.id.startsWith("s3")));
-const BREAKER_BOMS = BOM.filter(b => b.category === "Panels" && !b.id.startsWith("bb") && !b.id.startsWith("s1") && !b.id.startsWith("s3"));
+// Load centers / main panels (pg1, pg2, pg17 meter main)
+const PANEL_BOMS = BOM.filter(b => b.category === "Panels & Gear" && (b.id === "pg1" || b.id === "pg2" || b.id === "pg17"));
+// All breakers / overcurrent devices
+const BREAKER_BOMS = BOM.filter(b => b.category === "Panels & Gear" && b.id !== "pg1" && b.id !== "pg2" && b.id !== "pg17");
 
 function PanelTab({ panelItems, setPanelItems, data }: {
   panelItems: PanelItem[];
@@ -1019,7 +1021,7 @@ function PanelTab({ panelItems, setPanelItems, data }: {
             <Plus className="w-3.5 h-3.5" /> {bom.name}
           </button>
         )) : (
-          <button onClick={() => addPanel("bb48")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-[#002D72]/30 text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors">
+          <button onClick={() => addPanel("pg1")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-[#002D72]/30 text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors">
             <Plus className="w-3.5 h-3.5" /> Add Panel
           </button>
         )}
