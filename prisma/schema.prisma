@@ -99,6 +99,14 @@ enum InvoiceStatus {
   PAID
 }
 
+enum EstimateStatus {
+  DRAFT
+  SENT
+  AWARDED
+  LOST
+  ARCHIVED
+}
+
 // ── Auth models (NextAuth Prisma adapter) ────────────────────────────────────
 
 model User {
@@ -139,6 +147,9 @@ model User {
   grantedPermissions       UserPermission[] @relation("GrantedPermissions")
   approvalRequests         StockApprovalRequest[] @relation("ApprovalRequester")
   reviewedApprovals        StockApprovalRequest[] @relation("ApprovalReviewer")
+  estimatingPermission     Boolean                @default(false)
+  createdEstimates         Estimate[]             @relation("EstimateCreatedBy")
+  designFeeEstimates       Estimate[]             @relation("EstimateDesignFee")
 }
 
 model Account {
@@ -243,6 +254,7 @@ model Job {
   stockOrders      StockOrder[]
   userPermissions  UserPermission[]
   stockApprovalRequests StockApprovalRequest[]
+  estimate              Estimate?
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -693,4 +705,42 @@ model UserPermission {
   user      User  @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
   grantedBy User  @relation("GrantedPermissions", fields: [grantedById], references: [id])
   job       Job?  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+// ── Estimates ─────────────────────────────────────────────────────────────────
+
+model Estimate {
+  id                  String         @id @default(cuid())
+  jobId               String?        @unique
+  job                 Job?           @relation(fields: [jobId], references: [id])
+  estimateNumber      String         @unique
+  name                String
+  status              EstimateStatus @default(DRAFT)
+  clientName          String?
+  address             String?
+  jobNumberAssigned   String?
+  laborRate           Float          @default(41.50)
+  bulkMarkup          Float          @default(0.085)
+  lightMarkup         Float          @default(0.05)
+  permitMarkup        Float          @default(0.05)
+  subMarkup           Float          @default(0.03)
+  overhead            Float          @default(0.10)
+  profit              Float          @default(0.12)
+  nonProd             Float          @default(0.0)
+  designFeePct        Float          @default(0.0)
+  designFeeUserId     String?
+  designFeeUser       User?          @relation("EstimateDesignFee", fields: [designFeeUserId], references: [id])
+  conditionMult       Float          @default(1.0)
+  heightAdj           Boolean        @default(false)
+  takeoffItems        Json           @default("[]")
+  assemblies          Json           @default("[]")
+  panelItems          Json           @default("[]")
+  permits             Json           @default("[]")
+  subs                Json           @default("[]")
+  notes               String?        @db.Text
+  awardedAt           DateTime?
+  createdById         String
+  createdBy           User           @relation("EstimateCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 }

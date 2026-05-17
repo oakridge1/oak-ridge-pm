@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, Settings, Zap } from "lucide-react";
+import { LogOut, Settings, Zap, Calculator } from "lucide-react";
 import type { Role } from "@/app/generated/prisma/client";
 
 interface HeaderProps {
   userName?: string | null;
   userRole?: Role;
   userImage?: string | null;
+  canEstimate?: boolean;
 }
 
-export function Header({ userName, userRole, userImage }: HeaderProps) {
+export function Header({ userName, userRole, userImage, canEstimate }: HeaderProps) {
   const pathname = usePathname();
   const isAdmin = userRole === "ADMIN";
 
@@ -51,6 +52,19 @@ export function Header({ userName, userRole, userImage }: HeaderProps) {
 
         {/* Right nav */}
         <nav className="flex items-center gap-1.5">
+          {canEstimate && (
+            <Link
+              href="/estimating"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                pathname.startsWith("/estimating")
+                  ? "bg-white/20 text-white"
+                  : "text-blue-200 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Calculator className="w-4 h-4" />
+              <span className="hidden sm:inline">Estimating</span>
+            </Link>
+          )}
           {isAdmin && (
             <Link
               href="/admin/users"

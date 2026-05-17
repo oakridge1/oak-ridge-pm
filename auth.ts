@@ -61,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
-            select: { id: true, role: true, active: true },
+            select: { id: true, role: true, active: true, estimatingPermission: true },
           });
           if (!dbUser) {
             console.warn(`[auth] session: no DB user for id=${user.id} email=${user.email}`);
@@ -69,6 +69,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user.id = user.id;
           session.user.role = (dbUser?.role ?? "TEAMMATE") as Role;
           session.user.active = dbUser?.active ?? false;
+          session.user.estimatingPermission = dbUser?.estimatingPermission ?? false;
           console.log(`[auth] session ok: email=${user.email} active=${session.user.active} role=${session.user.role}`);
         } catch (err) {
           console.error("[auth] session callback DB error:", err);

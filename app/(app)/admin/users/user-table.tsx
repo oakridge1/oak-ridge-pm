@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition, useState, useEffect } from "react";
-import { Trash2, ShieldCheck, User, Clock, UserPlus, X, Save, ShoppingCart } from "lucide-react";
+import { Trash2, ShieldCheck, User, Clock, UserPlus, X, Save, ShoppingCart, Calculator } from "lucide-react";
 import { updateUserRole, toggleUserActive, deleteUser, createUser } from "./actions";
 import type { Role } from "@/app/generated/prisma/client";
 
@@ -61,6 +61,52 @@ function OrderingPermissionToggle({ userId, role }: { userId: string; role: Role
     >
       <ShoppingCart className="w-3 h-3" />
       {toggling ? "…" : hasPermission ? "Ordering ON" : "Ordering OFF"}
+    </button>
+  );
+}
+
+function EstimatingPermissionToggle({ userId, role }: { userId: string; role: Role }) {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [toggling, setToggling] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/admin/users/${userId}/estimating-permission`)
+      .then(r => r.json())
+      .then(data => setHasPermission(data.estimatingPermission ?? false))
+      .catch(() => setHasPermission(false));
+  }, [userId]);
+
+  if (role === "ADMIN") return null;
+  if (hasPermission === null) return <span className="text-xs text-gray-400">…</span>;
+
+  async function handleToggle() {
+    setToggling(true);
+    try {
+      if (hasPermission) {
+        await fetch(`/api/admin/users/${userId}/estimating-permission`, { method: "DELETE" });
+        setHasPermission(false);
+      } else {
+        await fetch(`/api/admin/users/${userId}/estimating-permission`, { method: "POST" });
+        setHasPermission(true);
+      }
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={toggling}
+      title="Estimating permission — allows this user to create and edit estimates"
+      className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+        hasPermission
+          ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+      }`}
+    >
+      <Calculator className="w-3 h-3" />
+      {toggling ? "…" : hasPermission ? "Estimating ON" : "Estimating OFF"}
     </button>
   );
 }
@@ -188,6 +234,7 @@ function UserRowMobile({
         </button>
 
         <OrderingPermissionToggle userId={user.id} role={user.role} />
+        <EstimatingPermissionToggle userId={user.id} role={user.role} />
 
         {!isSelf && (
           <button
@@ -298,6 +345,7 @@ function UserRowDesktop({
       <td className="px-4 py-3">
         <div className="space-y-1">
           <OrderingPermissionToggle userId={user.id} role={user.role} />
+          <EstimatingPermissionToggle userId={user.id} role={user.role} />
           {!isSelf && (
             <>
               <button

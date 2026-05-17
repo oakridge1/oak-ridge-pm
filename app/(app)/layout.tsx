@@ -12,12 +12,15 @@ export default async function AppLayout({
   if (!session?.user) redirect("/login");
   if (!session.user.active) redirect("/pending");
 
+  const estimatingPermission = (session.user as any).estimatingPermission ?? session.user.role === "ADMIN";
+
   return (
     <div className="min-h-full flex flex-col">
       <Header
         userName={session.user.name}
         userRole={session.user.role as Role}
         userImage={session.user.image}
+        canEstimate={estimatingPermission}
       />
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
         {children}
