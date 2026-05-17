@@ -1263,6 +1263,196 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
   );
 }
 
+// ── Stock Order PDF ───────────────────────────────────────────────────────────
+
+export type StockOrderPdfData = {
+  supplierName: string;
+  supplierRepName?: string | null;
+  supplierEmail?: string | null;
+  jobNumber: string;
+  jobName: string;
+  poNumber?: string | null;
+  orderDate: string;
+  deliveryMethod: string;
+  deliveryAddress?: string | null;
+  items: Array<{
+    name: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    note?: string | null;
+  }>;
+  notes?: string | null;
+};
+
+const SS = StyleSheet.create({
+  page: { fontFamily: "Helvetica", fontSize: 9, padding: 40, color: "#1a1a1a" },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingBottom: 10,
+    marginBottom: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: NAVY,
+    borderBottomStyle: "solid",
+  },
+  coName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: NAVY },
+  coInfo: { fontSize: 7, color: GRAY, marginTop: 2 },
+  docTitle: { fontSize: 16, fontFamily: "Helvetica-Bold", color: ORANGE, textAlign: "center", marginBottom: 12 },
+  infoGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 14 },
+  infoCell: { width: "50%", flexDirection: "row", marginBottom: 4 },
+  infoLabel: { width: 80, fontSize: 8, color: GRAY },
+  infoValue: { flex: 1, fontSize: 8, fontFamily: "Helvetica-Bold" },
+  tableHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: NAVY,
+    padding: 5,
+    marginBottom: 0,
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    borderBottomStyle: "solid",
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  tableRowAlt: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    borderBottomStyle: "solid",
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    backgroundColor: "#f9fafb",
+  },
+  th: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#fff" },
+  td: { fontSize: 8, color: "#1a1a1a" },
+  tdGray: { fontSize: 8, color: GRAY },
+  noteRow: {
+    flexDirection: "row",
+    paddingLeft: 16,
+    paddingBottom: 3,
+  },
+  noteText: { fontSize: 7, color: GRAY, fontFamily: "Helvetica-Oblique", flex: 1 },
+  divider: { borderBottomWidth: 2, borderBottomColor: NAVY, borderBottomStyle: "solid", marginVertical: 10 },
+  footer: {
+    position: "absolute",
+    bottom: 28,
+    left: 40,
+    right: 40,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    borderTopStyle: "solid",
+  },
+  footerText: { fontSize: 7, color: GRAY },
+});
+
+export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
+  return (
+    <Document>
+      <Page size="LETTER" style={SS.page}>
+        {/* Header */}
+        <View style={SS.headerRow}>
+          <View>
+            <Text style={SS.coName}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={SS.coInfo}>209 W. River Rd, Hooksett, NH 03106 | 603-660-4651 | Justin@oakridgeelectrical.com</Text>
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ fontSize: 8, color: GRAY }}>{data.orderDate}</Text>
+          </View>
+        </View>
+
+        {/* Title */}
+        <Text style={SS.docTitle}>MATERIAL ORDER</Text>
+
+        {/* Info block */}
+        <View style={SS.infoGrid}>
+          <View style={SS.infoCell}>
+            <Text style={SS.infoLabel}>To:</Text>
+            <Text style={SS.infoValue}>{data.supplierName}{data.supplierRepName ? ` — ${data.supplierRepName}` : ""}</Text>
+          </View>
+          <View style={SS.infoCell}>
+            <Text style={SS.infoLabel}>Date:</Text>
+            <Text style={SS.infoValue}>{data.orderDate}</Text>
+          </View>
+          {data.poNumber ? (
+            <View style={SS.infoCell}>
+              <Text style={SS.infoLabel}>PO / Job #:</Text>
+              <Text style={SS.infoValue}>{data.poNumber}</Text>
+            </View>
+          ) : null}
+          <View style={SS.infoCell}>
+            <Text style={SS.infoLabel}>Job:</Text>
+            <Text style={SS.infoValue}>{data.jobNumber} — {data.jobName}</Text>
+          </View>
+          <View style={SS.infoCell}>
+            <Text style={SS.infoLabel}>Delivery:</Text>
+            <Text style={SS.infoValue}>{data.deliveryMethod}{data.deliveryAddress ? ` — ${data.deliveryAddress}` : ""}</Text>
+          </View>
+          {data.supplierEmail ? (
+            <View style={SS.infoCell}>
+              <Text style={SS.infoLabel}>Email:</Text>
+              <Text style={SS.infoValue}>{data.supplierEmail}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={SS.divider} />
+
+        {/* Item table header */}
+        <View style={SS.tableHeaderRow}>
+          <Text style={[SS.th, { width: 24 }]}>#</Text>
+          <Text style={[SS.th, { flex: 1 }]}>Item</Text>
+          <Text style={[SS.th, { width: 100 }]}>Description</Text>
+          <Text style={[SS.th, { width: 40, textAlign: "right" }]}>Qty</Text>
+          <Text style={[SS.th, { width: 40, textAlign: "right" }]}>Unit</Text>
+        </View>
+
+        {/* Items */}
+        {data.items.map((item, i) => (
+          <View key={i}>
+            <View style={i % 2 === 0 ? SS.tableRow : SS.tableRowAlt}>
+              <Text style={[SS.tdGray, { width: 24 }]}>{i + 1}</Text>
+              <Text style={[SS.td, { flex: 1, fontFamily: "Helvetica-Bold" }]}>{item.name}</Text>
+              <Text style={[SS.tdGray, { width: 100 }]}>{item.description}</Text>
+              <Text style={[SS.td, { width: 40, textAlign: "right" }]}>{item.quantity}</Text>
+              <Text style={[SS.tdGray, { width: 40, textAlign: "right" }]}>{item.unit}</Text>
+            </View>
+            {item.note ? (
+              <View style={SS.noteRow}>
+                <Text style={SS.noteText}>Note: {item.note}</Text>
+              </View>
+            ) : null}
+          </View>
+        ))}
+
+        {/* Total */}
+        <View style={{ marginTop: 8, flexDirection: "row", justifyContent: "flex-end" }}>
+          <Text style={{ fontSize: 8, color: GRAY }}>Total: {data.items.length} line item{data.items.length !== 1 ? "s" : ""}</Text>
+        </View>
+
+        {data.notes ? (
+          <View style={{ marginTop: 10, backgroundColor: "#f9fafb", padding: 8, borderRadius: 4 }}>
+            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, marginBottom: 3 }}>NOTES</Text>
+            <Text style={{ fontSize: 8, color: "#1a1a1a" }}>{data.notes}</Text>
+          </View>
+        ) : null}
+
+        {/* Footer */}
+        <View style={SS.footer} fixed>
+          <Text style={SS.footerText}>Thank you for your business! Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com</Text>
+          <Text style={SS.footerText}>{data.orderDate}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
 // ── AIA G702 / G703 ───────────────────────────────────────────────────────────
 
 export type AiaData = {

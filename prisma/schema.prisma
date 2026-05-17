@@ -137,6 +137,8 @@ model User {
   stockOrders              StockOrder[]     @relation("StockOrderSender")
   userPermissions          UserPermission[] @relation("UserPermissions")
   grantedPermissions       UserPermission[] @relation("GrantedPermissions")
+  approvalRequests         StockApprovalRequest[] @relation("ApprovalRequester")
+  reviewedApprovals        StockApprovalRequest[] @relation("ApprovalReviewer")
 }
 
 model Account {
@@ -240,6 +242,7 @@ model Job {
   stockRequests    StockRequest[]
   stockOrders      StockOrder[]
   userPermissions  UserPermission[]
+  stockApprovalRequests StockApprovalRequest[]
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -611,27 +614,49 @@ model StockItem {
   requests StockRequest[]
 }
 
+// ── Stock Approval Requests ───────────────────────────────────────────────────
+
+model StockApprovalRequest {
+  id              String    @id @default(cuid())
+  jobId           String
+  requestedById   String
+  status          String    @default("PENDING")  // PENDING | APPROVED | REJECTED
+  rejectionReason String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  job         Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  requestedBy User   @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  reviewer    User?  @relation("ApprovalReviewer", fields: [reviewedById], references: [id])
+  requests    StockRequest[] @relation("ApprovalRequests")
+}
+
 // ── Stock Requests ────────────────────────────────────────────────────────────
 
 model StockRequest {
-  id             String    @id @default(cuid())
-  jobId          String
-  userId         String
-  stockItemId    String?
-  customItemName String?
-  customCategory String?
-  variables      Json?     // { key: value } for each selected variable
-  quantity       Float     @default(1)
-  quantityUnit   String?
-  note           String?
-  deliveryMethod String    @default("PICKUP") // PICKUP | DELIVERY_SITE | DELIVERY_SHOP
-  status         String    @default("PENDING") // PENDING | SENT | CANCELLED
-  orderDate      DateTime  @default(now())
-  createdAt      DateTime  @default(now())
+  id                String    @id @default(cuid())
+  jobId             String
+  userId            String
+  stockItemId       String?
+  customItemName    String?
+  customCategory    String?
+  variables         Json?     // { key: value } for each selected variable
+  quantity          Float     @default(1)
+  quantityUnit      String?
+  note              String?
+  deliveryMethod    String    @default("PICKUP") // PICKUP | DELIVERY_SITE | DELIVERY_SHOP
+  status            String    @default("PENDING") // PENDING | SENT | CANCELLED | PENDING_APPROVAL
+  orderDate         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  conductorGroupId  String?
+  saveToMasterList  Boolean   @default(false)
+  approvalRequestId String?
 
-  job       Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user      User       @relation(fields: [userId], references: [id])
-  stockItem StockItem? @relation(fields: [stockItemId], references: [id])
+  job             Job                   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user            User                  @relation(fields: [userId], references: [id])
+  stockItem       StockItem?            @relation(fields: [stockItemId], references: [id])
+  approvalRequest StockApprovalRequest? @relation("ApprovalRequests", fields: [approvalRequestId], references: [id])
 }
 
 // ── Stock Orders ──────────────────────────────────────────────────────────────

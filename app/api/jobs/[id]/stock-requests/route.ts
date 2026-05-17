@@ -13,11 +13,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const session = await auth();
   if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
   const { id: jobId } = await params;
+  const { searchParams } = new URL(req.url);
+  const statusFilter = searchParams.get("status");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = { jobId, orderDate: { gte: getStartOfToday() } };
+  if (statusFilter) {
+    where.status = statusFilter;
+  }
 
   const requests = await prisma.stockRequest.findMany({
-    where: { jobId, orderDate: { gte: getStartOfToday() } },
+    where,
     orderBy: { createdAt: "asc" },
-    include: { user: { select: { name: true } }, stockItem: { select: { name: true, category: true, lingo: true } } },
+    include: {
+      user: { select: { name: true } },
+      stockItem: { select: { name: true, category: true, lingo: true } },
+    },
   });
   return NextResponse.json(requests);
 }
@@ -28,7 +39,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id: jobId } = await params;
 
   const body = await req.json();
-  const { stockItemId, customItemName, customCategory, variables, quantity, quantityUnit, note, deliveryMethod } = body;
+  const {
+    stockItemId,
+    customItemName,
+    customCategory,
+    variables,
+    quantity,
+    quantityUnit,
+    note,
+    deliveryMethod,
+    conductorGroupId,
+    saveToMasterList,
+  } = body;
 
   if (!stockItemId && !customItemName) {
     return NextResponse.json({ error: "Stock item or custom item name required" }, { status: 400 });
@@ -48,6 +70,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       deliveryMethod: deliveryMethod || "PICKUP",
       status: "PENDING",
       orderDate: new Date(),
+      conductorGroupId: conductorGroupId || null,
+      saveToMasterList: saveToMasterList === true,
     },
     include: { user: { select: { name: true } }, stockItem: { select: { name: true, category: true, lingo: true } } },
   });
