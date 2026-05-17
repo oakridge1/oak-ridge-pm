@@ -232,6 +232,7 @@ export function TakeoffClient({
   const pageScalesRef = useRef(pageScales);
   const markupsRef = useRef(markups);
   const runTypesRef = useRef(runTypes);
+  const activeDrawingIdRef = useRef(activeDrawingId);
   const currentPageRef = useRef(currentPage);
   const modeRef = useRef(mode);
   const runInProgressRef = useRef(runInProgress);
@@ -243,6 +244,7 @@ export function TakeoffClient({
   useEffect(() => { pageScalesRef.current = pageScales; }, [pageScales]);
   useEffect(() => { markupsRef.current = markups; }, [markups]);
   useEffect(() => { runTypesRef.current = runTypes; }, [runTypes]);
+  useEffect(() => { activeDrawingIdRef.current = activeDrawingId; }, [activeDrawingId]);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { runInProgressRef.current = runInProgress; }, [runInProgress]);
@@ -776,7 +778,8 @@ export function TakeoffClient({
 
   // ── Transfer to estimator ──────────────────────────────────────────────────
   async function transferRun(markupId: string) {
-    if (!activeDrawingId) return;
+    const drawingId = activeDrawingIdRef.current;
+    if (!drawingId) return;
     const m = markupsRef.current.find(x => x.id === markupId);
     if (!m || m.type !== "run") return;
     // Use runTypesRef to avoid stale closure
@@ -824,7 +827,7 @@ export function TakeoffClient({
     }
 
     try {
-      const res = await fetch(`/api/takeoff-drawings/${activeDrawingId}/transfer`, {
+      const res = await fetch(`/api/takeoff-drawings/${drawingId}/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -1173,7 +1176,9 @@ export function TakeoffClient({
                       </div>
                       <div style={{ paddingLeft: 16, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ fontSize: 10, color: "#5a6070" }}>{done}/{runs.length} xferred</span>
-                        <button onClick={() => { runs.filter(r => !r.transferred).forEach(r => transferRun(r.id)); }}
+                        <button onClick={async () => {
+                          for (const r of runs.filter(x => !x.transferred)) await transferRun(r.id);
+                        }}
                           style={{ fontSize: 10, background: "#22252b", border: "1px solid #2e3138", color: "#9aa0ab", borderRadius: 4, padding: "2px 6px", cursor: "pointer", fontFamily: "inherit" }}>
                           Add to Estimate →
                         </button>
