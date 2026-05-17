@@ -479,8 +479,13 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     [drawings, activeDrawingId]
   );
 
+  // Normalize legacy oversized symbols (stored size > 30 → 20 base units)
+  function normalizeMarkups(raw: PlacedSymbol[]): PlacedSymbol[] {
+    return raw.map((s) => s.size > 30 ? { ...s, size: 20 } : s);
+  }
+
   // ── Annotation state for active drawing
-  const [markups, setMarkups] = useState<PlacedSymbol[]>(activeDrawing?.markups ?? []);
+  const [markups, setMarkups] = useState<PlacedSymbol[]>(normalizeMarkups(activeDrawing?.markups ?? []));
   const [runTypes, setRunTypes] = useState<DrawnRun[]>(activeDrawing?.runTypes ?? []);
   const [pxPerFoot, setPxPerFoot] = useState<number | null>(activeDrawing?.pxPerFoot ?? null);
   const [scaleSet, setScaleSet] = useState<boolean>(activeDrawing?.scaleSet ?? false);
@@ -488,7 +493,7 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   const [pageCount, setPageCount] = useState<number>(activeDrawing?.pageCount ?? 1);
 
   // ── Tool state
-  const [mode, setMode] = useState<"count" | "run">("count");
+  const [mode, setMode] = useState<"count" | "run" | "pan">("count");
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [symbolCategory, setSymbolCategory] = useState("Devices");
   const [symbolColor, setSymbolColor] = useState("#ffffff");
@@ -525,8 +530,16 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const isPanningRef = useRef(false);  // ref mirrors state — always current in event handlers
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
   const spaceDown = useRef(false);
+
+  // Refs that mirror run state — always current in event handlers (avoids stale closures)
+  const isDrawingRunRef = useRef(false);
+  const runPointsRef = useRef<Array<{ x: number; y: number }>>([]);
+  // Keep refs in sync with state on every render
+  isDrawingRunRef.current = isDrawingRun;
+  runPointsRef.current = runPoints;
 
   // ── Save state
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
@@ -572,7 +585,7 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     const target = drawings.find((d) => d.id === id);
     if (!target) return;
     setActiveDrawingId(id);
-    setMarkups(target.markups ?? []);
+    setMarkups(normalizeMarkups(target.markups ?? []));
     setRunTypes(target.runTypes ?? []);
     setPxPerFoot(target.pxPerFoot ?? null);
     setScaleSet(target.scaleSet ?? false);
@@ -914,17 +927,20 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   const dragOffset = useRef({ dx: 0, dy: 0 });
 
   function handleOverlayMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
-    // Middle mouse = pan
-    if (e.button === 1 || (e.button === 0 && spaceDown.current)) {
+    // Pan: middle mouse, spacebar+drag, or pan mode
+    const isPanTrigger = e.button === 1 || (e.button === 0 && spaceDown.current) || (e.button === 0 && mode === "pan");
+    if (isPanTrigger) {
+      isPanningRef.current = true;
       setIsPanning(true);
       panStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
+      e.preventDefault();
       return;
     }
-    if (e.button === 2) return; // handled by context menu
+    if (e.button !== 0) return; // only handle left click below
 
     const pos = getCanvasPos(e);
 
-    // Scale mode
+    // Scale mode — two-point calibration
     if (scaleMode) {
       const newPts = [...scalePoints, pos];
       setScalePoints(newPts);
@@ -944,19 +960,17 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
         setSelectedSymbolId(hit.id);
         isDraggingSymbol.current = true;
         dragSymbolId.current = hit.id;
-        // Offset in display coords relative to symbol's display position
         dragOffset.current = { dx: pos.x - hit.x * zoom, dy: pos.y - hit.y * zoom };
       } else {
         setSelectedSymbolId(null);
         if (activeSymbol) {
-          // Normalize display coords to base space before storing
           const sym: PlacedSymbol = {
             id: newId(),
             type: activeSymbol,
             category: SYMBOLS.find((s) => s.name === activeSymbol)?.category ?? "Devices",
             x: pos.x / zoom,
             y: pos.y / zoom,
-            size: 40,           // stored in base units; rendered as size * zoom
+            size: 20,           // base units — rendered as 20 * zoom px
             rotation: 0,
             color: symbolColor,
             showLabel: true,
@@ -966,10 +980,20 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
       }
     }
 
-    if (mode === "run" && isDrawingRun) {
-      const last = runPoints.length > 0 ? runPoints[runPoints.length - 1] : null;
-      const snapped = last ? snapPoint(last, pos, e.shiftKey) : pos;
-      setRunPoints((prev) => [...prev, snapped]);
+    if (mode === "run") {
+      if (!isDrawingRunRef.current) {
+        // First click starts the run
+        isDrawingRunRef.current = true;
+        setIsDrawingRun(true);
+        runPointsRef.current = [pos];
+        setRunPoints([pos]);
+      } else {
+        // Subsequent clicks add waypoints (skip — handled with delay to avoid dblclick conflict)
+        const last = runPointsRef.current[runPointsRef.current.length - 1];
+        const snapped = snapPoint(last, pos, e.shiftKey);
+        runPointsRef.current = [...runPointsRef.current, snapped];
+        setRunPoints(runPointsRef.current);
+      }
     }
   }
 
@@ -977,7 +1001,8 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     const pos = getCanvasPos(e);
     setMousePos(pos);
 
-    if (isPanning && panStart.current) {
+    // Use ref (not state) — always current during a drag gesture
+    if (isPanningRef.current && panStart.current) {
       setPan({
         x: panStart.current.px + (e.clientX - panStart.current.mx),
         y: panStart.current.py + (e.clientY - panStart.current.my),
@@ -1002,6 +1027,7 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   }
 
   function handleOverlayMouseUp(e: React.MouseEvent<HTMLCanvasElement>) {
+    isPanningRef.current = false;
     setIsPanning(false);
     panStart.current = null;
     if (isDraggingSymbol.current) {
@@ -1011,8 +1037,18 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   }
 
   function handleOverlayDoubleClick(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (mode === "run" && isDrawingRun && runPoints.length >= 2) {
-      finishRun();
+    if (mode === "run" && isDrawingRunRef.current) {
+      // Double-click fires AFTER two mousedown events, so runPointsRef has 2 extra
+      // points from those mousedowns. Remove the last one (second click of dblclick)
+      // so we don't add a spurious waypoint at the end.
+      const pts = runPointsRef.current;
+      const trimmed = pts.length > 1 ? pts.slice(0, -1) : pts;
+      if (trimmed.length >= 2) {
+        runPointsRef.current = trimmed;
+        setRunPoints(trimmed);
+        // Small delay lets state settle before finishRun reads runPointsRef
+        setTimeout(() => finishRun(), 0);
+      }
     }
   }
 
@@ -1027,8 +1063,13 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
 
   function handleOverlayWheel(e: React.WheelEvent<HTMLCanvasElement>) {
     e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    // 5% per scroll tick — was 10%, which felt too aggressive on trackpads
+    const factor = e.deltaY < 0 ? 1.05 : 0.95;
     setZoom((z) => Math.min(4, Math.max(0.25, z * factor)));
+  }
+
+  function stepZoom(delta: number) {
+    setZoom((z) => Math.min(4, Math.max(0.25, Math.round((z + delta) * 20) / 20)));
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1037,13 +1078,17 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.code === "Space") spaceDown.current = true;
+      // Don't fire shortcuts when typing in an input/dialog
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
+      if (e.code === "Space") { spaceDown.current = true; e.preventDefault(); }
       if (e.code === "Escape") {
-        if (isDrawingRun) {
+        if (isDrawingRunRef.current) {
+          isDrawingRunRef.current = false;
+          runPointsRef.current = [];
           setIsDrawingRun(false);
           setRunPoints([]);
         }
-        if (scaleMode) setScaleMode(false);
+        setScaleMode(false);
         setSelectedSymbolId(null);
         setCtxMenu(null);
       }
@@ -1051,8 +1096,13 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
         setMarkups((prev) => prev.filter((s) => s.id !== selectedSymbolId));
         setSelectedSymbolId(null);
       }
-      if (e.code === "Enter" && isDrawingRun && runPoints.length >= 2) {
+      // Enter finishes run — use refs so this always sees current points
+      if (e.code === "Enter" && isDrawingRunRef.current && runPointsRef.current.length >= 2) {
         finishRun();
+      }
+      // P key = toggle pan mode
+      if (e.code === "KeyP") {
+        setMode((m) => m === "pan" ? "count" : "pan");
       }
     }
     function onKeyUp(e: KeyboardEvent) {
@@ -1061,25 +1111,27 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); };
-  }, [isDrawingRun, runPoints, selectedSymbolId, scaleMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSymbolId]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Run finish
   // ─────────────────────────────────────────────────────────────────────────
 
   function finishRun() {
-    if (runPoints.length < 2) return;
-    // runPoints are in display coords; pxPerFoot is at base scale (zoom=1)
-    // At zoom=z: 1 foot = pxPerFoot * zoom display pixels
+    // Always read from ref — state can be stale when called from dblclick/keydown
+    const pts = runPointsRef.current;
+    if (pts.length < 2) return;
+    // Points are in display coords; pxPerFoot is at base scale (zoom=1)
     let totalPx = 0;
-    for (let i = 1; i < runPoints.length; i++) {
-      const dx = runPoints[i].x - runPoints[i - 1].x;
-      const dy = runPoints[i].y - runPoints[i - 1].y;
+    for (let i = 1; i < pts.length; i++) {
+      const dx = pts[i].x - pts[i - 1].x;
+      const dy = pts[i].y - pts[i - 1].y;
       totalPx += Math.sqrt(dx * dx + dy * dy);
     }
     const footage = pxPerFoot ? totalPx / (pxPerFoot * zoom) : totalPx / (96 * zoom);
     // Normalize run points from display coords to base coords before storing
-    const basePoints = runPoints.map((p) => ({ x: p.x / zoom, y: p.y / zoom }));
+    const basePoints = pts.map((p) => ({ x: p.x / zoom, y: p.y / zoom }));
 
     const run: DrawnRun = {
       id: newId(),
@@ -1102,6 +1154,8 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     };
     setPendingRun(run);
     setShowRunConfirm(true);
+    isDrawingRunRef.current = false;
+    runPointsRef.current = [];
     setIsDrawingRun(false);
     setRunPoints([]);
   }
@@ -1323,12 +1377,12 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     transform: `translate(${pan.x}px, ${pan.y}px)`,
     cursor: scaleMode
       ? "crosshair"
-      : isPanning || spaceDown.current
-      ? "grab"
+      : isPanningRef.current || spaceDown.current || mode === "pan"
+      ? isPanningRef.current ? "grabbing" : "grab"
       : mode === "count" && activeSymbol
       ? "copy"
-      : mode === "run" && isDrawingRun
-      ? "crosshair"
+      : mode === "run"
+      ? isDrawingRun ? "crosshair" : "default"
       : "default",
   };
 
@@ -1453,12 +1507,21 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
 
           {/* Mode toggle */}
           <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 4, overflow: "hidden" }}>
-            <button
-              style={{ padding: "2px 10px", fontSize: 12, background: mode === "count" ? "var(--highlight)" : "var(--surface2)", color: "white", border: "none", cursor: "pointer" }}
-              onClick={() => setMode("count")}>COUNT</button>
-            <button
-              style={{ padding: "2px 10px", fontSize: 12, background: mode === "run" ? "var(--highlight)" : "var(--surface2)", color: "white", border: "none", cursor: "pointer" }}
-              onClick={() => setMode("run")}>RUN</button>
+            {(["count", "run", "pan"] as const).map((m) => (
+              <button key={m}
+                title={m === "pan" ? "Pan (P)" : m === "count" ? "Place symbols" : "Draw runs"}
+                style={{ padding: "2px 9px", fontSize: 11, background: mode === m ? "var(--highlight)" : "var(--surface2)", color: "white", border: "none", cursor: "pointer", fontWeight: mode === m ? 700 : 400 }}
+                onClick={() => setMode(m)}>
+                {m.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* Zoom controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button className="btn btn-sm" style={{ padding: "2px 7px", fontWeight: 700 }} onClick={() => stepZoom(-0.1)}>−</button>
+            <span style={{ fontSize: 11, minWidth: 36, textAlign: "center", color: "var(--text-muted)" }}>{Math.round(zoom * 100)}%</span>
+            <button className="btn btn-sm" style={{ padding: "2px 7px", fontWeight: 700 }} onClick={() => stepZoom(0.1)}>+</button>
           </div>
 
           {/* Save indicator */}
@@ -1699,16 +1762,24 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
                     style={{ width: "100%", height: 24, cursor: "pointer", border: "1px solid var(--border)", borderRadius: 3, background: "none" }} />
                 </div>
 
-                <button
-                  className={`btn btn-sm${isDrawingRun ? " btn-orange" : " btn-primary"}`}
-                  style={{ width: "100%", marginBottom: 4 }}
-                  onClick={() => { setIsDrawingRun((v) => !v); setRunPoints([]); }}>
-                  {isDrawingRun ? "Cancel Draw" : "Start Drawing Run"}
-                </button>
-                {isDrawingRun && (
-                  <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "4px 0 0" }}>
-                    Click to add points. Double-click or Enter to finish. Esc to cancel. Hold Shift for free angle.
-                  </p>
+                {isDrawingRun ? (
+                  <button
+                    className="btn btn-sm btn-orange"
+                    style={{ width: "100%", marginBottom: 4 }}
+                    onClick={() => {
+                      isDrawingRunRef.current = false;
+                      runPointsRef.current = [];
+                      setIsDrawingRun(false);
+                      setRunPoints([]);
+                    }}>
+                    ✕ Cancel Draw
+                  </button>
+                ) : (
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", padding: "4px 0", lineHeight: 1.4 }}>
+                    Click on the drawing to start a run. Add waypoints with single clicks.
+                    Double-click or press <strong>Enter</strong> to finish. <strong>Esc</strong> to cancel.
+                    Hold <strong>Shift</strong> for free angle.
+                  </div>
                 )}
               </div>
             ) : (
