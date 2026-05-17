@@ -571,6 +571,9 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfJsLoadedRef = useRef(false);
+  // Tracks the active pdf.js render task — cancelled before every new render to prevent
+  // concurrent renders from racing and writing stale pixels over each other
+  const renderTaskRef = useRef<any>(null);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Switch drawing — save current, load new
@@ -671,22 +674,76 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
 
   useEffect(() => {
     if (!pdfDoc || !pdfCanvasRef.current) return;
+
+    // Cancel any in-progress render before starting a new one.
+    // Without this, changing zoom rapidly causes two pdf.js render tasks to write
+    // to the same canvas simultaneously, producing torn/mirrored frames.
+    if (renderTaskRef.current) {
+      try { renderTaskRef.current.cancel(); } catch { /* ignore */ }
+      renderTaskRef.current = null;
+    }
+
+    let cancelled = false;
+
     (async () => {
-      const page = await pdfDoc.getPage(currentPage);
-      // Always render at BASE_SCALE * zoom so stored base coords map correctly
-      const viewport = page.getViewport({ scale: BASE_SCALE * zoom });
-      const canvas = pdfCanvasRef.current!;
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d")!;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      // Overlay canvas must be exactly the same size as the PDF canvas
-      if (overlayCanvasRef.current) {
-        overlayCanvasRef.current.width = viewport.width;
-        overlayCanvasRef.current.height = viewport.height;
+      try {
+        const page = await pdfDoc.getPage(currentPage);
+        if (cancelled) return;
+
+        // Viewport at BASE_SCALE * zoom — must be created fresh every render
+        const viewport = page.getViewport({ scale: BASE_SCALE * zoom });
+
+        // Use Math.floor so canvas pixel dimensions are always whole integers.
+        // Fractional dimensions cause the browser to interpolate the canvas buffer
+        // which distorts or flips text when combined with devicePixelRatio scaling.
+        const w = Math.floor(viewport.width);
+        const h = Math.floor(viewport.height);
+
+        const pdfCanvas = pdfCanvasRef.current!;
+
+        // Setting width/height attributes resets the canvas bitmap and clears it —
+        // do this before getting the context so we start with a clean slate.
+        pdfCanvas.width  = w;
+        pdfCanvas.height = h;
+
+        // Match the overlay canvas exactly — must happen before drawOverlay()
+        const overlay = overlayCanvasRef.current;
+        if (overlay) {
+          overlay.width  = w;
+          overlay.height = h;
+          // Explicit clear after resize (belt-and-suspenders)
+          const oc = overlay.getContext("2d");
+          if (oc) oc.clearRect(0, 0, w, h);
+        }
+
+        const ctx = pdfCanvas.getContext("2d")!;
+        // Explicit clear — ensures no stale pixels from a previous page/zoom remain
+        ctx.clearRect(0, 0, w, h);
+        // Never apply a scale or flip transform here — pdf.js manages its own transform
+
+        const task = page.render({ canvasContext: ctx, viewport });
+        renderTaskRef.current = task;
+        await task.promise;
+        renderTaskRef.current = null;
+
+        if (!cancelled) {
+          drawOverlay();
+        }
+      } catch (err: any) {
+        // RenderingCancelledException is expected when we cancel — suppress it
+        if (err?.name !== "RenderingCancelledException") {
+          console.error("[takeoff] pdf render error:", err);
+        }
       }
-      drawOverlay();
     })();
+
+    return () => {
+      cancelled = true;
+      if (renderTaskRef.current) {
+        try { renderTaskRef.current.cancel(); } catch { /* ignore */ }
+        renderTaskRef.current = null;
+      }
+    };
   }, [pdfDoc, currentPage, zoom]);
 
   // ─────────────────────────────────────────────────────────────────────────
