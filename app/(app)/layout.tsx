@@ -12,7 +12,7 @@ export default async function AppLayout({
   if (!session?.user) redirect("/login");
   if (!session.user.active) redirect("/pending");
 
-  const estimatingPermission = (session.user as any).estimatingPermission ?? session.user.role === "ADMIN";
+  const estimatingPermission = session.user.role === "ADMIN" || (session.user as any).estimatingPermission === true;
 
   return (
     <div className="min-h-full flex flex-col">
