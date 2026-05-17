@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { calcConduitRun, calcMCHR } from "@/lib/estimating";
-import type { Assembly, TakeoffItem, EstimateData } from "@/lib/estimating";
+import type { Assembly, TakeoffItem } from "@/lib/estimating";
 
 function canEstimate(u: { role?: string | null; estimatingPermission?: boolean | null } | undefined) {
   if (!u) return false;
@@ -27,27 +27,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const estimate = await prisma.estimate.findUnique({ where: { id: drawing.estimateId } });
   if (!estimate) return new NextResponse("Estimate not found", { status: 404 });
 
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch (err) {
+    console.error("[transfer] Failed to parse request body:", err);
+    return new NextResponse("Invalid JSON body", { status: 400 });
+  }
+  console.log("[transfer] Received body:", JSON.stringify(body));
   const { type, data } = body as { type: "conduitRun" | "mcHomeRun" | "counts"; data: any };
-
-  const estimateData: EstimateData = {
-    laborRate: estimate.laborRate,
-    bulkMarkup: estimate.bulkMarkup,
-    lightMarkup: estimate.lightMarkup,
-    permitMarkup: estimate.permitMarkup,
-    subMarkup: estimate.subMarkup,
-    overhead: estimate.overhead,
-    profit: estimate.profit,
-    nonProd: estimate.nonProd,
-    designFeePct: estimate.designFeePct,
-    conditionMult: estimate.conditionMult,
-    heightAdj: estimate.heightAdj,
-    takeoffItems: (estimate.takeoffItems as TakeoffItem[]) ?? [],
-    assemblies: (estimate.assemblies as Assembly[]) ?? [],
-    panelItems: [],
-    permits: [],
-    subs: [],
-  };
 
   const currentAssemblies: Assembly[] = Array.isArray(estimate.assemblies)
     ? (estimate.assemblies as Assembly[])
@@ -56,6 +44,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ? (estimate.takeoffItems as TakeoffItem[])
     : [];
 
+  try {
   if (type === "conduitRun") {
     const condType = (data.conduitType as string) ?? "EMT";
     const condSize = (data.conduitSize as string) ?? "3/4";
@@ -110,4 +99,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("[transfer] Handler error:", err);
+    return new NextResponse(`Transfer error: ${err?.message ?? String(err)}`, { status: 500 });
+  }
 }

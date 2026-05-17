@@ -164,6 +164,7 @@ export function TakeoffClient({
     initialDrawings[0]?.pageCount ?? 1
   );
   const [pdfLoaded, setPdfLoaded] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Mode & UI
   const [mode, setMode] = useState<Mode>("count");
@@ -275,12 +276,46 @@ export function TakeoffClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function tryAutoLoad() {
-    const drawing = initialDrawings.find(d => d.id === activeDrawingId);
-    if (drawing?.pdfData) loadPDFFromBase64(drawing.pdfData);
+  async function tryAutoLoad(overrideId?: string) {
+    const targetId = overrideId ?? activeDrawingId;
+    const drawing = drawings.find(d => d.id === targetId) ?? initialDrawings.find(d => d.id === targetId);
+    if (!drawing?.pdfData) return;
+
+    // Legacy base64 support (pdfData is a very long string, not a storage path)
+    if (!drawing.pdfData.startsWith("takeoff-pdfs/") && drawing.pdfData.length > 200) {
+      loadPDFFromBase64(drawing.pdfData);
+      return;
+    }
+
+    // New: storage path like "takeoff-pdfs/xxx.pdf"
+    if (!drawing.pdfData.startsWith("takeoff-pdfs/")) return;
+
+    setPdfLoading(true);
+    try {
+      const res = await fetch(`/api/takeoff-drawings/${targetId}/upload-pdf`);
+      if (!res.ok) { setPdfLoading(false); return; }
+      const ab = await res.arrayBuffer();
+      await loadPDFFromBytes(new Uint8Array(ab));
+    } catch (err) {
+      console.error("Auto-load error:", err);
+    } finally {
+      setPdfLoading(false);
+    }
   }
 
   // ── PDF rendering ─────────────────────────────────────────────────────────
+  async function loadPDFFromBytes(bytes: Uint8Array) {
+    const lib = pdfjsRef.current;
+    if (!lib) { setTimeout(() => loadPDFFromBytes(bytes), 300); return; }
+    try {
+      const doc = await lib.getDocument({ data: bytes }).promise;
+      pdfDocRef.current = doc;
+      setTotalPages(doc.numPages);
+      setPdfLoaded(true);
+      await renderPage(1, zoomRef.current);
+    } catch (err) { console.error("PDF load error", err); }
+  }
+
   async function loadPDFFromBase64(b64: string) {
     const lib = pdfjsRef.current;
     if (!lib) { setTimeout(() => loadPDFFromBase64(b64), 300); return; }
@@ -628,27 +663,52 @@ export function TakeoffClient({
     const file = e.target.files?.[0];
     if (!file || !activeDrawingId) return;
     e.target.value = "";
+
+    // Load into PDF.js immediately for instant preview
     const ab = await file.arrayBuffer();
     const bytes = new Uint8Array(ab);
-    let bin = "";
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    const b64 = btoa(bin);
-    loadPDFFromBase64(b64);
+    loadPDFFromBytes(bytes);
+
+    // Upload to Supabase Storage via API
     setSaveStatus("saving");
-    const pc = pdfDocRef.current?.numPages ?? 1;
-    await fetch(`/api/takeoff-drawings/${activeDrawingId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pdfData: b64, pageCount: pc }),
-    });
-    setSaveStatus("saved");
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch(`/api/takeoff-drawings/${activeDrawingId}/upload-pdf`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        alert(`Upload failed: ${msg}`);
+        setSaveStatus("unsaved");
+        return;
+      }
+      // Also update pageCount
+      const pc = pdfDocRef.current?.numPages ?? 1;
+      await fetch(`/api/takeoff-drawings/${activeDrawingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageCount: pc }),
+      });
+      // Update local drawings state so tryAutoLoad works when switching
+      setDrawings(prev => prev.map(d =>
+        d.id === activeDrawingId
+          ? { ...d, pdfData: `takeoff-pdfs/${activeDrawingId}.pdf`, pageCount: pc }
+          : d
+      ));
+      setSaveStatus("saved");
+    } catch (err) {
+      alert(`Upload error: ${err}`);
+      setSaveStatus("unsaved");
+    }
   }
 
   // ── Load a different drawing ───────────────────────────────────────────────
-  function switchDrawing(id: string) {
-    const d = drawings.find(x => x.id === id);
+  function switchDrawing(drawingId: string) {
+    const d = drawings.find(x => x.id === drawingId);
     if (!d) return;
-    setActiveDrawingId(id);
+    setActiveDrawingId(drawingId);
     const mups = Array.isArray(d.markups) ? (d.markups as Markup[]) : [];
     const rts = Array.isArray(d.runTypes) && d.runTypes.length > 0
       ? (d.runTypes as RunType[]) : [DEFAULT_RUN_TYPE];
@@ -659,8 +719,23 @@ export function TakeoffClient({
     setTotalPages(d.pageCount ?? 1);
     setRunInProgress([]); runInProgressRef.current = [];
     setPdfLoaded(false);
+    pdfDocRef.current = null;
     redrawAll(1, zoomRef.current, null);
-    if (d.pdfData) loadPDFFromBase64(d.pdfData);
+
+    if (d.pdfData) {
+      if (!d.pdfData.startsWith("takeoff-pdfs/") && d.pdfData.length > 200) {
+        // Legacy base64
+        loadPDFFromBase64(d.pdfData);
+      } else if (d.pdfData.startsWith("takeoff-pdfs/")) {
+        // Storage path — fetch from server
+        setPdfLoading(true);
+        fetch(`/api/takeoff-drawings/${drawingId}/upload-pdf`)
+          .then(res => res.ok ? res.arrayBuffer() : Promise.reject(res.status))
+          .then(ab => loadPDFFromBytes(new Uint8Array(ab)))
+          .catch(err => console.error("switchDrawing PDF load error:", err))
+          .finally(() => setPdfLoading(false));
+      }
+    }
   }
 
   // ── Create drawing ─────────────────────────────────────────────────────────
@@ -1011,7 +1086,12 @@ export function TakeoffClient({
         {/* CANVAS */}
         <div ref={canvasWrapRef} style={{ ...S.canvasWrap, cursor: (mode === "pan" || spaceHeld.current) ? "grab" : "crosshair" }}>
           <div style={{ position: "relative", display: "inline-block", minWidth: "100%", minHeight: "100%" }}>
-            {!pdfLoaded && (
+            {pdfLoading && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(17,18,20,0.85)", zIndex: 10 }}>
+                <div style={{ fontSize: 15, color: "#FF5910", fontWeight: 700, letterSpacing: "0.1em" }}>Loading PDF…</div>
+              </div>
+            )}
+            {!pdfLoaded && !pdfLoading && (
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, pointerEvents: "none" }}>
                 <div style={{ fontSize: 22, fontWeight: 900, color: "#2e3138", textTransform: "uppercase", letterSpacing: "0.1em" }}>No Drawing Loaded</div>
                 <div style={{ fontSize: 14, color: "#2e3138", textAlign: "center", maxWidth: 280 }}>Upload a PDF to begin</div>
