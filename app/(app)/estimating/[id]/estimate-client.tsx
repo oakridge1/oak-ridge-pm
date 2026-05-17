@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ClipboardList, Layers, Zap, FileText, Book, BarChart3, Settings,
-  Plus, Trash2, ChevronDown, Check, X, ArrowLeft,
+  Plus, Trash2, ChevronDown, Check, X, ArrowLeft, ExternalLink,
 } from "lucide-react";
 import { BOM, BOM_CATEGORIES } from "@/lib/bom";
 import type { BomItem } from "@/lib/bom";
@@ -109,6 +109,19 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
 
+  // Toast state
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  }
+
+  // Live sync polling — check for takeoff updates every 10 seconds
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string>(estimate.updatedAt);
+
   // Estimate metadata
   const [status, setStatus] = useState<EstimateStatus>(estimate.status);
   const [name, setName] = useState(estimate.name);
@@ -203,6 +216,25 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
     scheduleSave,
   ]);
 
+  // Live sync polling
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/estimates/${estimate.id}?poll=1`);
+        if (res.ok) {
+          const updated = await res.json();
+          if (updated.updatedAt !== lastUpdatedAt) {
+            setLastUpdatedAt(updated.updatedAt);
+            if (Array.isArray(updated.takeoffItems)) setTakeoffItems(updated.takeoffItems);
+            if (Array.isArray(updated.assemblies)) setAssemblies(updated.assemblies);
+            showToast("Takeoff updated — new items added from drawing");
+          }
+        }
+      } catch { /* silent */ }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [estimate.id, lastUpdatedAt]);
+
   async function handleCreateJob() {
     if (!confirm("Create a new job from this estimate? This cannot be undone.")) return;
     const res = await fetch(`/api/estimates/${estimate.id}/create-job`, { method: "POST" });
@@ -252,6 +284,13 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
 
   return (
     <div className="space-y-4 pb-12">
+      {/* Toast notification */}
+      {toast && (
+        <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 9999, background: "#002D72", color: "white", padding: "10px 18px", borderRadius: 8, fontSize: 13, boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}>
+          {toast}
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
@@ -274,6 +313,14 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
             />
           </div>
         </div>
+        {/* Open Takeoff button */}
+        <button
+          onClick={() => window.open(`/estimating/${estimate.id}/takeoff`, "_blank", "noopener")}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-[#002D72] text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Open Takeoff
+        </button>
       </div>
 
       {/* Tab bar */}
