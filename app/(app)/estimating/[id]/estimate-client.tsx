@@ -119,6 +119,37 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }
 
+  // Field Tools status state
+  const [fieldToolsOpen, setFieldToolsOpen] = useState(false);
+  const [drawingCount, setDrawingCount] = useState<number | null>(null);
+  const [counterAreaCount, setCounterAreaCount] = useState<number | null>(null);
+  const [counterTotalItems, setCounterTotalItems] = useState<number | null>(null);
+
+  // Load field tool status on mount
+  useEffect(() => {
+    async function loadFieldStatus() {
+      try {
+        const [drawRes, counterRes] = await Promise.all([
+          fetch(`/api/takeoff-drawings?estimateId=${estimate.id}`),
+          fetch(`/api/estimates/${estimate.id}/counter-areas`),
+        ]);
+        if (drawRes.ok) {
+          const drawings = await drawRes.json();
+          setDrawingCount(drawings.length);
+        }
+        if (counterRes.ok) {
+          const areas = await counterRes.json();
+          setCounterAreaCount(areas.length);
+          const total = areas.reduce((s: number, a: { counts?: Record<string, number> }) =>
+            s + Object.values(a.counts ?? {}).reduce((ss, v) => ss + (v > 0 ? 1 : 0), 0), 0);
+          setCounterTotalItems(total);
+        }
+      } catch { /* silent */ }
+    }
+    loadFieldStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estimate.id]);
+
   // Live sync polling — check for takeoff updates every 10 seconds
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string>(estimate.updatedAt);
 
@@ -216,7 +247,9 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
     scheduleSave,
   ]);
 
-  // Live sync polling
+  // Live sync polling — detects updates from Takeoff tool and Counter tool
+  const prevItemCount = useRef<number | null>(null);
+  const prevAsmCount = useRef<number | null>(null);
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -225,14 +258,26 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
           const updated = await res.json();
           if (updated.updatedAt !== lastUpdatedAt) {
             setLastUpdatedAt(updated.updatedAt);
-            if (Array.isArray(updated.takeoffItems)) setTakeoffItems(updated.takeoffItems);
-            if (Array.isArray(updated.assemblies)) setAssemblies(updated.assemblies);
-            showToast("Takeoff updated — new items added from drawing");
+            const newItems: unknown[] = Array.isArray(updated.takeoffItems) ? updated.takeoffItems : [];
+            const newAsms: unknown[] = Array.isArray(updated.assemblies) ? updated.assemblies : [];
+            const addedItems = prevItemCount.current !== null ? newItems.length - prevItemCount.current : 0;
+            const addedAsms = prevAsmCount.current !== null ? newAsms.length - prevAsmCount.current : 0;
+            const added = addedItems + addedAsms;
+            setTakeoffItems(newItems as typeof takeoffItems);
+            setAssemblies(newAsms as typeof assemblies);
+            prevItemCount.current = newItems.length;
+            prevAsmCount.current = newAsms.length;
+            if (added > 0) {
+              showToast(`Field tool synced — ${added} item${added !== 1 ? "s" : ""} added`);
+            } else {
+              showToast("Field tool synced — estimate updated");
+            }
           }
         }
       } catch { /* silent */ }
     }, 10000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estimate.id, lastUpdatedAt]);
 
   async function handleCreateJob() {
@@ -313,14 +358,23 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
             />
           </div>
         </div>
-        {/* Open Takeoff button */}
-        <button
-          onClick={() => window.open(`/estimating/${estimate.id}/takeoff`, "_blank", "noopener")}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-[#002D72] text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Open Takeoff
-        </button>
+        {/* Field tool buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => window.open(`/estimating/${estimate.id}/takeoff`, "_blank", "noopener")}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-[#002D72] text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Takeoff
+          </button>
+          <button
+            onClick={() => window.open(`/estimating/${estimate.id}/counter`, "_blank", "noopener,width=430,height=900")}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-[#FF5910] text-[#FF5910] rounded-lg hover:bg-orange-50 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Counter
+          </button>
+        </div>
       </div>
 
       {/* Tab bar */}
@@ -341,6 +395,56 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Field Tools status panel */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setFieldToolsOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+            Field Tools
+          </span>
+          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${fieldToolsOpen ? "rotate-180" : ""}`} />
+        </button>
+        {fieldToolsOpen && (
+          <div className="border-t border-gray-200 divide-y divide-gray-100">
+            {/* Takeoff status */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">PDF Takeoff</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {drawingCount === null ? "Loading…" : drawingCount === 0 ? "No drawings uploaded" : `${drawingCount} drawing${drawingCount !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+              <button
+                onClick={() => window.open(`/estimating/${estimate.id}/takeoff`, "_blank", "noopener")}
+                className="flex items-center gap-1 text-xs font-medium text-[#002D72] border border-[#002D72] px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" /> Open
+              </button>
+            </div>
+            {/* Counter status */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Counter Tool</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {counterAreaCount === null ? "Loading…" :
+                    counterAreaCount === 0 ? "No areas yet" :
+                    `${counterAreaCount} area${counterAreaCount !== 1 ? "s" : ""}${counterTotalItems !== null && counterTotalItems > 0 ? ` · ${counterTotalItems} item type${counterTotalItems !== 1 ? "s" : ""} counted` : ""}`}
+                </p>
+              </div>
+              <button
+                onClick={() => window.open(`/estimating/${estimate.id}/counter`, "_blank", "noopener,width=430,height=900")}
+                className="flex items-center gap-1 text-xs font-medium text-[#FF5910] border border-[#FF5910] px-2.5 py-1.5 rounded-lg hover:bg-orange-50 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" /> Open
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tab content */}

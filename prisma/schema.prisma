@@ -744,6 +744,7 @@ model Estimate {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   drawings            TakeoffDrawing[]
+  counterAreas        CounterArea[]
 }
 
 model TakeoffDrawing {
@@ -759,4 +760,15 @@ model TakeoffDrawing {
   runTypes    Json     @default("[]")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model CounterArea {
+  id         String   @id @default(cuid())
+  estimateId String
+  estimate   Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  name       String   @default("Area 1")
+  counts     Json     @default("{}")
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
