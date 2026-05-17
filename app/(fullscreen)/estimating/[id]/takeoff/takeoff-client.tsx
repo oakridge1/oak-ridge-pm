@@ -660,45 +660,59 @@ export function TakeoffClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── File upload ───────────────────────────────────────────────────────────
+  // ── File upload (browser → Supabase Storage direct, bypasses Vercel limit) ──
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !activeDrawingId) return;
+    if (!file) return;
     e.target.value = "";
+    const drawingId = activeDrawingIdRef.current;
+    if (!drawingId) return;
 
-    // Load into PDF.js immediately for instant preview
+    // 1. Load into PDF.js immediately for instant local preview
     const ab = await file.arrayBuffer();
-    const bytes = new Uint8Array(ab);
-    loadPDFFromBytes(bytes);
+    loadPDFFromBytes(new Uint8Array(ab));
 
-    // Upload to Supabase Storage via API
     setSaveStatus("saving");
-    const fd = new FormData();
-    fd.append("file", file);
     try {
-      const res = await fetch(`/api/takeoff-drawings/${activeDrawingId}/upload-pdf`, {
-        method: "POST",
-        body: fd,
-      });
-      if (!res.ok) {
-        const msg = await res.text();
-        alert(`Upload failed: ${msg}`);
+      // 2. Get a signed upload URL from the server (tiny request — just metadata)
+      const urlRes = await fetch(`/api/takeoff-drawings/${drawingId}/upload-url`);
+      if (!urlRes.ok) {
+        const msg = await urlRes.text();
+        alert(`Failed to get upload URL: ${msg}`);
         setSaveStatus("unsaved");
         return;
       }
-      // Also update pageCount
+      const { signedUrl, storagePath } = await urlRes.json() as {
+        signedUrl: string;
+        storagePath: string;
+      };
+
+      // 3. PUT the raw file directly to Supabase Storage from the browser.
+      //    This never touches Vercel — no 4.5 MB payload limit.
+      const putRes = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/pdf" },
+        body: file,
+      });
+      if (!putRes.ok) {
+        alert(`Storage upload failed: ${putRes.status} ${putRes.statusText}`);
+        setSaveStatus("unsaved");
+        return;
+      }
+
+      // 4. Save storage path + page count to the drawing record
       const pc = pdfDocRef.current?.numPages ?? 1;
-      await fetch(`/api/takeoff-drawings/${activeDrawingId}`, {
+      await fetch(`/api/takeoff-drawings/${drawingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageCount: pc }),
+        body: JSON.stringify({ pdfData: storagePath, pageCount: pc }),
       });
-      // Update local drawings state so tryAutoLoad works when switching
+
+      // 5. Update local state so switching drawings / reloading auto-loads correctly
       setDrawings(prev => prev.map(d =>
-        d.id === activeDrawingId
-          ? { ...d, pdfData: `takeoff-pdfs/${activeDrawingId}.pdf`, pageCount: pc }
-          : d
+        d.id === drawingId ? { ...d, pdfData: storagePath, pageCount: pc } : d
       ));
+
       setSaveStatus("saved");
     } catch (err) {
       alert(`Upload error: ${err}`);
