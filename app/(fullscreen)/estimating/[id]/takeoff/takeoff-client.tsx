@@ -189,6 +189,17 @@ export function TakeoffClient({
   const [runInProgress, setRunInProgress] = useState<Pt[]>([]);
   const [orthoSnap, setOrthoSnap] = useState(true);
 
+  // Run type form modal
+  const [showRunTypeForm, setShowRunTypeForm] = useState(false);
+  const [rtfLabel, setRtfLabel] = useState("");
+  const [rtfCategory, setRtfCategory] = useState<RunType["category"]>("EMT");
+  const [rtfSize, setRtfSize] = useState("3/4");
+  const [rtfPhaseCount, setRtfPhaseCount] = useState(2);
+  const [rtfPhaseSize, setRtfPhaseSize] = useState("#12");
+  const [rtfHasGround, setRtfHasGround] = useState(true);
+  const [rtfColor, setRtfColor] = useState("#f0a500");
+  const [rtfDifficulty, setRtfDifficulty] = useState(1.0);
+
   // Markups
   const [markups, setMarkups] = useState<Markup[]>(() =>
     (initialDrawings[0]?.markups ?? []) as Markup[]
@@ -219,6 +230,7 @@ export function TakeoffClient({
   const zoomRef = useRef(zoom);
   const pageScalesRef = useRef(pageScales);
   const markupsRef = useRef(markups);
+  const runTypesRef = useRef(runTypes);
   const currentPageRef = useRef(currentPage);
   const modeRef = useRef(mode);
   const runInProgressRef = useRef(runInProgress);
@@ -229,12 +241,18 @@ export function TakeoffClient({
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { pageScalesRef.current = pageScales; }, [pageScales]);
   useEffect(() => { markupsRef.current = markups; }, [markups]);
+  useEffect(() => { runTypesRef.current = runTypes; }, [runTypes]);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { runInProgressRef.current = runInProgress; }, [runInProgress]);
   useEffect(() => { orthoSnapRef.current = orthoSnap; }, [orthoSnap]);
   useEffect(() => { measuringActiveRef.current = measuringActive; }, [measuringActive]);
   useEffect(() => { measurePt1Ref.current = measurePt1; }, [measurePt1]);
+
+  // Fix 3: drive scaleBannerVisible from state, not from inside a setState updater
+  useEffect(() => {
+    setScaleBannerVisible(!pageScales[String(currentPage)]);
+  }, [currentPage, pageScales]);
 
   // ── Load PDF.js ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -275,8 +293,7 @@ export function TakeoffClient({
       setTotalPages(doc.numPages);
       setPdfLoaded(true);
       await renderPage(1, zoomRef.current);
-      const pxpf = pageScalesRef.current["1"];
-      setScaleBannerVisible(!pxpf);
+      // scaleBannerVisible is driven by useEffect watching currentPage + pageScales
     } catch (err) { console.error("PDF load error", err); }
   }
 
@@ -415,7 +432,7 @@ export function TakeoffClient({
       const next = Math.max(1, Math.min(totalPages, prev + delta));
       currentPageRef.current = next;
       if (pdfDocRef.current) renderPage(next, zoomRef.current);
-      setScaleBannerVisible(!pageScalesRef.current[String(next)]);
+      // scaleBannerVisible is driven by useEffect watching currentPage + pageScales
       return next;
     });
   }
@@ -553,7 +570,6 @@ export function TakeoffClient({
       const next = { ...prev, [String(currentPageRef.current)]: pxpf };
       pageScalesRef.current = next;
       scheduleAutosave({ pageScales: next });
-      setScaleBannerVisible(false);
       return next;
     });
     setShowMeasureModal(false);
@@ -567,7 +583,6 @@ export function TakeoffClient({
       const next = { ...prev, [String(currentPageRef.current)]: pxpf };
       pageScalesRef.current = next;
       scheduleAutosave({ pageScales: next });
-      setScaleBannerVisible(false);
       return next;
     });
   }
@@ -689,22 +704,66 @@ export function TakeoffClient({
     if (!activeDrawingId) return;
     const m = markupsRef.current.find(x => x.id === markupId);
     if (!m || m.type !== "run") return;
-    const rt = runTypes.find(r => r.id === m.runTypeId) ?? runTypes[0];
-    const phaseCount = rt.conductors.filter(c => !c.isGround).reduce((s, c) => s + c.count, 0);
-    const phaseSize = rt.conductors.find(c => !c.isGround)?.size?.replace("#", "") ?? "12";
-    await fetch(`/api/takeoff-drawings/${activeDrawingId}/transfer`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    // Use runTypesRef to avoid stale closure
+    const rt = runTypesRef.current.find(r => r.id === m.runTypeId) ?? runTypesRef.current[0];
+    if (!rt) return;
+
+    const footage = m.footage ?? 0;
+    let body: Record<string, unknown>;
+
+    if (rt.category === "MC" || rt.category === "NM") {
+      // MC/NM home run — wire size is stored in rt.size
+      const wireSize = rt.size.replace("#", "");
+      body = {
+        type: "mcHomeRun",
+        data: {
+          mcSize: wireSize,
+          footage,
+          circuits: 1,
+          label: `${rt.label} — ${footage}ft`,
+        },
+      };
+    } else {
+      // Conduit run — map UI category to COND_MAP key
+      const condTypeMap: Record<string, string> = {
+        "EMT":    "EMT",
+        "PVC":    "Sch40 PVC",
+        "Rigid":  "Rigid",
+        "Custom": "EMT",   // fallback
+      };
+      const condType = condTypeMap[rt.category] ?? "EMT";
+      const phaseCount = rt.conductors.filter(c => !c.isGround).reduce((s, c) => s + c.count, 0);
+      const phaseSize = rt.conductors.find(c => !c.isGround)?.size?.replace("#", "") ?? "12";
+      body = {
         type: "conduitRun",
         data: {
-          conduitType: rt.category, conduitSize: rt.size,
-          conductorCount: phaseCount, conductorSize: phaseSize,
-          footage: m.footage ?? 0, difficulty: rt.difficulty,
-          label: `${rt.label} — ${m.footage ?? 0}ft`,
+          conduitType: condType,
+          conduitSize: rt.size,
+          conductorCount: phaseCount,
+          conductorSize: phaseSize,
+          footage,
+          difficulty: rt.difficulty ?? 1.0,
+          label: `${rt.label} — ${footage}ft`,
         },
-      }),
-    });
+      };
+    }
+
+    try {
+      const res = await fetch(`/api/takeoff-drawings/${activeDrawingId}/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => res.statusText);
+        alert(`Transfer failed (${res.status}): ${msg}`);
+        return;
+      }
+    } catch (err) {
+      alert(`Transfer error: ${err}`);
+      return;
+    }
+
     setMarkups(prev => {
       const next = prev.map(x => x.id === markupId ? { ...x, transferred: true } : x);
       markupsRef.current = next;
@@ -744,25 +803,50 @@ export function TakeoffClient({
     : "No scale";
 
   // ── Add run type ───────────────────────────────────────────────────────────
-  function addRunType() {
-    const name = prompt("Run type label:", '3/4" EMT | 3×#12 THHN');
-    if (!name) return;
-    const color = "#3adde0";
+  function openRunTypeForm() {
+    setRtfLabel("");
+    setRtfCategory("EMT");
+    setRtfSize("3/4");
+    setRtfPhaseCount(2);
+    setRtfPhaseSize("#12");
+    setRtfHasGround(true);
+    setRtfColor("#f0a500");
+    setRtfDifficulty(1.0);
+    setShowRunTypeForm(true);
+  }
+
+  function saveNewRunType() {
+    const conductors: RunType["conductors"] = [
+      { count: rtfPhaseCount, size: rtfPhaseSize, type: "THHN", isGround: false },
+    ];
+    if (rtfHasGround) conductors.push({ count: 1, size: rtfPhaseSize, type: "GND", isGround: true });
+
+    const isMC = rtfCategory === "MC" || rtfCategory === "NM";
+    const autoLabel = rtfLabel.trim() ||
+      (isMC
+        ? `${rtfCategory} ${rtfPhaseSize}/2 — ${rtfPhaseCount} ckt`
+        : `${rtfSize}" ${rtfCategory} | ${rtfPhaseCount}×${rtfPhaseSize} THHN`);
+
     const rt: RunType = {
-      id: genId(), category: "EMT", size: "3/4",
-      conductors: [
-        { count: 3, size: "#12", type: "THHN", isGround: false },
-        { count: 1, size: "#12", type: "GND",  isGround: true  },
-      ],
-      material: "Cu", support: "1-Hole Strap", makeup: 2, difficulty: 1.0,
-      color, label: name,
+      id: genId(),
+      category: rtfCategory,
+      size: rtfSize,
+      conductors,
+      material: "Cu",
+      support: "1-Hole Strap",
+      makeup: 2,
+      difficulty: rtfDifficulty,
+      color: rtfColor,
+      label: autoLabel,
     };
     setRunTypes(prev => {
       const next = [...prev, rt];
+      runTypesRef.current = next;
       scheduleAutosave({ runTypes: next });
       return next;
     });
     setActiveRunTypeId(rt.id);
+    setShowRunTypeForm(false);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -912,7 +996,7 @@ export function TakeoffClient({
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rt.label}</span>
                 </button>
               ))}
-              <button onClick={addRunType} style={{ ...S.panelBtn, marginTop: 4, borderStyle: "dashed" }}>+ Run Type</button>
+              <button onClick={openRunTypeForm} style={{ ...S.panelBtn, marginTop: 4, borderStyle: "dashed" }}>+ Run Type</button>
               <div style={{ marginTop: 8, fontSize: 10, color: "#5a6070" }}>
                 Ortho: <button onClick={() => { const v = !orthoSnap; setOrthoSnap(v); orthoSnapRef.current = v; }}
                   style={{ background: "none", border: "none", color: orthoSnap ? "#2db562" : "#9aa0ab", cursor: "pointer", fontFamily: "inherit", fontSize: 10 }}>
@@ -1032,6 +1116,94 @@ export function TakeoffClient({
           </button>
         )}
       </div>
+
+      {/* RUN TYPE FORM MODAL */}
+      {showRunTypeForm && (
+        <div style={S.modalOverlay}>
+          <div style={{ ...S.modalBox, width: 360 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>New Run Type</h3>
+              <button onClick={() => setShowRunTypeForm(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+
+            {/* Category */}
+            <label style={S.modalLabel}>Category</label>
+            <select value={rtfCategory} onChange={e => {
+              const cat = e.target.value as RunType["category"];
+              setRtfCategory(cat);
+              setRtfSize(cat === "MC" || cat === "NM" ? "#12" : "3/4");
+            }} style={S.modalInput}>
+              <option value="EMT">EMT</option>
+              <option value="PVC">PVC (Sch40)</option>
+              <option value="Rigid">Rigid</option>
+              <option value="MC">MC Cable</option>
+              <option value="NM">NM-B</option>
+              <option value="Custom">Custom</option>
+            </select>
+
+            {/* Size */}
+            <label style={S.modalLabel}>{rtfCategory === "MC" || rtfCategory === "NM" ? "Wire Size" : "Conduit Size"}</label>
+            {rtfCategory === "MC" || rtfCategory === "NM" ? (
+              <select value={rtfSize} onChange={e => setRtfSize(e.target.value)} style={S.modalInput}>
+                {["#14", "#12", "#10", "#8", "#6"].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            ) : (
+              <select value={rtfSize} onChange={e => setRtfSize(e.target.value)} style={S.modalInput}>
+                {["1/2", "3/4", "1", "1-1/4", "1-1/2", "2", "3", "4"].map(s => <option key={s} value={s}>{s}"</option>)}
+              </select>
+            )}
+
+            {/* Conductors */}
+            {rtfCategory !== "MC" && rtfCategory !== "NM" && (
+              <>
+                <label style={S.modalLabel}>Phase Conductors</label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input type="number" min={1} max={12} value={rtfPhaseCount}
+                    onChange={e => setRtfPhaseCount(Math.max(1, parseInt(e.target.value) || 1))}
+                    style={{ ...S.modalInput, width: 64 }} />
+                  <span style={{ color: "#5a6070", fontSize: 13 }}>×</span>
+                  <select value={rtfPhaseSize} onChange={e => setRtfPhaseSize(e.target.value)} style={{ ...S.modalInput, flex: 1 }}>
+                    {["#14", "#12", "#10", "#8", "#6", "#4", "#2", "#1", "1/0", "2/0", "3/0", "4/0"].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <span style={{ color: "#5a6070", fontSize: 13 }}>THHN</span>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, cursor: "pointer" }}>
+                  <input type="checkbox" checked={rtfHasGround} onChange={e => setRtfHasGround(e.target.checked)} />
+                  <span style={{ fontSize: 12, color: "#9aa0ab" }}>Include ground conductor</span>
+                </label>
+              </>
+            )}
+
+            {/* Difficulty */}
+            <label style={S.modalLabel}>Difficulty — {rtfDifficulty.toFixed(2)}×</label>
+            <input type="range" min="0.75" max="2.0" step="0.05" value={rtfDifficulty}
+              onChange={e => setRtfDifficulty(parseFloat(e.target.value))}
+              style={{ width: "100%", accentColor: "#FF5910" }} />
+
+            {/* Color */}
+            <label style={S.modalLabel}>Line Color</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 2 }}>
+              {["#f0a500", "#e03a3a", "#3a8fe8", "#2db562", "#b03ae0", "#e03a99", "#3adde0", "#e0773a", "#9aa0ab", "#FF5910"].map(c => (
+                <div key={c} onClick={() => setRtfColor(c)}
+                  style={{ width: 22, height: 22, borderRadius: 4, background: c, cursor: "pointer",
+                    border: `2px solid ${rtfColor === c ? "#fff" : "transparent"}`,
+                    transform: rtfColor === c ? "scale(1.15)" : "scale(1)", transition: "transform 0.1s" }} />
+              ))}
+            </div>
+
+            {/* Label override */}
+            <label style={S.modalLabel}>Label (auto-generated if blank)</label>
+            <input type="text" value={rtfLabel} onChange={e => setRtfLabel(e.target.value)}
+              placeholder={rtfCategory === "MC" ? `MC ${rtfSize}/2 — ${rtfPhaseCount} ckt` : `${rtfSize}" ${rtfCategory} | ${rtfPhaseCount}×${rtfPhaseSize}`}
+              style={S.modalInput} />
+
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setShowRunTypeForm(false)} style={S.btnCancel}>Cancel</button>
+              <button onClick={saveNewRunType} style={S.btnConfirm}>Add Run Type</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MEASURE MODAL */}
       {showMeasureModal && (
