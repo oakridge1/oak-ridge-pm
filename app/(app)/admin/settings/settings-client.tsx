@@ -4,12 +4,33 @@ import { useState, useEffect } from "react";
 import {
   CheckCircle2, AlertCircle, ExternalLink, Link2Off,
   RefreshCw, Calendar, Sheet, Building2, Bell, Upload, Truck,
-  Edit2, Trash2, Plus, X,
+  Edit2, Trash2, Plus, X, Package, ChevronDown, ChevronUp,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface Supplier { id: string; name: string; email: string | null; phone: string | null; notes: string | null; }
+interface Supplier {
+  id: string;
+  name: string;
+  repName: string | null;
+  email: string | null;
+  phone: string | null;
+  accountNumber: string | null;
+  deliveryNotes: string | null;
+  pickupOnly: boolean;
+  notes: string | null;
+}
+
+interface StockItem {
+  id: string;
+  category: string;
+  name: string;
+  lingo: string | null;
+  unitOfMeasure: string;
+  isConsumable: boolean;
+  notes: string | null;
+  sortOrder: number;
+}
 
 interface GoogleConnection {
   id: string;
@@ -74,9 +95,20 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
   const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
-  const [supplierForm, setSupplierForm] = useState({ name: "", email: "", phone: "" });
+  const [supplierForm, setSupplierForm] = useState({ name: "", repName: "", email: "", phone: "", accountNumber: "", deliveryNotes: "", pickupOnly: false, notes: "" });
   const [addingSupplier, setAddingSupplier] = useState(false);
   const [supplierSaving, setSupplierSaving] = useState(false);
+  const [resettingSuppliers, setResettingSuppliers] = useState(false);
+
+  // Stock items state
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [stockExpanded, setStockExpanded] = useState(false);
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockLoaded, setStockLoaded] = useState(false);
+  const [addingStock, setAddingStock] = useState(false);
+  const [editingStockId, setEditingStockId] = useState<string | null>(null);
+  const [stockForm, setStockForm] = useState({ category: "", name: "", lingo: "", unitOfMeasure: "EA", isConsumable: false, notes: "" });
+  const [stockSaving, setStockSaving] = useState(false);
 
   // Load suppliers on mount
   useEffect(() => {
@@ -161,6 +193,8 @@ export function SettingsClient({ connection, justConnected, connectError, compan
 
   // ── Supplier handlers ────────────────────────────────────────────────────────
 
+  const emptySupplierForm = { name: "", repName: "", email: "", phone: "", accountNumber: "", deliveryNotes: "", pickupOnly: false, notes: "" };
+
   async function handleAddSupplier() {
     if (!supplierForm.name.trim()) return;
     setSupplierSaving(true);
@@ -173,7 +207,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       if (res.ok) {
         const supplier = await res.json();
         setSuppliers(prev => [...prev, supplier].sort((a, b) => a.name.localeCompare(b.name)));
-        setSupplierForm({ name: "", email: "", phone: "" });
+        setSupplierForm(emptySupplierForm);
         setAddingSupplier(false);
       }
     } finally {
@@ -194,7 +228,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
         const updated = await res.json();
         setSuppliers(prev => prev.map(s => s.id === id ? updated : s).sort((a, b) => a.name.localeCompare(b.name)));
         setEditingSupplierId(null);
-        setSupplierForm({ name: "", email: "", phone: "" });
+        setSupplierForm(emptySupplierForm);
       }
     } finally {
       setSupplierSaving(false);
@@ -207,6 +241,81 @@ export function SettingsClient({ connection, justConnected, connectError, compan
     if (res.ok) {
       setSuppliers(prev => prev.filter(s => s.id !== id));
     }
+  }
+
+  async function handleResetSuppliers() {
+    if (!confirm("This will DELETE all current suppliers and replace with the default list of 10. Continue?")) return;
+    setResettingSuppliers(true);
+    try {
+      const res = await fetch("/api/admin/suppliers/reset", { method: "POST" });
+      if (res.ok) {
+        const updated = await fetch("/api/admin/suppliers").then(r => r.json());
+        setSuppliers(Array.isArray(updated) ? updated : []);
+      }
+    } finally {
+      setResettingSuppliers(false);
+    }
+  }
+
+  async function loadStockItems() {
+    if (stockLoaded) return;
+    setStockLoading(true);
+    try {
+      const data = await fetch("/api/admin/stock-items").then(r => r.json());
+      setStockItems(Array.isArray(data) ? data : []);
+      setStockLoaded(true);
+    } finally {
+      setStockLoading(false);
+    }
+  }
+
+  async function handleToggleStock() {
+    setStockExpanded(prev => !prev);
+    if (!stockLoaded) await loadStockItems();
+  }
+
+  async function handleAddStock() {
+    if (!stockForm.name.trim() || !stockForm.category.trim()) return;
+    setStockSaving(true);
+    try {
+      const res = await fetch("/api/admin/stock-items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...stockForm, variables: [] }),
+      });
+      if (res.ok) {
+        const item = await res.json();
+        setStockItems(prev => [...prev, item].sort((a, b) => a.category.localeCompare(b.category) || a.sortOrder - b.sortOrder));
+        setStockForm({ category: "", name: "", lingo: "", unitOfMeasure: "EA", isConsumable: false, notes: "" });
+        setAddingStock(false);
+      }
+    } finally {
+      setStockSaving(false);
+    }
+  }
+
+  async function handleUpdateStock(id: string) {
+    setStockSaving(true);
+    try {
+      const res = await fetch(`/api/admin/stock-items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(stockForm),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setStockItems(prev => prev.map(s => s.id === id ? updated : s));
+        setEditingStockId(null);
+      }
+    } finally {
+      setStockSaving(false);
+    }
+  }
+
+  async function handleDeleteStock(id: string) {
+    if (!confirm("Delete this stock item?")) return;
+    const res = await fetch(`/api/admin/stock-items/${id}`, { method: "DELETE" });
+    if (res.ok) setStockItems(prev => prev.filter(s => s.id !== id));
   }
 
   const scopeList = connection?.scopes.split(" ").filter(Boolean) ?? [];
@@ -349,12 +458,21 @@ export function SettingsClient({ connection, justConnected, connectError, compan
 
       {/* ── Suppliers card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Truck className="w-5 h-5 text-[#002D72]" />
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">Suppliers</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Manage your preferred electrical suppliers.</p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Truck className="w-5 h-5 text-[#002D72]" />
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Suppliers</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Manage your preferred electrical suppliers.</p>
+            </div>
           </div>
+          <button
+            onClick={handleResetSuppliers}
+            disabled={resettingSuppliers}
+            className="text-xs text-red-600 border border-red-200 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-60"
+          >
+            {resettingSuppliers ? "Resetting…" : "Reset List"}
+          </button>
         </div>
 
         {!suppliersLoaded ? (
@@ -365,7 +483,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               <div key={supplier.id}>
                 {editingSupplierId === supplier.id ? (
                   <div className="border border-[#002D72]/20 rounded-lg p-3 space-y-2 bg-blue-50">
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <input
                         type="text"
                         value={supplierForm.name}
@@ -374,10 +492,17 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
                       />
                       <input
+                        type="text"
+                        value={supplierForm.repName}
+                        onChange={e => setSupplierForm(f => ({ ...f, repName: e.target.value }))}
+                        placeholder="Rep name"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                      />
+                      <input
                         type="email"
                         value={supplierForm.email}
                         onChange={e => setSupplierForm(f => ({ ...f, email: e.target.value }))}
-                        placeholder="Email"
+                        placeholder="Rep email"
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
                       />
                       <input
@@ -387,9 +512,29 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                         placeholder="Phone"
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
                       />
+                      <input
+                        type="text"
+                        value={supplierForm.accountNumber}
+                        onChange={e => setSupplierForm(f => ({ ...f, accountNumber: e.target.value }))}
+                        placeholder="Account #"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                      />
+                      <input
+                        type="text"
+                        value={supplierForm.deliveryNotes}
+                        onChange={e => setSupplierForm(f => ({ ...f, deliveryNotes: e.target.value }))}
+                        placeholder="Delivery notes"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                      />
                     </div>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input type="checkbox" checked={supplierForm.pickupOnly}
+                        onChange={e => setSupplierForm(f => ({ ...f, pickupOnly: e.target.checked }))}
+                        className="rounded" />
+                      Pickup only (not for delivery orders)
+                    </label>
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => { setEditingSupplierId(null); setSupplierForm({ name: "", email: "", phone: "" }); }}
+                      <button onClick={() => { setEditingSupplierId(null); setSupplierForm(emptySupplierForm); }}
                         className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
                       <button onClick={() => handleUpdateSupplier(supplier.id)} disabled={supplierSaving || !supplierForm.name.trim()}
                         className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
@@ -400,15 +545,35 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 ) : (
                   <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 border border-gray-100">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{supplier.name}</p>
-                      {(supplier.email || supplier.phone) && (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{supplier.name}</p>
+                        {supplier.pickupOnly && (
+                          <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Pickup only</span>
+                        )}
+                      </div>
+                      {(supplier.repName || supplier.email || supplier.phone) && (
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {[supplier.email, supplier.phone].filter(Boolean).join(" · ")}
+                          {[supplier.repName, supplier.email, supplier.phone].filter(Boolean).join(" · ")}
                         </p>
+                      )}
+                      {supplier.accountNumber && (
+                        <p className="text-xs text-gray-400">Acct: {supplier.accountNumber}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => { setEditingSupplierId(supplier.id); setSupplierForm({ name: supplier.name, email: supplier.email ?? "", phone: supplier.phone ?? "" }); }}
+                      <button onClick={() => {
+                        setEditingSupplierId(supplier.id);
+                        setSupplierForm({
+                          name: supplier.name,
+                          repName: supplier.repName ?? "",
+                          email: supplier.email ?? "",
+                          phone: supplier.phone ?? "",
+                          accountNumber: supplier.accountNumber ?? "",
+                          deliveryNotes: supplier.deliveryNotes ?? "",
+                          pickupOnly: supplier.pickupOnly,
+                          notes: supplier.notes ?? "",
+                        });
+                      }}
                         className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -424,7 +589,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
 
             {addingSupplier ? (
               <div className="border border-[#FF5910]/30 rounded-lg p-3 space-y-2 bg-orange-50">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input
                     type="text"
                     value={supplierForm.name}
@@ -434,10 +599,17 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                     autoFocus
                   />
                   <input
+                    type="text"
+                    value={supplierForm.repName}
+                    onChange={e => setSupplierForm(f => ({ ...f, repName: e.target.value }))}
+                    placeholder="Rep name"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                  />
+                  <input
                     type="email"
                     value={supplierForm.email}
                     onChange={e => setSupplierForm(f => ({ ...f, email: e.target.value }))}
-                    placeholder="Email"
+                    placeholder="Rep email"
                     className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
                   />
                   <input
@@ -447,9 +619,29 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                     placeholder="Phone"
                     className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
                   />
+                  <input
+                    type="text"
+                    value={supplierForm.accountNumber}
+                    onChange={e => setSupplierForm(f => ({ ...f, accountNumber: e.target.value }))}
+                    placeholder="Account #"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                  />
+                  <input
+                    type="text"
+                    value={supplierForm.deliveryNotes}
+                    onChange={e => setSupplierForm(f => ({ ...f, deliveryNotes: e.target.value }))}
+                    placeholder="Delivery notes"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                  />
                 </div>
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input type="checkbox" checked={supplierForm.pickupOnly}
+                    onChange={e => setSupplierForm(f => ({ ...f, pickupOnly: e.target.checked }))}
+                    className="rounded" />
+                  Pickup only (not for delivery orders)
+                </label>
                 <div className="flex gap-2 justify-end">
-                  <button onClick={() => { setAddingSupplier(false); setSupplierForm({ name: "", email: "", phone: "" }); }}
+                  <button onClick={() => { setAddingSupplier(false); setSupplierForm(emptySupplierForm); }}
                     className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
                   <button onClick={handleAddSupplier} disabled={supplierSaving || !supplierForm.name.trim()}
                     className="bg-[#FF5910] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#e04d0e] disabled:opacity-60">
@@ -459,11 +651,133 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               </div>
             ) : (
               <button
-                onClick={() => { setAddingSupplier(true); setEditingSupplierId(null); setSupplierForm({ name: "", email: "", phone: "" }); }}
+                onClick={() => { setAddingSupplier(true); setEditingSupplierId(null); setSupplierForm(emptySupplierForm); }}
                 className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-dashed border-[#002D72]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#002D72] transition-colors"
               >
                 <Plus className="w-4 h-4" /> Add Supplier
               </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Stock List card ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <button
+          onClick={handleToggleStock}
+          className="flex items-center justify-between w-full"
+        >
+          <div className="flex items-center gap-3">
+            <Package className="w-5 h-5 text-[#002D72]" />
+            <div className="text-left">
+              <h2 className="text-base font-semibold text-gray-900">Stock List</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Manage items in The Crib ordering system.</p>
+            </div>
+          </div>
+          {stockExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </button>
+
+        {stockExpanded && (
+          <div className="mt-4 space-y-2">
+            {stockLoading ? (
+              <p className="text-sm text-gray-400">Loading stock items…</p>
+            ) : (
+              <>
+                {/* Group by category */}
+                {[...new Set(stockItems.map(i => i.category))].sort().map(cat => (
+                  <div key={cat} className="mb-3">
+                    <h4 className="text-xs font-bold text-[#002D72] uppercase tracking-wide mb-1">{cat}</h4>
+                    <div className="space-y-1">
+                      {stockItems.filter(i => i.category === cat).map(item => (
+                        <div key={item.id}>
+                          {editingStockId === item.id ? (
+                            <div className="border border-[#002D72]/20 rounded-lg p-3 space-y-2 bg-blue-50">
+                              <div className="grid grid-cols-2 gap-2">
+                                <input type="text" value={stockForm.name} onChange={e => setStockForm(f => ({ ...f, name: e.target.value }))}
+                                  placeholder="Name *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                                <input type="text" value={stockForm.lingo} onChange={e => setStockForm(f => ({ ...f, lingo: e.target.value }))}
+                                  placeholder="Lingo / shorthand" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                                <input type="text" value={stockForm.unitOfMeasure} onChange={e => setStockForm(f => ({ ...f, unitOfMeasure: e.target.value }))}
+                                  placeholder="Unit (EA, Rolls…)" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                                <input type="text" value={stockForm.notes} onChange={e => setStockForm(f => ({ ...f, notes: e.target.value }))}
+                                  placeholder="Notes" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                              </div>
+                              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="checkbox" checked={stockForm.isConsumable} onChange={e => setStockForm(f => ({ ...f, isConsumable: e.target.checked }))} className="rounded" />
+                                Consumable (pickup only)
+                              </label>
+                              <div className="flex gap-2 justify-end">
+                                <button onClick={() => setEditingStockId(null)} className="text-sm text-gray-500 px-2 py-1">Cancel</button>
+                                <button onClick={() => handleUpdateStock(item.id)} disabled={stockSaving}
+                                  className="bg-[#002D72] text-white px-3 py-1 rounded text-sm font-medium disabled:opacity-60">
+                                  {stockSaving ? "Saving…" : "Save"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 border border-gray-100">
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm text-gray-900">{item.name}</span>
+                                {item.lingo && item.lingo !== item.name && (
+                                  <span className="text-xs text-gray-400 ml-2">({item.lingo})</span>
+                                )}
+                                <span className="text-xs text-gray-400 ml-2">{item.unitOfMeasure}</span>
+                                {item.isConsumable && <span className="text-xs bg-amber-100 text-amber-700 px-1 py-0.5 rounded ml-2">Consumable</span>}
+                                {item.notes && <span className="text-xs text-orange-500 ml-2 italic">{item.notes}</span>}
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <button onClick={() => {
+                                  setEditingStockId(item.id);
+                                  setStockForm({ category: item.category, name: item.name, lingo: item.lingo ?? "", unitOfMeasure: item.unitOfMeasure, isConsumable: item.isConsumable, notes: item.notes ?? "" });
+                                }} className="p-1 text-gray-400 hover:text-[#002D72] rounded">
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button onClick={() => handleDeleteStock(item.id)} className="p-1 text-gray-400 hover:text-red-500 rounded">
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {addingStock ? (
+                  <div className="border border-[#FF5910]/30 rounded-lg p-3 space-y-2 bg-orange-50 mt-3">
+                    <h4 className="text-xs font-semibold text-gray-700">New Stock Item</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input type="text" value={stockForm.category} onChange={e => setStockForm(f => ({ ...f, category: e.target.value }))}
+                        placeholder="Category *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" autoFocus />
+                      <input type="text" value={stockForm.name} onChange={e => setStockForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="Name *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      <input type="text" value={stockForm.lingo} onChange={e => setStockForm(f => ({ ...f, lingo: e.target.value }))}
+                        placeholder="Lingo / shorthand" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      <input type="text" value={stockForm.unitOfMeasure} onChange={e => setStockForm(f => ({ ...f, unitOfMeasure: e.target.value }))}
+                        placeholder="Unit (EA, Rolls…)" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input type="checkbox" checked={stockForm.isConsumable} onChange={e => setStockForm(f => ({ ...f, isConsumable: e.target.checked }))} className="rounded" />
+                      Consumable (pickup only)
+                    </label>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setAddingStock(false)} className="text-sm text-gray-500 px-3 py-1.5">Cancel</button>
+                      <button onClick={handleAddStock} disabled={stockSaving || !stockForm.name.trim() || !stockForm.category.trim()}
+                        className="bg-[#FF5910] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#e04d0e] disabled:opacity-60">
+                        {stockSaving ? "Adding…" : "Add Item"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setAddingStock(true); setEditingStockId(null); }}
+                    className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-dashed border-[#002D72]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#002D72] transition-colors mt-2"
+                  >
+                    <Plus className="w-4 h-4" /> Add Stock Item
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

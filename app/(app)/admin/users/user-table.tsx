@@ -1,7 +1,7 @@
 "use client";
 
-import { useTransition, useState } from "react";
-import { Trash2, ShieldCheck, User, Clock, UserPlus, X, Save } from "lucide-react";
+import { useTransition, useState, useEffect } from "react";
+import { Trash2, ShieldCheck, User, Clock, UserPlus, X, Save, ShoppingCart } from "lucide-react";
 import { updateUserRole, toggleUserActive, deleteUser, createUser } from "./actions";
 import type { Role } from "@/app/generated/prisma/client";
 
@@ -14,6 +14,56 @@ type UserRow = {
   active: boolean;
   createdAt: Date;
 };
+
+function OrderingPermissionToggle({ userId, role }: { userId: string; role: Role }) {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [toggling, setToggling] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/admin/users/${userId}/permissions`)
+      .then(r => r.json())
+      .then(perms => setHasPermission(Array.isArray(perms) && perms.length > 0))
+      .catch(() => setHasPermission(false));
+  }, [userId]);
+
+  if (role === "ADMIN" || role === "OFFICE") return null;
+  if (hasPermission === null) return <span className="text-xs text-gray-400">…</span>;
+
+  async function handleToggle() {
+    setToggling(true);
+    try {
+      if (hasPermission) {
+        await fetch(`/api/admin/users/${userId}/permissions`, { method: "DELETE" });
+        setHasPermission(false);
+      } else {
+        await fetch(`/api/admin/users/${userId}/permissions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope: "GLOBAL" }),
+        });
+        setHasPermission(true);
+      }
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={toggling}
+      title="Ordering permission — allows this user to send stock orders"
+      className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+        hasPermission
+          ? "bg-green-100 text-green-700 hover:bg-green-200"
+          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+      }`}
+    >
+      <ShoppingCart className="w-3 h-3" />
+      {toggling ? "…" : hasPermission ? "Ordering ON" : "Ordering OFF"}
+    </button>
+  );
+}
 
 interface UserTableProps {
   users: UserRow[];
@@ -137,6 +187,8 @@ function UserRowMobile({
           {user.active ? "Active" : "Activate"}
         </button>
 
+        <OrderingPermissionToggle userId={user.id} role={user.role} />
+
         {!isSelf && (
           <button
             onClick={handleDelete}
@@ -244,23 +296,26 @@ function UserRowDesktop({
         {new Date(user.createdAt).toLocaleDateString()}
       </td>
       <td className="px-4 py-3">
-        {!isSelf && (
-          <div className="space-y-1">
-            <button
-              onClick={handleDelete}
-              onBlur={() => setConfirmDelete(false)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 ${
-                confirmDelete ? "bg-red-600 text-white" : "bg-red-50 text-red-600 hover:bg-red-100"
-              }`}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              {confirmDelete ? "Confirm delete?" : "Delete"}
-            </button>
-            {deleteError && (
-              <p className="text-xs text-red-600 max-w-[200px]">{deleteError}</p>
-            )}
-          </div>
-        )}
+        <div className="space-y-1">
+          <OrderingPermissionToggle userId={user.id} role={user.role} />
+          {!isSelf && (
+            <>
+              <button
+                onClick={handleDelete}
+                onBlur={() => setConfirmDelete(false)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 ${
+                  confirmDelete ? "bg-red-600 text-white" : "bg-red-50 text-red-600 hover:bg-red-100"
+                }`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {confirmDelete ? "Confirm delete?" : "Delete"}
+              </button>
+              {deleteError && (
+                <p className="text-xs text-red-600 max-w-[200px]">{deleteError}</p>
+              )}
+            </>
+          )}
+        </div>
       </td>
     </tr>
   );

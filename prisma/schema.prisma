@@ -77,6 +77,7 @@ enum DocumentCategory {
   INSPECTION_REPORTS
   CLOSEOUT
   MATERIAL_RECEIPTS
+  STOCK_ORDERS
   OTHER
 }
 
@@ -132,6 +133,10 @@ model User {
   calendarRequests         CalendarRequest[] @relation("CalendarRequestSubmitter")
   reviewedCalendarRequests CalendarRequest[] @relation("CalendarRequestReviewer")
   googleConnections        GoogleConnection[] @relation("GoogleConnectionAdmin")
+  stockRequests            StockRequest[]
+  stockOrders              StockOrder[]     @relation("StockOrderSender")
+  userPermissions          UserPermission[] @relation("UserPermissions")
+  grantedPermissions       UserPermission[] @relation("GrantedPermissions")
 }
 
 model Account {
@@ -232,6 +237,9 @@ model Job {
   inspections      Inspection[]
   rfis             Rfi[]
   documents        Document[]
+  stockRequests    StockRequest[]
+  stockOrders      StockOrder[]
+  userPermissions  UserPermission[]
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -570,11 +578,93 @@ model GoogleConnection {
 // ── Suppliers ─────────────────────────────────────────────────────────────────
 
 model Supplier {
-  id        String   @id @default(cuid())
-  name      String
-  email     String?
-  phone     String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String
+  repName         String?
+  email           String?
+  phone           String?
+  accountNumber   String?
+  deliveryNotes   String?
+  pickupOnly      Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ── Stock Items ───────────────────────────────────────────────────────────────
+
+model StockItem {
+  id              String   @id @default(cuid())
+  category        String
+  name            String
+  lingo           String?
+  sku             String?
+  unitOfMeasure   String   @default("EA")
+  defaultSupplier String?
+  isConsumable    Boolean  @default(false)
+  variables       Json?    // array of VariableConfig objects
+  notes           String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  requests StockRequest[]
+}
+
+// ── Stock Requests ────────────────────────────────────────────────────────────
+
+model StockRequest {
+  id             String    @id @default(cuid())
+  jobId          String
+  userId         String
+  stockItemId    String?
+  customItemName String?
+  customCategory String?
+  variables      Json?     // { key: value } for each selected variable
+  quantity       Float     @default(1)
+  quantityUnit   String?
+  note           String?
+  deliveryMethod String    @default("PICKUP") // PICKUP | DELIVERY_SITE | DELIVERY_SHOP
+  status         String    @default("PENDING") // PENDING | SENT | CANCELLED
+  orderDate      DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+
+  job       Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id])
+  stockItem StockItem? @relation(fields: [stockItemId], references: [id])
+}
+
+// ── Stock Orders ──────────────────────────────────────────────────────────────
+
+model StockOrder {
+  id             String   @id @default(cuid())
+  jobId          String
+  supplierName   String?
+  supplierEmail  String?
+  deliveryMethod String?
+  poNumber       String?
+  deliveryNotes  String?
+  items          Json     // snapshot of items ordered
+  sentAt         DateTime @default(now())
+  sentById       String
+  createdAt      DateTime @default(now())
+
+  job    Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sentBy User @relation("StockOrderSender", fields: [sentById], references: [id])
+}
+
+// ── User Permissions ──────────────────────────────────────────────────────────
+
+model UserPermission {
+  id          String   @id @default(cuid())
+  userId      String
+  permission  String   // "ORDERING"
+  scope       String   // "GLOBAL" | "JOB"
+  jobId       String?
+  grantedById String
+  createdAt   DateTime @default(now())
+
+  user      User  @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy User  @relation("GrantedPermissions", fields: [grantedById], references: [id])
+  job       Job?  @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }

@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   HelpCircle,
   FolderOpen,
+  ShoppingCart,
 } from "lucide-react";
 import { JobInfoTab } from "./tabs/job-info-tab";
 import { LaborTab } from "./tabs/labor-tab";
@@ -23,6 +24,7 @@ import { CalendarTab } from "./tabs/calendar-tab";
 import { InspectionsTab } from "./tabs/inspections-tab";
 import { RfiTab } from "./tabs/rfi-tab";
 import { DocumentsTab } from "./tabs/documents-tab";
+import { CribTab } from "./tabs/crib-tab";
 import type { Role } from "@/app/generated/prisma/client";
 
 type Tab = {
@@ -35,7 +37,8 @@ type Tab = {
 const TABS: Tab[] = [
   { id: "info", label: "Info", icon: <Info className="w-4 h-4" /> },
   { id: "labor", label: "Labor", icon: <Clock className="w-4 h-4" /> },
-  { id: "materials", label: "Materials", icon: <Package className="w-4 h-4" /> },
+  { id: "invoices", label: "Invoices", icon: <Package className="w-4 h-4" /> },
+  { id: "crib", label: "The Crib", icon: <ShoppingCart className="w-4 h-4" /> },
   { id: "photos", label: "Photos", icon: <Camera className="w-4 h-4" /> },
   {
     id: "notes-tasks",
@@ -79,6 +82,7 @@ interface JobTabsProps {
   savedTasks: { id: string; title: string; description: string | null; sortOrder: number }[];
   allCalendarEvents?: any[];
   canViewSummary?: boolean;
+  orderingPermissions?: { scope: string; jobId: string | null }[];
 }
 
 export function JobTabs({
@@ -90,6 +94,7 @@ export function JobTabs({
   savedTasks,
   allCalendarEvents = [],
   canViewSummary = false,
+  orderingPermissions = [],
 }: JobTabsProps) {
   const [activeTab, setActiveTab] = useState("info");
 
@@ -144,8 +149,11 @@ export function JobTabs({
             currentUserId={currentUserId}
           />
         )}
-        {activeTab === "materials" && (
+        {activeTab === "invoices" && (
           <MaterialsTab job={job} role={role} />
+        )}
+        {activeTab === "crib" && (
+          <CribTab job={job} role={role} currentUserId={currentUserId} />
         )}
         {activeTab === "photos" && (
           <PhotosTab job={job} role={role} />

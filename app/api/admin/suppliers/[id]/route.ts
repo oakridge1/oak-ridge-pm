@@ -14,12 +14,21 @@ export async function PUT(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, email, phone, notes } = body;
+  const { name, email, phone, repName, accountNumber, deliveryNotes, pickupOnly, notes } = body;
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
   const supplier = await prisma.supplier.update({
     where: { id },
-    data: { name: name.trim(), email: email?.trim() || null, phone: phone?.trim() || null, notes: notes?.trim() || null },
+    data: {
+      name: name.trim(),
+      email: email?.trim() || null,
+      phone: phone?.trim() || null,
+      repName: repName?.trim() || null,
+      accountNumber: accountNumber?.trim() || null,
+      deliveryNotes: deliveryNotes?.trim() || null,
+      pickupOnly: pickupOnly ?? false,
+      notes: notes?.trim() || null,
+    },
   });
   return NextResponse.json(supplier);
 }
