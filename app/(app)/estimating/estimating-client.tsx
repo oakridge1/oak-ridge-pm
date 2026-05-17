@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Calculator, Plus, X, Search } from "lucide-react";
 import type { EstimateStatus } from "@/app/generated/prisma/client";
 
@@ -223,10 +224,10 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
           {/* Mobile */}
           <div className="md:hidden space-y-3">
             {filtered.map(e => (
-              <button
+              <Link
                 key={e.id}
-                onClick={() => router.push(`/estimating/${e.id}`)}
-                className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-[#002D72]/30 hover:shadow-sm transition-all"
+                href={`/estimating/${e.id}`}
+                className="block w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-[#002D72]/30 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -241,7 +242,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
                 <div className="mt-2 text-xs text-gray-400">
                   {new Date(e.createdAt).toLocaleDateString()} · {e.createdBy?.name ?? "—"}
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
 
@@ -261,25 +262,43 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
               </thead>
               <tbody>
                 {filtered.map(e => (
-                  <tr
-                    key={e.id}
-                    onClick={() => router.push(`/estimating/${e.id}`)}
-                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{e.estimateNumber}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{e.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{e.clientName ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[e.status]}`}>
-                        {e.status}
-                      </span>
+                  <tr key={e.id} className="border-b last:border-b-0 hover:bg-gray-50 transition-colors group">
+                    <td className="px-0">
+                      <Link href={`/estimating/${e.id}`} className="block px-4 py-3 font-mono text-xs text-gray-500">
+                        {e.estimateNumber}
+                      </Link>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{e.createdBy?.name ?? "—"}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {new Date(e.createdAt).toLocaleDateString()}
+                    <td className="px-0">
+                      <Link href={`/estimating/${e.id}`} className="block px-4 py-3 font-medium text-gray-900">
+                        {e.name}
+                      </Link>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">
-                      {e.job?.jobNumber ?? e.jobNumberAssigned ?? "—"}
+                    <td className="px-0">
+                      <Link href={`/estimating/${e.id}`} className="block px-4 py-3 text-sm text-gray-600">
+                        {e.clientName ?? "—"}
+                      </Link>
+                    </td>
+                    <td className="px-0">
+                      <Link href={`/estimating/${e.id}`} className="block px-4 py-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[e.status]}`}>
+                          {e.status}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="px-0">
+                      <Link href={`/estimating/${e.id}`} className="block px-4 py-3 text-sm text-gray-600">
+                        {e.createdBy?.name ?? "—"}
+                      </Link>
+                    </td>
+                    <td className="px-0">
+                      <Link href={`/estimating/${e.id}`} className="block px-4 py-3 text-sm text-gray-500">
+                        {new Date(e.createdAt).toLocaleDateString()}
+                      </Link>
+                    </td>
+                    <td className="px-0">
+                      <Link href={`/estimating/${e.id}`} className="block px-4 py-3 text-sm text-gray-500 font-mono">
+                        {e.job?.jobNumber ?? e.jobNumberAssigned ?? "—"}
+                      </Link>
                     </td>
                   </tr>
                 ))}
