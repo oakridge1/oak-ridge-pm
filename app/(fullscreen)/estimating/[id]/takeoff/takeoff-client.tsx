@@ -447,6 +447,12 @@ const PRESET_COLORS = [
   "#ef4444", "#8b5cf6", "#06b6d4",
 ];
 
+// PDF base render scale — always render at BASE_SCALE * zoom.
+// All markup coordinates are stored normalized to BASE_SCALE (zoom=1.0).
+// On render: display_x = stored_x * zoom, display_y = stored_y * zoom.
+// pxPerFoot is stored at BASE_SCALE/zoom=1 space.
+const BASE_SCALE = 1.5;
+
 const SCALE_PRESETS: Array<{ label: string; pxPerFoot: number }> = [
   { label: '1/8"=1\'', pxPerFoot: 96 },
   { label: '1/4"=1\'', pxPerFoot: 192 },
@@ -530,10 +536,16 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   const [auditOpen, setAuditOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
 
-  // ── Drawing name dialog
+  // ── Drawing name dialog (new drawing via dropdown)
   const [showNewDrawingDialog, setShowNewDrawingDialog] = useState(false);
   const [newDrawingName, setNewDrawingName] = useState("");
   const [showDrawingDropdown, setShowDrawingDropdown] = useState(false);
+
+  // ── PDF upload → name-prompt flow
+  const [pendingPdfFile, setPendingPdfFile] = useState<File | null>(null);
+  const [showUploadNameDialog, setShowUploadNameDialog] = useState(false);
+  const [uploadDrawingName, setUploadDrawingName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Confirm run dialog
   const [showRunConfirm, setShowRunConfirm] = useState(false);
@@ -648,13 +660,14 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     if (!pdfDoc || !pdfCanvasRef.current) return;
     (async () => {
       const page = await pdfDoc.getPage(currentPage);
-      const viewport = page.getViewport({ scale: zoom });
+      // Always render at BASE_SCALE * zoom so stored base coords map correctly
+      const viewport = page.getViewport({ scale: BASE_SCALE * zoom });
       const canvas = pdfCanvasRef.current!;
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       const ctx = canvas.getContext("2d")!;
       await page.render({ canvasContext: ctx, viewport }).promise;
-      // Sync overlay canvas size
+      // Overlay canvas must be exactly the same size as the PDF canvas
       if (overlayCanvasRef.current) {
         overlayCanvasRef.current.width = viewport.width;
         overlayCanvasRef.current.height = viewport.height;
@@ -667,8 +680,9 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   // Draw overlay canvas (symbols + runs + scale handles)
   // ─────────────────────────────────────────────────────────────────────────
 
-  function toCanvas(docX: number, docY: number) {
-    return { cx: docX, cy: docY };
+  // Convert base-scale (zoom=1) coords → display (canvas) coords
+  function toCanvas(baseX: number, baseY: number) {
+    return { cx: baseX * zoom, cy: baseY * zoom };
   }
 
   const drawOverlay = useCallback(() => {
@@ -678,30 +692,29 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw placed symbols
+    // Draw placed symbols (stored coords are in base space; multiply by zoom for display)
     for (const sym of markups) {
       const { cx, cy } = toCanvas(sym.x, sym.y);
+      const displaySize = sym.size * zoom;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate((sym.rotation * Math.PI) / 180);
-      // Draw symbol as simple shapes via canvas directly
-      drawSymbolToCanvas(ctx, sym.type, sym.size, sym.color);
+      drawSymbolToCanvas(ctx, sym.type, displaySize, sym.color);
       if (sym.showLabel) {
         ctx.fillStyle = sym.color;
-        ctx.font = `${Math.max(10, sym.size * 0.25)}px monospace`;
+        ctx.font = `${Math.max(10, displaySize * 0.25)}px monospace`;
         ctx.textAlign = "center";
-        ctx.fillText(sym.label ?? SYMBOL_LABELS[sym.type] ?? sym.type, 0, sym.size / 2 + 12);
+        ctx.fillText(sym.label ?? SYMBOL_LABELS[sym.type] ?? sym.type, 0, displaySize / 2 + 12);
       }
-      // Selection handles
       if (sym.id === selectedSymbolId) {
         ctx.strokeStyle = "#FF5910";
         ctx.lineWidth = 2;
-        ctx.strokeRect(-sym.size / 2 - 2, -sym.size / 2 - 2, sym.size + 4, sym.size + 4);
+        ctx.strokeRect(-displaySize / 2 - 2, -displaySize / 2 - 2, displaySize + 4, displaySize + 4);
       }
       ctx.restore();
     }
 
-    // Draw confirmed runs
+    // Draw confirmed runs (stored in base coords; multiply by zoom for display)
     for (const run of runTypes) {
       if (run.points.length < 2) continue;
       ctx.save();
@@ -709,17 +722,16 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.moveTo(run.points[0].x, run.points[0].y);
+      ctx.moveTo(run.points[0].x * zoom, run.points[0].y * zoom);
       for (let i = 1; i < run.points.length; i++) {
-        ctx.lineTo(run.points[i].x, run.points[i].y);
+        ctx.lineTo(run.points[i].x * zoom, run.points[i].y * zoom);
       }
       ctx.stroke();
-      // Midpoint label
       const mid = run.points[Math.floor(run.points.length / 2)];
       ctx.fillStyle = run.color;
       ctx.font = "11px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(`${run.footage.toFixed(1)} ft`, mid.x, mid.y - 6);
+      ctx.fillText(`${run.footage.toFixed(1)} ft`, mid.x * zoom, mid.y * zoom - 6);
       ctx.restore();
     }
 
@@ -883,11 +895,14 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     };
   }
 
+  // x, y are display (canvas) coords; symbol positions are in base space
   function hitTestSymbol(x: number, y: number): PlacedSymbol | null {
     for (let i = markups.length - 1; i >= 0; i--) {
       const s = markups[i];
-      const half = s.size / 2;
-      if (x >= s.x - half && x <= s.x + half && y >= s.y - half && y <= s.y + half) {
+      const cx = s.x * zoom;
+      const cy = s.y * zoom;
+      const half = (s.size * zoom) / 2;
+      if (x >= cx - half && x <= cx + half && y >= cy - half && y <= cy + half) {
         return s;
       }
     }
@@ -929,17 +944,19 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
         setSelectedSymbolId(hit.id);
         isDraggingSymbol.current = true;
         dragSymbolId.current = hit.id;
-        dragOffset.current = { dx: pos.x - hit.x, dy: pos.y - hit.y };
+        // Offset in display coords relative to symbol's display position
+        dragOffset.current = { dx: pos.x - hit.x * zoom, dy: pos.y - hit.y * zoom };
       } else {
         setSelectedSymbolId(null);
         if (activeSymbol) {
+          // Normalize display coords to base space before storing
           const sym: PlacedSymbol = {
             id: newId(),
             type: activeSymbol,
             category: SYMBOLS.find((s) => s.name === activeSymbol)?.category ?? "Devices",
-            x: pos.x,
-            y: pos.y,
-            size: 40,
+            x: pos.x / zoom,
+            y: pos.y / zoom,
+            size: 40,           // stored in base units; rendered as size * zoom
             rotation: 0,
             color: symbolColor,
             showLabel: true,
@@ -969,10 +986,15 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     }
 
     if (isDraggingSymbol.current && dragSymbolId.current) {
+      // Convert display drag position back to base coords
       setMarkups((prev) =>
         prev.map((s) =>
           s.id === dragSymbolId.current
-            ? { ...s, x: pos.x - dragOffset.current.dx, y: pos.y - dragOffset.current.dy }
+            ? {
+                ...s,
+                x: (pos.x - dragOffset.current.dx) / zoom,
+                y: (pos.y - dragOffset.current.dy) / zoom,
+              }
             : s
         )
       );
@@ -1047,16 +1069,21 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
 
   function finishRun() {
     if (runPoints.length < 2) return;
+    // runPoints are in display coords; pxPerFoot is at base scale (zoom=1)
+    // At zoom=z: 1 foot = pxPerFoot * zoom display pixels
     let totalPx = 0;
     for (let i = 1; i < runPoints.length; i++) {
       const dx = runPoints[i].x - runPoints[i - 1].x;
       const dy = runPoints[i].y - runPoints[i - 1].y;
       totalPx += Math.sqrt(dx * dx + dy * dy);
     }
-    const footage = pxPerFoot ? totalPx / pxPerFoot : totalPx / 96;
+    const footage = pxPerFoot ? totalPx / (pxPerFoot * zoom) : totalPx / (96 * zoom);
+    // Normalize run points from display coords to base coords before storing
+    const basePoints = runPoints.map((p) => ({ x: p.x / zoom, y: p.y / zoom }));
+
     const run: DrawnRun = {
       id: newId(),
-      points: runPoints,
+      points: basePoints,
       footage,
       category: runCategory,
       conduitType: runCategory === "conduit" ? conduitType : undefined,
@@ -1103,7 +1130,9 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
     let ft = parseFloat(scaleInputFt);
     if (isNaN(ft) || ft <= 0) return;
     if (scaleUnit === "in") ft = ft / 12;
-    const ppf = scaleDist / ft;
+    // scaleDist is in display pixels at current zoom.
+    // Normalize to base scale (zoom=1): ppf = scaleDist / (ft * zoom)
+    const ppf = scaleDist / (ft * zoom);
     setPxPerFoot(ppf);
     setScaleSet(true);
     setShowScaleDialog(false);
@@ -1111,25 +1140,103 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // PDF upload
+  // PDF upload — 3-step: select file → name dialog → create drawing → render
   // ─────────────────────────────────────────────────────────────────────────
 
-  function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // Step 1: user picks a file from the hidden input
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !pdfJsLoadedRef.current) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const data = new Uint8Array(ev.target?.result as ArrayBuffer);
-      const pdfjsLib = (window as any).pdfjsLib;
-      const doc = await pdfjsLib.getDocument({ data }).promise;
-      setPdfDoc(doc);
-      setPdfLoaded(true);
-      const pc = doc.numPages;
-      setPageCount(pc);
-      await saveDrawing(activeDrawingId!, markups, runTypes, pxPerFoot, scaleSet, currentPage, pc);
-    };
-    reader.readAsArrayBuffer(file);
+    if (!file) return;
     e.target.value = "";
+    // Pre-fill name with filename (strip .pdf extension)
+    const defaultName = file.name.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim();
+    setPendingPdfFile(file);
+    setUploadDrawingName(defaultName);
+    setShowUploadNameDialog(true);
+  }
+
+  // Step 2: user confirms the drawing name — create DB record then load PDF
+  async function confirmUploadDrawingName() {
+    if (!uploadDrawingName.trim() || !pendingPdfFile) return;
+    const name = uploadDrawingName.trim();
+    setShowUploadNameDialog(false);
+
+    // Create drawing in DB
+    const res = await fetch("/api/takeoff-drawings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estimateId: estimate.id, name }),
+    });
+    if (!res.ok) {
+      alert("Failed to create drawing record.");
+      setPendingPdfFile(null);
+      return;
+    }
+    const newD = await res.json();
+    const drawingRow: TakeoffDrawingRow = {
+      ...newD,
+      markups: [],
+      runTypes: [],
+    };
+    setDrawings((prev) => [...prev, drawingRow]);
+
+    // Switch to the new drawing
+    setActiveDrawingId(newD.id);
+    setMarkups([]);
+    setRunTypes([]);
+    setPxPerFoot(null);
+    setScaleSet(false);
+    setCurrentPage(1);
+    setPageCount(1);
+    setPdfLoaded(false);
+    setPdfDoc(null);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+
+    // Step 3: actually load the PDF
+    const file = pendingPdfFile;
+    setPendingPdfFile(null);
+    loadPdfIntoDrawing(file, newD.id);
+  }
+
+  // Step 3: render PDF using pdf.js (waiting for library if needed)
+  function loadPdfIntoDrawing(file: File, drawingId: string) {
+    const doLoad = () => {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const data = new Uint8Array(ev.target?.result as ArrayBuffer);
+          const pdfjsLib = (window as any).pdfjsLib;
+          const doc = await pdfjsLib.getDocument({ data }).promise;
+          const pc = doc.numPages;
+          setPdfDoc(doc);
+          setPageCount(pc);
+          setPdfLoaded(true);
+          // Persist page count to DB
+          await fetch(`/api/takeoff-drawings/${drawingId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageCount: pc, currentPage: 1 }),
+          });
+        } catch (err) {
+          alert("Failed to load PDF. Make sure it is a valid PDF file.");
+          console.error("[takeoff] pdf load error:", err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    };
+
+    if (pdfJsLoadedRef.current) {
+      doLoad();
+    } else {
+      // Poll until pdf.js CDN script has loaded
+      const check = setInterval(() => {
+        if (pdfJsLoadedRef.current) {
+          clearInterval(check);
+          doLoad();
+        }
+      }, 100);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1436,16 +1543,39 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
               </div>
             )}
 
+            {/* Hidden file input — triggered programmatically */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.PDF,application/pdf"
+              style={{ display: "none" }}
+              onChange={handleFileInputChange}
+            />
+
             {/* Drop zone / canvas */}
             {!pdfLoaded ? (
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", cursor: "pointer", color: "var(--text-muted)", gap: 8, fontSize: 14 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", cursor: "pointer", color: "var(--text-muted)", gap: 8, fontSize: 14 }}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file && (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))) {
+                    const defaultName = file.name.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim();
+                    setPendingPdfFile(file);
+                    setUploadDrawingName(defaultName);
+                    setShowUploadNameDialog(true);
+                  }
+                }}
+              >
                 <div style={{ border: "2px dashed var(--border)", borderRadius: 12, padding: "40px 60px", textAlign: "center" }}>
                   <div style={{ fontSize: 36, marginBottom: 8 }}>📄</div>
-                  <div>Drop PDF here or click to upload</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>(Scale must be set before measuring)</div>
+                  <div>Click or drop a PDF drawing to upload</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>You will be prompted to name the drawing</div>
+                  <div style={{ fontSize: 11, marginTop: 4, color: "#9aa0b0" }}>Set scale before measuring footage</div>
                 </div>
-                <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handlePdfUpload} />
-              </label>
+              </div>
             ) : (
               <div style={{ position: "relative", display: "inline-block", ...canvasWrapperStyle }}>
                 <canvas ref={pdfCanvasRef} style={{ display: "block" }} />
@@ -1462,12 +1592,16 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
               </div>
             )}
 
-            {/* No-drawing overlay */}
-            {!activeDrawingId && (
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14, flexDirection: "column", gap: 8 }}>
-                <p>No drawing selected.</p>
-                <button className="btn btn-orange" onClick={() => setShowNewDrawingDialog(true)}>
-                  <Plus size={14} style={{ display: "inline", marginRight: 4 }} />Create Drawing
+            {/* No-drawing overlay — shown when no drawing exists yet */}
+            {!activeDrawingId && !pdfLoaded && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14, flexDirection: "column", gap: 12 }}>
+                <div style={{ fontSize: 36 }}>📐</div>
+                <p style={{ margin: 0 }}>No drawings yet for this estimate.</p>
+                <button className="btn btn-orange" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => fileInputRef.current?.click()}>
+                  <Plus size={14} /> Upload a PDF Drawing
+                </button>
+                <button className="btn btn-sm" onClick={() => setShowNewDrawingDialog(true)} style={{ color: "var(--text-muted)" }}>
+                  Or create a blank drawing
                 </button>
               </div>
             )}
@@ -1735,6 +1869,34 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
               <div className="dialog-footer">
                 <button className="btn" onClick={() => { setShowRunConfirm(false); setPendingRun(null); }}>Cancel</button>
                 <button className="btn btn-orange" onClick={confirmRun}>Confirm &amp; Add</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload drawing name dialog */}
+        {showUploadNameDialog && (
+          <div className="dialog-overlay" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog" onClick={(e) => e.stopPropagation()}>
+              <h3>Name This Drawing</h3>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 12px" }}>
+                {pendingPdfFile?.name}
+              </p>
+              <label className="panel-label">Drawing Name</label>
+              <input
+                type="text"
+                value={uploadDrawingName}
+                onChange={(e) => setUploadDrawingName(e.target.value)}
+                placeholder="e.g. First Floor Plan"
+                style={{ width: "100%", marginTop: 4 }}
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") confirmUploadDrawingName(); if (e.key === "Escape") { setShowUploadNameDialog(false); setPendingPdfFile(null); } }}
+              />
+              <div className="dialog-footer">
+                <button className="btn" onClick={() => { setShowUploadNameDialog(false); setPendingPdfFile(null); }}>Cancel</button>
+                <button className="btn btn-orange" onClick={confirmUploadDrawingName} disabled={!uploadDrawingName.trim()}>
+                  Load Drawing
+                </button>
               </div>
             </div>
           </div>
