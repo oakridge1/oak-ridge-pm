@@ -794,7 +794,7 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
       }
       ctx.restore();
     }
-  }, [markups, runTypes, isDrawingRun, runPoints, mousePos, runColor, selectedSymbolId, scaleMode, scalePoints]);
+  }, [markups, runTypes, isDrawingRun, runPoints, mousePos, runColor, selectedSymbolId, scaleMode, scalePoints, zoom]);
 
   // Redraw overlay whenever state changes
   useEffect(() => {
@@ -1063,8 +1063,8 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
 
   function handleOverlayWheel(e: React.WheelEvent<HTMLCanvasElement>) {
     e.preventDefault();
-    // 5% per scroll tick — was 10%, which felt too aggressive on trackpads
-    const factor = e.deltaY < 0 ? 1.05 : 0.95;
+    // 2% per scroll tick — fine-grained control
+    const factor = e.deltaY < 0 ? 1.02 : 0.98;
     setZoom((z) => Math.min(4, Math.max(0.25, z * factor)));
   }
 
@@ -1518,10 +1518,20 @@ export function TakeoffClient({ estimate, initialDrawings }: Props) {
           </div>
 
           {/* Zoom controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <button className="btn btn-sm" style={{ padding: "2px 7px", fontWeight: 700 }} onClick={() => stepZoom(-0.1)}>−</button>
-            <span style={{ fontSize: 11, minWidth: 36, textAlign: "center", color: "var(--text-muted)" }}>{Math.round(zoom * 100)}%</span>
+            <input
+              type="range"
+              min={25}
+              max={400}
+              step={5}
+              value={Math.round(zoom * 100)}
+              onChange={(e) => setZoom(Number(e.target.value) / 100)}
+              style={{ width: 90, cursor: "pointer", accentColor: "var(--highlight)" }}
+              title="Zoom"
+            />
             <button className="btn btn-sm" style={{ padding: "2px 7px", fontWeight: 700 }} onClick={() => stepZoom(0.1)}>+</button>
+            <span style={{ fontSize: 11, minWidth: 36, textAlign: "center", color: "var(--text-muted)" }}>{Math.round(zoom * 100)}%</span>
           </div>
 
           {/* Save indicator */}
