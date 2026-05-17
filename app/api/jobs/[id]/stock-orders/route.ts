@@ -6,6 +6,8 @@ import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { StockOrderPdf } from "../pdf/_templates";
+import { Document as DocxDocument, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, Packer } from "docx";
+import type { StockOrderPdfData } from "../pdf/_templates";
 
 const FROM = process.env.EMAIL_FROM;
 const PASS = process.env.GMAIL_APP_PASSWORD;
@@ -52,6 +54,64 @@ function buildItemLine(req: {
   return `• ${req.quantity} ${req.quantityUnit ?? req.stockItem?.unitOfMeasure ?? "EA"} — ${name}${varStr}${req.note ? ` (${req.note})` : ""}`;
 }
 
+async function generateOrderDocx(data: StockOrderPdfData): Promise<Buffer> {
+  const doc = new DocxDocument({
+    sections: [{
+      properties: {},
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: "OAK RIDGE ELECTRICAL LLC", bold: true, size: 28, color: "002D72" })],
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: "209 W. River Rd, Hooksett, NH 03106  |  603-660-4651  |  Justin@oakridgeelectrical.com", size: 18, color: "555555" })],
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({ children: [new TextRun("")] }),
+        new Paragraph({
+          children: [new TextRun({ text: data.title ?? "MATERIAL ORDER", bold: true, size: 32, color: "FF5910" })],
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({ children: [new TextRun("")] }),
+        new Paragraph({ children: [new TextRun({ text: `To: ${data.supplierName}${data.supplierRepName ? ` — ${data.supplierRepName}` : ""}`, bold: true })] }),
+        new Paragraph({ children: [new TextRun(`Date: ${data.orderDate}`)] }),
+        new Paragraph({ children: [new TextRun(`PO/Job: ${data.poNumber ?? data.jobNumber}`)] }),
+        new Paragraph({ children: [new TextRun(`Delivery: ${data.deliveryMethod}${data.deliveryAddress ? ` — ${data.deliveryAddress}` : ""}`)] }),
+        new Paragraph({ children: [new TextRun("")] }),
+        new Table({
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Item", bold: true })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Description", bold: true })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Qty", bold: true })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Unit", bold: true })] })] }),
+              ],
+            }),
+            ...data.items.map((item, idx) => new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph(`${idx + 1}`)] }),
+                new TableCell({ children: [new Paragraph(item.name)] }),
+                new TableCell({ children: [new Paragraph(item.description ?? "")] }),
+                new TableCell({ children: [new Paragraph(String(item.quantity))] }),
+                new TableCell({ children: [new Paragraph(item.unit)] }),
+              ],
+            })),
+          ],
+        }),
+        new Paragraph({ children: [new TextRun("")] }),
+        new Paragraph({ children: [new TextRun(`Total: ${data.items.length} line item${data.items.length !== 1 ? "s" : ""}`)] }),
+        new Paragraph({ children: [new TextRun("")] }),
+        new Paragraph({
+          children: [new TextRun({ text: "Thank you for your business! Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com", italics: true, size: 16 })],
+        }),
+      ],
+    }],
+  });
+  return Buffer.from(await Packer.toBuffer(doc));
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
@@ -71,6 +131,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const jobAddress = [job.address, job.city, job.state].filter(Boolean).join(", ");
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const todayShort = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const todayISO = new Date().toISOString().slice(0, 10);
+
+  console.log(`[stock-order] Starting order send for job ${jobId}, ${groups.length} groups`);
 
   // Check permission to send orders for TEAMMATE
   if (role === "TEAMMATE") {
@@ -95,6 +158,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
       // Notify Foreman and Admins
       const transport = getTransport();
+      console.log(`[stock-order] Transport: ${transport ? "created" : "FAILED - check EMAIL_FROM and GMAIL_APP_PASSWORD env vars"}`);
       if (transport) {
         const admins = await prisma.user.findMany({
           where: { role: "ADMIN", active: true },
@@ -151,10 +215,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const transport = getTransport();
+  console.log(`[stock-order] Transport: ${transport ? "created" : "FAILED - check EMAIL_FROM and GMAIL_APP_PASSWORD env vars"}`);
+
   const results = [];
 
   for (const group of groups) {
     const { supplierName, supplierEmail, requestIds, isConsumables } = group;
+
+    console.log(`[stock-order] Group ${supplierName}: ${requestIds.length} requests, isConsumables: ${isConsumables}`);
 
     // Use global delivery method for electrical, always PICKUP for consumables
     const deliveryMethod = isConsumables ? "PICKUP" : (globalDeliveryMethod || group.deliveryMethod || "PICKUP");
@@ -196,69 +264,88 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ].filter(s => s !== undefined).join("\n")
       : `Please find our material order attached. Delivery: ${deliveryShort}. PO/Job: ${poNumber ?? job.jobNumber}. Thank you, Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com`;
 
-    // Generate PDF for electrical orders
-    let pdfBuffer: Buffer | null = null;
-    const pdfFileName = `${supplierName ?? "Order"}_Order_${job.jobNumber}_${todayShort.replace(/,?\s/g, "_")}.pdf`;
+    // Build PDF data
+    const pdfData: StockOrderPdfData = {
+      supplierName: isConsumables ? "Pickup List" : (supplierName ?? ""),
+      supplierRepName: null,
+      supplierEmail: isConsumables ? null : (supplierEmail ?? null),
+      jobNumber: job.jobNumber,
+      jobName: job.jobName,
+      poNumber: poNumber ?? null,
+      orderDate: todayShort,
+      deliveryMethod: deliveryShort,
+      deliveryAddress: deliveryMethod === "DELIVERY_SITE" ? jobAddress : deliveryMethod === "DELIVERY_SHOP" ? "209 W. River Rd, Hooksett, NH 03106" : null,
+      items: requests.map(r => ({
+        name: r.stockItem?.name ?? r.customItemName ?? "Custom Item",
+        description: buildItemDescription(r),
+        quantity: r.quantity,
+        unit: r.quantityUnit ?? r.stockItem?.unitOfMeasure ?? "EA",
+        note: r.note ?? null,
+      })),
+      notes: deliveryNotes ?? null,
+      title: isConsumables ? "PICKUP LIST" : "MATERIAL ORDER",
+    };
 
-    if (!isConsumables) {
-      try {
-        const pdfData = {
-          supplierName: supplierName ?? "",
-          supplierRepName: null,
-          supplierEmail: supplierEmail ?? null,
-          jobNumber: job.jobNumber,
-          jobName: job.jobName,
-          poNumber: poNumber ?? null,
-          orderDate: todayShort,
-          deliveryMethod: deliveryShort,
-          deliveryAddress: deliveryMethod === "DELIVERY_SITE" ? jobAddress : deliveryMethod === "DELIVERY_SHOP" ? "209 W. River Rd, Hooksett, NH 03106" : null,
-          items: requests.map(r => ({
-            name: r.stockItem?.name ?? r.customItemName ?? "Custom Item",
-            description: buildItemDescription(r),
-            quantity: r.quantity,
-            unit: r.quantityUnit ?? r.stockItem?.unitOfMeasure ?? "EA",
-            note: r.note ?? null,
-          })),
-          notes: deliveryNotes ?? null,
-        };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pdfBuffer = Buffer.from(await renderToBuffer(React.createElement(StockOrderPdf, { data: pdfData }) as any));
-      } catch (err) {
-        console.error("[stock-order] PDF generation failed:", err);
-      }
+    // Generate PDF (for both electrical and consumables)
+    let pdfBuffer: Buffer | null = null;
+    const pdfFileName = isConsumables
+      ? `PickupList_${job.jobNumber}_${todayShort.replace(/,?\s/g, "_")}.pdf`
+      : `${supplierName ?? "Order"}_Order_${job.jobNumber}_${todayShort.replace(/,?\s/g, "_")}.pdf`;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pdfBuffer = Buffer.from(await renderToBuffer(React.createElement(StockOrderPdf, { data: pdfData }) as any));
+      console.log(`[stock-order] PDF generation: ${pdfBuffer ? pdfBuffer.length + " bytes" : "FAILED"}`);
+    } catch (err) {
+      console.error("[stock-order] PDF generation failed:", err);
+    }
+
+    // Generate Word doc
+    let docxBuffer: Buffer | null = null;
+    try {
+      docxBuffer = await generateOrderDocx(pdfData);
+    } catch (err) {
+      console.error("[stock-order] DOCX generation failed:", err);
     }
 
     // Send email
     if (transport) {
       const toEmails = isConsumables
         ? [MICHAEL_EMAIL, JUSTIN_EMAIL].filter(Boolean)
-        : supplierEmail ? [supplierEmail] : [];
+        : supplierEmail
+          ? [supplierEmail]
+          : [JUSTIN_EMAIL]; // fallback if no supplier email
 
       const ccEmails = [SAM_CC, JUSTIN_EMAIL, job.foreman?.email].filter((e): e is string => !!e && !toEmails.includes(e));
 
-      if (toEmails.length > 0) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mailOptions: any = {
-            from: `"Oak Ridge Electrical" <${FROM}>`,
-            to: toEmails.join(", "),
-            cc: [...new Set(ccEmails)].join(", "),
-            subject,
-            text: emailBodyText,
-          };
+      const emailSubject = (!isConsumables && !supplierEmail)
+        ? `[NO SUPPLIER EMAIL] ${subject}`
+        : subject;
 
-          if (pdfBuffer) {
-            mailOptions.attachments = [{
-              filename: pdfFileName,
-              content: pdfBuffer,
-              contentType: "application/pdf",
-            }];
-          }
+      console.log(`[stock-order] Sending email to: ${toEmails.join(", ")}, cc: ${ccEmails.join(", ")}`);
 
-          await transport.sendMail(mailOptions);
-        } catch (err) {
-          console.error("[stock-order] email failed:", err);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mailOptions: any = {
+          from: `"Oak Ridge Electrical" <${FROM}>`,
+          to: toEmails.join(", "),
+          cc: [...new Set(ccEmails)].join(", "),
+          subject: emailSubject,
+          text: emailBodyText,
+        };
+
+        if (pdfBuffer) {
+          mailOptions.attachments = [{
+            filename: pdfFileName,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          }];
         }
+
+        await transport.sendMail(mailOptions);
+        console.log(`[stock-order] Email sent OK`);
+      } catch (err) {
+        console.error("[stock-order] email failed:", err);
       }
     }
 
@@ -284,10 +371,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       },
     });
 
-    // Archive to Document Vault
+    // Archive PDF to Document Vault
     const docName = isConsumables
-      ? `Pickup List — ${todayShort}`
-      : `Order — ${supplierName} — ${todayShort}`;
+      ? `${todayISO} — Pickup List — Stock Order`
+      : `${todayISO} — ${supplierName} — Stock Order`;
 
     const docContent = pdfBuffer
       ? `data:application/pdf;base64,${pdfBuffer.toString("base64")}`
@@ -305,6 +392,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         fileName: docFileName,
       },
     });
+
+    console.log(`[stock-order] Document saved: ${docName}`);
+
+    // Archive Word doc to Document Vault (if generated)
+    if (docxBuffer) {
+      const docxName = isConsumables
+        ? `${todayISO} — Pickup List — Stock Order (Word)`
+        : `${todayISO} — ${supplierName} — Stock Order (Word)`;
+      const docxFileName = isConsumables
+        ? `PickupList_${job.jobNumber}_${todayISO}.docx`
+        : `${supplierName}_Order_${job.jobNumber}_${todayISO}.docx`;
+
+      await prisma.document.create({
+        data: {
+          jobId,
+          uploadedById: session.user.id,
+          category: "STOCK_ORDERS",
+          name: docxName,
+          fileUrl: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBuffer.toString("base64")}`,
+          fileName: docxFileName,
+        },
+      });
+      console.log(`[stock-order] Word doc saved: ${docxName}`);
+    }
 
     // Mark requests as SENT
     await prisma.stockRequest.updateMany({

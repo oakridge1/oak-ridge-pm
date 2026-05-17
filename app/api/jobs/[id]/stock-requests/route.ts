@@ -27,7 +27,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     orderBy: { createdAt: "asc" },
     include: {
       user: { select: { name: true } },
-      stockItem: { select: { name: true, category: true, lingo: true } },
+      stockItem: { select: { name: true, category: true, lingo: true, isConsumable: true } },
     },
   });
   return NextResponse.json(requests);
@@ -50,6 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     deliveryMethod,
     conductorGroupId,
     saveToMasterList,
+    isConsumableOverride,
   } = body;
 
   if (!stockItemId && !customItemName) {
@@ -72,8 +73,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       orderDate: new Date(),
       conductorGroupId: conductorGroupId || null,
       saveToMasterList: saveToMasterList === true,
+      isConsumableOverride: isConsumableOverride === true,
     },
-    include: { user: { select: { name: true } }, stockItem: { select: { name: true, category: true, lingo: true } } },
+    include: { user: { select: { name: true } }, stockItem: { select: { name: true, category: true, lingo: true, isConsumable: true } } },
   });
 
   return NextResponse.json(request);

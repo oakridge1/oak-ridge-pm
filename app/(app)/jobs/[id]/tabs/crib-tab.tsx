@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, ShoppingCart, Plus, X, Truck, Store, Package2, Send, CheckCircle2, ChevronDown, ChevronUp, Clock, Layers } from "lucide-react";
+import { Search, ShoppingCart, Plus, X, Truck, Store, Package2, Send, CheckCircle2, ChevronDown, ChevronUp, Clock, Layers, ChevronLeft } from "lucide-react";
 
 type VarConfig = { key: string; label: string; type: string; options?: string[]; placeholder?: string; required?: boolean };
 
@@ -30,8 +30,9 @@ type StockRequest = {
   createdAt: string;
   conductorGroupId: string | null;
   approvalRequestId: string | null;
+  isConsumableOverride: boolean;
   user: { name: string | null };
-  stockItem: { name: string; category: string; lingo: string | null } | null;
+  stockItem: { name: string; category: string; lingo: string | null; isConsumable: boolean } | null;
 };
 
 type ApprovalRequest = {
@@ -82,6 +83,7 @@ const ALL_CATEGORIES = [
   "MC / AC Cable Fittings", "Boxes", "Mud / Plaster Rings", "Wire Connectors", "Grounding",
   "Staples & Fasteners", "Panels & Breakers", "Devices & Receptacles", "Lighting",
   "Tape & Sealants", "Misc Hardware & Specialty", "Strut & Hangers", "Consumables & Safety",
+  "PVC Conduit Fittings", "Rigid / IMC Fittings", "Flex Conduit Fittings", "Liquid Tight Fittings",
 ];
 
 const UOM_OPTIONS = ["EA", "FT", "C", "M", "PK", "Roll", "Bag", "Box", "Sticks", "Pairs", "Tubes"];
@@ -484,7 +486,109 @@ function ItemExpandForm({
   );
 }
 
-// Custom item form
+// Inline category-level custom adder (compact form)
+function CategoryCustomAdder({
+  catName,
+  items,
+  onAdd,
+  onCancel,
+}: {
+  catName: string;
+  items: StockItem[];
+  onAdd: (data: {
+    customItemName: string;
+    customCategory: string;
+    variables: null;
+    quantity: number;
+    quantityUnit: string;
+    note: string | null;
+    saveToMasterList: boolean;
+    isConsumableOverride: boolean;
+  }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [uom, setUom] = useState("EA");
+  const [isConsumable, setIsConsumable] = useState(false);
+  const [saveToMaster, setSaveToMaster] = useState(false);
+  const [qty, setQty] = useState("1");
+  const [note, setNote] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Suppress unused warning
+  void items;
+
+  async function handleAdd() {
+    if (!name.trim()) { setError("Item name is required."); return; }
+    setAdding(true);
+    setError(null);
+    try {
+      await onAdd({
+        customItemName: name.trim(),
+        customCategory: catName,
+        variables: null,
+        quantity: parseFloat(qty) || 1,
+        quantityUnit: uom,
+        note: note || null,
+        saveToMasterList: saveToMaster,
+        isConsumableOverride: isConsumable,
+      });
+    } catch {
+      setError("Failed to add item.");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 mb-3 bg-orange-50 border border-[#FF5910]/20 rounded-xl p-3">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-bold text-[#FF5910]">Custom {catName}</p>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-700"><X className="w-3.5 h-3.5" /></button>
+      </div>
+      <div className="space-y-2">
+        <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Item name *"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5910]/30" />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">UOM</label>
+            <select value={uom} onChange={e => setUom(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF5910]/30">
+              {UOM_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Qty</label>
+            <input type="number" value={qty} onChange={e => setQty(e.target.value)} min="1"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5910]/30" />
+          </div>
+        </div>
+        <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optional)"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5910]/30" />
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+            <input type="checkbox" checked={isConsumable} onChange={e => setIsConsumable(e.target.checked)}
+              className="rounded border-gray-300 text-[#FF5910]" />
+            Consumable (pickup)
+          </label>
+          <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+            <input type="checkbox" checked={saveToMaster} onChange={e => setSaveToMaster(e.target.checked)}
+              className="rounded border-gray-300 text-[#002D72]" />
+            Save to Master
+          </label>
+        </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <button onClick={handleAdd} disabled={adding}
+          className="w-full bg-[#FF5910] text-white py-1.5 rounded-lg text-sm font-medium hover:bg-[#e04d0e] disabled:opacity-60 transition-colors">
+          {adding ? "Adding…" : "Add to Order"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Custom item form (full — used for global "Add Custom Item")
 function CustomItemForm({
   items,
   suppliers,
@@ -501,6 +605,7 @@ function CustomItemForm({
     quantityUnit: string;
     note: string | null;
     saveToMasterList: boolean;
+    isConsumableOverride: boolean;
   }) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -515,6 +620,11 @@ function CustomItemForm({
   const [note, setNote] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Suppress unused warnings for lingo/sku (kept for UI completeness)
+  void lingo;
+  void sku;
+  void suppliers;
 
   // Get unique categories from items plus default list
   const existingCats = [...new Set(items.map(i => i.category))];
@@ -533,6 +643,7 @@ function CustomItemForm({
         quantityUnit: uom,
         note: note || null,
         saveToMasterList: saveToMaster,
+        isConsumableOverride: isConsumable,
       });
     } catch {
       setError("Failed to add item.");
@@ -622,6 +733,10 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
   const [showSendModal, setShowSendModal] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null);
+  const [categoryCustomExpanded, setCategoryCustomExpanded] = useState<string | null>(null);
+
+  // suppress unused warning
+  void currentUserId;
 
   const canReviewApprovals = role === "ADMIN" || role === "FOREMAN";
 
@@ -709,6 +824,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
     quantityUnit: string;
     note: string | null;
     saveToMasterList: boolean;
+    isConsumableOverride: boolean;
   }) {
     await fetch(`/api/jobs/${job.id}/stock-requests`, {
       method: "POST",
@@ -722,9 +838,11 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
         note: data.note,
         deliveryMethod: "PICKUP",
         saveToMasterList: data.saveToMasterList,
+        isConsumableOverride: data.isConsumableOverride,
       }),
     });
     setShowCustom(false);
+    setCategoryCustomExpanded(null);
     await refreshRequests();
   }
 
@@ -777,7 +895,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
     }
   }
 
-  function renderCategory(catItems: StockItem[]) {
+  function renderCategory(catItems: StockItem[], catName: string) {
     const rows: React.ReactNode[] = [];
     for (let i = 0; i < catItems.length; i += 2) {
       const left = catItems[i];
@@ -789,7 +907,10 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
       rows.push(
         <div key={`row-${i}`} className="grid grid-cols-2 gap-2 mb-2">
           {left && (
-            <button onClick={() => setExpandedItemId(expandedItemId === left.id ? null : left.id)}
+            <button onClick={() => {
+              setExpandedItemId(expandedItemId === left.id ? null : left.id);
+              setCategoryCustomExpanded(null);
+            }}
               className={`text-left p-2.5 rounded-xl border text-sm transition-colors ${
                 isLeftExpanded ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white border-gray-200 hover:border-[#002D72]/50 hover:bg-blue-50"
               }`}>
@@ -805,7 +926,10 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
             </button>
           )}
           {right ? (
-            <button onClick={() => setExpandedItemId(expandedItemId === right.id ? null : right.id)}
+            <button onClick={() => {
+              setExpandedItemId(expandedItemId === right.id ? null : right.id);
+              setCategoryCustomExpanded(null);
+            }}
               className={`text-left p-2.5 rounded-xl border text-sm transition-colors ${
                 isRightExpanded ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white border-gray-200 hover:border-[#002D72]/50 hover:bg-blue-50"
               }`}>
@@ -835,6 +959,33 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
         );
       }
     }
+
+    // Category-level custom adder button
+    if (categoryCustomExpanded === catName) {
+      rows.push(
+        <CategoryCustomAdder
+          key={`cat-custom-${catName}`}
+          catName={catName}
+          items={catItems}
+          onAdd={handleAddCustom}
+          onCancel={() => setCategoryCustomExpanded(null)}
+        />
+      );
+    } else {
+      rows.push(
+        <button
+          key={`cat-custom-btn-${catName}`}
+          onClick={() => {
+            setCategoryCustomExpanded(catName);
+            setExpandedItemId(null);
+            setShowCustom(false);
+          }}
+          className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 border border-dashed border-gray-200 rounded-lg text-xs text-gray-400 hover:border-[#FF5910]/40 hover:text-[#FF5910] transition-colors">
+          <Plus className="w-3 h-3" /> Add Custom {catName}
+        </button>
+      );
+    }
+
     return rows;
   }
 
@@ -966,7 +1117,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
 
       {/* Custom item button */}
       {!showCustom && (
-        <button onClick={() => { setShowCustom(true); setExpandedItemId(null); }}
+        <button onClick={() => { setShowCustom(true); setExpandedItemId(null); setCategoryCustomExpanded(null); }}
           className="w-full mb-4 flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-[#002D72] hover:text-[#002D72] transition-colors">
           <Plus className="w-4 h-4" /> Add Custom Item
         </button>
@@ -992,7 +1143,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
               <h4 className="text-xs font-semibold text-[#002D72] mb-2 uppercase tracking-wide">
                 {cat} <span className="text-gray-400 font-normal normal-case">({catItems.length})</span>
               </h4>
-              {renderCategory(catItems)}
+              {renderCategory(catItems, cat)}
             </div>
           );
         })}
@@ -1012,7 +1163,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
             return (
               <div key={cat} className="mb-4">
                 <h4 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">{cat}</h4>
-                {renderCategory(catItems)}
+                {renderCategory(catItems, cat)}
               </div>
             );
           })}
@@ -1047,6 +1198,8 @@ function ConductorGroupCard({ groupId, requests, onDelete }: {
   onDelete: (id: string) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  // suppress unused warning
+  void groupId;
   return (
     <div className="bg-white border border-[#002D72]/20 rounded-xl shadow-sm overflow-hidden">
       <button onClick={() => setExpanded(!expanded)}
@@ -1082,14 +1235,22 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
   onSent: (pendingApproval?: boolean) => void;
 }) {
   const electricalSuppliers = suppliers.filter(s => !s.pickupOnly);
-  const electricalRequests = requests.filter(r => r.stockItemId !== null);
-  const consumableRequests = requests.filter(r => r.stockItemId === null && r.customItemName);
 
+  // Correct routing: consumable if stock item is consumable, OR isConsumableOverride is set
+  const electricalRequests = requests.filter(r =>
+    !(r.stockItem?.isConsumable ?? false) && !r.isConsumableOverride
+  );
+  const consumableRequests = requests.filter(r =>
+    (r.stockItem?.isConsumable ?? false) || r.isConsumableOverride
+  );
+
+  // Step 1: delivery method selection; Step 2: rest of form
+  const [step, setStep] = useState<1 | 2>(1);
   const [supplierName, setSupplierName] = useState(electricalSuppliers[0]?.name ?? "");
   const [supplierEmail, setSupplierEmail] = useState(electricalSuppliers[0]?.email ?? "");
   const [poNumber, setPoNumber] = useState(job.jobNumber);
   const [deliveryNotes, setDeliveryNotes] = useState("");
-  const [deliveryMethod, setDeliveryMethod] = useState("PICKUP");
+  const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1097,11 +1258,11 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
 
   const isTeammate = role === "TEAMMATE";
 
-  // Delivery address display
-  const deliveryAddressDisplay =
-    deliveryMethod === "DELIVERY_SITE" ? jobAddress :
-    deliveryMethod === "DELIVERY_SHOP" ? "209 W. River Rd, Hooksett, NH 03106" :
-    "Pickup at supplier";
+  const deliveryOptions = [
+    { value: "PICKUP", label: "Pickup", icon: Store, subtitle: "Items picked up at supplier" },
+    { value: "DELIVERY_SITE", label: "Delivery to Site", icon: Truck, subtitle: jobAddress || "Job site address" },
+    { value: "DELIVERY_SHOP", label: "Delivery to Shop", icon: Package2, subtitle: "209 W. River Rd, Hooksett, NH 03106" },
+  ];
 
   async function handleSend() {
     setSending(true);
@@ -1113,7 +1274,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
         groups.push({
           supplierName,
           supplierEmail,
-          deliveryMethod,
+          deliveryMethod: deliveryMethod ?? "PICKUP",
           requestIds: electricalRequests.map(r => r.id),
           isConsumables: false,
         });
@@ -1134,7 +1295,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
       const res = await fetch(`/api/jobs/${job.id}/stock-orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groups, poNumber, deliveryNotes, deliveryMethod }),
+        body: JSON.stringify({ groups, poNumber, deliveryNotes, deliveryMethod: deliveryMethod ?? "PICKUP" }),
       });
 
       const data = await res.json();
@@ -1165,87 +1326,128 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="p-4 space-y-4">
-          <div className="bg-gray-50 rounded-xl p-3 text-sm">
-            <p className="font-semibold text-gray-900 mb-1">{requests.length} items · {job.jobNumber} {job.jobName}</p>
-            <p className="text-gray-500 text-xs">
-              {electricalRequests.length} electrical, {consumableRequests.length} custom/consumable
-            </p>
-          </div>
-
-          {/* Delivery method */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Delivery Method</label>
-            <div className="flex gap-2">
-              {[
-                { value: "PICKUP", label: "Pickup", icon: Store },
-                { value: "DELIVERY_SITE", label: "Delivery to Site", icon: Truck },
-                { value: "DELIVERY_SHOP", label: "Delivery to Shop", icon: Package2 },
-              ].map(opt => (
-                <button key={opt.value} onClick={() => setDeliveryMethod(opt.value)}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                    deliveryMethod === opt.value ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300 hover:border-[#002D72]"
-                  }`}>
-                  <opt.icon className="w-4 h-4" />
-                  {opt.label}
-                </button>
-              ))}
+        {step === 1 && (
+          <div className="p-4 space-y-4">
+            <div className="bg-gray-50 rounded-xl p-3 text-sm">
+              <p className="font-semibold text-gray-900 mb-1">{requests.length} items · {job.jobNumber} {job.jobName}</p>
+              <p className="text-gray-500 text-xs">
+                {electricalRequests.length} electrical, {consumableRequests.length} consumable
+              </p>
             </div>
-            {deliveryMethod !== "PICKUP" && (
-              <p className="text-xs text-gray-500 mt-1.5 px-1">{deliveryAddressDisplay}</p>
-            )}
-            {consumableRequests.length > 0 && (
-              <p className="text-xs text-gray-400 mt-1">Consumable/safety items always route to pickup list regardless of selection above.</p>
-            )}
-          </div>
 
-          {/* Supplier */}
-          {electricalRequests.length > 0 && (
             <div>
-              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Electrical Supplier</h3>
+              <label className="block text-sm font-bold text-gray-800 mb-3">How are you receiving the materials?</label>
               <div className="space-y-2">
-                <select value={supplierName} onChange={e => {
-                  setSupplierName(e.target.value);
-                  const sup = electricalSuppliers.find(s => s.name === e.target.value);
-                  setSupplierEmail(sup?.email ?? "");
-                }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
-                  {electricalSuppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  <option value="custom">Custom…</option>
-                </select>
-                <input type="email" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)}
-                  placeholder="Rep email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                {deliveryOptions.map(opt => (
+                  <button key={opt.value} onClick={() => setDeliveryMethod(opt.value)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-colors ${
+                      deliveryMethod === opt.value
+                        ? "bg-[#002D72]/5 border-[#002D72]"
+                        : "bg-white border-gray-200 hover:border-[#002D72]/40"
+                    }`}>
+                    <div className={`p-2 rounded-lg ${deliveryMethod === opt.value ? "bg-[#002D72] text-white" : "bg-gray-100 text-gray-500"}`}>
+                      <opt.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className={`text-sm font-semibold ${deliveryMethod === opt.value ? "text-[#002D72]" : "text-gray-800"}`}>{opt.label}</p>
+                      <p className="text-xs text-gray-500">{opt.subtitle}</p>
+                    </div>
+                    {deliveryMethod === opt.value && (
+                      <div className="ml-auto w-4 h-4 rounded-full bg-[#002D72] flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
+              <p className="text-xs text-gray-400 mt-2">(Consumables always go to pickup list regardless)</p>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">PO / Job Number *</label>
-            <input type="text" value={poNumber} onChange={e => setPoNumber(e.target.value)} required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Notes</label>
-            <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2} placeholder="Special instructions…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none" />
-          </div>
-
-          {submitDesc && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-800">
-              {submitDesc}
-            </div>
-          )}
-
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-
-          <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
-            <button onClick={handleSend} disabled={sending}
-              className="flex-1 py-2.5 bg-[#FF5910] text-white rounded-xl text-sm font-medium hover:bg-[#e04d0e] disabled:opacity-60 transition-colors">
-              {sending ? "Sending…" : submitLabel}
+            <button
+              onClick={() => setStep(2)}
+              disabled={!deliveryMethod}
+              className="w-full py-3 bg-[#002D72] text-white rounded-xl text-sm font-medium hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              Continue →
             </button>
           </div>
-        </div>
+        )}
+
+        {step === 2 && (
+          <div className="p-4 space-y-4">
+            <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-[#002D72] hover:underline">
+              <ChevronLeft className="w-4 h-4" /> Back
+            </button>
+
+            <div className="bg-gray-50 rounded-xl p-3 text-sm">
+              <p className="font-semibold text-gray-900 mb-1">{requests.length} items · {job.jobNumber} {job.jobName}</p>
+              <p className="text-gray-500 text-xs">
+                {electricalRequests.length} electrical, {consumableRequests.length} consumable · {deliveryOptions.find(o => o.value === deliveryMethod)?.label}
+              </p>
+            </div>
+
+            {/* Supplier */}
+            {electricalRequests.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Electrical Supplier</h3>
+                <div className="space-y-2">
+                  <select value={supplierName} onChange={e => {
+                    setSupplierName(e.target.value);
+                    const sup = electricalSuppliers.find(s => s.name === e.target.value);
+                    setSupplierEmail(sup?.email ?? "");
+                  }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+                    {electricalSuppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    <option value="custom">Custom…</option>
+                  </select>
+                  <input type="email" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)}
+                    placeholder="Rep email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">PO / Job Number *</label>
+              <input type="text" value={poNumber} onChange={e => setPoNumber(e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Notes</label>
+              <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2} placeholder="Special instructions…"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none" />
+            </div>
+
+            {/* Order summary */}
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Order Summary</p>
+              <div className="space-y-1">
+                {requests.slice(0, 5).map(req => (
+                  <p key={req.id} className="text-xs text-gray-600">
+                    • {req.quantity} {req.quantityUnit ?? "EA"} — {req.stockItem?.name ?? req.customItemName}
+                  </p>
+                ))}
+                {requests.length > 5 && (
+                  <p className="text-xs text-gray-400">…and {requests.length - 5} more items</p>
+                )}
+              </div>
+            </div>
+
+            {submitDesc && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-xs text-yellow-800">
+                {submitDesc}
+              </div>
+            )}
+
+            {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={onClose} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSend} disabled={sending}
+                className="flex-1 py-2.5 bg-[#FF5910] text-white rounded-xl text-sm font-medium hover:bg-[#e04d0e] disabled:opacity-60 transition-colors">
+                {sending ? "Sending…" : submitLabel}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

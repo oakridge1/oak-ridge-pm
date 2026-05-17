@@ -1283,6 +1283,7 @@ export type StockOrderPdfData = {
     note?: string | null;
   }>;
   notes?: string | null;
+  title?: string | null;
 };
 
 const SS = StyleSheet.create({
@@ -1368,7 +1369,7 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
         </View>
 
         {/* Title */}
-        <Text style={SS.docTitle}>MATERIAL ORDER</Text>
+        <Text style={SS.docTitle}>{data.title ?? "MATERIAL ORDER"}</Text>
 
         {/* Info block */}
         <View style={SS.infoGrid}>

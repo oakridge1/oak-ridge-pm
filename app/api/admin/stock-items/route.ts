@@ -330,6 +330,67 @@ const NEW_STOCK_ITEMS: any[] = [
     variables: [{ key: "size", label: "Size", type: "text", placeholder: "e.g. 11", required: true }] },
   { category: "Consumables & Safety", name: "Hi-Vis Vest", lingo: "Safety Vest", unitOfMeasure: "EA", isConsumable: true, sortOrder: 168,
     variables: [{ key: "size", label: "Size", type: "select", options: ["S","M","L","XL","2XL"], required: true }] },
+  // PVC CONDUIT FITTINGS
+  { category: "PVC Conduit Fittings", name: "PVC Coupling", lingo: "PVC Coupling", unitOfMeasure: "EA", isConsumable: false, sortOrder: 400,
+    variables: [
+      { key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true },
+      { key: "schedule", label: "Schedule", type: "select", options: ["40","80"], required: true },
+    ] },
+  { category: "PVC Conduit Fittings", name: "PVC Adapter", lingo: "PVC Adapter", unitOfMeasure: "EA", isConsumable: false, sortOrder: 401,
+    variables: [
+      { key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true },
+      { key: "gender", label: "Male/Female", type: "select", options: ["Male","Female"], required: true },
+    ] },
+  { category: "PVC Conduit Fittings", name: "PVC 90 Elbow", lingo: "PVC 90", unitOfMeasure: "EA", isConsumable: false, sortOrder: 402,
+    variables: [
+      { key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true },
+      { key: "schedule", label: "Schedule", type: "select", options: ["40","80"], required: true },
+    ] },
+  { category: "PVC Conduit Fittings", name: "PVC 45 Elbow", lingo: "PVC 45", unitOfMeasure: "EA", isConsumable: false, sortOrder: 403,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  { category: "PVC Conduit Fittings", name: "PVC End Cap", lingo: "PVC End Cap", unitOfMeasure: "EA", isConsumable: false, sortOrder: 404,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  { category: "PVC Conduit Fittings", name: "PVC Male Adapter", lingo: "PVC MA", unitOfMeasure: "EA", isConsumable: false, sortOrder: 405,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  { category: "PVC Conduit Fittings", name: "PVC Terminal Adapter", lingo: "PVC TA", unitOfMeasure: "EA", isConsumable: false, sortOrder: 406,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  // RIGID / IMC FITTINGS
+  { category: "Rigid / IMC Fittings", name: "Rigid/IMC Coupling", lingo: "Rigid Coupling", unitOfMeasure: "EA", isConsumable: false, sortOrder: 410,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  { category: "Rigid / IMC Fittings", name: "Rigid/IMC Connector", lingo: "Rigid Conn", unitOfMeasure: "EA", isConsumable: false, sortOrder: 411,
+    variables: [
+      { key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true },
+      { key: "type", label: "Type", type: "select", options: ["Threaded","Compression"], required: true },
+    ] },
+  { category: "Rigid / IMC Fittings", name: "Rigid/IMC 90", lingo: "Rigid 90", unitOfMeasure: "EA", isConsumable: false, sortOrder: 412,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  { category: "Rigid / IMC Fittings", name: "Rigid/IMC Locknut", lingo: "Locknut", unitOfMeasure: "EA", isConsumable: false, sortOrder: 413,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  { category: "Rigid / IMC Fittings", name: "Rigid/IMC Bushing", lingo: "Rigid Bushing", unitOfMeasure: "EA", isConsumable: false, sortOrder: 414,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  { category: "Rigid / IMC Fittings", name: "Grounding Bushing", lingo: "Grounding Bushing", unitOfMeasure: "EA", isConsumable: false, sortOrder: 415,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\"","2-1/2\"","3\"","4\""], required: true }] },
+  // FLEX CONDUIT FITTINGS
+  { category: "Flex Conduit Fittings", name: "Flex Connector", lingo: "Flex Conn", unitOfMeasure: "EA", isConsumable: false, sortOrder: 420,
+    variables: [
+      { key: "size", label: "Size", type: "select", options: ["3/8\"","1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\""], required: true },
+      { key: "angle", label: "Angle", type: "select", options: ["Straight","90 Degree"], required: true },
+    ] },
+  { category: "Flex Conduit Fittings", name: "Flex Combination Coupling", lingo: "Baldy/Changeover", unitOfMeasure: "EA", isConsumable: false, sortOrder: 421,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["3/8\"","1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\""], required: true }] },
+  // LIQUID TIGHT FITTINGS
+  { category: "Liquid Tight Fittings", name: "LT Connector Straight", lingo: "LT Straight", unitOfMeasure: "EA", isConsumable: false, sortOrder: 430,
+    variables: [
+      { key: "size", label: "Size", type: "select", options: ["3/8\"","1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\""], required: true },
+      { key: "type", label: "Type", type: "select", options: ["Metallic","Non-Metallic"], required: true },
+    ] },
+  { category: "Liquid Tight Fittings", name: "LT Connector 90", lingo: "LT 90", unitOfMeasure: "EA", isConsumable: false, sortOrder: 431,
+    variables: [
+      { key: "size", label: "Size", type: "select", options: ["3/8\"","1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\""], required: true },
+      { key: "type", label: "Type", type: "select", options: ["Metallic","Non-Metallic"], required: true },
+    ] },
+  { category: "Liquid Tight Fittings", name: "LT Connector 45", lingo: "LT 45", unitOfMeasure: "EA", isConsumable: false, sortOrder: 432,
+    variables: [{ key: "size", label: "Size", type: "select", options: ["3/8\"","1/2\"","3/4\"","1\"","1-1/4\"","1-1/2\"","2\""], required: true }] },
 ];
 
 async function seedStockItems() {

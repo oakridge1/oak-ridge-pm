@@ -650,7 +650,8 @@ model StockRequest {
   orderDate         DateTime  @default(now())
   createdAt         DateTime  @default(now())
   conductorGroupId  String?
-  saveToMasterList  Boolean   @default(false)
+  saveToMasterList      Boolean   @default(false)
+  isConsumableOverride  Boolean   @default(false)
   approvalRequestId String?
 
   job             Job                   @relation(fields: [jobId], references: [id], onDelete: Cascade)
