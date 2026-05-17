@@ -748,18 +748,18 @@ model Estimate {
 }
 
 model TakeoffDrawing {
-  id          String   @id @default(cuid())
-  estimateId  String
-  estimate    Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
-  name        String
-  pageCount   Int      @default(1)
-  currentPage Int      @default(1)
-  pxPerFoot   Float?
-  scaleSet    Boolean  @default(false)
-  markups     Json     @default("[]")
-  runTypes    Json     @default("[]")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  estimateId   String
+  estimate     Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  name         String
+  pageCount    Int      @default(1)
+  pdfData      String?  @db.Text
+  markups      Json     @default("[]")
+  runTypes     Json     @default("[]")
+  assemblies   Json     @default("[]")
+  pageScales   Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model CounterArea {

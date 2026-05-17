@@ -1,2069 +1,1172 @@
 "use client";
 
 import React, {
-  useState, useEffect, useRef, useCallback, useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
 } from "react";
-import {
-  Zap, X, ChevronLeft, ChevronRight, ChevronDown, Plus,
-  ExternalLink, AlertTriangle, Check, Save,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { STD_ITEMS, CAT_COLORS, CATEGORY_TABS } from "@/lib/takeoff-items";
+import { SYMBOLS as DRAW_SYMBOLS } from "@/lib/takeoff-symbols";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
+const BASE_SCALE = 1.5;
+const SCREEN_DPI = 96;
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 4.0;
+const AUTOSAVE_DELAY = 1500;
+const MARKER_SIZE = 22;
 
-export type PlacedSymbol = {
+// ── Scale presets ─────────────────────────────────────────────────────────────
+const SCALE_PRESETS: { label: string; feetPerInch: number }[] = [
+  { label: '1"=4\'',   feetPerInch: 4  },
+  { label: '1"=8\'',   feetPerInch: 8  },
+  { label: '1"=10\'',  feetPerInch: 10 },
+  { label: '1"=20\'',  feetPerInch: 20 },
+  { label: '1"=40\'',  feetPerInch: 40 },
+  { label: '1/8"=1\'', feetPerInch: 8  },
+  { label: '1/4"=1\'', feetPerInch: 4  },
+  { label: '1/2"=1\'', feetPerInch: 2  },
+  { label: '1"=24\'',  feetPerInch: 24 },
+  { label: '1"=48\'',  feetPerInch: 48 },
+];
+
+function pxPerFootFromPreset(feetPerInch: number): number {
+  return (SCREEN_DPI * BASE_SCALE) / feetPerInch;
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+type Mode = "count" | "run" | "pan";
+type SaveStatus = "saved" | "saving" | "unsaved";
+
+interface Pt { x: number; y: number }
+
+interface Markup {
   id: string;
-  type: string;
-  category: string;
-  x: number;
-  y: number;
-  size: number;
-  rotation: number;
-  color: string;
+  type: "symbol" | "run" | "endpoint";
+  page: number;
+  symId?: string;
+  x?: number;
+  y?: number;
+  size?: number;
+  color?: string;
+  rotation?: number;
+  itemKey?: string;
   label?: string;
-  showLabel: boolean;
-  assemblyId?: string;
-};
+  points?: Pt[];
+  footage?: number;
+  runTypeId?: string;
+  transferred?: boolean;
+  name?: string;
+}
 
-export type DrawnRun = {
+interface RunType {
   id: string;
-  points: Array<{ x: number; y: number }>;
-  footage: number;
-  category: "conduit" | "mc" | "wire";
-  conduitType?: string;
-  conduitSize?: string;
-  conductorCount?: number;
-  conductorSize?: string;
-  wireType?: string;
-  mcSize?: string;
-  circuits?: number;
+  category: "EMT" | "PVC" | "Rigid" | "MC" | "NM" | "Custom";
+  size: string;
+  conductors: { count: number; size: string; type: string; isGround: boolean }[];
+  material: "Cu" | "Al";
+  support: string;
+  makeup: number;
   difficulty: number;
-  includeJBox: boolean;
   color: string;
-  confirmed: boolean;
-  transferred: boolean;
   label: string;
-  fromEndpoint?: string;
-  toEndpoint?: string;
-};
+}
 
-export type TakeoffDrawingRow = {
+export interface SerializedDrawing {
   id: string;
   estimateId: string;
   name: string;
   pageCount: number;
-  currentPage: number;
-  pxPerFoot: number | null;
-  scaleSet: boolean;
-  markups: PlacedSymbol[];
-  runTypes: DrawnRun[];
+  pdfData: string | null;
+  markups: any[];
+  runTypes: any[];
+  assemblies: any[];
+  pageScales: Record<string, number>;
   createdAt: string;
   updatedAt: string;
-};
-
-type EstimateMin = {
-  id: string;
-  estimateNumber: string;
-  name: string;
-  laborRate: number;
-  bulkMarkup: number;
-  lightMarkup: number;
-  permitMarkup: number;
-  subMarkup: number;
-  overhead: number;
-  profit: number;
-  nonProd: number;
-  designFeePct: number;
-  conditionMult: number;
-  heightAdj: boolean;
-};
-
-interface Props {
-  estimate: EstimateMin;
-  initialDrawings: TakeoffDrawingRow[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SVG Symbol components (NFPA 70 / IEEE style)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const SVG_PROPS = { viewBox: "0 0 40 40", fill: "none", xmlns: "http://www.w3.org/2000/svg" };
-const S = ({ c = "white" }: { c?: string }) => ({ stroke: c, strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const });
-
-function DuplexReceptacle({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="12" stroke={color} strokeWidth="1.5" />
-      <line x1="8" y1="17" x2="32" y2="17" stroke={color} strokeWidth="1.5" />
-      <line x1="8" y1="23" x2="32" y2="23" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function GfciReceptacle({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="12" stroke={color} strokeWidth="1.5" />
-      <line x1="8" y1="17" x2="32" y2="17" stroke={color} strokeWidth="1.5" />
-      <line x1="8" y1="23" x2="32" y2="23" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="35" textAnchor="middle" fontSize="7" fill={color} fontFamily="monospace">GFI</text>
-    </svg>
-  );
-}
-function SinglePoleSwitch({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <line x1="12" y1="28" x2="28" y2="12" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="25" y1="10" x2="30" y2="15" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <text x="20" y="37" textAnchor="middle" fontSize="9" fill={color} fontFamily="monospace">S</text>
-    </svg>
-  );
-}
-function ThreeWaySwitch({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <line x1="12" y1="28" x2="28" y2="12" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="25" y1="10" x2="30" y2="15" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <text x="20" y="37" textAnchor="middle" fontSize="8" fill={color} fontFamily="monospace">S3</text>
-    </svg>
-  );
-}
-function FourWaySwitch({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <line x1="12" y1="28" x2="28" y2="12" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="25" y1="10" x2="30" y2="15" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <text x="20" y="37" textAnchor="middle" fontSize="8" fill={color} fontFamily="monospace">S4</text>
-    </svg>
-  );
-}
-function DimmerSwitch({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <line x1="12" y1="28" x2="28" y2="12" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="25" y1="10" x2="30" y2="15" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <text x="20" y="37" textAnchor="middle" fontSize="8" fill={color} fontFamily="monospace">SD</text>
-    </svg>
-  );
-}
-function OccupancySensor({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="12" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="24" textAnchor="middle" fontSize="9" fill={color} fontFamily="monospace">OS</text>
-    </svg>
-  );
-}
-function WeatherproofReceptacle({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="6" y="6" width="28" height="28" rx="4" stroke={color} strokeWidth="1.5" />
-      <circle cx="20" cy="18" r="8" stroke={color} strokeWidth="1.2" />
-      <line x1="10" y1="16" x2="30" y2="16" stroke={color} strokeWidth="1.2" />
-      <line x1="10" y1="20" x2="30" y2="20" stroke={color} strokeWidth="1.2" />
-      <text x="20" y="35" textAnchor="middle" fontSize="7" fill={color} fontFamily="monospace">WP</text>
-    </svg>
-  );
-}
-function WeatherproofSwitch({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="6" y="6" width="28" height="24" rx="3" stroke={color} strokeWidth="1.5" />
-      <line x1="12" y1="24" x2="24" y2="12" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="22" y1="11" x2="26" y2="15" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-      <text x="20" y="38" textAnchor="middle" fontSize="7" fill={color} fontFamily="monospace">WP</text>
-    </svg>
-  );
-}
-function CeilingFixture({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="14" stroke={color} strokeWidth="1.5" />
-      <line x1="9" y1="9" x2="31" y2="31" stroke={color} strokeWidth="1.5" />
-      <line x1="31" y1="9" x2="9" y2="31" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function RecessedLight({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="14" stroke={color} strokeWidth="1.5" />
-      <circle cx="20" cy="20" r="8" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function Fluorescent2x4({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="4" y="14" width="32" height="12" stroke={color} strokeWidth="1.5" />
-      <line x1="4" y1="18" x2="36" y2="18" stroke={color} strokeWidth="1" />
-      <line x1="4" y1="20" x2="36" y2="20" stroke={color} strokeWidth="1" />
-      <line x1="4" y1="22" x2="36" y2="22" stroke={color} strokeWidth="1" />
-    </svg>
-  );
-}
-function Fluorescent2x2({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="8" y="8" width="24" height="24" stroke={color} strokeWidth="1.5" />
-      <line x1="8" y1="17" x2="32" y2="17" stroke={color} strokeWidth="1" />
-      <line x1="8" y1="23" x2="32" y2="23" stroke={color} strokeWidth="1" />
-    </svg>
-  );
-}
-function StripLight({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="2" y="17" width="36" height="6" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function WallPack({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <path d="M8 28 A12 12 0 0 1 32 28 Z" stroke={color} strokeWidth="1.5" fill="none" />
-      <line x1="4" y1="28" x2="36" y2="28" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function ExitSign({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="5" y="12" width="30" height="16" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="24" textAnchor="middle" fontSize="8" fill={color} fontFamily="monospace" fontWeight="bold">EXIT</text>
-    </svg>
-  );
-}
-function HighBay({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="12" stroke={color} strokeWidth="1.5" />
-      <polygon points="20,28 14,16 26,16" stroke={color} strokeWidth="1" fill="none" />
-    </svg>
-  );
-}
-function CeilingFan({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="8" stroke={color} strokeWidth="1.5" />
-      <path d="M20 12 Q24 8 28 12 Q24 16 20 12" stroke={color} strokeWidth="1" fill="none" />
-      <path d="M28 20 Q32 24 28 28 Q24 24 28 20" stroke={color} strokeWidth="1" fill="none" />
-      <path d="M20 28 Q16 32 12 28 Q16 24 20 28" stroke={color} strokeWidth="1" fill="none" />
-      <path d="M12 20 Q8 16 12 12 Q16 16 12 20" stroke={color} strokeWidth="1" fill="none" />
-    </svg>
-  );
-}
-function SmokeDetector({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="12" stroke={color} strokeWidth="1.5" />
-      <line x1="8" y1="14" x2="32" y2="14" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="24" textAnchor="middle" fontSize="10" fill={color} fontFamily="monospace">S</text>
-    </svg>
-  );
-}
-function HeatDetector({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="20" cy="20" r="12" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="25" textAnchor="middle" fontSize="10" fill={color} fontFamily="monospace">H</text>
-    </svg>
-  );
-}
-function PullStation({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="10" y="10" width="20" height="20" stroke={color} strokeWidth="1.5" fill="none" />
-      <line x1="10" y1="10" x2="30" y2="30" stroke={color} strokeWidth="1" />
-      <line x1="30" y1="10" x2="10" y2="30" stroke={color} strokeWidth="1" />
-    </svg>
-  );
-}
-function HornStrobe({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <polygon points="8,8 32,20 8,32" stroke={color} strokeWidth="1.5" fill="none" />
-    </svg>
-  );
-}
-function Strobe({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <polyline points="20,4 14,20 20,20 14,36" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" />
-    </svg>
-  );
-}
-function DataPort({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="10" y="10" width="20" height="20" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="24" textAnchor="middle" fontSize="10" fill={color} fontFamily="monospace">D</text>
-      <line x1="30" y1="20" x2="38" y2="20" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function TelephonePort({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="10" y="10" width="20" height="20" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="24" textAnchor="middle" fontSize="10" fill={color} fontFamily="monospace">T</text>
-    </svg>
-  );
-}
-function PanelBoard({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="12" y="6" width="16" height="28" stroke={color} strokeWidth="1.5" />
-      <line x1="12" y1="12" x2="28" y2="12" stroke={color} strokeWidth="1" />
-      <line x1="12" y1="17" x2="28" y2="17" stroke={color} strokeWidth="1" />
-      <line x1="12" y1="22" x2="28" y2="22" stroke={color} strokeWidth="1" />
-      <line x1="12" y1="27" x2="28" y2="27" stroke={color} strokeWidth="1" />
-    </svg>
-  );
-}
-function Transformer({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <circle cx="16" cy="20" r="10" stroke={color} strokeWidth="1.5" />
-      <circle cx="24" cy="20" r="10" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function Disconnect({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="10" y="8" width="20" height="24" stroke={color} strokeWidth="1.5" />
-      <line x1="10" y1="8" x2="30" y2="32" stroke={color} strokeWidth="1.5" />
-      <line x1="30" y1="8" x2="10" y2="32" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function JunctionBox({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="8" y="8" width="24" height="24" stroke={color} strokeWidth="1.5" />
-    </svg>
-  );
-}
-function PullBox({ color = "white" }: { color?: string }) {
-  return (
-    <svg {...SVG_PROPS}>
-      <rect x="6" y="6" width="28" height="28" stroke={color} strokeWidth="1.5" />
-      <text x="20" y="24" textAnchor="middle" fontSize="8" fill={color} fontFamily="monospace">PB</text>
-    </svg>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Symbol registry
-// ─────────────────────────────────────────────────────────────────────────────
-
-type SymbolDef = { name: string; category: string; Component: React.FC<{ color?: string }> };
-
-const SYMBOLS: SymbolDef[] = [
-  // Devices
-  { name: "DuplexReceptacle", category: "Devices", Component: DuplexReceptacle },
-  { name: "GfciReceptacle", category: "Devices", Component: GfciReceptacle },
-  { name: "SinglePoleSwitch", category: "Devices", Component: SinglePoleSwitch },
-  { name: "ThreeWaySwitch", category: "Devices", Component: ThreeWaySwitch },
-  { name: "FourWaySwitch", category: "Devices", Component: FourWaySwitch },
-  { name: "DimmerSwitch", category: "Devices", Component: DimmerSwitch },
-  { name: "OccupancySensor", category: "Devices", Component: OccupancySensor },
-  { name: "WeatherproofReceptacle", category: "Devices", Component: WeatherproofReceptacle },
-  { name: "WeatherproofSwitch", category: "Devices", Component: WeatherproofSwitch },
-  // Fixtures
-  { name: "CeilingFixture", category: "Fixtures", Component: CeilingFixture },
-  { name: "RecessedLight", category: "Fixtures", Component: RecessedLight },
-  { name: "Fluorescent2x4", category: "Fixtures", Component: Fluorescent2x4 },
-  { name: "Fluorescent2x2", category: "Fixtures", Component: Fluorescent2x2 },
-  { name: "StripLight", category: "Fixtures", Component: StripLight },
-  { name: "WallPack", category: "Fixtures", Component: WallPack },
-  { name: "ExitSign", category: "Fixtures", Component: ExitSign },
-  { name: "HighBay", category: "Fixtures", Component: HighBay },
-  { name: "CeilingFan", category: "Fixtures", Component: CeilingFan },
-  // Fire
-  { name: "SmokeDetector", category: "Fire", Component: SmokeDetector },
-  { name: "HeatDetector", category: "Fire", Component: HeatDetector },
-  { name: "PullStation", category: "Fire", Component: PullStation },
-  { name: "HornStrobe", category: "Fire", Component: HornStrobe },
-  { name: "Strobe", category: "Fire", Component: Strobe },
-  // Data
-  { name: "DataPort", category: "Data", Component: DataPort },
-  { name: "TelephonePort", category: "Data", Component: TelephonePort },
-  // Panels
-  { name: "PanelBoard", category: "Panels", Component: PanelBoard },
-  { name: "Transformer", category: "Panels", Component: Transformer },
-  { name: "Disconnect", category: "Panels", Component: Disconnect },
-  // Boxes
-  { name: "JunctionBox", category: "Boxes", Component: JunctionBox },
-  { name: "PullBox", category: "Boxes", Component: PullBox },
-];
-
-const SYMBOL_CATEGORIES = ["Devices", "Fixtures", "Fire", "Data", "Panels", "Boxes"];
-
-const SYMBOL_LABELS: Record<string, string> = {
-  DuplexReceptacle: "Duplex Recept.",
-  GfciReceptacle: "GFCI Recept.",
-  SinglePoleSwitch: "SP Switch",
-  ThreeWaySwitch: "3-Way Switch",
-  FourWaySwitch: "4-Way Switch",
-  DimmerSwitch: "Dimmer",
-  OccupancySensor: "Occ. Sensor",
-  WeatherproofReceptacle: "WP Recept.",
-  WeatherproofSwitch: "WP Switch",
-  CeilingFixture: "Ceiling Fix.",
-  RecessedLight: "Recessed",
-  Fluorescent2x4: "2x4 Fluor.",
-  Fluorescent2x2: "2x2 Fluor.",
-  StripLight: "Strip Light",
-  WallPack: "Wall Pack",
-  ExitSign: "Exit Sign",
-  HighBay: "High Bay",
-  CeilingFan: "Ceiling Fan",
-  SmokeDetector: "Smoke Det.",
-  HeatDetector: "Heat Det.",
-  PullStation: "Pull Station",
-  HornStrobe: "Horn/Strobe",
-  Strobe: "Strobe",
-  DataPort: "Data Port",
-  TelephonePort: "Telephone",
-  PanelBoard: "Panel Board",
-  Transformer: "Transformer",
-  Disconnect: "Disconnect",
-  JunctionBox: "J-Box",
-  PullBox: "Pull Box",
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-function newId() {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function genId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-const PRESET_COLORS = [
-  "#ffffff", "#FF5910", "#002D72", "#22c55e", "#eab308",
-  "#ef4444", "#8b5cf6", "#06b6d4",
-];
+function midpoint(pts: Pt[]): Pt {
+  const mid = Math.floor(pts.length / 2);
+  if (pts.length === 1) return pts[0];
+  return { x: (pts[mid - 1].x + pts[mid].x) / 2, y: (pts[mid - 1].y + pts[mid].y) / 2 };
+}
 
-// PDF base render scale — always render at BASE_SCALE * zoom.
-// All markup coordinates are stored normalized to BASE_SCALE (zoom=1.0).
-// On render: display_x = stored_x * zoom, display_y = stored_y * zoom.
-// pxPerFoot is stored at BASE_SCALE/zoom=1 space.
-const BASE_SCALE = 1.5;
+function calcRunPixelDist(pts: Pt[]): number {
+  let d = 0;
+  for (let i = 1; i < pts.length; i++)
+    d += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  return d;
+}
 
-const SCALE_PRESETS: Array<{ label: string; pxPerFoot: number }> = [
-  { label: '1/8"=1\'', pxPerFoot: 96 },
-  { label: '1/4"=1\'', pxPerFoot: 192 },
-  { label: '3/8"=1\'', pxPerFoot: 288 },
-  { label: '1/2"=1\'', pxPerFoot: 384 },
-  { label: '1"=1\'', pxPerFoot: 768 },
-  { label: '1"=10\'', pxPerFoot: 76.8 },
-  { label: '1"=20\'', pxPerFoot: 38.4 },
-];
+function drawMarker(
+  ctx: CanvasRenderingContext2D,
+  symId: string, x: number, y: number, size: number, color: string, alpha = 1
+) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.beginPath(); ctx.arc(x, y, size * 0.7, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y, size * 0.7, 0, Math.PI * 2); ctx.stroke();
+  ctx.shadowColor = color; ctx.shadowBlur = 8;
+  const fn = DRAW_SYMBOLS[symId] ?? DRAW_SYMBOLS["dot"];
+  fn(ctx, x, y, size, color);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Component
-// ─────────────────────────────────────────────────────────────────────────────
+const DEFAULT_RUN_TYPE: RunType = {
+  id: "rt_default",
+  category: "EMT",
+  size: "3/4",
+  conductors: [
+    { count: 2, size: "#12", type: "THHN", isGround: false },
+    { count: 1, size: "#12", type: "GND",  isGround: true  },
+  ],
+  material: "Cu", support: "1-Hole Strap", makeup: 2, difficulty: 1.0,
+  color: "#f0a500", label: '3/4" EMT | 2×#12 THHN',
+};
 
-export function TakeoffClient({ estimate, initialDrawings }: Props) {
-  // ── Drawing list state
-  const [drawings, setDrawings] = useState<TakeoffDrawingRow[]>(initialDrawings);
+// ── Main Component ────────────────────────────────────────────────────────────
+export function TakeoffClient({
+  estimate,
+  initialDrawings,
+}: {
+  estimate: {
+    id: string; estimateNumber: string; name: string;
+    laborRate: number; bulkMarkup: number; lightMarkup: number;
+    permitMarkup: number; subMarkup: number; overhead: number; profit: number;
+    nonProd: number; designFeePct: number; conditionMult: number; heightAdj: boolean;
+  };
+  initialDrawings: SerializedDrawing[];
+}) {
+  const router = useRouter();
+  const estimateId = estimate.id;
+
+  // Drawings
+  const [drawings, setDrawings] = useState<SerializedDrawing[]>(initialDrawings);
   const [activeDrawingId, setActiveDrawingId] = useState<string | null>(
-    initialDrawings.length > 0 ? initialDrawings[0].id : null
+    initialDrawings[0]?.id ?? null
   );
 
-  const activeDrawing = useMemo(
-    () => drawings.find((d) => d.id === activeDrawingId) ?? null,
-    [drawings, activeDrawingId]
+  // PDF
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(
+    initialDrawings[0]?.pageCount ?? 1
   );
-
-  // Normalize legacy oversized symbols (stored size > 30 → 20 base units)
-  function normalizeMarkups(raw: PlacedSymbol[]): PlacedSymbol[] {
-    return raw.map((s) => s.size > 30 ? { ...s, size: 20 } : s);
-  }
-
-  // ── Annotation state for active drawing
-  const [markups, setMarkups] = useState<PlacedSymbol[]>(normalizeMarkups(activeDrawing?.markups ?? []));
-  const [runTypes, setRunTypes] = useState<DrawnRun[]>(activeDrawing?.runTypes ?? []);
-  const [pxPerFoot, setPxPerFoot] = useState<number | null>(activeDrawing?.pxPerFoot ?? null);
-  const [scaleSet, setScaleSet] = useState<boolean>(activeDrawing?.scaleSet ?? false);
-  const [currentPage, setCurrentPage] = useState<number>(activeDrawing?.currentPage ?? 1);
-  const [pageCount, setPageCount] = useState<number>(activeDrawing?.pageCount ?? 1);
-
-  // ── Tool state
-  const [mode, setMode] = useState<"count" | "run" | "pan">("count");
-  const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
-  const [symbolCategory, setSymbolCategory] = useState("Devices");
-  const [symbolColor, setSymbolColor] = useState("#ffffff");
-  const [selectedSymbolId, setSelectedSymbolId] = useState<string | null>(null);
-
-  // ── Run state
-  const [runCategory, setRunCategory] = useState<"conduit" | "mc" | "wire">("conduit");
-  const [conduitType, setConduitType] = useState("EMT");
-  const [conduitSize, setConduitSize] = useState("3/4");
-  const [conductorCount, setConductorCount] = useState(2);
-  const [conductorSize, setConductorSize] = useState("12");
-  const [wireType, setWireType] = useState("THHN");
-  const [mcSize, setMcSize] = useState("12/2");
-  const [circuits, setCircuits] = useState(1);
-  const [runDifficulty, setRunDifficulty] = useState(1.0);
-  const [runColor, setRunColor] = useState("#FF5910");
-  const [isDrawingRun, setIsDrawingRun] = useState(false);
-  const [runPoints, setRunPoints] = useState<Array<{ x: number; y: number }>>([]);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const [pendingRun, setPendingRun] = useState<DrawnRun | null>(null);
-  const [includeJBox, setIncludeJBox] = useState(false);
-
-  // ── Scale state
-  const [scaleMode, setScaleMode] = useState(false);
-  const [scalePoints, setScalePoints] = useState<Array<{ x: number; y: number }>>([]);
-  const [showScaleDialog, setShowScaleDialog] = useState(false);
-  const [scaleDist, setScaleDist] = useState(0);
-  const [scaleInputFt, setScaleInputFt] = useState("10");
-  const [scaleUnit, setScaleUnit] = useState<"ft" | "in">("ft");
-
-  // ── Canvas / PDF state
   const [pdfLoaded, setPdfLoaded] = useState(false);
-  const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const isPanningRef = useRef(false);  // ref mirrors state — always current in event handlers
-  const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
-  const spaceDown = useRef(false);
 
-  // Refs that mirror run state — always current in event handlers (avoids stale closures)
-  const isDrawingRunRef = useRef(false);
-  const runPointsRef = useRef<Array<{ x: number; y: number }>>([]);
-  // Keep refs in sync with state on every render
-  isDrawingRunRef.current = isDrawingRun;
-  runPointsRef.current = runPoints;
-
-  // ── Save state
-  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Audit panel
+  // Mode & UI
+  const [mode, setMode] = useState<Mode>("count");
+  const [zoom, setZoomState] = useState(1.0);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  const [scaleBannerVisible, setScaleBannerVisible] = useState(false);
   const [auditOpen, setAuditOpen] = useState(true);
-  const [leftOpen, setLeftOpen] = useState(true);
+  const [leftPanelTab, setLeftPanelTab] = useState("devices");
 
-  // ── Drawing name dialog (new drawing via dropdown)
-  const [showNewDrawingDialog, setShowNewDrawingDialog] = useState(false);
-  const [newDrawingName, setNewDrawingName] = useState("");
-  const [showDrawingDropdown, setShowDrawingDropdown] = useState(false);
+  // COUNT
+  const [selectedItemKey, setSelectedItemKey] = useState("recept_20a");
+  const [selectedColor, setSelectedColor] = useState("#e03a3a");
 
-  // ── PDF upload → name-prompt flow
-  const [pendingPdfFile, setPendingPdfFile] = useState<File | null>(null);
-  const [showUploadNameDialog, setShowUploadNameDialog] = useState(false);
-  const [uploadDrawingName, setUploadDrawingName] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // RUN
+  const [runTypes, setRunTypes] = useState<RunType[]>(() => {
+    const rt = initialDrawings[0]?.runTypes ?? [];
+    return rt.length > 0 ? (rt as RunType[]) : [DEFAULT_RUN_TYPE];
+  });
+  const [activeRunTypeId, setActiveRunTypeId] = useState<string>(() => {
+    const rt = initialDrawings[0]?.runTypes ?? [];
+    return rt.length > 0 ? (rt[0] as RunType).id : DEFAULT_RUN_TYPE.id;
+  });
+  const [runInProgress, setRunInProgress] = useState<Pt[]>([]);
+  const [orthoSnap, setOrthoSnap] = useState(true);
 
-  // ── Confirm run dialog
-  const [showRunConfirm, setShowRunConfirm] = useState(false);
+  // Markups
+  const [markups, setMarkups] = useState<Markup[]>(() =>
+    (initialDrawings[0]?.markups ?? []) as Markup[]
+  );
 
-  // ── Context menu
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; symbolId: string } | null>(null);
+  // Scale
+  const [pageScales, setPageScales] = useState<Record<string, number>>(
+    initialDrawings[0]?.pageScales ?? {}
+  );
+  const [measuringActive, setMeasuringActive] = useState(false);
+  const [measurePt1, setMeasurePt1] = useState<Pt | null>(null);
+  const [measurePixelDist, setMeasurePixelDist] = useState(0);
+  const [showMeasureModal, setShowMeasureModal] = useState(false);
+  const [measureDistInput, setMeasureDistInput] = useState("");
 
   // Refs
   const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pdfJsLoadedRef = useRef(false);
-  // Tracks the active pdf.js render task — cancelled before every new render to prevent
-  // concurrent renders from racing and writing stale pixels over each other
+  const markupCanvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const pdfDocRef = useRef<any>(null);
   const renderTaskRef = useRef<any>(null);
+  const pdfjsRef = useRef<any>(null);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const panRef = useRef<{ x: number; y: number; sl: number; st: number } | null>(null);
+  const spaceHeld = useRef(false);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Switch drawing — save current, load new
-  // ─────────────────────────────────────────────────────────────────────────
+  // Stable refs (avoid stale closures in event listeners)
+  const zoomRef = useRef(zoom);
+  const pageScalesRef = useRef(pageScales);
+  const markupsRef = useRef(markups);
+  const currentPageRef = useRef(currentPage);
+  const modeRef = useRef(mode);
+  const runInProgressRef = useRef(runInProgress);
+  const orthoSnapRef = useRef(orthoSnap);
+  const measuringActiveRef = useRef(measuringActive);
+  const measurePt1Ref = useRef(measurePt1);
 
-  async function switchDrawing(id: string) {
-    if (id === activeDrawingId) return;
-    // Save current drawing first
-    if (activeDrawingId) {
-      await saveDrawing(activeDrawingId, markups, runTypes, pxPerFoot, scaleSet, currentPage, pageCount);
-    }
-    const target = drawings.find((d) => d.id === id);
-    if (!target) return;
-    setActiveDrawingId(id);
-    setMarkups(normalizeMarkups(target.markups ?? []));
-    setRunTypes(target.runTypes ?? []);
-    setPxPerFoot(target.pxPerFoot ?? null);
-    setScaleSet(target.scaleSet ?? false);
-    setCurrentPage(target.currentPage ?? 1);
-    setPageCount(target.pageCount ?? 1);
-    setPdfLoaded(false);
-    setPdfDoc(null);
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-    setSelectedSymbolId(null);
-    setIsDrawingRun(false);
-    setRunPoints([]);
-  }
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { pageScalesRef.current = pageScales; }, [pageScales]);
+  useEffect(() => { markupsRef.current = markups; }, [markups]);
+  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { runInProgressRef.current = runInProgress; }, [runInProgress]);
+  useEffect(() => { orthoSnapRef.current = orthoSnap; }, [orthoSnap]);
+  useEffect(() => { measuringActiveRef.current = measuringActive; }, [measuringActive]);
+  useEffect(() => { measurePt1Ref.current = measurePt1; }, [measurePt1]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Save to DB
-  // ─────────────────────────────────────────────────────────────────────────
-
-  async function saveDrawing(
-    id: string,
-    m: PlacedSymbol[],
-    r: DrawnRun[],
-    ppf: number | null,
-    ss: boolean,
-    cp: number,
-    pc: number
-  ) {
-    setSaveStatus("saving");
-    try {
-      await fetch(`/api/takeoff-drawings/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markups: m, runTypes: r, pxPerFoot: ppf, scaleSet: ss, currentPage: cp, pageCount: pc }),
-      });
-      setSaveStatus("saved");
-      setDrawings((prev) =>
-        prev.map((d) =>
-          d.id === id ? { ...d, markups: m, runTypes: r, pxPerFoot: ppf, scaleSet: ss, currentPage: cp, pageCount: pc } : d
-        )
-      );
-    } catch {
-      setSaveStatus("unsaved");
-    }
-  }
-
-  const scheduleSave = useCallback(() => {
-    setSaveStatus("unsaved");
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      if (activeDrawingId) {
-        saveDrawing(activeDrawingId, markups, runTypes, pxPerFoot, scaleSet, currentPage, pageCount);
-      }
-    }, 1500);
-  }, [activeDrawingId, markups, runTypes, pxPerFoot, scaleSet, currentPage, pageCount]);
-
-  // Trigger save on annotation changes
-  const isFirstRender = useRef(true);
+  // ── Load PDF.js ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
-    if (!activeDrawingId) return;
-    scheduleSave();
-  }, [markups, runTypes, pxPerFoot, scaleSet]);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Load pdf.js from CDN
-  // ─────────────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (pdfJsLoadedRef.current) return;
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    script.onload = () => {
-      (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+    if ((window as any).pdfjsLib) {
+      pdfjsRef.current = (window as any).pdfjsLib;
+      tryAutoLoad();
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload = () => {
+      const lib = (window as any).pdfjsLib;
+      lib.GlobalWorkerOptions.workerSrc =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      pdfJsLoadedRef.current = true;
+      pdfjsRef.current = lib;
+      tryAutoLoad();
     };
-    document.head.appendChild(script);
+    document.head.appendChild(s);
+    return () => { if (document.head.contains(s)) document.head.removeChild(s); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Render PDF page to canvas
-  // ─────────────────────────────────────────────────────────────────────────
+  function tryAutoLoad() {
+    const drawing = initialDrawings.find(d => d.id === activeDrawingId);
+    if (drawing?.pdfData) loadPDFFromBase64(drawing.pdfData);
+  }
 
-  useEffect(() => {
-    if (!pdfDoc || !pdfCanvasRef.current) return;
+  // ── PDF rendering ─────────────────────────────────────────────────────────
+  async function loadPDFFromBase64(b64: string) {
+    const lib = pdfjsRef.current;
+    if (!lib) { setTimeout(() => loadPDFFromBase64(b64), 300); return; }
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    try {
+      const doc = await lib.getDocument({ data: bytes }).promise;
+      pdfDocRef.current = doc;
+      setTotalPages(doc.numPages);
+      setPdfLoaded(true);
+      await renderPage(1, zoomRef.current);
+      const pxpf = pageScalesRef.current["1"];
+      setScaleBannerVisible(!pxpf);
+    } catch (err) { console.error("PDF load error", err); }
+  }
 
-    // Cancel any in-progress render before starting a new one.
-    // Without this, changing zoom rapidly causes two pdf.js render tasks to write
-    // to the same canvas simultaneously, producing torn/mirrored frames.
-    if (renderTaskRef.current) {
-      try { renderTaskRef.current.cancel(); } catch { /* ignore */ }
-      renderTaskRef.current = null;
-    }
+  const renderPage = useCallback(async (pageNum: number, z: number) => {
+    const doc = pdfDocRef.current;
+    if (!doc) return;
+    if (renderTaskRef.current) { try { renderTaskRef.current.cancel(); } catch {} }
+    const page = await doc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: BASE_SCALE * z });
+    const pdfC = pdfCanvasRef.current;
+    const mkC = markupCanvasRef.current;
+    if (!pdfC || !mkC) return;
+    pdfC.width = viewport.width; pdfC.height = viewport.height;
+    mkC.width = viewport.width;  mkC.height = viewport.height;
+    const ctx = pdfC.getContext("2d")!;
+    const task = page.render({ canvasContext: ctx, viewport });
+    renderTaskRef.current = task;
+    try { await task.promise; redrawAll(pageNum, z, null); } catch {}
+  }, []); // eslint-disable-line
 
-    let cancelled = false;
+  // ── Redraw markup canvas ──────────────────────────────────────────────────
+  const redrawAll = useCallback(
+    (page: number, z: number, cursor: Pt | null) => {
+      const canvas = markupCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d")!;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    (async () => {
-      try {
-        const page = await pdfDoc.getPage(currentPage);
-        if (cancelled) return;
-
-        // Viewport at BASE_SCALE * zoom — must be created fresh every render
-        const viewport = page.getViewport({ scale: BASE_SCALE * zoom });
-
-        // Use Math.floor so canvas pixel dimensions are always whole integers.
-        // Fractional dimensions cause the browser to interpolate the canvas buffer
-        // which distorts or flips text when combined with devicePixelRatio scaling.
-        const w = Math.floor(viewport.width);
-        const h = Math.floor(viewport.height);
-
-        const pdfCanvas = pdfCanvasRef.current!;
-
-        // Setting width/height attributes resets the canvas bitmap and clears it —
-        // do this before getting the context so we start with a clean slate.
-        pdfCanvas.width  = w;
-        pdfCanvas.height = h;
-
-        // Match the overlay canvas exactly — must happen before drawOverlay()
-        const overlay = overlayCanvasRef.current;
-        if (overlay) {
-          overlay.width  = w;
-          overlay.height = h;
-          // Explicit clear after resize (belt-and-suspenders)
-          const oc = overlay.getContext("2d");
-          if (oc) oc.clearRect(0, 0, w, h);
-        }
-
-        const ctx = pdfCanvas.getContext("2d")!;
-        // Explicit clear — ensures no stale pixels from a previous page/zoom remain
-        ctx.clearRect(0, 0, w, h);
-        // Never apply a scale or flip transform here — pdf.js manages its own transform
-
-        const task = page.render({ canvasContext: ctx, viewport });
-        renderTaskRef.current = task;
-        await task.promise;
-        renderTaskRef.current = null;
-
-        if (!cancelled) {
-          drawOverlay();
-        }
-      } catch (err: any) {
-        // RenderingCancelledException is expected when we cancel — suppress it
-        if (err?.name !== "RenderingCancelledException") {
-          console.error("[takeoff] pdf render error:", err);
+      for (const m of markupsRef.current) {
+        if (m.page !== page) continue;
+        if (m.type === "symbol" && m.x != null && m.y != null) {
+          drawMarker(ctx, m.symId ?? "dot", m.x * z, m.y * z, (m.size ?? MARKER_SIZE) * z, m.color ?? "#e03a3a");
+        } else if (m.type === "run" && m.points && m.points.length >= 2) {
+          const pts = m.points.map(p => ({ x: p.x * z, y: p.y * z }));
+          drawRun(ctx, pts, m.color ?? "#f0a500", m.footage ?? 0, m.transferred ?? false);
+        } else if (m.type === "endpoint" && m.x != null && m.y != null) {
+          drawEndpoint(ctx, m.x * z, m.y * z, m.name ?? "EP");
         }
       }
-    })();
 
-    return () => {
-      cancelled = true;
-      if (renderTaskRef.current) {
-        try { renderTaskRef.current.cancel(); } catch { /* ignore */ }
-        renderTaskRef.current = null;
-      }
-    };
-  }, [pdfDoc, currentPage, zoom]);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Draw overlay canvas (symbols + runs + scale handles)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // Convert base-scale (zoom=1) coords → display (canvas) coords
-  function toCanvas(baseX: number, baseY: number) {
-    return { cx: baseX * zoom, cy: baseY * zoom };
-  }
-
-  const drawOverlay = useCallback(() => {
-    const canvas = overlayCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw placed symbols (stored coords are in base space; multiply by zoom for display)
-    for (const sym of markups) {
-      const { cx, cy } = toCanvas(sym.x, sym.y);
-      const displaySize = sym.size * zoom;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate((sym.rotation * Math.PI) / 180);
-      drawSymbolToCanvas(ctx, sym.type, displaySize, sym.color);
-      if (sym.showLabel) {
-        ctx.fillStyle = sym.color;
-        ctx.font = `${Math.max(10, displaySize * 0.25)}px monospace`;
-        ctx.textAlign = "center";
-        ctx.fillText(sym.label ?? SYMBOL_LABELS[sym.type] ?? sym.type, 0, displaySize / 2 + 12);
-      }
-      if (sym.id === selectedSymbolId) {
-        ctx.strokeStyle = "#FF5910";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-displaySize / 2 - 2, -displaySize / 2 - 2, displaySize + 4, displaySize + 4);
-      }
-      ctx.restore();
-    }
-
-    // Draw confirmed runs (stored in base coords; multiply by zoom for display)
-    for (const run of runTypes) {
-      if (run.points.length < 2) continue;
-      ctx.save();
-      ctx.strokeStyle = run.color;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(run.points[0].x * zoom, run.points[0].y * zoom);
-      for (let i = 1; i < run.points.length; i++) {
-        ctx.lineTo(run.points[i].x * zoom, run.points[i].y * zoom);
-      }
-      ctx.stroke();
-      const mid = run.points[Math.floor(run.points.length / 2)];
-      ctx.fillStyle = run.color;
-      ctx.font = "11px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText(`${run.footage.toFixed(1)} ft`, mid.x * zoom, mid.y * zoom - 6);
-      ctx.restore();
-    }
-
-    // Draw in-progress run
-    if (isDrawingRun && runPoints.length > 0) {
-      ctx.save();
-      ctx.strokeStyle = runColor;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      ctx.moveTo(runPoints[0].x, runPoints[0].y);
-      for (let i = 1; i < runPoints.length; i++) {
-        ctx.lineTo(runPoints[i].x, runPoints[i].y);
-      }
-      if (mousePos) {
-        const last = runPoints[runPoints.length - 1];
-        const snapped = snapPoint(last, mousePos);
-        ctx.lineTo(snapped.x, snapped.y);
-      }
-      ctx.stroke();
-      // Draw waypoint dots
-      for (const pt of runPoints) {
-        ctx.fillStyle = runColor;
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
-    // Draw scale points
-    if (scaleMode && scalePoints.length > 0) {
-      ctx.save();
-      for (const pt of scalePoints) {
-        ctx.fillStyle = "#FF5910";
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      if (scalePoints.length === 2) {
-        ctx.strokeStyle = "#FF5910";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(scalePoints[0].x, scalePoints[0].y);
-        ctx.lineTo(scalePoints[1].x, scalePoints[1].y);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-  }, [markups, runTypes, isDrawingRun, runPoints, mousePos, runColor, selectedSymbolId, scaleMode, scalePoints, zoom]);
-
-  // Redraw overlay whenever state changes
-  useEffect(() => {
-    drawOverlay();
-  }, [drawOverlay]);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Canvas symbol rendering (simplified)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function drawSymbolToCanvas(ctx: CanvasRenderingContext2D, type: string, size: number, color: string) {
-    const half = size / 2;
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    switch (type) {
-      case "DuplexReceptacle":
-      case "GfciReceptacle":
-      case "WeatherproofReceptacle":
-        ctx.beginPath();
-        ctx.arc(0, 0, half * 0.85, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-half * 0.85, -half * 0.25);
-        ctx.lineTo(half * 0.85, -half * 0.25);
-        ctx.moveTo(-half * 0.85, half * 0.25);
-        ctx.lineTo(half * 0.85, half * 0.25);
-        ctx.stroke();
-        break;
-      case "SinglePoleSwitch":
-      case "ThreeWaySwitch":
-      case "FourWaySwitch":
-      case "DimmerSwitch":
-      case "WeatherproofSwitch":
-        ctx.beginPath();
-        ctx.moveTo(-half * 0.6, half * 0.6);
-        ctx.lineTo(half * 0.6, -half * 0.6);
-        ctx.moveTo(half * 0.3, -half * 0.8);
-        ctx.lineTo(half * 0.8, -half * 0.3);
-        ctx.stroke();
-        break;
-      case "CeilingFixture":
-        ctx.beginPath();
-        ctx.arc(0, 0, half * 0.9, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-half * 0.7, -half * 0.7);
-        ctx.lineTo(half * 0.7, half * 0.7);
-        ctx.moveTo(half * 0.7, -half * 0.7);
-        ctx.lineTo(-half * 0.7, half * 0.7);
-        ctx.stroke();
-        break;
-      case "RecessedLight":
-        ctx.beginPath();
-        ctx.arc(0, 0, half * 0.9, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, 0, half * 0.5, 0, Math.PI * 2);
-        ctx.stroke();
-        break;
-      case "PanelBoard":
-        ctx.strokeRect(-half * 0.5, -half, half, size);
-        for (let i = 1; i <= 4; i++) {
-          ctx.beginPath();
-          ctx.moveTo(-half * 0.5, -half + i * (size / 5));
-          ctx.lineTo(half * 0.5, -half + i * (size / 5));
-          ctx.stroke();
+      // In-progress run
+      const rip = runInProgressRef.current;
+      if (rip.length > 0) {
+        const pts = rip.map(p => ({ x: p.x * z, y: p.y * z }));
+        ctx.save();
+        ctx.strokeStyle = "#FF5910"; ctx.lineWidth = 2.5; ctx.setLineDash([6, 3]);
+        ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        if (cursor) ctx.lineTo(cursor.x * z, cursor.y * z);
+        ctx.stroke(); ctx.setLineDash([]);
+        for (const p of pts) {
+          ctx.fillStyle = "#FF5910"; ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
         }
-        break;
-      case "JunctionBox":
-        ctx.strokeRect(-half * 0.7, -half * 0.7, size * 0.7, size * 0.7);
-        break;
-      case "PullBox":
-        ctx.strokeRect(-half * 0.85, -half * 0.85, size * 0.85, size * 0.85);
-        break;
-      default:
-        // Fallback: circle
-        ctx.beginPath();
-        ctx.arc(0, 0, half * 0.7, 0, Math.PI * 2);
-        ctx.stroke();
-        break;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Snap point logic (orthogonal)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function snapPoint(last: { x: number; y: number }, cur: { x: number; y: number }, shiftHeld = false) {
-    if (shiftHeld) return cur;
-    const dx = Math.abs(cur.x - last.x);
-    const dy = Math.abs(cur.y - last.y);
-    if (dx > dy) return { x: cur.x, y: last.y };
-    return { x: last.x, y: cur.y };
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Overlay canvas mouse events
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function getCanvasPos(e: React.MouseEvent<HTMLCanvasElement>) {
-    const rect = overlayCanvasRef.current!.getBoundingClientRect();
-    const scaleX = overlayCanvasRef.current!.width / rect.width;
-    const scaleY = overlayCanvasRef.current!.height / rect.height;
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
-  }
-
-  // x, y are display (canvas) coords; symbol positions are in base space
-  function hitTestSymbol(x: number, y: number): PlacedSymbol | null {
-    for (let i = markups.length - 1; i >= 0; i--) {
-      const s = markups[i];
-      const cx = s.x * zoom;
-      const cy = s.y * zoom;
-      const half = (s.size * zoom) / 2;
-      if (x >= cx - half && x <= cx + half && y >= cy - half && y <= cy + half) {
-        return s;
+        ctx.restore();
       }
+
+      // Measure line
+      const mp1 = measurePt1Ref.current;
+      if (mp1 && measuringActiveRef.current) {
+        ctx.save();
+        ctx.strokeStyle = "#f0a500"; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(mp1.x * z, mp1.y * z);
+        if (cursor) ctx.lineTo(cursor.x * z, cursor.y * z);
+        ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = "#f0a500"; ctx.beginPath();
+        ctx.arc(mp1.x * z, mp1.y * z, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+    },
+    [] // eslint-disable-line
+  );
+
+  function drawRun(ctx: CanvasRenderingContext2D, pts: Pt[], color: string, footage: number, transferred: boolean) {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 3;
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.shadowColor = color; ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke(); ctx.shadowBlur = 0;
+    for (const p of [pts[0], pts[pts.length - 1]]) {
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.stroke();
     }
-    return null;
+    if (footage > 0) {
+      const mp = midpoint(pts);
+      const lw = transferred ? 58 : 48;
+      ctx.fillStyle = "rgba(0,0,0,0.75)"; ctx.fillRect(mp.x - lw / 2, mp.y - 10, lw, 20);
+      ctx.fillStyle = transferred ? "#2db562" : color;
+      ctx.font = 'bold 11px "JetBrains Mono", monospace';
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(footage + "ft" + (transferred ? " ✓" : ""), mp.x, mp.y);
+    }
+    ctx.restore();
   }
 
-  const isDraggingSymbol = useRef(false);
-  const dragSymbolId = useRef<string | null>(null);
-  const dragOffset = useRef({ dx: 0, dy: 0 });
+  function drawEndpoint(ctx: CanvasRenderingContext2D, x: number, y: number, name: string) {
+    ctx.save();
+    const w = Math.max(32, name.length * 8 + 12);
+    ctx.fillStyle = "#002D72"; ctx.strokeStyle = "#3a8fe8"; ctx.lineWidth = 2;
+    ctx.fillRect(x - w / 2, y - 12, w, 24); ctx.strokeRect(x - w / 2, y - 12, w, 24);
+    ctx.fillStyle = "#e8eaed";
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(name, x, y);
+    ctx.restore();
+  }
 
-  function handleOverlayMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
-    // Pan: middle mouse, spacebar+drag, or pan mode
-    const isPanTrigger = e.button === 1 || (e.button === 0 && spaceDown.current) || (e.button === 0 && mode === "pan");
-    if (isPanTrigger) {
-      isPanningRef.current = true;
-      setIsPanning(true);
-      panStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
+  // ── Zoom ──────────────────────────────────────────────────────────────────
+  function applyZoom(delta: number) {
+    setZoomState(prev => {
+      const next = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, prev + delta));
+      zoomRef.current = next;
+      if (pdfDocRef.current) renderPage(currentPageRef.current, next);
+      return next;
+    });
+  }
+
+  function zoomFit() {
+    const wrap = canvasWrapRef.current;
+    const pdfC = pdfCanvasRef.current;
+    if (!wrap || !pdfC || !pdfC.width) return;
+    const nW = pdfC.width / zoomRef.current;
+    const nH = pdfC.height / zoomRef.current;
+    const next = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX,
+      Math.min((wrap.clientWidth / nW) * 0.95, (wrap.clientHeight / nH) * 0.95)
+    ));
+    zoomRef.current = next; setZoomState(next);
+    if (pdfDocRef.current) renderPage(currentPageRef.current, next);
+  }
+
+  // ── Page nav ──────────────────────────────────────────────────────────────
+  function goPage(delta: number) {
+    setCurrentPage(prev => {
+      const next = Math.max(1, Math.min(totalPages, prev + delta));
+      currentPageRef.current = next;
+      if (pdfDocRef.current) renderPage(next, zoomRef.current);
+      setScaleBannerVisible(!pageScalesRef.current[String(next)]);
+      return next;
+    });
+  }
+
+  // ── Canvas position helpers ───────────────────────────────────────────────
+  function getCanvasPos(e: React.MouseEvent): Pt {
+    const rect = markupCanvasRef.current!.getBoundingClientRect();
+    return { x: (e.clientX - rect.left) / zoomRef.current, y: (e.clientY - rect.top) / zoomRef.current };
+  }
+
+  function orthoConstrain(from: Pt, to: Pt): Pt {
+    const dx = Math.abs(to.x - from.x), dy = Math.abs(to.y - from.y);
+    return dx >= dy ? { x: to.x, y: from.y } : { x: from.x, y: to.y };
+  }
+
+  // ── Canvas events ─────────────────────────────────────────────────────────
+  function handleClick(e: React.MouseEvent) {
+    if (e.button !== 0) return;
+    const pos = getCanvasPos(e);
+    if (measuringActiveRef.current) { handleMeasureClick(pos); return; }
+    if (modeRef.current === "pan" || spaceHeld.current) return;
+    if (modeRef.current === "count") handleCountClick(pos);
+    else if (modeRef.current === "run") handleRunClick(pos, e.shiftKey);
+  }
+
+  function handleDblClick(e: React.MouseEvent) {
+    if (modeRef.current === "run" && runInProgressRef.current.length >= 2) {
+      finishRun(); e.preventDefault();
+    }
+  }
+
+  function handleRightClick(e: React.MouseEvent) {
+    e.preventDefault();
+    if (modeRef.current === "run") {
+      const rip = runInProgressRef.current;
+      const next = rip.length > 1 ? rip.slice(0, -1) : [];
+      setRunInProgress(next); runInProgressRef.current = next;
+      redrawAll(currentPageRef.current, zoomRef.current, null);
+    }
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (panRef.current) {
+      const w = canvasWrapRef.current!;
+      w.scrollLeft = panRef.current.sl - (e.clientX - panRef.current.x);
+      w.scrollTop  = panRef.current.st - (e.clientY - panRef.current.y);
+      return;
+    }
+    const pos = getCanvasPos(e);
+    let sp = pos;
+    if (modeRef.current === "run" && orthoSnapRef.current) {
+      const rip = runInProgressRef.current;
+      if (rip.length > 0) sp = orthoConstrain(rip[rip.length - 1], pos);
+    }
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, sp));
+  }
+
+  function handleMouseDown(e: React.MouseEvent) {
+    if (e.button === 1 || modeRef.current === "pan" || spaceHeld.current) {
       e.preventDefault();
-      return;
-    }
-    if (e.button !== 0) return; // only handle left click below
-
-    const pos = getCanvasPos(e);
-
-    // Scale mode — two-point calibration
-    if (scaleMode) {
-      const newPts = [...scalePoints, pos];
-      setScalePoints(newPts);
-      if (newPts.length === 2) {
-        const dx = newPts[1].x - newPts[0].x;
-        const dy = newPts[1].y - newPts[0].y;
-        setScaleDist(Math.sqrt(dx * dx + dy * dy));
-        setShowScaleDialog(true);
-        setScaleMode(false);
-      }
-      return;
-    }
-
-    if (mode === "count") {
-      const hit = hitTestSymbol(pos.x, pos.y);
-      if (hit) {
-        setSelectedSymbolId(hit.id);
-        isDraggingSymbol.current = true;
-        dragSymbolId.current = hit.id;
-        dragOffset.current = { dx: pos.x - hit.x * zoom, dy: pos.y - hit.y * zoom };
-      } else {
-        setSelectedSymbolId(null);
-        if (activeSymbol) {
-          const sym: PlacedSymbol = {
-            id: newId(),
-            type: activeSymbol,
-            category: SYMBOLS.find((s) => s.name === activeSymbol)?.category ?? "Devices",
-            x: pos.x / zoom,
-            y: pos.y / zoom,
-            size: 20,           // base units — rendered as 20 * zoom px
-            rotation: 0,
-            color: symbolColor,
-            showLabel: true,
-          };
-          setMarkups((prev) => [...prev, sym]);
-        }
-      }
-    }
-
-    if (mode === "run") {
-      if (!isDrawingRunRef.current) {
-        // First click starts the run
-        isDrawingRunRef.current = true;
-        setIsDrawingRun(true);
-        runPointsRef.current = [pos];
-        setRunPoints([pos]);
-      } else {
-        // Subsequent clicks add waypoints (skip — handled with delay to avoid dblclick conflict)
-        const last = runPointsRef.current[runPointsRef.current.length - 1];
-        const snapped = snapPoint(last, pos, e.shiftKey);
-        runPointsRef.current = [...runPointsRef.current, snapped];
-        setRunPoints(runPointsRef.current);
-      }
+      const w = canvasWrapRef.current!;
+      panRef.current = { x: e.clientX, y: e.clientY, sl: w.scrollLeft, st: w.scrollTop };
     }
   }
+  function handleMouseUp() { panRef.current = null; }
 
-  function handleOverlayMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
-    const pos = getCanvasPos(e);
-    setMousePos(pos);
-
-    // Use ref (not state) — always current during a drag gesture
-    if (isPanningRef.current && panStart.current) {
-      setPan({
-        x: panStart.current.px + (e.clientX - panStart.current.mx),
-        y: panStart.current.py + (e.clientY - panStart.current.my),
-      });
-      return;
-    }
-
-    if (isDraggingSymbol.current && dragSymbolId.current) {
-      // Convert display drag position back to base coords
-      setMarkups((prev) =>
-        prev.map((s) =>
-          s.id === dragSymbolId.current
-            ? {
-                ...s,
-                x: (pos.x - dragOffset.current.dx) / zoom,
-                y: (pos.y - dragOffset.current.dy) / zoom,
-              }
-            : s
-        )
-      );
-    }
+  // ── COUNT mode ────────────────────────────────────────────────────────────
+  function handleCountClick(pos: Pt) {
+    const item = STD_ITEMS.find(i => i.key === selectedItemKey);
+    if (!item) return;
+    const m: Markup = {
+      id: genId(), type: "symbol", page: currentPageRef.current,
+      symId: item.symId, x: pos.x, y: pos.y, size: MARKER_SIZE,
+      color: selectedColor, rotation: 0, itemKey: item.key,
+    };
+    setMarkups(prev => {
+      const next = [...prev, m]; markupsRef.current = next;
+      scheduleAutosave({ markups: next }); return next;
+    });
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
   }
 
-  function handleOverlayMouseUp(e: React.MouseEvent<HTMLCanvasElement>) {
-    isPanningRef.current = false;
-    setIsPanning(false);
-    panStart.current = null;
-    if (isDraggingSymbol.current) {
-      isDraggingSymbol.current = false;
-      dragSymbolId.current = null;
-    }
+  // ── RUN mode ──────────────────────────────────────────────────────────────
+  function handleRunClick(pos: Pt, shift: boolean) {
+    const snap = orthoSnapRef.current && !shift;
+    let sp = pos;
+    const rip = runInProgressRef.current;
+    if (snap && rip.length > 0) sp = orthoConstrain(rip[rip.length - 1], pos);
+    const next = [...rip, sp];
+    setRunInProgress(next); runInProgressRef.current = next;
+    redrawAll(currentPageRef.current, zoomRef.current, sp);
   }
-
-  function handleOverlayDoubleClick(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (mode === "run" && isDrawingRunRef.current) {
-      // Double-click fires AFTER two mousedown events, so runPointsRef has 2 extra
-      // points from those mousedowns. Remove the last one (second click of dblclick)
-      // so we don't add a spurious waypoint at the end.
-      const pts = runPointsRef.current;
-      const trimmed = pts.length > 1 ? pts.slice(0, -1) : pts;
-      if (trimmed.length >= 2) {
-        runPointsRef.current = trimmed;
-        setRunPoints(trimmed);
-        // Small delay lets state settle before finishRun reads runPointsRef
-        setTimeout(() => finishRun(), 0);
-      }
-    }
-  }
-
-  function handleOverlayContextMenu(e: React.MouseEvent<HTMLCanvasElement>) {
-    e.preventDefault();
-    const pos = getCanvasPos(e);
-    const hit = hitTestSymbol(pos.x, pos.y);
-    if (hit) {
-      setCtxMenu({ x: e.clientX, y: e.clientY, symbolId: hit.id });
-    }
-  }
-
-  function handleOverlayWheel(e: React.WheelEvent<HTMLCanvasElement>) {
-    e.preventDefault();
-    // 2% per scroll tick — fine-grained control
-    const factor = e.deltaY < 0 ? 1.02 : 0.98;
-    setZoom((z) => Math.min(4, Math.max(0.25, z * factor)));
-  }
-
-  function stepZoom(delta: number) {
-    setZoom((z) => Math.min(4, Math.max(0.25, Math.round((z + delta) * 20) / 20)));
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Keyboard
-  // ─────────────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      // Don't fire shortcuts when typing in an input/dialog
-      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
-      if (e.code === "Space") { spaceDown.current = true; e.preventDefault(); }
-      if (e.code === "Escape") {
-        if (isDrawingRunRef.current) {
-          isDrawingRunRef.current = false;
-          runPointsRef.current = [];
-          setIsDrawingRun(false);
-          setRunPoints([]);
-        }
-        setScaleMode(false);
-        setSelectedSymbolId(null);
-        setCtxMenu(null);
-      }
-      if ((e.code === "Delete" || e.code === "Backspace") && selectedSymbolId) {
-        setMarkups((prev) => prev.filter((s) => s.id !== selectedSymbolId));
-        setSelectedSymbolId(null);
-      }
-      // Enter finishes run — use refs so this always sees current points
-      if (e.code === "Enter" && isDrawingRunRef.current && runPointsRef.current.length >= 2) {
-        finishRun();
-      }
-      // P key = toggle pan mode
-      if (e.code === "KeyP") {
-        setMode((m) => m === "pan" ? "count" : "pan");
-      }
-    }
-    function onKeyUp(e: KeyboardEvent) {
-      if (e.code === "Space") spaceDown.current = false;
-    }
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSymbolId]);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Run finish
-  // ─────────────────────────────────────────────────────────────────────────
 
   function finishRun() {
-    // Always read from ref — state can be stale when called from dblclick/keydown
-    const pts = runPointsRef.current;
-    if (pts.length < 2) return;
-    // Points are in display coords; pxPerFoot is at base scale (zoom=1)
-    let totalPx = 0;
-    for (let i = 1; i < pts.length; i++) {
-      const dx = pts[i].x - pts[i - 1].x;
-      const dy = pts[i].y - pts[i - 1].y;
-      totalPx += Math.sqrt(dx * dx + dy * dy);
-    }
-    const footage = pxPerFoot ? totalPx / (pxPerFoot * zoom) : totalPx / (96 * zoom);
-    // Normalize run points from display coords to base coords before storing
-    const basePoints = pts.map((p) => ({ x: p.x / zoom, y: p.y / zoom }));
-
-    const run: DrawnRun = {
-      id: newId(),
-      points: basePoints,
-      footage,
-      category: runCategory,
-      conduitType: runCategory === "conduit" ? conduitType : undefined,
-      conduitSize: runCategory === "conduit" ? conduitSize : undefined,
-      conductorCount: runCategory === "conduit" ? conductorCount : undefined,
-      conductorSize: runCategory === "conduit" ? conductorSize : undefined,
-      wireType: runCategory === "conduit" ? wireType : undefined,
-      mcSize: runCategory === "mc" ? mcSize : undefined,
-      circuits: runCategory === "mc" ? circuits : undefined,
-      difficulty: runDifficulty,
-      includeJBox,
-      color: runColor,
-      confirmed: false,
-      transferred: false,
-      label: buildRunLabel(runCategory, conduitSize, conduitType, conductorCount, conductorSize, mcSize, circuits, footage),
+    const rip = runInProgressRef.current;
+    if (rip.length < 2) { setRunInProgress([]); runInProgressRef.current = []; return; }
+    const rt = runTypes.find(r => r.id === activeRunTypeId) ?? runTypes[0];
+    const pxpf = pageScalesRef.current[String(currentPageRef.current)];
+    const pixDist = calcRunPixelDist(rip);
+    const footage = pxpf ? Math.round((pixDist / pxpf) * 10) / 10 : 0;
+    const m: Markup = {
+      id: genId(), type: "run", page: currentPageRef.current,
+      points: [...rip], footage, runTypeId: rt.id,
+      color: rt.color, transferred: false,
     };
-    setPendingRun(run);
-    setShowRunConfirm(true);
-    isDrawingRunRef.current = false;
-    runPointsRef.current = [];
-    setIsDrawingRun(false);
-    setRunPoints([]);
-  }
-
-  function buildRunLabel(
-    cat: string, cs: string, ct: string, cc: number, cond: string, mc: string, circ: number, ft: number
-  ) {
-    if (cat === "conduit") return `${cs}" ${ct} — ${cc}×#${cond} THHN — ${ft.toFixed(1)} ft`;
-    if (cat === "mc") return `MC ${mc} — ${ft.toFixed(1)} ft × ${circ} ckt`;
-    return `Wire — ${ft.toFixed(1)} ft`;
-  }
-
-  function confirmRun() {
-    if (!pendingRun) return;
-    const confirmed = { ...pendingRun, confirmed: true };
-    setRunTypes((prev) => [...prev, confirmed]);
-    setPendingRun(null);
-    setShowRunConfirm(false);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Scale confirm
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function confirmScale() {
-    let ft = parseFloat(scaleInputFt);
-    if (isNaN(ft) || ft <= 0) return;
-    if (scaleUnit === "in") ft = ft / 12;
-    // scaleDist is in display pixels at current zoom.
-    // Normalize to base scale (zoom=1): ppf = scaleDist / (ft * zoom)
-    const ppf = scaleDist / (ft * zoom);
-    setPxPerFoot(ppf);
-    setScaleSet(true);
-    setShowScaleDialog(false);
-    setScalePoints([]);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // PDF upload — 3-step: select file → name dialog → create drawing → render
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // Step 1: user picks a file from the hidden input
-  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    // Pre-fill name with filename (strip .pdf extension)
-    const defaultName = file.name.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim();
-    setPendingPdfFile(file);
-    setUploadDrawingName(defaultName);
-    setShowUploadNameDialog(true);
-  }
-
-  // Step 2: user confirms the drawing name — create DB record then load PDF
-  async function confirmUploadDrawingName() {
-    if (!uploadDrawingName.trim() || !pendingPdfFile) return;
-    const name = uploadDrawingName.trim();
-    setShowUploadNameDialog(false);
-
-    // Create drawing in DB
-    const res = await fetch("/api/takeoff-drawings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estimateId: estimate.id, name }),
+    setMarkups(prev => {
+      const next = [...prev, m]; markupsRef.current = next;
+      scheduleAutosave({ markups: next }); return next;
     });
-    if (!res.ok) {
-      alert("Failed to create drawing record.");
-      setPendingPdfFile(null);
-      return;
-    }
-    const newD = await res.json();
-    const drawingRow: TakeoffDrawingRow = {
-      ...newD,
-      markups: [],
-      runTypes: [],
-    };
-    setDrawings((prev) => [...prev, drawingRow]);
-
-    // Switch to the new drawing
-    setActiveDrawingId(newD.id);
-    setMarkups([]);
-    setRunTypes([]);
-    setPxPerFoot(null);
-    setScaleSet(false);
-    setCurrentPage(1);
-    setPageCount(1);
-    setPdfLoaded(false);
-    setPdfDoc(null);
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-
-    // Step 3: actually load the PDF
-    const file = pendingPdfFile;
-    setPendingPdfFile(null);
-    loadPdfIntoDrawing(file, newD.id);
+    setRunInProgress([]); runInProgressRef.current = [];
+    redrawAll(currentPageRef.current, zoomRef.current, null);
   }
 
-  // Step 3: render PDF using pdf.js (waiting for library if needed)
-  function loadPdfIntoDrawing(file: File, drawingId: string) {
-    const doLoad = () => {
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        try {
-          const data = new Uint8Array(ev.target?.result as ArrayBuffer);
-          const pdfjsLib = (window as any).pdfjsLib;
-          const doc = await pdfjsLib.getDocument({ data }).promise;
-          const pc = doc.numPages;
-          setPdfDoc(doc);
-          setPageCount(pc);
-          setPdfLoaded(true);
-          // Persist page count to DB
-          await fetch(`/api/takeoff-drawings/${drawingId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pageCount: pc, currentPage: 1 }),
-          });
-        } catch (err) {
-          alert("Failed to load PDF. Make sure it is a valid PDF file.");
-          console.error("[takeoff] pdf load error:", err);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    };
-
-    if (pdfJsLoadedRef.current) {
-      doLoad();
+  // ── Measuring ─────────────────────────────────────────────────────────────
+  function handleMeasureClick(pos: Pt) {
+    if (!measurePt1Ref.current) {
+      setMeasurePt1(pos); measurePt1Ref.current = pos;
     } else {
-      // Poll until pdf.js CDN script has loaded
-      const check = setInterval(() => {
-        if (pdfJsLoadedRef.current) {
-          clearInterval(check);
-          doLoad();
-        }
-      }, 100);
+      const pt1 = measurePt1Ref.current;
+      const dist = Math.hypot(
+        (pos.x - pt1.x) * zoomRef.current,
+        (pos.y - pt1.y) * zoomRef.current
+      );
+      setMeasurePixelDist(dist);
+      setMeasuringActive(false); measuringActiveRef.current = false;
+      setShowMeasureModal(true);
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // New drawing
-  // ─────────────────────────────────────────────────────────────────────────
+  function confirmMeasure() {
+    const realFeet = parseFloat(measureDistInput);
+    if (!realFeet || realFeet <= 0) return;
+    const pxpf = measurePixelDist / (realFeet * zoomRef.current);
+    setPageScales(prev => {
+      const next = { ...prev, [String(currentPageRef.current)]: pxpf };
+      pageScalesRef.current = next;
+      scheduleAutosave({ pageScales: next });
+      setScaleBannerVisible(false);
+      return next;
+    });
+    setShowMeasureModal(false);
+    setMeasurePt1(null); measurePt1Ref.current = null;
+    setMeasureDistInput("");
+  }
 
+  function applyScalePreset(feetPerInch: number) {
+    const pxpf = pxPerFootFromPreset(feetPerInch);
+    setPageScales(prev => {
+      const next = { ...prev, [String(currentPageRef.current)]: pxpf };
+      pageScalesRef.current = next;
+      scheduleAutosave({ pageScales: next });
+      setScaleBannerVisible(false);
+      return next;
+    });
+  }
+
+  // ── Wheel zoom ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const w = canvasWrapRef.current;
+    if (!w) return;
+    const fn = (e: WheelEvent) => { e.preventDefault(); applyZoom(e.deltaY < 0 ? 0.02 : -0.02); };
+    w.addEventListener("wheel", fn, { passive: false });
+    return () => w.removeEventListener("wheel", fn);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Keyboard ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    function kd(e: KeyboardEvent) {
+      const t = (e.target as HTMLElement)?.tagName;
+      if (t === "INPUT" || t === "SELECT" || t === "TEXTAREA") return;
+      if (e.key === " ") { e.preventDefault(); spaceHeld.current = true; }
+      if (e.key === "c" || e.key === "C") { setMode("count"); modeRef.current = "count"; }
+      if (e.key === "r" || e.key === "R") { setMode("run"); modeRef.current = "run"; }
+      if (e.key === "p" || e.key === "P") { setMode("pan"); modeRef.current = "pan"; }
+      if (e.key === "Escape") {
+        setRunInProgress([]); runInProgressRef.current = [];
+        setMeasuringActive(false); measuringActiveRef.current = false;
+        setMeasurePt1(null); measurePt1Ref.current = null;
+        redrawAll(currentPageRef.current, zoomRef.current, null);
+      }
+      if (e.key === "Enter" && modeRef.current === "run" && runInProgressRef.current.length >= 2) finishRun();
+      if (e.key === "+" || e.key === "=") applyZoom(0.10);
+      if (e.key === "-") applyZoom(-0.10);
+    }
+    function ku(e: KeyboardEvent) { if (e.key === " ") spaceHeld.current = false; }
+    window.addEventListener("keydown", kd);
+    window.addEventListener("keyup", ku);
+    return () => { window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── File upload ───────────────────────────────────────────────────────────
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !activeDrawingId) return;
+    e.target.value = "";
+    const ab = await file.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const b64 = btoa(bin);
+    loadPDFFromBase64(b64);
+    setSaveStatus("saving");
+    const pc = pdfDocRef.current?.numPages ?? 1;
+    await fetch(`/api/takeoff-drawings/${activeDrawingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pdfData: b64, pageCount: pc }),
+    });
+    setSaveStatus("saved");
+  }
+
+  // ── Load a different drawing ───────────────────────────────────────────────
+  function switchDrawing(id: string) {
+    const d = drawings.find(x => x.id === id);
+    if (!d) return;
+    setActiveDrawingId(id);
+    const mups = Array.isArray(d.markups) ? (d.markups as Markup[]) : [];
+    const rts = Array.isArray(d.runTypes) && d.runTypes.length > 0
+      ? (d.runTypes as RunType[]) : [DEFAULT_RUN_TYPE];
+    setMarkups(mups); markupsRef.current = mups;
+    setRunTypes(rts); setActiveRunTypeId(rts[0].id);
+    setPageScales(d.pageScales ?? {}); pageScalesRef.current = d.pageScales ?? {};
+    setCurrentPage(1); currentPageRef.current = 1;
+    setTotalPages(d.pageCount ?? 1);
+    setRunInProgress([]); runInProgressRef.current = [];
+    setPdfLoaded(false);
+    redrawAll(1, zoomRef.current, null);
+    if (d.pdfData) loadPDFFromBase64(d.pdfData);
+  }
+
+  // ── Create drawing ─────────────────────────────────────────────────────────
   async function createDrawing() {
-    if (!newDrawingName.trim()) return;
-    const res = await fetch("/api/takeoff-drawings", {
+    const name = prompt("Drawing name:", "Sheet A1");
+    if (!name) return;
+    const resp = await fetch("/api/takeoff-drawings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estimateId: estimate.id, name: newDrawingName.trim() }),
+      body: JSON.stringify({ estimateId, name }),
     });
-    if (!res.ok) return;
-    const newD = await res.json();
-    const d: TakeoffDrawingRow = {
-      ...newD,
-      createdAt: newD.createdAt,
-      updatedAt: newD.updatedAt,
-      markups: [],
-      runTypes: [],
+    const d: SerializedDrawing = {
+      ...(await resp.json()),
+      pdfData: null, markups: [], runTypes: [DEFAULT_RUN_TYPE],
+      assemblies: [], pageScales: {},
     };
-    setDrawings((prev) => [...prev, d]);
-    setShowNewDrawingDialog(false);
-    setNewDrawingName("");
+    setDrawings(prev => [...prev, d]);
     switchDrawing(d.id);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Transfer to estimate
-  // ─────────────────────────────────────────────────────────────────────────
-
-  async function transferRun(run: DrawnRun) {
-    if (!activeDrawingId) return;
-    const type = run.category === "mc" ? "mcHomeRun" : "conduitRun";
-    await fetch(`/api/takeoff-drawings/${activeDrawingId}/transfer`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, data: { ...run } }),
-    });
-    setRunTypes((prev) => prev.map((r) => r.id === run.id ? { ...r, transferred: true } : r));
+  // ── Autosave ───────────────────────────────────────────────────────────────
+  function scheduleAutosave(patch: Record<string, unknown>) {
+    setSaveStatus("unsaved");
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(async () => {
+      if (!activeDrawingId) return;
+      setSaveStatus("saving");
+      try {
+        await fetch(`/api/takeoff-drawings/${activeDrawingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(patch),
+        });
+        setSaveStatus("saved");
+      } catch { setSaveStatus("unsaved"); }
+    }, AUTOSAVE_DELAY);
   }
 
-  async function transferCounts(type: string, count: number) {
+  // ── Transfer to estimator ──────────────────────────────────────────────────
+  async function transferRun(markupId: string) {
     if (!activeDrawingId) return;
-    // Map symbol type to a BOM ID — use a simple fallback approach
+    const m = markupsRef.current.find(x => x.id === markupId);
+    if (!m || m.type !== "run") return;
+    const rt = runTypes.find(r => r.id === m.runTypeId) ?? runTypes[0];
+    const phaseCount = rt.conductors.filter(c => !c.isGround).reduce((s, c) => s + c.count, 0);
+    const phaseSize = rt.conductors.find(c => !c.isGround)?.size?.replace("#", "") ?? "12";
     await fetch(`/api/takeoff-drawings/${activeDrawingId}/transfer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type: "counts",
-        data: [{ bomId: "recep-dup", qty: count, note: `${type} — from takeoff drawing` }],
+        type: "conduitRun",
+        data: {
+          conduitType: rt.category, conduitSize: rt.size,
+          conductorCount: phaseCount, conductorSize: phaseSize,
+          footage: m.footage ?? 0, difficulty: rt.difficulty,
+          label: `${rt.label} — ${m.footage ?? 0}ft`,
+        },
       }),
+    });
+    setMarkups(prev => {
+      const next = prev.map(x => x.id === markupId ? { ...x, transferred: true } : x);
+      markupsRef.current = next;
+      scheduleAutosave({ markups: next });
+      redrawAll(currentPageRef.current, zoomRef.current, null);
+      return next;
     });
   }
 
-  async function transferAll() {
-    if (!activeDrawingId) return;
-    for (const run of runTypes.filter((r) => !r.transferred && r.confirmed)) {
-      await transferRun(run);
-    }
+  async function transferAllRuns() {
+    const pending = markupsRef.current.filter(m => m.type === "run" && !m.transferred);
+    for (const m of pending) await transferRun(m.id);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Computed counts for audit panel
-  // ─────────────────────────────────────────────────────────────────────────
-
+  // ── Computed audit data ────────────────────────────────────────────────────
   const symbolCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const s of markups) {
-      counts[s.type] = (counts[s.type] ?? 0) + 1;
-    }
-    return counts;
+    const c: Record<string, number> = {};
+    for (const m of markups)
+      if (m.type === "symbol" && m.itemKey) c[m.itemKey] = (c[m.itemKey] ?? 0) + 1;
+    return c;
   }, [markups]);
 
-  const confirmedRuns = useMemo(() => runTypes.filter((r) => r.confirmed), [runTypes]);
-  const transferredCount = useMemo(() => runTypes.filter((r) => r.transferred).length, [runTypes]);
+  const runGrouped = useMemo(() => {
+    const g: Record<string, { rt: RunType; runs: Markup[] }> = {};
+    for (const m of markups) {
+      if (m.type !== "run") continue;
+      const rt = runTypes.find(r => r.id === m.runTypeId) ?? runTypes[0];
+      if (!g[rt.id]) g[rt.id] = { rt, runs: [] };
+      g[rt.id].runs.push(m);
+    }
+    return g;
+  }, [markups, runTypes]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Canvas size / pan transform
-  // ─────────────────────────────────────────────────────────────────────────
+  const currentPxPerFoot = pageScales[String(currentPage)];
+  const scaleLabel = currentPxPerFoot
+    ? `1"=${Math.round(((SCREEN_DPI * BASE_SCALE) / currentPxPerFoot) * 10) / 10}'`
+    : "No scale";
 
-  const canvasWrapperStyle: React.CSSProperties = {
-    transform: `translate(${pan.x}px, ${pan.y}px)`,
-    cursor: scaleMode
-      ? "crosshair"
-      : isPanningRef.current || spaceDown.current || mode === "pan"
-      ? isPanningRef.current ? "grabbing" : "grab"
-      : mode === "count" && activeSymbol
-      ? "copy"
-      : mode === "run"
-      ? isDrawingRun ? "crosshair" : "default"
-      : "default",
-  };
+  // ── Add run type ───────────────────────────────────────────────────────────
+  function addRunType() {
+    const name = prompt("Run type label:", '3/4" EMT | 3×#12 THHN');
+    if (!name) return;
+    const color = "#3adde0";
+    const rt: RunType = {
+      id: genId(), category: "EMT", size: "3/4",
+      conductors: [
+        { count: 3, size: "#12", type: "THHN", isGround: false },
+        { count: 1, size: "#12", type: "GND",  isGround: true  },
+      ],
+      material: "Cu", support: "1-Hole Strap", makeup: 2, difficulty: 1.0,
+      color, label: name,
+    };
+    setRunTypes(prev => {
+      const next = [...prev, rt];
+      scheduleAutosave({ runTypes: next });
+      return next;
+    });
+    setActiveRunTypeId(rt.id);
+  }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
+  const S = styles;
 
   return (
-    <>
-      <style>{`
-        :root {
-          --bg: #0a0c0f;
-          --surface: #111620;
-          --surface2: #1a2030;
-          --border: #2a3545;
-          --accent: #002D72;
-          --highlight: #FF5910;
-          --text: #e8eaed;
-          --text-muted: #9aa0b0;
-        }
-        * { box-sizing: border-box; }
-        body { margin: 0; background: var(--bg); color: var(--text); overflow: hidden; }
-        .takeoff-root { display: flex; flex-direction: column; height: 100vh; width: 100vw; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; overflow: hidden; }
-        .takeoff-header { height: 40px; min-height: 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; padding: 0 10px; flex-shrink: 0; overflow: hidden; }
-        .takeoff-body { display: flex; flex: 1; overflow: hidden; }
-        .left-panel { width: 200px; min-width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
-        .canvas-area { flex: 1; background: #0d1117; position: relative; overflow: hidden; }
-        .right-panel { width: 280px; min-width: 280px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
-        .panel-section { padding: 8px; border-bottom: 1px solid var(--border); }
-        .panel-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-        .btn { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; background: var(--surface2); color: var(--text); transition: background 0.15s; }
-        .btn:hover { background: var(--border); }
-        .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
-        .btn-primary:hover { background: #003a8c; }
-        .btn-orange { background: var(--highlight); border-color: var(--highlight); color: white; }
-        .btn-orange:hover { background: #e04d0a; }
-        .btn-sm { padding: 2px 7px; font-size: 11px; }
-        .symbol-tab { padding: 4px 6px; font-size: 11px; border: none; background: none; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
-        .symbol-tab.active { color: var(--highlight); border-color: var(--highlight); }
-        .symbol-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; overflow-y: auto; flex: 1; }
-        .symbol-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .symbol-card:hover { border-color: var(--text-muted); }
-        .symbol-card.active { border-color: var(--highlight); }
-        .symbol-card-label { font-size: 9px; color: var(--text-muted); text-align: center; line-height: 1.2; }
-        .scale-banner { background: #3a2a00; border-bottom: 1px solid #6b4d00; padding: 6px 10px; font-size: 12px; display: flex; align-items: center; gap: 8px; color: #fbbf24; flex-shrink: 0; }
-        select, input[type="number"], input[type="text"] { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 3px; padding: 3px 6px; font-size: 12px; }
-        .audit-row { padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 4px; }
-        .transferred-badge { font-size: 10px; color: #22c55e; display: flex; align-items: center; gap: 2px; }
-        .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; min-width: 320px; max-width: 480px; }
-        .dialog h3 { margin: 0 0 12px; font-size: 15px; }
-        .dialog-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-        .ctx-menu { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; z-index: 200; min-width: 140px; }
-        .ctx-item { padding: 8px 14px; font-size: 13px; cursor: pointer; }
-        .ctx-item:hover { background: var(--surface2); }
-        @media (max-width: 768px) {
-          .left-panel { display: none; }
-          .right-panel { display: none; }
-        }
-      `}</style>
+    <div style={S.root}>
+      {/* HEADER */}
+      <header style={S.header}>
+        <span style={S.logo}>OAK RIDGE <span style={S.logoSub}>/ TAKEOFF</span></span>
+        <div style={S.sep} />
+        <span style={S.estName}>{estimate.estimateNumber} — {estimate.name}</span>
 
-      <div className="takeoff-root" onClick={() => { setCtxMenu(null); setShowDrawingDropdown(false); }}>
+        {/* Drawing selector */}
+        <select
+          value={activeDrawingId ?? ""}
+          onChange={e => switchDrawing(e.target.value)}
+          style={S.hdrSelect}
+        >
+          {drawings.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <HBtn onClick={createDrawing}>+ Sheet</HBtn>
 
-        {/* ── HEADER BAR ── */}
-        <div className="takeoff-header">
-          <Zap size={16} color="#FF5910" />
-          <span style={{ color: "var(--text-muted)", fontSize: 11 }}>
-            {estimate.estimateNumber}
-          </span>
-          <span style={{ fontSize: 12, fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {estimate.name}
-          </span>
-          <span style={{ color: "var(--highlight)", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em" }}>TAKEOFF</span>
+        <div style={{ flex: 1 }} />
 
-          <div style={{ width: 1, height: 20, background: "var(--border)", marginLeft: 4, marginRight: 4 }} />
+        {/* Page nav */}
+        <PageNav current={currentPage} total={totalPages} pdfLoaded={pdfLoaded} onGo={goPage} />
+        <div style={S.sep} />
 
-          {/* Drawing selector */}
-          <div style={{ position: "relative" }}>
-            <button
-              className="btn btn-sm"
-              style={{ display: "flex", alignItems: "center", gap: 4, maxWidth: 140, overflow: "hidden" }}
-              onClick={(e) => { e.stopPropagation(); setShowDrawingDropdown((v) => !v); }}
-            >
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 100 }}>
-                {activeDrawing?.name ?? "No drawing"}
-              </span>
-              <ChevronDown size={10} />
-            </button>
-            {showDrawingDropdown && (
-              <div style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, zIndex: 50, minWidth: 180 }}
-                onClick={(e) => e.stopPropagation()}>
-                {drawings.map((d) => (
-                  <div key={d.id}
-                    style={{ padding: "6px 12px", cursor: "pointer", fontSize: 12, background: d.id === activeDrawingId ? "var(--surface2)" : "none" }}
-                    onClick={() => { switchDrawing(d.id); setShowDrawingDropdown(false); }}
-                  >{d.name}</div>
-                ))}
-                <div style={{ borderTop: "1px solid var(--border)", padding: "6px 12px", cursor: "pointer", fontSize: 12, color: "var(--highlight)", display: "flex", alignItems: "center", gap: 4 }}
-                  onClick={() => { setShowNewDrawingDialog(true); setShowDrawingDropdown(false); }}>
-                  <Plus size={12} /> New Drawing
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Page nav */}
-          {pageCount > 1 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
-              <button className="btn btn-sm" disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeft size={12} />
-              </button>
-              <span>{currentPage} / {pageCount}</span>
-              <button className="btn btn-sm" disabled={currentPage >= pageCount}
-                onClick={() => setCurrentPage((p) => Math.min(pageCount, p + 1))}>
-                <ChevronRight size={12} />
-              </button>
-            </div>
-          )}
-
-          <div style={{ flex: 1 }} />
-
-          {/* Mode toggle */}
-          <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 4, overflow: "hidden" }}>
-            {(["count", "run", "pan"] as const).map((m) => (
-              <button key={m}
-                title={m === "pan" ? "Pan (P)" : m === "count" ? "Place symbols" : "Draw runs"}
-                style={{ padding: "2px 9px", fontSize: 11, background: mode === m ? "var(--highlight)" : "var(--surface2)", color: "white", border: "none", cursor: "pointer", fontWeight: mode === m ? 700 : 400 }}
-                onClick={() => setMode(m)}>
-                {m.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          {/* Zoom controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <button className="btn btn-sm" style={{ padding: "2px 7px", fontWeight: 700 }} onClick={() => stepZoom(-0.1)}>−</button>
-            <input
-              type="range"
-              min={25}
-              max={400}
-              step={5}
-              value={Math.round(zoom * 100)}
-              onChange={(e) => setZoom(Number(e.target.value) / 100)}
-              style={{ width: 90, cursor: "pointer", accentColor: "var(--highlight)" }}
-              title="Zoom"
-            />
-            <button className="btn btn-sm" style={{ padding: "2px 7px", fontWeight: 700 }} onClick={() => stepZoom(0.1)}>+</button>
-            <span style={{ fontSize: 11, minWidth: 36, textAlign: "center", color: "var(--text-muted)" }}>{Math.round(zoom * 100)}%</span>
-          </div>
-
-          {/* Save indicator */}
-          <span style={{ fontSize: 11, color: saveStatus === "saved" ? "#22c55e" : saveStatus === "saving" ? "#fbbf24" : "var(--highlight)" }}>
-            {saveStatus === "saved" ? "✓ Saved" : saveStatus === "saving" ? "Saving…" : "● Unsaved"}
-          </span>
-
-          <button className="btn btn-sm" style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}
-            onClick={() => window.close()}>
-            <X size={12} /> Close
+        {/* Mode buttons */}
+        {(["count", "run", "pan"] as Mode[]).map(m => (
+          <button key={m} onClick={() => {
+            setMode(m); modeRef.current = m;
+            if (m !== "run") { setRunInProgress([]); runInProgressRef.current = []; redrawAll(currentPageRef.current, zoomRef.current, null); }
+          }} style={{ ...S.modeBtn, ...(mode === m ? S.modeBtnActive : {}) }}>
+            {m.toUpperCase()[0]}
           </button>
+        ))}
+
+        {/* Zoom */}
+        <div style={S.zoomRow}>
+          <button onClick={() => applyZoom(-0.10)} style={S.hdrBtn}>−</button>
+          <span style={S.zoomLabel}>{Math.round(zoom * 100)}%</span>
+          <button onClick={() => applyZoom(0.10)} style={S.hdrBtn}>+</button>
+          <button onClick={zoomFit} style={S.hdrBtn}>⊡</button>
         </div>
 
-        {/* ── BODY ── */}
-        <div className="takeoff-body">
+        {/* Scale */}
+        <span style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: currentPxPerFoot ? "#2db562" : "#e03a3a", whiteSpace: "nowrap" }}>
+          {scaleLabel}
+        </span>
 
-          {/* ── LEFT PANEL ── */}
-          <div className="left-panel">
-            {/* Category tabs */}
-            <div style={{ display: "flex", flexWrap: "wrap", borderBottom: "1px solid var(--border)", padding: "2px 4px" }}>
-              {SYMBOL_CATEGORIES.map((cat) => (
-                <button key={cat} className={`symbol-tab${symbolCategory === cat ? " active" : ""}`}
-                  onClick={() => setSymbolCategory(cat)}>{cat}</button>
-              ))}
+        {/* PDF upload */}
+        <label style={{ ...S.hdrBtn, cursor: "pointer" }}>
+          📄 PDF
+          <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFileUpload} />
+        </label>
+
+        {/* Save status */}
+        <span style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: saveStatus === "saved" ? "#2db562" : saveStatus === "saving" ? "#f0a500" : "#e03a3a" }}>
+          {saveStatus === "saved" ? "Saved ✓" : saveStatus === "saving" ? "Saving…" : "Unsaved"}
+        </span>
+
+        <button onClick={() => router.push(`/estimating/${estimateId}`)} style={{ ...S.hdrBtn, padding: "5px 10px" }}>✕</button>
+      </header>
+
+      {/* Scale banner */}
+      {scaleBannerVisible && (
+        <div style={S.scaleBanner}>
+          ⚠ No scale set for page {currentPage} — distances will show 0ft
+          <select defaultValue="" onChange={e => { if (e.target.value) applyScalePreset(parseFloat(e.target.value)); }}
+            style={{ background: "#111", border: "none", color: "#f0a500", borderRadius: 4, padding: "2px 6px", fontFamily: "inherit", fontSize: 12, marginLeft: 8 }}>
+            <option value="">Quick set…</option>
+            {SCALE_PRESETS.map(p => <option key={p.label} value={p.feetPerInch}>{p.label}</option>)}
+          </select>
+          <button onClick={() => { setMeasuringActive(true); measuringActiveRef.current = true; setMeasurePt1(null); measurePt1Ref.current = null; }}
+            style={{ marginLeft: 8, background: "none", border: "1px solid #111", borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
+            Measure distance
+          </button>
+          <button onClick={() => setScaleBannerVisible(false)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#111" }}>✕</button>
+        </div>
+      )}
+
+      {/* BODY */}
+      <div style={S.body}>
+        {/* LEFT PANEL */}
+        <aside style={S.leftPanel}>
+          {/* Scale */}
+          <Section label="Scale">
+            <select defaultValue="" onChange={e => { if (e.target.value) applyScalePreset(parseFloat(e.target.value)); }} style={S.panelSelect}>
+              <option value="">— preset —</option>
+              {SCALE_PRESETS.map(p => <option key={p.label} value={p.feetPerInch}>{p.label}</option>)}
+            </select>
+            <button
+              onClick={() => { setMeasuringActive(v => !v); if (!measuringActiveRef.current) { setMeasurePt1(null); measurePt1Ref.current = null; } measuringActiveRef.current = !measuringActiveRef.current; }}
+              style={{ ...S.panelBtn, marginTop: 4, borderColor: measuringActive ? "#FF5910" : "#2e3138", color: measuringActive ? "#FF5910" : "#9aa0ab" }}>
+              {measuringActive ? "Click first point…" : "Measure distance"}
+            </button>
+            <div style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: currentPxPerFoot ? "#2db562" : "#5a6070", marginTop: 4 }}>
+              {currentPxPerFoot ? `✓ ${scaleLabel}` : "Not set"}
             </div>
+          </Section>
 
-            {/* Symbol grid */}
-            <div className="symbol-grid">
-              {SYMBOLS.filter((s) => s.category === symbolCategory).map((sym) => (
-                <div
-                  key={sym.name}
-                  className={`symbol-card${activeSymbol === sym.name ? " active" : ""}`}
-                  onClick={() => { setActiveSymbol(sym.name); setMode("count"); }}
-                >
-                  <div style={{ width: 36, height: 36 }}>
-                    <sym.Component color={activeSymbol === sym.name ? "#FF5910" : "white"} />
-                  </div>
-                  <div className="symbol-card-label">{SYMBOL_LABELS[sym.name]}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Color picker */}
-            <div className="panel-section">
-              <div className="panel-label">Symbol Color</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
-                {PRESET_COLORS.map((c) => (
-                  <button key={c}
-                    style={{ width: 18, height: 18, borderRadius: 3, background: c, border: symbolColor === c ? "2px solid var(--highlight)" : "1px solid var(--border)", cursor: "pointer", padding: 0 }}
-                    onClick={() => setSymbolColor(c)} />
+          {/* Symbols (COUNT mode) */}
+          {mode === "count" && (
+            <Section label="Symbol">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginBottom: 6 }}>
+                {CATEGORY_TABS.map(tab => (
+                  <button key={tab.id} onClick={() => setLeftPanelTab(tab.id)}
+                    style={{ background: leftPanelTab === tab.id ? "#FF5910" : "#22252b", border: `1px solid ${leftPanelTab === tab.id ? "#FF5910" : "#2e3138"}`, color: leftPanelTab === tab.id ? "#111" : "#9aa0ab", borderRadius: 4, fontFamily: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 5px", cursor: "pointer", textTransform: "uppercase" }}>
+                    {tab.label}
+                  </button>
                 ))}
               </div>
-              <input type="color" value={symbolColor} onChange={(e) => setSymbolColor(e.target.value)}
-                style={{ width: "100%", height: 24, cursor: "pointer", border: "1px solid var(--border)", borderRadius: 3, background: "none" }} />
-            </div>
-          </div>
-
-          {/* ── CANVAS AREA ── */}
-          <div className="canvas-area" ref={containerRef}>
-            {/* Scale banner */}
-            {!scaleSet && activeDrawingId && (
-              <div className="scale-banner">
-                <AlertTriangle size={14} />
-                <span>Scale not set — measurements will be inaccurate.</span>
-                <button className="btn btn-sm" onClick={() => { setScaleMode(true); setScalePoints([]); }}>Set Scale</button>
-                <div style={{ marginLeft: 8, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {SCALE_PRESETS.map((p) => (
-                    <button key={p.label} className="btn btn-sm"
-                      onClick={() => { setPxPerFoot(p.pxPerFoot); setScaleSet(true); }}
-                      style={{ fontSize: 10 }}>{p.label}</button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {STD_ITEMS.filter(item => CATEGORY_TABS.find(t => t.id === leftPanelTab)?.categories.includes(item.category)).map(item => {
+                  const color = CAT_COLORS[item.category] ?? "#9aa0ab";
+                  const active = selectedItemKey === item.key;
+                  return (
+                    <button key={item.key} onClick={() => { setSelectedItemKey(item.key); setSelectedColor(color); }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, background: active ? "rgba(255,89,16,0.12)" : "#22252b", border: `1px solid ${active ? "#FF5910" : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", textAlign: "left" }}>
+                      <SymPreview symId={item.symId} color={color} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? "#e8eaed" : "#9aa0ab", flex: 1, lineHeight: 1.2 }}>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", color: "#5a6070", textTransform: "uppercase", marginBottom: 4 }}>Color</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {Object.values(CAT_COLORS).map(c => (
+                    <div key={c} onClick={() => setSelectedColor(c)}
+                      style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: "pointer", border: `2px solid ${selectedColor === c ? "#fff" : "transparent"}`, transition: "transform 0.1s", transform: selectedColor === c ? "scale(1.15)" : "scale(1)" }} />
                   ))}
                 </div>
               </div>
-            )}
-            {scaleSet && pxPerFoot && (
-              <div style={{ background: "#0a2a0a", borderBottom: "1px solid #1a4a1a", padding: "3px 10px", fontSize: 11, color: "#22c55e", display: "flex", alignItems: "center", gap: 8 }}>
-                <Check size={12} /> Scale: 1 ft = {pxPerFoot.toFixed(1)}px
-                <button className="btn btn-sm" style={{ fontSize: 10 }}
-                  onClick={() => { if (confirm("Recalibrate scale? This will not affect placed symbols or runs.")) { setScaleSet(false); setScaleMode(true); setScalePoints([]); } }}>
-                  Recalibrate
+            </Section>
+          )}
+
+          {/* Run types (RUN mode) */}
+          {mode === "run" && (
+            <Section label="Run Type">
+              {runTypes.map(rt => (
+                <button key={rt.id} onClick={() => setActiveRunTypeId(rt.id)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: activeRunTypeId === rt.id ? "rgba(255,89,16,0.12)" : "#22252b", border: `1px solid ${activeRunTypeId === rt.id ? "#FF5910" : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", width: "100%", marginBottom: 3, textAlign: "left" }}>
+                  <div style={{ width: 10, height: 3, background: rt.color, borderRadius: 1, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rt.label}</span>
+                </button>
+              ))}
+              <button onClick={addRunType} style={{ ...S.panelBtn, marginTop: 4, borderStyle: "dashed" }}>+ Run Type</button>
+              <div style={{ marginTop: 8, fontSize: 10, color: "#5a6070" }}>
+                Ortho: <button onClick={() => { const v = !orthoSnap; setOrthoSnap(v); orthoSnapRef.current = v; }}
+                  style={{ background: "none", border: "none", color: orthoSnap ? "#2db562" : "#9aa0ab", cursor: "pointer", fontFamily: "inherit", fontSize: 10 }}>
+                  {orthoSnap ? "ON" : "OFF"}
                 </button>
               </div>
-            )}
+              <div style={{ marginTop: 2, fontSize: 10, color: "#5a6070" }}>Enter = finish · Esc = cancel</div>
+            </Section>
+          )}
+        </aside>
 
-            {/* Hidden file input — triggered programmatically */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.PDF,application/pdf"
-              style={{ display: "none" }}
-              onChange={handleFileInputChange}
+        {/* CANVAS */}
+        <div ref={canvasWrapRef} style={{ ...S.canvasWrap, cursor: (mode === "pan" || spaceHeld.current) ? "grab" : "crosshair" }}>
+          <div style={{ position: "relative", display: "inline-block", minWidth: "100%", minHeight: "100%" }}>
+            {!pdfLoaded && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, pointerEvents: "none" }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#2e3138", textTransform: "uppercase", letterSpacing: "0.1em" }}>No Drawing Loaded</div>
+                <div style={{ fontSize: 14, color: "#2e3138", textAlign: "center", maxWidth: 280 }}>Upload a PDF to begin</div>
+                <label style={{ pointerEvents: "all", background: "#FF5910", border: "none", borderRadius: 8, color: "#111", fontFamily: "inherit", fontSize: 15, fontWeight: 900, letterSpacing: "0.08em", padding: "12px 24px", cursor: "pointer", textTransform: "uppercase" }}>
+                  📄 Load PDF
+                  <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFileUpload} />
+                </label>
+              </div>
+            )}
+            <canvas ref={pdfCanvasRef} style={{ display: "block" }} />
+            <canvas ref={markupCanvasRef}
+              style={{ position: "absolute", top: 0, left: 0 }}
+              onClick={handleClick}
+              onDoubleClick={handleDblClick}
+              onContextMenu={handleRightClick}
+              onMouseMove={handleMouseMove}
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleMouseUp}
             />
-
-            {/* Drop zone / canvas */}
-            {!pdfLoaded ? (
-              <div
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", cursor: "pointer", color: "var(--text-muted)", gap: 8, fontSize: 14 }}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files?.[0];
-                  if (file && (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))) {
-                    const defaultName = file.name.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim();
-                    setPendingPdfFile(file);
-                    setUploadDrawingName(defaultName);
-                    setShowUploadNameDialog(true);
-                  }
-                }}
-              >
-                <div style={{ border: "2px dashed var(--border)", borderRadius: 12, padding: "40px 60px", textAlign: "center" }}>
-                  <div style={{ fontSize: 36, marginBottom: 8 }}>📄</div>
-                  <div>Click or drop a PDF drawing to upload</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>You will be prompted to name the drawing</div>
-                  <div style={{ fontSize: 11, marginTop: 4, color: "#9aa0b0" }}>Set scale before measuring footage</div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ position: "relative", display: "inline-block", ...canvasWrapperStyle }}>
-                <canvas ref={pdfCanvasRef} style={{ display: "block" }} />
-                <canvas
-                  ref={overlayCanvasRef}
-                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
-                  onMouseDown={handleOverlayMouseDown}
-                  onMouseMove={handleOverlayMouseMove}
-                  onMouseUp={handleOverlayMouseUp}
-                  onDoubleClick={handleOverlayDoubleClick}
-                  onContextMenu={handleOverlayContextMenu}
-                  onWheel={handleOverlayWheel}
-                />
-              </div>
-            )}
-
-            {/* No-drawing overlay — shown when no drawing exists yet */}
-            {!activeDrawingId && !pdfLoaded && (
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 14, flexDirection: "column", gap: 12 }}>
-                <div style={{ fontSize: 36 }}>📐</div>
-                <p style={{ margin: 0 }}>No drawings yet for this estimate.</p>
-                <button className="btn btn-orange" style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={() => fileInputRef.current?.click()}>
-                  <Plus size={14} /> Upload a PDF Drawing
-                </button>
-                <button className="btn btn-sm" onClick={() => setShowNewDrawingDialog(true)} style={{ color: "var(--text-muted)" }}>
-                  Or create a blank drawing
-                </button>
-              </div>
-            )}
           </div>
-
-          {/* ── RIGHT PANEL ── */}
-          <div className="right-panel">
-            {mode === "run" ? (
-              // Run config panel
-              <div style={{ padding: 8, overflowY: "auto", flex: 1 }}>
-                <div className="panel-label">Run Configuration</div>
-
-                <div style={{ marginBottom: 8 }}>
-                  <label className="panel-label">Category</label>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    {(["conduit", "mc", "wire"] as const).map((cat) => (
-                      <button key={cat} className={`btn btn-sm${runCategory === cat ? " btn-orange" : ""}`}
-                        onClick={() => setRunCategory(cat)} style={{ textTransform: "capitalize" }}>{cat}</button>
-                    ))}
-                  </div>
-                </div>
-
-                {runCategory === "conduit" && (
-                  <>
-                    <div style={{ marginBottom: 6 }}>
-                      <label className="panel-label">Type</label>
-                      <select value={conduitType} onChange={(e) => setConduitType(e.target.value)} style={{ width: "100%" }}>
-                        {["EMT", "PVC", "Rigid", "Flex", "LT"].map((t) => <option key={t}>{t}</option>)}
-                      </select>
-                    </div>
-                    <div style={{ marginBottom: 6 }}>
-                      <label className="panel-label">Size</label>
-                      <select value={conduitSize} onChange={(e) => setConduitSize(e.target.value)} style={{ width: "100%" }}>
-                        {["1/2", "3/4", "1", "1-1/4", "1-1/2", "2", "2-1/2", "3", "4"].map((s) => <option key={s} value={s}>{s}"</option>)}
-                      </select>
-                    </div>
-                    <div style={{ marginBottom: 6, display: "flex", gap: 4, alignItems: "center" }}>
-                      <div style={{ flex: 1 }}>
-                        <label className="panel-label">Conductors</label>
-                        <input type="number" value={conductorCount} min={1} max={12}
-                          onChange={(e) => setConductorCount(parseInt(e.target.value) || 1)} style={{ width: "100%" }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label className="panel-label">Size</label>
-                        <select value={conductorSize} onChange={(e) => setConductorSize(e.target.value)} style={{ width: "100%" }}>
-                          {["14", "12", "10", "8", "6", "4", "2", "1/0"].map((s) => <option key={s}>#{s}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div style={{ marginBottom: 6 }}>
-                      <label className="panel-label">Wire Type</label>
-                      <select value={wireType} onChange={(e) => setWireType(e.target.value)} style={{ width: "100%" }}>
-                        {["THHN", "THWN", "XHHW"].map((t) => <option key={t}>{t}</option>)}
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {runCategory === "mc" && (
-                  <>
-                    <div style={{ marginBottom: 6 }}>
-                      <label className="panel-label">MC Size</label>
-                      <select value={mcSize} onChange={(e) => setMcSize(e.target.value)} style={{ width: "100%" }}>
-                        {["12/2", "12/3", "10/2", "10/3", "8/3", "6/3"].map((s) => <option key={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div style={{ marginBottom: 6 }}>
-                      <label className="panel-label">Circuits</label>
-                      <input type="number" value={circuits} min={1} max={20}
-                        onChange={(e) => setCircuits(parseInt(e.target.value) || 1)} style={{ width: "100%" }} />
-                    </div>
-                  </>
-                )}
-
-                <div style={{ marginBottom: 6 }}>
-                  <label className="panel-label">Difficulty</label>
-                  <select value={runDifficulty} onChange={(e) => setRunDifficulty(parseFloat(e.target.value))} style={{ width: "100%" }}>
-                    <option value={0.8}>Easy 0.8x</option>
-                    <option value={1.0}>Normal 1.0x</option>
-                    <option value={1.2}>Hard 1.2x</option>
-                    <option value={1.5}>Very Hard 1.5x</option>
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: 8 }}>
-                  <label className="panel-label">Run Color</label>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 4 }}>
-                    {PRESET_COLORS.map((c) => (
-                      <button key={c}
-                        style={{ width: 18, height: 18, borderRadius: 3, background: c, border: runColor === c ? "2px solid white" : "1px solid var(--border)", cursor: "pointer", padding: 0 }}
-                        onClick={() => setRunColor(c)} />
-                    ))}
-                  </div>
-                  <input type="color" value={runColor} onChange={(e) => setRunColor(e.target.value)}
-                    style={{ width: "100%", height: 24, cursor: "pointer", border: "1px solid var(--border)", borderRadius: 3, background: "none" }} />
-                </div>
-
-                {isDrawingRun ? (
-                  <button
-                    className="btn btn-sm btn-orange"
-                    style={{ width: "100%", marginBottom: 4 }}
-                    onClick={() => {
-                      isDrawingRunRef.current = false;
-                      runPointsRef.current = [];
-                      setIsDrawingRun(false);
-                      setRunPoints([]);
-                    }}>
-                    ✕ Cancel Draw
-                  </button>
-                ) : (
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", padding: "4px 0", lineHeight: 1.4 }}>
-                    Click on the drawing to start a run. Add waypoints with single clicks.
-                    Double-click or press <strong>Enter</strong> to finish. <strong>Esc</strong> to cancel.
-                    Hold <strong>Shift</strong> for free angle.
-                  </div>
-                )}
-              </div>
-            ) : (
-              // Count mode right panel — just info
-              <div style={{ padding: 8, color: "var(--text-muted)", fontSize: 12 }}>
-                <div className="panel-label">Count Mode</div>
-                <p>Select a symbol from the left panel, then click on the canvas to place it.</p>
-                <p>Click a placed symbol to select it. Press Delete to remove.</p>
-                <p>Right-click for options.</p>
-              </div>
-            )}
-
-            {/* ── Audit Panel ── */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", borderTop: "1px solid var(--border)" }}>
-              <div style={{ padding: "6px 8px", background: "var(--surface2)", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
-                onClick={() => setAuditOpen((v) => !v)}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Audit Panel</span>
-                <ChevronDown size={14} style={{ transform: auditOpen ? "rotate(180deg)" : "none" }} />
-              </div>
-
-              {auditOpen && (
-                <div style={{ overflowY: "auto", flex: 1 }}>
-                  {/* Symbol counts */}
-                  <div className="panel-section">
-                    <div className="panel-label">Assembly Counts</div>
-                    {Object.entries(symbolCounts).length === 0 && (
-                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>No symbols placed.</p>
-                    )}
-                    {Object.entries(symbolCounts).map(([type, count]) => (
-                      <div key={type} className="audit-row">
-                        <div>
-                          <div style={{ fontSize: 12 }}>{SYMBOL_LABELS[type] ?? type}</div>
-                          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{count}</div>
-                        </div>
-                        <button className="btn btn-sm" onClick={() => transferCounts(type, count)}>
-                          Add →
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Runs */}
-                  <div className="panel-section">
-                    <div className="panel-label">Conduit / Wire Runs</div>
-                    {confirmedRuns.length === 0 && (
-                      <p style={{ fontSize: 11, color: "var(--text-muted)" }}>No confirmed runs.</p>
-                    )}
-                    {confirmedRuns.map((run) => (
-                      <div key={run.id} className="audit-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-                        <div style={{ fontSize: 11 }}>{run.label}</div>
-                        {run.fromEndpoint && <div style={{ fontSize: 10, color: "var(--text-muted)" }}>From: {run.fromEndpoint} → {run.toEndpoint}</div>}
-                        {run.transferred ? (
-                          <span className="transferred-badge"><Check size={10} />Taken Off</span>
-                        ) : (
-                          <button className="btn btn-sm" onClick={() => transferRun(run)}>Add to Estimate →</button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Transfer all */}
-                  {confirmedRuns.length > 0 && (
-                    <div style={{ padding: 8, borderTop: "1px solid var(--border)" }}>
-                      <button className="btn btn-sm btn-primary" style={{ width: "100%" }} onClick={transferAll}>
-                        Transfer All Untransferred
-                      </button>
-                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4, textAlign: "center" }}>
-                        {transferredCount} of {confirmedRuns.length} runs transferred
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+          {/* Float zoom controls */}
+          <div style={{ position: "absolute", bottom: 16, right: auditOpen ? 292 : 16, display: "flex", flexDirection: "column", gap: 4, zIndex: 40 }}>
+            <ZBtn onClick={() => applyZoom(0.10)}>+</ZBtn>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#5a6070", textAlign: "center" }}>{Math.round(zoom * 100)}%</div>
+            <ZBtn onClick={() => applyZoom(-0.10)}>−</ZBtn>
+            <ZBtn onClick={zoomFit}>⊡</ZBtn>
           </div>
         </div>
 
-        {/* ── DIALOGS ── */}
-
-        {/* Scale dialog */}
-        {showScaleDialog && (
-          <div className="dialog-overlay" onClick={() => setShowScaleDialog(false)}>
-            <div className="dialog" onClick={(e) => e.stopPropagation()}>
-              <h3>Set Scale</h3>
-              <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 12px" }}>
-                Pixel distance measured: {scaleDist.toFixed(1)}px
-              </p>
-              <label className="panel-label">Distance between these points:</label>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-                <input type="number" value={scaleInputFt} onChange={(e) => setScaleInputFt(e.target.value)} style={{ flex: 1 }} />
-                <select value={scaleUnit} onChange={(e) => setScaleUnit(e.target.value as "ft" | "in")}>
-                  <option value="ft">ft</option>
-                  <option value="in">in</option>
-                </select>
+        {/* RIGHT AUDIT PANEL */}
+        {auditOpen ? (
+          <aside style={S.auditPanel}>
+            <div style={{ padding: "10px 12px", borderBottom: "1px solid #2e3138", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.15em", color: "#5a6070", textTransform: "uppercase" }}>Audit</span>
+              <button onClick={() => setAuditOpen(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ overflow: "auto", flex: 1, padding: "8px 0" }}>
+              {/* Symbol counts */}
+              <div style={{ padding: "0 12px 8px" }}>
+                <div style={S.auditSectionLabel}>Assembly Counts</div>
+                {Object.entries(symbolCounts).length === 0 && <div style={S.auditEmpty}>No symbols placed</div>}
+                {Object.entries(symbolCounts).map(([key, count]) => {
+                  const item = STD_ITEMS.find(i => i.key === key);
+                  if (!item) return null;
+                  const color = CAT_COLORS[item.category] ?? "#9aa0ab";
+                  return (
+                    <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <SymPreview symId={item.symId} color={color} />
+                      <div style={{ flex: 1, fontSize: 11, color: "#9aa0ab" }}>{item.label}</div>
+                      <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, color: "#e8eaed", fontWeight: 700 }}>{count}</div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="panel-label" style={{ marginBottom: 4 }}>Quick Presets:</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
-                {SCALE_PRESETS.map((p) => (
-                  <button key={p.label} className="btn btn-sm"
-                    onClick={() => { setPxPerFoot(p.pxPerFoot); setScaleSet(true); setShowScaleDialog(false); setScalePoints([]); }}>
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-              <div className="dialog-footer">
-                <button className="btn" onClick={() => setShowScaleDialog(false)}>Cancel</button>
-                <button className="btn btn-orange" onClick={confirmScale}>Confirm</button>
+              <div style={{ height: 1, background: "#2e3138", margin: "4px 0" }} />
+              {/* Runs */}
+              <div style={{ padding: "8px 12px" }}>
+                <div style={S.auditSectionLabel}>Conduit / Wire Runs</div>
+                {Object.keys(runGrouped).length === 0 && <div style={S.auditEmpty}>No runs placed</div>}
+                {Object.values(runGrouped).map(({ rt, runs }) => {
+                  const total = runs.reduce((s, r) => s + (r.footage ?? 0), 0);
+                  const avg = runs.length > 0 ? Math.round(total / runs.length) : 0;
+                  const done = runs.filter(r => r.transferred).length;
+                  return (
+                    <div key={rt.id} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <div style={{ width: 10, height: 3, background: rt.color, borderRadius: 1 }} />
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#e8eaed" }}>{rt.label}</div>
+                      </div>
+                      <div style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: "#9aa0ab", paddingLeft: 16 }}>
+                        {Math.round(total)}ft / {runs.length} runs ~{avg}ft avg
+                      </div>
+                      <div style={{ paddingLeft: 16, marginTop: 2 }}>
+                        {rt.conductors.map((c, i) => (
+                          <div key={i} style={{ fontSize: 10, fontFamily: "JetBrains Mono, monospace", color: c.isGround ? "#2db562" : "#5a6070" }}>
+                            {c.count}×{c.size} {c.type}: {Math.round(total * c.count)}ft
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ paddingLeft: 16, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 10, color: "#5a6070" }}>{done}/{runs.length} xferred</span>
+                        <button onClick={() => { runs.filter(r => !r.transferred).forEach(r => transferRun(r.id)); }}
+                          style={{ fontSize: 10, background: "#22252b", border: "1px solid #2e3138", color: "#9aa0ab", borderRadius: 4, padding: "2px 6px", cursor: "pointer", fontFamily: "inherit" }}>
+                          Add to Estimate →
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* New drawing dialog */}
-        {showNewDrawingDialog && (
-          <div className="dialog-overlay" onClick={() => setShowNewDrawingDialog(false)}>
-            <div className="dialog" onClick={(e) => e.stopPropagation()}>
-              <h3>New Drawing</h3>
-              <label className="panel-label">Drawing Name</label>
-              <input type="text" value={newDrawingName} onChange={(e) => setNewDrawingName(e.target.value)}
-                placeholder="e.g. First Floor Plan" style={{ width: "100%", marginTop: 4 }}
-                onKeyDown={(e) => { if (e.key === "Enter") createDrawing(); }} autoFocus />
-              <div className="dialog-footer">
-                <button className="btn" onClick={() => setShowNewDrawingDialog(false)}>Cancel</button>
-                <button className="btn btn-orange" onClick={createDrawing}>Create</button>
-              </div>
+            <div style={{ padding: 12, borderTop: "1px solid #2e3138" }}>
+              <button onClick={transferAllRuns}
+                style={{ width: "100%", background: "#2db562", border: "none", borderRadius: 6, color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, padding: 9, cursor: "pointer", letterSpacing: "0.05em" }}>
+                Transfer All Untransferred →
+              </button>
             </div>
-          </div>
-        )}
-
-        {/* Run confirm dialog */}
-        {showRunConfirm && pendingRun && (
-          <div className="dialog-overlay">
-            <div className="dialog" onClick={(e) => e.stopPropagation()}>
-              <h3>Confirm Run</h3>
-              <div style={{ fontSize: 13, marginBottom: 12 }}>
-                <div><strong>Type:</strong> {pendingRun.label}</div>
-                <div><strong>Measured length:</strong> {pendingRun.footage.toFixed(1)} ft</div>
-                <div><strong>Difficulty:</strong> {pendingRun.difficulty}x</div>
-              </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, marginBottom: 12 }}>
-                <input type="checkbox" checked={includeJBox} onChange={(e) => setIncludeJBox(e.target.checked)} />
-                Include junction box at destination
-              </label>
-              <div style={{ marginBottom: 8 }}>
-                <label className="panel-label">From</label>
-                <input type="text"
-                  value={pendingRun.fromEndpoint ?? "Start"}
-                  onChange={(e) => setPendingRun((r) => r ? { ...r, fromEndpoint: e.target.value } : r)}
-                  style={{ width: "100%", marginTop: 2 }} />
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <label className="panel-label">To</label>
-                <input type="text"
-                  value={pendingRun.toEndpoint ?? "End"}
-                  onChange={(e) => setPendingRun((r) => r ? { ...r, toEndpoint: e.target.value } : r)}
-                  style={{ width: "100%", marginTop: 2 }} />
-              </div>
-              <div className="dialog-footer">
-                <button className="btn" onClick={() => { setShowRunConfirm(false); setPendingRun(null); }}>Cancel</button>
-                <button className="btn btn-orange" onClick={confirmRun}>Confirm &amp; Add</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Upload drawing name dialog */}
-        {showUploadNameDialog && (
-          <div className="dialog-overlay" onClick={(e) => e.stopPropagation()}>
-            <div className="dialog" onClick={(e) => e.stopPropagation()}>
-              <h3>Name This Drawing</h3>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 12px" }}>
-                {pendingPdfFile?.name}
-              </p>
-              <label className="panel-label">Drawing Name</label>
-              <input
-                type="text"
-                value={uploadDrawingName}
-                onChange={(e) => setUploadDrawingName(e.target.value)}
-                placeholder="e.g. First Floor Plan"
-                style={{ width: "100%", marginTop: 4 }}
-                autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") confirmUploadDrawingName(); if (e.key === "Escape") { setShowUploadNameDialog(false); setPendingPdfFile(null); } }}
-              />
-              <div className="dialog-footer">
-                <button className="btn" onClick={() => { setShowUploadNameDialog(false); setPendingPdfFile(null); }}>Cancel</button>
-                <button className="btn btn-orange" onClick={confirmUploadDrawingName} disabled={!uploadDrawingName.trim()}>
-                  Load Drawing
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Context menu */}
-        {ctxMenu && (
-          <div className="ctx-menu" style={{ top: ctxMenu.y, left: ctxMenu.x }}
-            onClick={(e) => e.stopPropagation()}>
-            <div className="ctx-item" onClick={() => {
-              setMarkups((prev) => prev.filter((s) => s.id !== ctxMenu.symbolId));
-              setCtxMenu(null);
-            }}>Delete</div>
-            <div className="ctx-item" onClick={() => {
-              const newColor = prompt("Enter hex color (e.g. #ff5910):") ?? "";
-              if (newColor) {
-                setMarkups((prev) => prev.map((s) => s.id === ctxMenu.symbolId ? { ...s, color: newColor } : s));
-              }
-              setCtxMenu(null);
-            }}>Change Color</div>
-            <div className="ctx-item" onClick={() => {
-              const newLabel = prompt("Enter label:") ?? "";
-              setMarkups((prev) => prev.map((s) => s.id === ctxMenu.symbolId ? { ...s, label: newLabel || undefined } : s));
-              setCtxMenu(null);
-            }}>Change Label</div>
-            <div className="ctx-item" onClick={() => { setSelectedSymbolId(null); setCtxMenu(null); }}>Deselect</div>
-          </div>
+          </aside>
+        ) : (
+          <button onClick={() => setAuditOpen(true)} style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "#1a1c20", border: "1px solid #2e3138", borderRight: "none", borderRadius: "6px 0 0 6px", color: "#5a6070", cursor: "pointer", fontSize: 11, padding: "8px 5px", zIndex: 45, writingMode: "vertical-rl" }}>
+            AUDIT
+          </button>
         )}
       </div>
-    </>
+
+      {/* MEASURE MODAL */}
+      {showMeasureModal && (
+        <div style={S.modalOverlay}>
+          <div style={S.modalBox}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>Set Scale</h3>
+              <button onClick={() => { setShowMeasureModal(false); setMeasurePt1(null); measurePt1Ref.current = null; }} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <p style={{ fontSize: 13, color: "#9aa0ab", marginBottom: 12 }}>Enter the real-world distance between the two points you marked.</p>
+            <label style={S.modalLabel}>Real Distance (feet)</label>
+            <input type="number" autoFocus value={measureDistInput}
+              onChange={e => setMeasureDistInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") confirmMeasure(); }}
+              placeholder="e.g. 20" min="0.1" step="0.5" style={S.modalInput} />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => { setShowMeasureModal(false); setMeasurePt1(null); measurePt1Ref.current = null; }} style={S.btnCancel}>Cancel</button>
+              <button onClick={confirmMeasure} style={S.btnConfirm}>Set Scale</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ borderBottom: "1px solid #2e3138", padding: "10px 12px" }}>
+      <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: "#5a6070", textTransform: "uppercase", marginBottom: 8 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function HBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return <button onClick={onClick} style={styles.hdrBtn}>{children}</button>;
+}
+
+function ZBtn({ onClick, children, title }: { onClick: () => void; children: React.ReactNode; title?: string }) {
+  return (
+    <button onClick={onClick} title={title}
+      style={{ background: "#1a1c20", border: "1px solid #2e3138", borderRadius: 8, color: "#9aa0ab", fontSize: 16, width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.4)" }}>
+      {children}
+    </button>
+  );
+}
+
+function PageNav({ current, total, pdfLoaded, onGo }: { current: number; total: number; pdfLoaded: boolean; onGo: (d: number) => void }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "#9aa0ab" }}>
+      <button onClick={() => onGo(-1)} disabled={current <= 1} style={styles.navBtn}>‹</button>
+      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, minWidth: 50, textAlign: "center" }}>
+        {pdfLoaded ? `${current} / ${total}` : "— / —"}
+      </span>
+      <button onClick={() => onGo(1)} disabled={current >= total} style={styles.navBtn}>›</button>
+    </div>
+  );
+}
+
+function SymPreview({ symId, color }: { symId: string; color: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current; if (!c) return;
+    const ctx = c.getContext("2d")!;
+    ctx.clearRect(0, 0, 20, 20);
+    const fn = DRAW_SYMBOLS[symId] ?? DRAW_SYMBOLS["dot"];
+    fn(ctx, 10, 10, 14, color);
+  }, [symId, color]);
+  return <canvas ref={ref} width={20} height={20} style={{ flexShrink: 0 }} />;
+}
+
+// ── Styles ─────────────────────────────────────────────────────────────────────
+const styles = {
+  root: {
+    display: "flex", flexDirection: "column" as const, height: "100dvh",
+    background: "#111214", color: "#e8eaed",
+    fontFamily: "'Barlow Condensed', sans-serif", overflow: "hidden",
+  },
+  header: {
+    height: 52, background: "#1a1c20", borderBottom: "2px solid #FF5910",
+    display: "flex", alignItems: "center", gap: 8, padding: "0 12px",
+    flexShrink: 0, zIndex: 50,
+  },
+  logo: { fontSize: 13, fontWeight: 900, letterSpacing: "0.12em", color: "#FF5910", whiteSpace: "nowrap" as const },
+  logoSub: { color: "#5a6070", fontWeight: 400 } as React.CSSProperties,
+  sep: { width: 1, height: 24, background: "#2e3138", flexShrink: 0 },
+  estName: { fontSize: 13, color: "#9aa0ab", fontWeight: 600, whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 },
+  hdrSelect: { background: "#22252b", border: "1px solid #2e3138", color: "#e8eaed", borderRadius: 6, padding: "4px 8px", fontSize: 13, fontFamily: "inherit" },
+  hdrBtn: {
+    background: "#22252b", border: "1px solid #2e3138", borderRadius: 6,
+    color: "#9aa0ab", fontFamily: "Barlow Condensed, sans-serif" as const, fontSize: 12,
+    fontWeight: 700, letterSpacing: "0.06em", padding: "5px 9px", cursor: "pointer",
+    textTransform: "uppercase" as const,
+  },
+  modeBtn: {
+    background: "#22252b", border: "1px solid #2e3138", borderRadius: 6,
+    color: "#9aa0ab", fontFamily: "Barlow Condensed, sans-serif" as const, fontSize: 12,
+    fontWeight: 700, padding: "5px 9px", cursor: "pointer",
+  },
+  modeBtnActive: { background: "#FF5910", borderColor: "#FF5910", color: "#111" },
+  zoomRow: { display: "flex", alignItems: "center", gap: 4 },
+  zoomLabel: { fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#9aa0ab", minWidth: 36, textAlign: "center" as const },
+  navBtn: {
+    background: "#22252b", border: "1px solid #2e3138", borderRadius: 4,
+    color: "#9aa0ab", fontFamily: "JetBrains Mono, monospace", fontSize: 14,
+    width: 28, height: 28, cursor: "pointer", display: "flex",
+    alignItems: "center", justifyContent: "center",
+  },
+  scaleBanner: {
+    background: "#f0a500", color: "#111", padding: "6px 16px",
+    fontSize: 13, fontWeight: 700, letterSpacing: "0.05em",
+    display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+  },
+  body: { display: "flex", flex: 1, overflow: "hidden", position: "relative" as const },
+  leftPanel: {
+    width: 200, background: "#1a1c20", borderRight: "1px solid #2e3138",
+    display: "flex", flexDirection: "column" as const, flexShrink: 0, overflowY: "auto" as const,
+  },
+  canvasWrap: {
+    flex: 1, overflow: "auto", background: "#0a0b0c", position: "relative" as const,
+  },
+  auditPanel: {
+    width: 280, background: "#1a1c20", borderLeft: "1px solid #2e3138",
+    display: "flex", flexDirection: "column" as const, flexShrink: 0, overflow: "hidden",
+  },
+  auditSectionLabel: { fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase" as const, marginBottom: 6 },
+  auditEmpty: { fontSize: 11, color: "#5a6070" },
+  panelSelect: { width: "100%", background: "#22252b", border: "1px solid #2e3138", borderRadius: 6, color: "#e8eaed", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 600, padding: "6px 8px", outline: "none" },
+  panelBtn: { width: "100%", background: "none", border: "1px solid #2e3138", borderRadius: 6, color: "#9aa0ab", fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", padding: 7, cursor: "pointer", textTransform: "uppercase" as const },
+  modalOverlay: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" },
+  modalBox: { background: "#1a1c20", border: "1px solid #2e3138", borderTop: "3px solid #FF5910", borderRadius: 12, padding: 20, width: 320, maxWidth: "95vw", fontFamily: "'Barlow Condensed', sans-serif" },
+  modalLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", color: "#5a6070", textTransform: "uppercase" as const, display: "block", marginBottom: 4, marginTop: 10 },
+  modalInput: { width: "100%", background: "#22252b", border: "1px solid #2e3138", borderRadius: 6, color: "#e8eaed", fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 600, padding: "9px 10px", outline: "none" },
+  btnCancel: { flex: 1, borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", padding: 11, cursor: "pointer", textTransform: "uppercase" as const, border: "1px solid #2e3138", background: "#22252b", color: "#9aa0ab" },
+  btnConfirm: { flex: 1, borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", padding: 11, cursor: "pointer", textTransform: "uppercase" as const, background: "#FF5910", borderColor: "#FF5910", border: "1px solid #FF5910", color: "#111" },
+};

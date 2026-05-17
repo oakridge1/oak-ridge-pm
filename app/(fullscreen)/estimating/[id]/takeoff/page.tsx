@@ -40,11 +40,19 @@ export default async function TakeoffPage({ params }: { params: Promise<{ id: st
   });
 
   const serializedDrawings = drawings.map((d) => ({
-    ...d,
+    id: d.id,
+    estimateId: d.estimateId,
+    name: d.name,
+    pageCount: d.pageCount,
+    pdfData: d.pdfData ?? null,
+    markups: Array.isArray(d.markups) ? (d.markups as any[]) : [],
+    runTypes: Array.isArray(d.runTypes) ? (d.runTypes as any[]) : [],
+    assemblies: Array.isArray((d as any).assemblies) ? ((d as any).assemblies as any[]) : [],
+    pageScales: (d.pageScales && typeof d.pageScales === "object" && !Array.isArray(d.pageScales))
+      ? (d.pageScales as Record<string, number>)
+      : {},
     createdAt: d.createdAt.toISOString(),
     updatedAt: d.updatedAt.toISOString(),
-    markups: d.markups as any[],
-    runTypes: d.runTypes as any[],
   }));
 
   return <TakeoffClient estimate={estimate} initialDrawings={serializedDrawings} />;
