@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { calcConduitRun, calcMcHomeRun } from "@/lib/estimating";
+import { calcConduitRun, calcMCHR } from "@/lib/estimating";
 import type { Assembly, TakeoffItem, EstimateData } from "@/lib/estimating";
 
 function canEstimate(u: { role?: string | null; estimatingPermission?: boolean | null } | undefined) {
@@ -57,65 +57,41 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     : [];
 
   if (type === "conduitRun") {
-    const result = calcConduitRun(
-      {
-        size: data.conduitSize ?? "3/4",
-        footage: data.footage ?? 0,
-        conductors: data.conductorCount ?? 2,
-        wireSize: data.conductorSize ?? "12",
-        difficulty: data.difficulty ?? 1.0,
-      },
-      estimateData
-    );
+    const condType = (data.conduitType as string) ?? "EMT";
+    const condSize = (data.conduitSize as string) ?? "3/4";
+    const numCond = (data.conductorCount as number) ?? 2;
+    const wireSize = `#${data.conductorSize ?? "12"}`;
+    const footage = (data.footage as number) ?? 0;
+    const diff = (data.difficulty as number) ?? 1.0;
+    const result = calcConduitRun(condType, condSize, numCond, wireSize, "Cu", "1-Hole Strap", footage, 2, 1, false, diff);
     const assembly: Assembly = {
       id: newId(),
       type: "CONDUIT_RUN",
-      label: data.label ?? `${data.conduitSize ?? "3/4"}" ${data.conduitType ?? "EMT"} — ${(data.footage ?? 0).toFixed(1)} ft`,
-      params: {
-        size: data.conduitSize ?? "3/4",
-        footage: data.footage ?? 0,
-        conductors: data.conductorCount ?? 2,
-        wireSize: data.conductorSize ?? "12",
-        difficulty: data.difficulty ?? 1.0,
-        mat: result.mat,
-        lhr: result.lhr,
-        fromDrawingId: id,
-      },
+      label: data.label ?? `${condSize}" ${condType} — ${footage.toFixed(1)} ft`,
+      params: { condType, condSize, numCond, wireSize, footage, diff, fromDrawingId: id },
+      mat: result.mat,
+      lab: result.lab,
+      lines: result.lines,
     };
     const updatedAssemblies = [...currentAssemblies, assembly];
-    await prisma.estimate.update({
-      where: { id: estimate.id },
-      data: { assemblies: updatedAssemblies },
-    });
+    await prisma.estimate.update({ where: { id: estimate.id }, data: { assemblies: updatedAssemblies } });
   } else if (type === "mcHomeRun") {
-    const result = calcMcHomeRun(
-      {
-        wireSize: data.mcSize ?? "12",
-        footage: data.footage ?? 0,
-        circuits: data.circuits ?? 1,
-        hasBox: data.includeJBox ?? false,
-      },
-      estimateData
-    );
+    const wireSize = (data.mcSize as string) ?? "12";
+    const footage = (data.footage as number) ?? 0;
+    const circuits = (data.circuits as number) ?? 1;
+    const result = calcMCHR(wireSize, 2, "20", "CJ6", footage, 12, 1.0);
+    const label = data.label ?? `MC #${wireSize}/2 — ${footage.toFixed(1)} ft × ${circuits} circuit${circuits > 1 ? "s" : ""}`;
     const assembly: Assembly = {
       id: newId(),
       type: "MC_HOME_RUN",
-      label: data.label ?? `MC ${data.mcSize ?? "12/2"} — ${(data.footage ?? 0).toFixed(1)} ft × ${data.circuits ?? 1} circuits`,
-      params: {
-        wireSize: data.mcSize ?? "12",
-        footage: data.footage ?? 0,
-        circuits: data.circuits ?? 1,
-        hasBox: data.includeJBox ?? false,
-        mat: result.mat,
-        lhr: result.lhr,
-        fromDrawingId: id,
-      },
+      label,
+      params: { wireSize, footage, circuits, fromDrawingId: id },
+      mat: result.mat,
+      lab: result.lab,
+      lines: result.lines,
     };
     const updatedAssemblies = [...currentAssemblies, assembly];
-    await prisma.estimate.update({
-      where: { id: estimate.id },
-      data: { assemblies: updatedAssemblies },
-    });
+    await prisma.estimate.update({ where: { id: estimate.id }, data: { assemblies: updatedAssemblies } });
   } else if (type === "counts") {
     // data: { bomId: string; qty: number; note?: string }[]
     const newItems: TakeoffItem[] = Array.isArray(data)

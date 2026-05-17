@@ -50,6 +50,89 @@ export const DEFAULTS = {
   nonProd: 0.0,
 } as const;
 
+/** Job-level rates — matches DEFAULTS, aliased as R for calc functions */
+export const R = {
+  labor: 41.50, bulk: 0.085, light: 0.05,
+  permit: 0.05, sub: 0.03, overhead: 0.10, profit: 0.12,
+} as const;
+
+/** N6 — Device installation labor hours (NECA 2015-16) */
+export const N6 = {
+  r15: 0.25, r20: 0.30, gf15: 0.30, gf20: 0.35,
+  sw15: 0.20, sw20: 0.25, sw3: 0.40, sw4: 0.45,
+  dim: 0.40, dim1000: 0.50, dim010: 0.85,
+  cov1: 0.10, cov2: 0.12, wp: 0.20, wp2g: 0.25,
+  photocell: 0.65, occ_ceil: 0.50, occ_pir: 0.50,
+} as const;
+
+/** N5 — Fixture installation labor hours (NECA 2015-16) */
+export const N5 = {
+  tbar22_led: 0.60, tbar24_led: 0.75, tbar22_2l: 0.60, tbar24_2l: 0.70,
+  tbar24_4l: 0.80, surf22_led: 0.70, surf24_led: 0.80, rec22_led: 1.00,
+  rec24_led: 1.10, strip24_led: 0.60, strip48_led: 0.75, strip96_led: 1.15,
+  wrap24_led: 0.60, wrap48_led: 0.65, vap24_led: 0.95, vap48_led: 1.20,
+  chain24_led: 0.65, chain48_led: 0.85, chain96_led: 1.20, highbay24_led: 1.75,
+  wallpack_led: 1.25, sconce_led: 1.50, downlight_led: 1.25,
+  exit_surf: 1.00, exit_self: 0.70, exit_rec: 1.25,
+  emerg_dual: 1.20, emerg_remote1: 0.60, emerg_remote2: 0.70,
+  fan_36: 1.50, fan_48: 2.50, fan_55: 3.50, fan_60: 4.50,
+  track4_surf: 1.25, track8_surf: 1.50, track_head: 0.60,
+  posttop_led: 4.00, shoebox_led: 3.00, bollard42_led: 2.00,
+} as const;
+
+/** N8 — Grounding labor hours (NECA 2015-16) */
+export const N8 = {
+  grd_rod_clamp: 1.60, grd_pigtail: 0.06, grd_wire_conn: 0.08, grd_clip: 0.06,
+  bush_34: 0.20, bush_1: 0.22, bush_114: 0.24, bush_112: 0.26, bush_2: 0.28,
+  bond_jmp_34: 0.80, bond_jmp_1: 0.85, bond_jmp_112: 1.00, bond_jmp_2: 1.10,
+  bare_cu_gnd_8: 12.0 / 1000, bare_cu_gnd_4: 16.0 / 1000, bare_cu_gnd_2: 20.0 / 1000,
+} as const;
+
+/** N9 — HVAC/Panel labor hours (NECA 2015-16) */
+export const N9 = {
+  bb24: 0.75, bb36: 0.80, bb48: 0.90, bb60: 1.00, bb72: 1.10, bb96: 1.25,
+  wh240_2500: 2.00, wh240_3000: 2.20, wh240_4000: 2.75, wh240_5000: 3.25,
+  wh120_1000: 1.30, wh120_1500: 1.50,
+  uh_2kw: 2.00, uh_5kw: 3.00, uh_10kw: 4.00, uh_15kw: 5.00,
+  ceil_htr_1000: 1.00, ceil_htr_1000fan: 1.20, ceil_htr_1500fan: 1.50,
+  tstat_lv1: 0.50, tstat_lv2: 0.60, tstat_linev1: 0.60, tstat_linev2: 0.66,
+  pwr_20a: 0.25, pwr_50a: 0.30, pwr_60a: 0.33, pwr_80a: 0.36,
+  pwr_100a: 0.45, pwr_125a: 0.50, pwr_150a: 0.54, pwr_200a: 0.68, pwr_400a: 1.20,
+} as const;
+
+/** N11 — Underground/conduit labor hours (NECA 2015-16) */
+export const N11 = {
+  pvc40_34_ft: 3.50 / 100, pvc40_1_ft: 3.75 / 100, pvc40_112_ft: 4.25 / 100,
+  pvc40_2_ft: 4.50 / 100, pvc40_3_ft: 5.00 / 100, pvc40_4_ft: 5.50 / 100,
+  pvc40_elb_34: 0.22, pvc40_elb_1: 0.25, pvc40_elb_112: 0.40,
+  pvc40_elb_2: 0.50, pvc40_elb_3: 0.70, pvc40_elb_4: 1.00,
+  pvc40_exp_34: 0.60, pvc40_exp_1: 0.70, pvc40_exp_2: 1.00,
+  pvc40_exp_3: 1.30, pvc40_exp_4: 1.75,
+} as const;
+
+/** N4_BKR — Breaker termination labor hours (NECA Sec 4) */
+export const N4_BKR = {
+  "1p15": 0.32, "1p20": 0.34, "1p30": 0.38, "1p60": 0.47, "1p100": 0.61,
+  "2p20": 0.52, "2p30": 0.58, "2p50": 0.64, "2p100": 0.94, "2p200": 1.50,
+  "3p20": 0.71, "3p30": 0.78, "3p100": 1.28, "3p200": 2.00, afci_adder: 0.15,
+} as const;
+
+/** N4_PANEL — Panel set labor hours (NECA Sec 4) */
+export const N4_PANEL = {
+  "100a_surf_30": 2.6, "100a_surf_42": 3.0, "200a_surf_30": 3.4, "200a_surf_42": 4.0,
+  "100a_rec_30": 3.6, "100a_rec_42": 4.0, "200a_rec_30": 4.6, "200a_rec_42": 5.2,
+} as const;
+
+// Wire connector unit costs
+export const WNOB = 87.60 / 1000;
+export const WNRD = 144.37 / 1000;
+export const WNGN = 220.22 / 1000;
+export const GND_SCR = 137.90 / 1000;
+// Liquid tight per-foot costs
+export const LT_12_FT = 1.1627;
+export const LT_34_FT = 2.3096;
+export const LT_1_FT  = 4.087;
+
 export const BOM: BomItem[] = [
   // ── BOXES ────────────────────────────────────────────────────────────────────
   { id: "b1",  category: "Boxes", name: '4" Square Deep Box',          unit: "EA", mat: 2.5000,  lhr: 0.30, mk: "bulk", gc: true  },
