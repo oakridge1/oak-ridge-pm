@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ClipboardList, Layers, Zap, FileText, Book, BarChart3, Settings,
-  Plus, Trash2, ChevronDown, Check, X, ArrowLeft, ExternalLink,
+  Plus, Trash2, ChevronDown, Check, X, ArrowLeft, ExternalLink, DollarSign,
 } from "lucide-react";
 import { BOM, BOM_CATEGORIES } from "@/lib/bom";
 import AssembliesTabComponent from "./tabs/assemblies-tab";
@@ -71,6 +71,7 @@ const TABS = [
   { id: "permits",   label: "Permits & Subs", Icon: FileText },
   { id: "bom",       label: "BOM Reference", Icon: Book },
   { id: "bid",       label: "Bid Summary",  Icon: BarChart3 },
+  { id: "audit",     label: "Audit Trail",  Icon: FileText },
   { id: "settings",  label: "Settings",    Icon: Settings },
 ] as const;
 
@@ -120,6 +121,49 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }
 
+  // Deposit Request state (Fix 6)
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [depositAmountType, setDepositAmountType] = useState<"fixed" | "percentage">("fixed");
+  const [depositFixed, setDepositFixed] = useState("");
+  const [depositPct, setDepositPct] = useState("");
+  const [depositContractValue, setDepositContractValue] = useState("");
+  const [depositDueDate, setDepositDueDate] = useState("");
+  const [depositDescription, setDepositDescription] = useState(`Deposit — ${estimate.name}`);
+  const [depositNotes, setDepositNotes] = useState("");
+  const [depositGenerating, setDepositGenerating] = useState(false);
+
+  async function handleGenerateDeposit() {
+    setDepositGenerating(true);
+    try {
+      const res = await fetch(`/api/estimates/${estimate.id}/deposit-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amountType: depositAmountType,
+          fixedAmount: depositFixed,
+          percentage: depositPct,
+          contractValue: depositContractValue,
+          dueDate: depositDueDate,
+          description: depositDescription,
+          notes: depositNotes,
+        }),
+      });
+      if (!res.ok) { alert("Failed to generate deposit request PDF."); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `DepositRequest_${estimate.estimateNumber}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setShowDepositModal(false);
+    } catch {
+      alert("Error generating deposit request.");
+    } finally {
+      setDepositGenerating(false);
+    }
+  }
+
   // Field Tools status state
   const [fieldToolsOpen, setFieldToolsOpen] = useState(false);
   const [drawingCount, setDrawingCount] = useState<number | null>(null);
@@ -162,6 +206,8 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
   const [jobNumberAssigned, setJobNumberAssigned] = useState(estimate.jobNumberAssigned ?? "");
   const [jobNumberInput, setJobNumberInput] = useState(estimate.jobNumberAssigned ?? "");
   const [notes, setNotes] = useState(estimate.notes ?? "");
+  const [scopeOfWork, setScopeOfWork] = useState((estimate as { scopeOfWork?: string | null }).scopeOfWork ?? "");
+  const sowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Settings
   const [laborRate, setLaborRate] = useState(estimate.laborRate);
@@ -337,6 +383,93 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
         </div>
       )}
 
+      {/* Deposit Request Modal (Fix 6) */}
+      {showDepositModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-[#002D72] flex items-center gap-2">
+                <DollarSign className="w-5 h-5" /> Request Deposit
+              </h2>
+              <button onClick={() => setShowDepositModal(false)} className="p-1 text-gray-400 hover:text-gray-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              {(["fixed", "percentage"] as const).map(t => (
+                <button key={t} onClick={() => setDepositAmountType(t)}
+                  className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    depositAmountType === t ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300"
+                  }`}>
+                  {t === "fixed" ? "Fixed Amount" : "% of Contract"}
+                </button>
+              ))}
+            </div>
+
+            {depositAmountType === "fixed" ? (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Amount ($) *</label>
+                <input type="number" value={depositFixed} onChange={e => setDepositFixed(e.target.value)}
+                  placeholder="0.00" step="0.01" min="0"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Percentage %</label>
+                    <input type="number" value={depositPct} onChange={e => setDepositPct(e.target.value)}
+                      placeholder="10" step="0.5" min="0" max="100"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Contract Value ($)</label>
+                    <input type="number" value={depositContractValue} onChange={e => setDepositContractValue(e.target.value)}
+                      placeholder="0.00" step="0.01" min="0"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                  </div>
+                </div>
+                {depositPct && depositContractValue && (
+                  <p className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1.5">
+                    Deposit: ${(parseFloat(depositContractValue) * parseFloat(depositPct) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
+              <input type="date" value={depositDueDate} onChange={e => setDepositDueDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+              <input type="text" value={depositDescription} onChange={e => setDepositDescription(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
+              <textarea value={depositNotes} onChange={e => setDepositNotes(e.target.value)} rows={3}
+                placeholder="Additional instructions or notes…"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none" />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <button onClick={() => setShowDepositModal(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">Cancel</button>
+              <button onClick={handleGenerateDeposit} disabled={depositGenerating}
+                className="flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800 disabled:opacity-60 transition-colors">
+                <DollarSign className="w-4 h-4" />
+                {depositGenerating ? "Generating…" : "Download PDF"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
@@ -361,6 +494,13 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
         </div>
         {/* Field tool buttons */}
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowDepositModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition-colors"
+          >
+            <DollarSign className="w-4 h-4" />
+            Request Deposit
+          </button>
           <button
             onClick={() => window.open(`/estimating/${estimate.id}/takeoff`, "_blank", "noopener")}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-[#002D72] text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors"
@@ -448,6 +588,30 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
         )}
       </div>
 
+      {/* Scope of Work (Fix 7) */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-[#002D72] mb-2">Scope of Work</h3>
+        <textarea
+          value={scopeOfWork}
+          onChange={e => {
+            const val = e.target.value;
+            setScopeOfWork(val);
+            if (sowTimer.current) clearTimeout(sowTimer.current);
+            sowTimer.current = setTimeout(() => {
+              fetch(`/api/estimates/${estimate.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ scopeOfWork: val || null }),
+              }).catch(() => {/* silent */});
+            }, 1500);
+          }}
+          rows={6}
+          placeholder="Enter scope of work — each line will appear as a numbered item on invoices…"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-y"
+        />
+        <p className="text-xs text-gray-400 mt-1">Auto-saves · each line = one item on invoice PDF</p>
+      </div>
+
       {/* Tab content */}
       <div>
         {activeTab === "takeoff" && (
@@ -501,6 +665,17 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
             onCreateJob={handleCreateJob}
             onExportPdf={handleExportPdf}
             onExportJson={handleExportJson}
+          />
+        )}
+        {activeTab === "audit" && (
+          <AuditTrailTab
+            takeoffItems={takeoffItems}
+            assemblies={assemblies}
+            panelItems={panelItems}
+            permits={permits}
+            subs={subs}
+            data={estimateData}
+            totals={totals}
           />
         )}
         {activeTab === "settings" && (
@@ -1178,7 +1353,267 @@ function BidSummaryTab({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tab 7: Settings
+// Tab 7: Audit Trail
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AuditTrailTab({
+  takeoffItems, assemblies, panelItems, permits, subs, data, totals,
+}: {
+  takeoffItems: TakeoffItem[];
+  assemblies: Assembly[];
+  panelItems: PanelItem[];
+  permits: PermitItem[];
+  subs: SubItem[];
+  data: EstimateData;
+  totals: ReturnType<typeof calcBid>;
+}) {
+  // ── Takeoff Section ──────────────────────────────────────────────────────────
+  const takeoffRows = takeoffItems.map(item => {
+    const bom = BOM.find(b => b.id === item.bomId);
+    if (!bom) return null;
+    const line = calcLine(item, data);
+    return { id: item.id, name: bom.name, category: bom.category, qty: item.qty, unit: bom.unit, mat: line.mat, lhr: line.lhr, laborCost: line.laborCost, total: line.total };
+  }).filter(Boolean) as { id: string; name: string; category: string; qty: number; unit: string; mat: number; lhr: number; laborCost: number; total: number }[];
+
+  const takeoffTotals = takeoffRows.reduce((a, r) => ({ mat: a.mat + r.mat, lhr: a.lhr + r.lhr, total: a.total + r.total }), { mat: 0, lhr: 0, total: 0 });
+
+  // ── Assembly Section ─────────────────────────────────────────────────────────
+  const asmRows = assemblies.map(asm => {
+    const mat = asm.mat ?? 0;
+    const lab = asm.lab ?? 0;
+    return { id: asm.id, label: asm.label || asm.type, type: asm.type, mat, lab };
+  });
+  const asmTotals = asmRows.reduce((a, r) => ({ mat: a.mat + r.mat, lab: a.lab + r.lab }), { mat: 0, lab: 0 });
+
+  // ── Panel Section ────────────────────────────────────────────────────────────
+  const panelRows = panelItems.map(panel => {
+    const panelBom = BOM.find(b => b.id === panel.panelBomId);
+    let mat = panelBom ? panelBom.mat * (1 + data.bulkMarkup) : 0;
+    let lhr = panelBom ? adjustLhr(panelBom.lhr, data) : 0;
+    const circuitCount = panel.breakerRows.reduce((s, r) => s + r.qty, 0);
+    for (const row of panel.breakerRows) {
+      const brkBom = BOM.find(b => b.id === row.bomId);
+      if (brkBom) {
+        mat += brkBom.mat * row.qty * (1 + data.bulkMarkup);
+        lhr += adjustLhr(brkBom.lhr * row.qty, data);
+      }
+    }
+    return { id: panel.id, name: panelBom?.name ?? "Panel", circuitCount, mat, lhr, laborCost: lhr * data.laborRate, total: mat + lhr * data.laborRate };
+  });
+  const panelTotals = panelRows.reduce((a, r) => ({ mat: a.mat + r.mat, lhr: a.lhr + r.lhr, total: a.total + r.total }), { mat: 0, lhr: 0, total: 0 });
+
+  // ── Permits & Subs ───────────────────────────────────────────────────────────
+  const permitTotal = permits.reduce((s, p) => s + p.amount, 0);
+  const permitMarkedUp = permitTotal * (1 + data.permitMarkup);
+  const subTotal = subs.reduce((s, sub) => s + sub.amount, 0);
+  const subMarkedUp = subTotal * (1 + data.subMarkup);
+
+  // ── Running total bar ────────────────────────────────────────────────────────
+  const grandTotal = totals.grandWithSubs;
+
+  function SectionHeader({ title, count }: { title: string; count: number }) {
+    return (
+      <div className="flex items-center justify-between px-4 py-3 bg-[#002D72] text-white rounded-t-xl">
+        <h3 className="text-sm font-semibold tracking-wide uppercase">{title}</h3>
+        <span className="text-xs text-blue-200">{count} item{count !== 1 ? "s" : ""}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Running total banner */}
+      <div className="bg-[#002D72] text-white rounded-xl px-5 py-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-blue-200 uppercase tracking-widest">Grand Total Bid Price</p>
+          <p className="text-2xl font-bold font-mono mt-1">{fmt$(grandTotal)}</p>
+        </div>
+        <div className="text-right text-xs text-blue-200 space-y-0.5">
+          <p>Mat: {fmt$(totals.markedUpMat)}</p>
+          <p>Labor: {fmt$(totals.laborWithOverhead)}</p>
+          <p>Profit: {fmt$(totals.profit)}</p>
+        </div>
+      </div>
+
+      {/* Takeoff items */}
+      {takeoffRows.length > 0 && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <SectionHeader title="Takeoff Items" count={takeoffRows.length} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">#</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Item</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Category</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Qty</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Unit</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Mat</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Hrs</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Labor</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {takeoffRows.map((r, idx) => (
+                  <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
+                    <td className="px-3 py-2 font-medium text-gray-900 max-w-[180px] truncate">{r.name}</td>
+                    <td className="px-3 py-2 text-gray-500">{r.category}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.qty}</td>
+                    <td className="px-3 py-2 text-gray-500">{r.unit}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{fmt$(r.mat)}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{r.lhr.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{fmt$(r.laborCost)}</td>
+                    <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">{fmt$(r.total)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-blue-50 border-t-2 border-[#002D72]/20 font-bold text-[#002D72]">
+                  <td colSpan={5} className="px-3 py-2 text-xs">TAKEOFF TOTALS</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(takeoffTotals.mat)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{takeoffTotals.lhr.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(takeoffTotals.lhr * data.laborRate)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(takeoffTotals.total)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Assemblies */}
+      {asmRows.length > 0 && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <SectionHeader title="Assemblies" count={asmRows.length} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">#</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Label</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Type</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Mat</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Labor $</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {asmRows.map((r, idx) => (
+                  <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
+                    <td className="px-3 py-2 font-medium text-gray-900">{r.label}</td>
+                    <td className="px-3 py-2 text-gray-500">{r.type}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{fmt$(r.mat)}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{fmt$(r.lab)}</td>
+                    <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">{fmt$(r.mat + r.lab)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-blue-50 border-t-2 border-[#002D72]/20 font-bold text-[#002D72]">
+                  <td colSpan={3} className="px-3 py-2 text-xs">ASSEMBLY TOTALS</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(asmTotals.mat)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(asmTotals.lab)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(asmTotals.mat + asmTotals.lab)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Panel Builder */}
+      {panelRows.length > 0 && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <SectionHeader title="Panel Builder" count={panelRows.length} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">#</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Panel</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Circuits</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Mat</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Hrs</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Labor</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {panelRows.map((r, idx) => (
+                  <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
+                    <td className="px-3 py-2 font-medium text-gray-900">{r.name}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.circuitCount}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{fmt$(r.mat)}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{r.lhr.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{fmt$(r.laborCost)}</td>
+                    <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">{fmt$(r.total)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-blue-50 border-t-2 border-[#002D72]/20 font-bold text-[#002D72]">
+                  <td colSpan={3} className="px-3 py-2 text-xs">PANEL TOTALS</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(panelTotals.mat)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{panelTotals.lhr.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(panelTotals.lhr * data.laborRate)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(panelTotals.total)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Permits & Subs */}
+      {(permits.length > 0 || subs.length > 0) && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <SectionHeader title="Permits & Subcontractors" count={permits.length + subs.length} />
+          <div className="divide-y divide-gray-100">
+            {permits.map((p, idx) => (
+              <div key={p.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 w-6 text-right">{idx + 1}</span>
+                  <span className="text-sm text-gray-900">{p.description || "—"}</span>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">Permit</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-mono font-semibold text-gray-900">{fmt$(p.amount * (1 + data.permitMarkup))}</p>
+                  <p className="text-xs text-gray-400 font-mono">{fmt$(p.amount)} base</p>
+                </div>
+              </div>
+            ))}
+            {subs.map((s, idx) => (
+              <div key={s.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 w-6 text-right">{permits.length + idx + 1}</span>
+                  <span className="text-sm text-gray-900">{s.description || "—"}</span>
+                  <span className="text-xs bg-orange-50 text-orange-700 px-1.5 py-0.5 rounded">Sub</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-mono font-semibold text-gray-900">{fmt$(s.amount * (1 + data.subMarkup))}</p>
+                  <p className="text-xs text-gray-400 font-mono">{fmt$(s.amount)} base</p>
+                </div>
+              </div>
+            ))}
+            <div className="px-4 py-3 bg-blue-50 flex items-center justify-between">
+              <span className="text-xs font-bold text-[#002D72]">PERMITS & SUBS TOTALS</span>
+              <span className="text-sm font-bold font-mono text-[#002D72]">{fmt$(permitMarkedUp + subMarkedUp)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {takeoffRows.length === 0 && asmRows.length === 0 && panelRows.length === 0 && permits.length === 0 && subs.length === 0 && (
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-sm">No items in this estimate yet.</p>
+          <p className="text-xs mt-1">Add items in the Takeoff, Assemblies, Panel Builder, or Permits tabs.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab 8: Settings
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SettingsTab({

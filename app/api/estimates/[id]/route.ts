@@ -32,7 +32,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   // Whitelist updatable fields
   const {
-    name, clientName, address, status, notes, jobNumberAssigned,
+    name, clientName, address, status, notes, scopeOfWork, jobNumberAssigned,
     laborRate, bulkMarkup, lightMarkup, permitMarkup, subMarkup,
     overhead, profit, nonProd, designFeePct, designFeeUserId,
     conditionMult, heightAdj,
@@ -47,6 +47,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       ...(address !== undefined && { address }),
       ...(status !== undefined && { status }),
       ...(notes !== undefined && { notes }),
+      ...(scopeOfWork !== undefined && { scopeOfWork }),
       ...(jobNumberAssigned !== undefined && { jobNumberAssigned }),
       ...(laborRate !== undefined && { laborRate }),
       ...(bulkMarkup !== undefined && { bulkMarkup }),

@@ -37,7 +37,7 @@ type Tab = {
 const TABS: Tab[] = [
   { id: "info", label: "Info", icon: <Info className="w-4 h-4" /> },
   { id: "labor", label: "Labor", icon: <Clock className="w-4 h-4" /> },
-  { id: "invoices", label: "Invoices", icon: <Package className="w-4 h-4" /> },
+  { id: "invoices", label: "Purchase Orders", icon: <Package className="w-4 h-4" /> },
   { id: "crib", label: "The Crib", icon: <ShoppingCart className="w-4 h-4" /> },
   { id: "photos", label: "Photos", icon: <Camera className="w-4 h-4" /> },
   {

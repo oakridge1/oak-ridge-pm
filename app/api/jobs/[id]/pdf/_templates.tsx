@@ -1030,6 +1030,7 @@ export type StandardInvoiceData = {
   companyPhone?: string;
   companyEmail?: string;
   companyLogoUrl?: string | null;
+  paymentTerms?: string | null;
 };
 
 const IS = StyleSheet.create({
@@ -1091,6 +1092,15 @@ const IS = StyleSheet.create({
   },
   invFooterText: { fontSize: 7, color: LIGHT },
 });
+
+const PAYMENT_TERMS_TEXT: Record<string, string> = {
+  due_on_receipt: "Payment is due upon receipt of this invoice. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law.",
+  net_10:  "Payment is due within 10 days of invoice date. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law.",
+  net_15:  "Payment is due within 15 days of invoice date. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law.",
+  net_30:  "Payment is due within 30 days of invoice date. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law.",
+  net_45:  "Payment is due within 45 days of invoice date. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law.",
+  net_60:  "Payment is due within 60 days of invoice date. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law.",
+};
 
 export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -1233,7 +1243,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
         <View style={IS.termsBox}>
           <Text style={IS.termsLabel}>Payment Terms</Text>
           <Text style={IS.termsText}>
-            Payment is due upon receipt of this invoice. Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law. Please remit payment to: {co_name}, {co_address}, {co_cityState}
+            {PAYMENT_TERMS_TEXT[data.paymentTerms ?? "due_on_receipt"] ?? PAYMENT_TERMS_TEXT.due_on_receipt} Please remit payment to: {co_name}, {co_address}, {co_cityState}
           </Text>
         </View>
 

@@ -150,6 +150,7 @@ model User {
   estimatingPermission     Boolean                @default(false)
   createdEstimates         Estimate[]             @relation("EstimateCreatedBy")
   designFeeEstimates       Estimate[]             @relation("EstimateDesignFee")
+  notificationPreferences  NotificationPreference?
 }
 
 model Account {
@@ -276,6 +277,8 @@ model Invoice {
   retainageHeld Decimal?      @db.Decimal(12, 2)
   lineItems     Json?
   notes         String?       @db.Text
+  paymentTerms  String        @default("due_on_receipt")
+  scopeOfWork   String?       @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -329,6 +332,7 @@ model Material {
   vendor          String?
   description     String
   amount          Decimal  @db.Decimal(12, 2)
+  markupPct       Float    @default(0)
   fileUrl         String?
   fileName        String?
   archivedToVault Boolean  @default(false)
@@ -562,16 +566,17 @@ model CalendarRequest {
 // ── Company Settings (singleton) ─────────────────────────────────────────────
 
 model CompanySettings {
-  id        String   @id @default("singleton")
-  name      String   @default("Oak Ridge Electrical LLC")
-  address   String   @default("209 W. River Rd")
-  city      String   @default("Hooksett")
-  state     String   @default("NH")
-  zip       String   @default("03106")
-  phone     String   @default("603-660-4651")
-  email     String   @default("Justin@oakridgeelectrical.com")
-  logoUrl   String?
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default("singleton")
+  name                String   @default("Oak Ridge Electrical LLC")
+  address             String   @default("209 W. River Rd")
+  city                String   @default("Hooksett")
+  state               String   @default("NH")
+  zip                 String   @default("03106")
+  phone               String   @default("603-660-4651")
+  email               String   @default("Justin@oakridgeelectrical.com")
+  logoUrl             String?
+  defaultPaymentTerms String   @default("due_on_receipt")
+  updatedAt           DateTime @updatedAt
 }
 
 // ── Google Integration ────────────────────────────────────────────────────────
@@ -738,6 +743,7 @@ model Estimate {
   permits             Json           @default("[]")
   subs                Json           @default("[]")
   notes               String?        @db.Text
+  scopeOfWork         String?        @db.Text
   awardedAt           DateTime?
   createdById         String
   createdBy           User           @relation("EstimateCreatedBy", fields: [createdById], references: [id])
@@ -771,4 +777,24 @@ model CounterArea {
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+// ── Notification Preferences (Fix 2) ─────────────────────────────────────────
+
+model NotificationPreference {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferences Json     @default("{}")
+  updatedAt   DateTime @updatedAt
+}
+
+// ── BOM Pricing Overrides (Fix 9) ────────────────────────────────────────────
+
+model BomPricing {
+  id        String   @id
+  mat       Float
+  lhr       Float
+  updatedAt DateTime @updatedAt
+  updatedBy String?
 }

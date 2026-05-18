@@ -123,6 +123,8 @@ export async function createInvoice(jobId: string, data: {
   amount: string;
   retainagePct: string;
   notes: string;
+  paymentTerms?: string;
+  scopeOfWork?: string;
   lineItems: { label: string; amount: number }[];
   invoiceKind?: string;
   force?: boolean;
@@ -183,6 +185,8 @@ export async function createInvoice(jobId: string, data: {
       retainageHeld,
       lineItems: data.lineItems.length > 0 ? data.lineItems : undefined,
       notes: data.notes.trim() || null,
+      paymentTerms: data.paymentTerms || "due_on_receipt",
+      scopeOfWork: data.scopeOfWork?.trim() || null,
     },
   });
 

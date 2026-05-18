@@ -34,6 +34,7 @@ export default async function SettingsPage({
     phone: rawSettings.phone,
     email: rawSettings.email,
     logoUrl: rawSettings.logoUrl,
+    defaultPaymentTerms: rawSettings.defaultPaymentTerms,
   };
 
   return (

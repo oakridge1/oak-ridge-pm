@@ -572,6 +572,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   const [invAmount, setInvAmount] = useState(grossBilling.toFixed(2));
   const [invRetainagePct, setInvRetainagePct] = useState("10");
   const [invNotes, setInvNotes] = useState("");
+  const [invPaymentTerms, setInvPaymentTerms] = useState("due_on_receipt");
+  const [invScopeOfWork, setInvScopeOfWork] = useState("");
 
   // Payment form state
   const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
@@ -622,6 +624,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
           amount: invAmount,
           retainagePct: invRetainagePct,
           notes: invNotes,
+          paymentTerms: invPaymentTerms,
+          scopeOfWork: invScopeOfWork,
           lineItems: buildLineItems(),
           force,
         });
@@ -926,12 +930,33 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                   step="0.1" min="0" max="100" placeholder="0"
                   className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
               </div>
+              {invType === "STANDARD" && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Payment Terms</label>
+                  <select value={invPaymentTerms} onChange={e => setInvPaymentTerms(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]">
+                    <option value="due_on_receipt">Due on Receipt</option>
+                    <option value="net_10">Net 10</option>
+                    <option value="net_15">Net 15</option>
+                    <option value="net_30">Net 30</option>
+                    <option value="net_45">Net 45</option>
+                    <option value="net_60">Net 60</option>
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Notes</label>
                 <input value={invNotes} onChange={e => setInvNotes(e.target.value)}
                   placeholder="Optional notes…"
                   className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
               </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Scope of Work</label>
+              <textarea value={invScopeOfWork} onChange={e => setInvScopeOfWork(e.target.value)}
+                placeholder="Describe the scope of work for this invoice…"
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] resize-none" />
             </div>
             {parseFloat(invRetainagePct || "0") > 0 && parseFloat(invAmount || "0") > 0 && (
               <p className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1.5">

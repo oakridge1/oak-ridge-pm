@@ -61,6 +61,7 @@ export async function GET(
         invoiceNumber: true, date: true, periodTo: true, amount: true,
         retainagePct: true, retainageHeld: true,
         lineItems: true, notes: true, type: true, invoiceKind: true,
+        paymentTerms: true, scopeOfWork: true,
       },
     }),
     prisma.companySettings.upsert({
@@ -94,7 +95,6 @@ export async function GET(
         state: job.state,
         contractStartDate: job.contractStartDate,
         contractValue: job.contractValue?.toNumber() ?? null,
-        scopeOfWork: job.scopeOfWork,
         approvedCOs: job.changeOrders.map(co => ({
           coNumber: co.coNumber,
           description: co.description,
@@ -110,6 +110,8 @@ export async function GET(
         notes: invoice.notes,
         previouslyInvoiced,
         invoiceKind: invoice.invoiceKind,
+        paymentTerms: invoice.paymentTerms,
+        scopeOfWork: invoice.scopeOfWork ?? job.scopeOfWork,
         logoSrc,
         companyName: companySettings.name,
         companyAddress: companySettings.address,

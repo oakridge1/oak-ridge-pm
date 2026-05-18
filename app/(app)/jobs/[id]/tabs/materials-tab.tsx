@@ -22,6 +22,7 @@ type MaterialEntry = {
   vendor: string | null;
   description: string;
   amount: number;
+  markupPct: number;
   fileUrl: string | null;
   fileName: string | null;
   user: { name: string | null };
@@ -65,14 +66,19 @@ function EditRow({
   const [vendor, setVendor] = useState(entry.vendor ?? "");
   const [description, setDescription] = useState(entry.description);
   const [amount, setAmount] = useState(String(entry.amount));
+  const [markupPct, setMarkupPct] = useState(String(entry.markupPct ?? 0));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const baseCost = parseFloat(amount) || 0;
+  const markup = parseFloat(markupPct) || 0;
+  const totalWithMarkup = baseCost * (1 + markup / 100);
 
   function handleSave() {
     setError(null);
     startTransition(async () => {
       try {
-        await updateMaterial(entry.id, jobId, { date, vendor, description, amount });
+        await updateMaterial(entry.id, jobId, { date, vendor, description, amount, markupPct });
         onCancel();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Save failed.");
@@ -90,9 +96,20 @@ function EditRow({
           className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
         <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" required
           className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] col-span-2" />
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" min="0" placeholder="0.00"
-          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+        <div>
+          <label className="block text-xs text-gray-500 mb-0.5">Base Cost ($)</label>
+          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" min="0" placeholder="0.00"
+            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-0.5">Markup %</label>
+          <input type="number" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} step="0.5" min="0" placeholder="0"
+            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+        </div>
       </div>
+      {markup > 0 && (
+        <p className="text-xs text-gray-500">Total w/ markup: <strong>{fmtMoney(totalWithMarkup)}</strong></p>
+      )}
       <div className="flex gap-2 justify-end">
         <button onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
         <button onClick={handleSave} disabled={pending}
@@ -148,7 +165,17 @@ function EntryRow({
             )}
           </a>
         )}
-        <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(entry.amount)}</span>
+        <div className="text-right">
+          {entry.markupPct > 0 ? (
+            <>
+              <p className="text-xs text-gray-400 tabular-nums">{fmtMoney(entry.amount)} base</p>
+              <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(entry.amount * (1 + entry.markupPct / 100))}</p>
+              <p className="text-xs text-gray-400">+{entry.markupPct}%</p>
+            </>
+          ) : (
+            <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(entry.amount)}</span>
+          )}
+        </div>
         {role === "ADMIN" && (
           <>
             <button onClick={() => setEditing(true)} className="p-1 text-gray-400 hover:text-[#002D72] hover:bg-gray-100 rounded">
@@ -177,6 +204,7 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
   const [vendor, setVendor] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [markupPct, setMarkupPct] = useState("0");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -212,7 +240,7 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
 
     startTransition(async () => {
       try {
-        await addMaterial(jobId, { date, vendor, description, amount, fileUrl, fileName });
+        await addMaterial(jobId, { date, vendor, description, amount, markupPct, fileUrl, fileName });
         onDone();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save.");
@@ -251,9 +279,17 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Amount ($) <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Base Cost ($) <span className="text-red-500">*</span></label>
           <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" min="0" placeholder="0.00" required
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Markup %</label>
+          <input type="number" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} step="0.5" min="0" placeholder="0"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+          {parseFloat(markupPct) > 0 && parseFloat(amount) > 0 && (
+            <p className="text-xs text-gray-400 mt-0.5">Total: {fmtMoney(parseFloat(amount) * (1 + parseFloat(markupPct) / 100))}</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Receipt / Invoice</label>
@@ -281,8 +317,8 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
   const [showAll, setShowAll] = useState(false);
 
   const entries = job.materials.map((m) => ({ ...m, date: new Date(m.date) }));
-  // Total ALWAYS includes all entries regardless of view
-  const total = entries.reduce((sum, e) => sum + e.amount, 0);
+  // Total ALWAYS includes all entries regardless of view — uses marked-up amounts
+  const total = entries.reduce((sum, e) => sum + e.amount * (1 + (e.markupPct ?? 0) / 100), 0);
   const budget = job.materialBudget;
   const remaining = budget != null ? budget - total : null;
 

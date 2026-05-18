@@ -435,23 +435,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             unitOfMeasure: r.quantityUnit ?? "EA",
           },
         });
-        // Notify admins
-        if (transport) {
-          const admins = await prisma.user.findMany({ where: { role: "ADMIN", active: true }, select: { email: true } });
-          const requesterName = r.user.name ?? "Unknown";
-          const toAdmins = [JUSTIN_EMAIL, ...admins.map(a => a.email).filter((e): e is string => !!e)].filter((v, i, a) => a.indexOf(v) === i);
-          try {
-            await transport.sendMail({
-              from: `"Oak Ridge Electrical" <${FROM}>`,
-              to: toAdmins.join(", "),
-              cc: SAM_CC,
-              subject: `New Stock Item Added — ${r.customItemName}`,
-              text: `New item added to master stock list: "${r.customItemName}" in ${r.customCategory ?? "Misc"} — added by ${requesterName}. Review in Admin → Settings → Stock List.`,
-            });
-          } catch (err) {
-            console.error("[stock-order] save-to-master-list email failed:", err);
-          }
-        }
+        // FIX 1: Notification for "Save to Master List" removed — no email sent when stock item is added to master list
       }
     }
 

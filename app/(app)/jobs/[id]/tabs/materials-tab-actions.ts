@@ -17,6 +17,7 @@ export async function addMaterial(
     vendor: string;
     description: string;
     amount: string;
+    markupPct?: string;
     fileUrl?: string;
     fileName?: string;
   }
@@ -29,6 +30,7 @@ export async function addMaterial(
 
   const amount = parseFloat(data.amount);
   if (isNaN(amount) || amount < 0) throw new Error("Invalid amount.");
+  const markupPct = data.markupPct ? parseFloat(data.markupPct) : 0;
 
   await prisma.material.create({
     data: {
@@ -38,6 +40,7 @@ export async function addMaterial(
       vendor: data.vendor?.trim() || null,
       description: data.description.trim(),
       amount,
+      markupPct: isNaN(markupPct) ? 0 : markupPct,
       fileUrl: data.fileUrl || null,
       fileName: data.fileName || null,
     },
@@ -83,6 +86,7 @@ export async function updateMaterial(
     vendor: string;
     description: string;
     amount: string;
+    markupPct?: string;
   }
 ) {
   const session = await requireActive();
@@ -90,6 +94,7 @@ export async function updateMaterial(
 
   const amount = parseFloat(data.amount);
   if (isNaN(amount) || amount < 0) throw new Error("Invalid amount.");
+  const markupPct = data.markupPct ? parseFloat(data.markupPct) : 0;
 
   await prisma.material.update({
     where: { id },
@@ -98,6 +103,7 @@ export async function updateMaterial(
       vendor: data.vendor?.trim() || null,
       description: data.description.trim(),
       amount,
+      markupPct: isNaN(markupPct) ? 0 : markupPct,
     },
   });
 

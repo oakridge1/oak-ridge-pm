@@ -68,12 +68,36 @@ async function send(to: string | string[], subject: string, text: string, html: 
   }
 }
 
+// ── Per-user notification preference check (Fix 2) ───────────────────────────
+
+async function adminWantsNotification(userId: string, type: string): Promise<boolean> {
+  const pref = await prisma.notificationPreference.findUnique({ where: { userId } });
+  if (!pref) return true; // no record = all on by default
+  const prefs = pref.preferences as Record<string, boolean>;
+  return prefs[type] !== false; // undefined = true (default on)
+}
+
 async function getAdminOfficeEmails(): Promise<string[]> {
   const users = await prisma.user.findMany({
     where: { active: true, role: { in: ["ADMIN", "OFFICE"] } },
     select: { email: true },
   });
   return users.map((u) => u.email);
+}
+
+// Returns emails of admin/office users who want a specific notification type
+async function getFilteredAdminOfficeEmails(type: string): Promise<string[]> {
+  const users = await prisma.user.findMany({
+    where: { active: true, role: { in: ["ADMIN", "OFFICE"] } },
+    select: { id: true, email: true },
+  });
+  const filtered: string[] = [];
+  for (const u of users) {
+    if (await adminWantsNotification(u.id, type)) {
+      filtered.push(u.email);
+    }
+  }
+  return filtered;
 }
 
 function jobUrl(jobId: string) {
@@ -164,7 +188,7 @@ export async function notifyTaskCompleted(params: {
 }) {
   const { taskTitle, jobName, jobId, completedBy } = params;
   const url = jobUrl(jobId);
-  const emails = await getAdminOfficeEmails();
+  const emails = await getFilteredAdminOfficeEmails("task_completed");
   if (emails.length === 0) return;
   await send(
     emails,
@@ -193,7 +217,7 @@ export async function notifyCoSubmitted(params: {
 }) {
   const { jobName, jobId, coNumber, description, submittedBy } = params;
   const url = jobUrl(jobId);
-  const emails = await getAdminOfficeEmails();
+  const emails = await getFilteredAdminOfficeEmails("co_submitted");
   if (emails.length === 0) return;
   const label = coNumber != null ? `CO #${coNumber}` : "Change Order";
   await send(
@@ -262,7 +286,7 @@ export async function notifyNewNote(params: {
   const { jobName, jobId, content, postedBy, posterRole } = params;
   if (posterRole !== "TEAMMATE" && posterRole !== "FOREMAN") return;
   const url = jobUrl(jobId);
-  const emails = await getAdminOfficeEmails();
+  const emails = await getFilteredAdminOfficeEmails("note_posted");
   if (emails.length === 0) return;
   const preview = content.length > 200 ? content.slice(0, 200) + "…" : content;
   await send(
@@ -292,7 +316,7 @@ export async function notifyInspectionFailed(params: {
 }) {
   const { jobName, jobId, inspectionType, inspectorName, correctionNotes, loggedBy } = params;
   const url = jobUrl(jobId);
-  const emails = await getAdminOfficeEmails();
+  const emails = await getFilteredAdminOfficeEmails("inspection_failed");
   if (emails.length === 0) return;
   const typeLabel = inspectionType
     .replace(/_/g, " ")
@@ -372,7 +396,7 @@ export async function notifyCalendarRequestSubmitted(params: {
 }) {
   const { jobName, jobId, date, description, reason, submittedBy, foremanEmail } = params;
   const url = jobUrl(jobId);
-  const adminEmails = await getAdminOfficeEmails();
+  const adminEmails = await getFilteredAdminOfficeEmails("calendar_reminder");
   const recipients = [...new Set([...(foremanEmail ? [foremanEmail] : []), ...adminEmails])];
   if (recipients.length === 0) return;
   const reasonHtml = reason

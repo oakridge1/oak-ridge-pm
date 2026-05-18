@@ -4,8 +4,27 @@ import { useState, useEffect } from "react";
 import {
   CheckCircle2, AlertCircle, ExternalLink, Link2Off,
   RefreshCw, Calendar, Sheet, Building2, Bell, Upload, Truck,
-  Edit2, Trash2, Plus, X, Package, ChevronDown, ChevronUp,
+  Edit2, Trash2, Plus, X, Package, ChevronDown, ChevronUp, ToggleLeft, ToggleRight,
+  Database,
 } from "lucide-react";
+import { BOM, BOM_CATEGORIES } from "@/lib/bom";
+
+// ── Notification preference types ─────────────────────────────────────────────
+
+const NOTIFICATION_TYPE_LABELS: { key: string; label: string }[] = [
+  { key: "stock_order_sent",          label: "Stock Order Sent" },
+  { key: "stock_order_approval_needed", label: "Stock Order Approval Needed" },
+  { key: "co_submitted",              label: "CO Submitted" },
+  { key: "co_status_changed",         label: "CO Status Changed" },
+  { key: "task_assigned",             label: "Task Assigned" },
+  { key: "task_completed",            label: "Task Completed" },
+  { key: "note_posted",               label: "Note Posted" },
+  { key: "inspection_failed",         label: "Inspection Failed" },
+  { key: "rfi_answered",              label: "RFI Answered" },
+  { key: "calendar_reminder",         label: "Calendar Reminder" },
+  { key: "daily_report",              label: "Daily Report" },
+  { key: "billing_reminder",          label: "Billing Reminder" },
+];
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -48,6 +67,7 @@ interface CompanySettings {
   phone: string;
   email: string;
   logoUrl: string | null;
+  defaultPaymentTerms: string;
 }
 
 interface Props {
@@ -100,6 +120,12 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   const [supplierSaving, setSupplierSaving] = useState(false);
   const [resettingSuppliers, setResettingSuppliers] = useState(false);
 
+  // Notification preferences state (Fix 2)
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({});
+  const [notifPrefsLoaded, setNotifPrefsLoaded] = useState(false);
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifSaved, setNotifSaved] = useState(false);
+
   // Stock items state
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [stockExpanded, setStockExpanded] = useState(false);
@@ -110,6 +136,16 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   const [stockForm, setStockForm] = useState({ category: "", name: "", lingo: "", unitOfMeasure: "EA", isConsumable: false, notes: "" });
   const [stockSaving, setStockSaving] = useState(false);
 
+  // BOM Pricing overrides state (Fix 9)
+  const [bomOverrides, setBomOverrides] = useState<Record<string, { mat: number; lhr: number }>>({});
+  const [bomLoaded, setBomLoaded] = useState(false);
+  const [bomCatFilter, setBomCatFilter] = useState("All");
+  const [bomSearch, setBomSearch] = useState("");
+  const [bomEditing, setBomEditing] = useState<string | null>(null); // bomId being edited
+  const [bomEditMat, setBomEditMat] = useState("");
+  const [bomEditLhr, setBomEditLhr] = useState("");
+  const [bomSaving, setBomSaving] = useState(false);
+
   // Load suppliers on mount
   useEffect(() => {
     fetch("/api/admin/suppliers").then(r => r.json()).then(data => {
@@ -117,6 +153,78 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       setSuppliersLoaded(true);
     }).catch(() => setSuppliersLoaded(true));
   }, []);
+
+  // Load BOM pricing overrides on mount (Fix 9)
+  useEffect(() => {
+    fetch("/api/admin/bom-pricing").then(r => r.json()).then(data => {
+      if (Array.isArray(data)) {
+        const map: Record<string, { mat: number; lhr: number }> = {};
+        for (const row of data) map[row.id] = { mat: row.mat, lhr: row.lhr };
+        setBomOverrides(map);
+      }
+      setBomLoaded(true);
+    }).catch(() => setBomLoaded(true));
+  }, []);
+
+  // Load notification preferences on mount (Fix 2)
+  useEffect(() => {
+    fetch("/api/admin/notification-preferences").then(r => r.json()).then(data => {
+      if (data.preferences) setNotifPrefs(data.preferences);
+      setNotifPrefsLoaded(true);
+    }).catch(() => setNotifPrefsLoaded(true));
+  }, []);
+
+  async function handleSaveNotifPrefs() {
+    setNotifSaving(true);
+    setNotifSaved(false);
+    try {
+      await fetch("/api/admin/notification-preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferences: notifPrefs }),
+      });
+      setNotifSaved(true);
+      setTimeout(() => setNotifSaved(false), 3000);
+    } finally {
+      setNotifSaving(false);
+    }
+  }
+
+  // ── BOM Pricing handlers (Fix 9) ────────────────────────────────────────────
+
+  async function handleSaveBomOverride(bomId: string) {
+    const mat = parseFloat(bomEditMat);
+    const lhr = parseFloat(bomEditLhr);
+    if (isNaN(mat) || isNaN(lhr)) return;
+    setBomSaving(true);
+    try {
+      const res = await fetch("/api/admin/bom-pricing", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: bomId, mat, lhr }),
+      });
+      if (res.ok) {
+        setBomOverrides(prev => ({ ...prev, [bomId]: { mat, lhr } }));
+        setBomEditing(null);
+      }
+    } finally {
+      setBomSaving(false);
+    }
+  }
+
+  async function handleRevertBomOverride(bomId: string) {
+    if (!confirm("Remove override and revert to BOM default?")) return;
+    await fetch("/api/admin/bom-pricing", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: bomId }),
+    });
+    setBomOverrides(prev => {
+      const copy = { ...prev };
+      delete copy[bomId];
+      return copy;
+    });
+  }
 
   // ── Google handlers ──────────────────────────────────────────────────────────
 
@@ -430,6 +538,21 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 <Upload className="w-3 h-3" />
                 Upload the logo file separately and paste the URL here. Appears on all PDF invoices.
               </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Default Payment Terms</label>
+              <select
+                value={company.defaultPaymentTerms}
+                onChange={(e) => setCompany({ ...company, defaultPaymentTerms: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              >
+                <option value="due_on_receipt">Due on Receipt</option>
+                <option value="net_10">Net 10</option>
+                <option value="net_15">Net 15</option>
+                <option value="net_30">Net 30</option>
+                <option value="net_45">Net 45</option>
+                <option value="net_60">Net 60</option>
+              </select>
             </div>
           </div>
 
@@ -840,6 +963,54 @@ export function SettingsClient({ connection, justConnected, connectError, compan
         </button>
       </div>
 
+      {/* ── Notification Preferences card (Fix 2) ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <ToggleRight className="w-5 h-5 text-[#002D72]" />
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Notification Preferences</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Choose which email notifications you receive. Sam&apos;s CC and Admin BCC are always on.</p>
+          </div>
+        </div>
+
+        {!notifPrefsLoaded ? (
+          <p className="text-sm text-gray-400">Loading preferences…</p>
+        ) : (
+          <div className="space-y-1">
+            {NOTIFICATION_TYPE_LABELS.map(({ key, label }) => {
+              const enabled = notifPrefs[key] !== false;
+              return (
+                <div key={key} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 border border-gray-100">
+                  <span className="text-sm text-gray-800">{label}</span>
+                  <button
+                    onClick={() => setNotifPrefs(p => ({ ...p, [key]: !enabled }))}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${enabled ? "bg-[#002D72]" : "bg-gray-200"}`}
+                    aria-label={`Toggle ${label}`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-1"}`} />
+                  </button>
+                </div>
+              );
+            })}
+
+            <div className="flex items-center gap-3 pt-3">
+              <button
+                onClick={handleSaveNotifPrefs}
+                disabled={notifSaving}
+                className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
+              >
+                {notifSaving ? "Saving..." : "Save Preferences"}
+              </button>
+              {notifSaved && (
+                <span className="flex items-center gap-1.5 text-sm text-green-700">
+                  <CheckCircle2 className="w-4 h-4" /> Saved
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ── Google Integration card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-start justify-between mb-4">
@@ -947,6 +1118,160 @@ export function SettingsClient({ connection, justConnected, connectError, compan
           </button>
         </div>
       )}
+
+      {/* ── BOM Pricing Overrides card (Fix 9) ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Database className="w-5 h-5 text-[#FF5910]" />
+          <h2 className="text-base font-semibold text-gray-900">BOM Pricing Overrides</h2>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Override default material costs and labor hours for BOM items. Changes apply to all new estimates.
+          Items with overrides are highlighted. Leave blank to use the built-in BOM defaults.
+        </p>
+
+        {/* Search + filter */}
+        <div className="flex gap-2 flex-wrap mb-4">
+          <input
+            type="text"
+            value={bomSearch}
+            onChange={e => setBomSearch(e.target.value)}
+            placeholder="Search items…"
+            className="flex-1 min-w-[160px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          />
+          <select
+            value={bomCatFilter}
+            onChange={e => setBomCatFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          >
+            <option value="All">All Categories</option>
+            {BOM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <span className="flex items-center text-xs text-gray-400 px-2">
+            {Object.keys(bomOverrides).length} override{Object.keys(bomOverrides).length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {!bomLoaded ? (
+          <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-[500px] overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-gray-50 z-10">
+                <tr className="border-b border-gray-200">
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Item</th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Category</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Default Mat</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Override Mat</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Default Hrs</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Override Hrs</th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {BOM
+                  .filter(b => {
+                    if (bomCatFilter !== "All" && b.category !== bomCatFilter) return false;
+                    if (bomSearch) {
+                      const q = bomSearch.toLowerCase();
+                      if (!b.name.toLowerCase().includes(q) && !b.id.toLowerCase().includes(q)) return false;
+                    }
+                    return true;
+                  })
+                  .map(b => {
+                    const override = bomOverrides[b.id];
+                    const isEditing = bomEditing === b.id;
+                    return (
+                      <tr key={b.id} className={`border-b border-gray-100 ${override ? "bg-amber-50" : "hover:bg-gray-50"}`}>
+                        <td className="px-3 py-2 font-medium text-gray-900 max-w-[160px] truncate">{b.name}</td>
+                        <td className="px-3 py-2 text-gray-500">{b.category}</td>
+                        <td className="px-3 py-2 text-right font-mono text-gray-500">${b.mat.toFixed(4)}</td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              value={bomEditMat}
+                              onChange={e => setBomEditMat(e.target.value)}
+                              step="0.0001"
+                              min="0"
+                              className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                            />
+                          ) : override ? (
+                            <span className="text-amber-700 font-semibold">${override.mat.toFixed(4)}</span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-gray-500">{b.lhr.toFixed(4)}</td>
+                        <td className="px-3 py-2 text-right font-mono">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              value={bomEditLhr}
+                              onChange={e => setBomEditLhr(e.target.value)}
+                              step="0.0001"
+                              min="0"
+                              className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                            />
+                          ) : override ? (
+                            <span className="text-amber-700 font-semibold">{override.lhr.toFixed(4)}</span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={() => handleSaveBomOverride(b.id)}
+                                  disabled={bomSaving}
+                                  className="text-xs font-medium text-white bg-[#002D72] px-2 py-1 rounded hover:bg-[#003d99] disabled:opacity-60"
+                                >
+                                  {bomSaving ? "…" : "Save"}
+                                </button>
+                                <button
+                                  onClick={() => setBomEditing(null)}
+                                  className="text-xs text-gray-500 hover:text-gray-700 px-1.5 py-1"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setBomEditing(b.id);
+                                    setBomEditMat(String(override?.mat ?? b.mat));
+                                    setBomEditLhr(String(override?.lhr ?? b.lhr));
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-[#002D72] transition-colors"
+                                  title="Edit override"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                {override && (
+                                  <button
+                                    onClick={() => handleRevertBomOverride(b.id)}
+                                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                    title="Remove override"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                }
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* ── AIA Invoice → Google Sheets card ── */}
       {connection && (
