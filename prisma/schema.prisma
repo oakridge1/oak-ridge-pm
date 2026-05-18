@@ -230,6 +230,8 @@ model Job {
   laborMarkupPct     Float?
   subMarkupPct       Float?
   equipmentMarkupPct Float?
+  materialMarkupPct  Float?
+  otherMarkupPct     Float?
   // Archive
   archived           Boolean   @default(false)
   createdById        String?

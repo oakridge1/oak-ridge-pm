@@ -145,6 +145,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   const [bomEditMat, setBomEditMat] = useState("");
   const [bomEditLhr, setBomEditLhr] = useState("");
   const [bomSaving, setBomSaving] = useState(false);
+  const [bomSaveError, setBomSaveError] = useState<string | null>(null);
 
   // Load suppliers on mount
   useEffect(() => {
@@ -195,8 +196,12 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   async function handleSaveBomOverride(bomId: string) {
     const mat = parseFloat(bomEditMat);
     const lhr = parseFloat(bomEditLhr);
-    if (isNaN(mat) || isNaN(lhr)) return;
+    if (isNaN(mat) || isNaN(lhr)) {
+      setBomSaveError("Enter valid numbers for material cost and labor hours.");
+      return;
+    }
     setBomSaving(true);
+    setBomSaveError(null);
     try {
       const res = await fetch("/api/admin/bom-pricing", {
         method: "PATCH",
@@ -206,7 +211,12 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       if (res.ok) {
         setBomOverrides(prev => ({ ...prev, [bomId]: { mat, lhr } }));
         setBomEditing(null);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setBomSaveError(data.error ?? `Save failed (${res.status})`);
       }
+    } catch {
+      setBomSaveError("Network error — save failed.");
     } finally {
       setBomSaving(false);
     }
@@ -1151,6 +1161,12 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             {Object.keys(bomOverrides).length} override{Object.keys(bomOverrides).length !== 1 ? "s" : ""}
           </span>
         </div>
+
+        {bomSaveError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-3 py-2 mb-3">
+            <AlertCircle className="w-4 h-4 shrink-0" /> {bomSaveError}
+          </div>
+        )}
 
         {!bomLoaded ? (
           <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>

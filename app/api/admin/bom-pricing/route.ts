@@ -25,12 +25,13 @@ export async function PATCH(req: Request) {
   const body = await req.json();
   const items: { id: string; mat: number; lhr: number }[] = Array.isArray(body) ? body : [body];
 
+  const uid = session.user.id ?? null;
   const results = await Promise.all(
     items.map(item =>
       prisma.bomPricing.upsert({
         where: { id: item.id },
-        update: { mat: item.mat, lhr: item.lhr, updatedBy: session.user.id },
-        create: { id: item.id, mat: item.mat, lhr: item.lhr, updatedBy: session.user.id },
+        update: { mat: item.mat, lhr: item.lhr, updatedBy: uid },
+        create: { id: item.id, mat: item.mat, lhr: item.lhr, updatedBy: uid },
       })
     )
   );

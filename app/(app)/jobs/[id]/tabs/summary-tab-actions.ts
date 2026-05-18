@@ -58,6 +58,8 @@ export async function updateMarkups(
     laborMarkupPct: string;
     subMarkupPct: string;
     equipmentMarkupPct: string;
+    materialMarkupPct: string;
+    otherMarkupPct: string;
   }
 ) {
   await requireAdmin();
@@ -67,6 +69,8 @@ export async function updateMarkups(
       laborMarkupPct: data.laborMarkupPct ? parseFloat(data.laborMarkupPct) : null,
       subMarkupPct: data.subMarkupPct ? parseFloat(data.subMarkupPct) : null,
       equipmentMarkupPct: data.equipmentMarkupPct ? parseFloat(data.equipmentMarkupPct) : null,
+      materialMarkupPct: data.materialMarkupPct ? parseFloat(data.materialMarkupPct) : null,
+      otherMarkupPct: data.otherMarkupPct ? parseFloat(data.otherMarkupPct) : null,
     },
   });
   revalidatePath(`/jobs/${jobId}`);

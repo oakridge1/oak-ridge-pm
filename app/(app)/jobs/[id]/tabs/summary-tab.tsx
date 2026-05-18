@@ -6,6 +6,7 @@ import {
   DollarSign, Clock, Package, BarChart3, TrendingUp,
   Edit2, Save, X, Plus, Trash2, CreditCard, RefreshCw,
   FileText, ChevronDown, ChevronUp, Send, CheckCircle2, ExternalLink,
+  Download, Mail,
 } from "lucide-react";
 import {
   updateDirectCosts, updateMarkups,
@@ -52,6 +53,11 @@ interface SummaryTabProps {
     laborMarkupPct: number | null;
     subMarkupPct: number | null;
     equipmentMarkupPct: number | null;
+    materialMarkupPct: number | null;
+    otherMarkupPct: number | null;
+    gcEmail: string | null;
+    gcContactName: string | null;
+    gcCompany: string | null;
     laborEntries: { hours: number }[];
     materials: { amount: number }[];
     changeOrders: ChangeOrder[];
@@ -314,7 +320,7 @@ function DirectCostsCard({ job, role, computed }: {
 
 function MarkupsCard({ job, role, computed }: {
   job: SummaryTabProps["job"]; role: Role;
-  computed: { laborCost: number | null; subCost: number; equipmentBilled: number; };
+  computed: { laborCost: number | null; subCost: number; equipmentBilled: number; materialsCost: number; otherTotal: number; };
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -322,18 +328,28 @@ function MarkupsCard({ job, role, computed }: {
   const [laborPct, setLaborPct] = useState(String(job.laborMarkupPct ?? ""));
   const [subPct, setSubPct] = useState(String(job.subMarkupPct ?? ""));
   const [equipPct, setEquipPct] = useState(String(job.equipmentMarkupPct ?? ""));
+  const [materialPct, setMaterialPct] = useState(String(job.materialMarkupPct ?? ""));
+  const [otherPct, setOtherPct] = useState(String(job.otherMarkupPct ?? ""));
 
   const laborMkp = computed.laborCost != null && job.laborMarkupPct != null
     ? computed.laborCost * (job.laborMarkupPct / 100) : null;
   const subMkp = computed.subCost * ((job.subMarkupPct ?? 0) / 100);
   const equipMkp = computed.equipmentBilled * ((job.equipmentMarkupPct ?? 0) / 100);
-  const totalMarkup = (laborMkp ?? 0) + subMkp + equipMkp;
+  const materialMkp = computed.materialsCost * ((job.materialMarkupPct ?? 0) / 100);
+  const otherMkp = computed.otherTotal * ((job.otherMarkupPct ?? 0) / 100);
+  const totalMarkup = (laborMkp ?? 0) + subMkp + equipMkp + materialMkp + otherMkp;
 
   function handleSave() {
     setError(null);
     startTransition(async () => {
       try {
-        await updateMarkups(job.id, { laborMarkupPct: laborPct, subMarkupPct: subPct, equipmentMarkupPct: equipPct });
+        await updateMarkups(job.id, {
+          laborMarkupPct: laborPct,
+          subMarkupPct: subPct,
+          equipmentMarkupPct: equipPct,
+          materialMarkupPct: materialPct,
+          otherMarkupPct: otherPct,
+        });
         setEditing(false);
       } catch (e) { setError(e instanceof Error ? e.message : "Save failed."); }
     });
@@ -389,12 +405,180 @@ function MarkupsCard({ job, role, computed }: {
       )}
 
       <MarkupRow label="Labor Overhead & Profit" pct={job.laborMarkupPct} pctInput={laborPct} setPctInput={setLaborPct} mkpAmt={laborMkp} />
+      <MarkupRow label="Materials Markup" pct={job.materialMarkupPct} pctInput={materialPct} setPctInput={setMaterialPct} mkpAmt={materialMkp} />
       <MarkupRow label="Subcontractor Markup" pct={job.subMarkupPct} pctInput={subPct} setPctInput={setSubPct} mkpAmt={subMkp} />
       <MarkupRow label="Equipment Markup" pct={job.equipmentMarkupPct} pctInput={equipPct} setPctInput={setEquipPct} mkpAmt={equipMkp} />
+      <MarkupRow label="Other Costs Markup" pct={job.otherMarkupPct} pctInput={otherPct} setPctInput={setOtherPct} mkpAmt={otherMkp} />
       <div className="flex items-center justify-between py-3">
         <p className="text-sm font-bold text-gray-900">Total Markup</p>
         <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalMarkup)}</span>
       </div>
+    </SectionCard>
+  );
+}
+
+// ── Deposit Request Card ──────────────────────────────────────────────────────
+
+function DepositRequestCard({ job, role }: {
+  job: SummaryTabProps["job"]; role: Role;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [amountType, setAmountType] = useState<"fixed" | "percentage">("fixed");
+  const [fixedAmount, setFixedAmount] = useState(
+    job.contractValue ? (job.contractValue * 0.5).toFixed(2) : ""
+  );
+  const [percentage, setPercentage] = useState("50");
+  const [contractValue, setContractValue] = useState(
+    job.contractValue ? job.contractValue.toFixed(2) : ""
+  );
+  const [dueDate, setDueDate] = useState("");
+  const [description, setDescription] = useState(`${job.jobName} — Deposit`);
+  const [notes, setNotes] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const depositAmt = amountType === "percentage"
+    ? (parseFloat(contractValue) || 0) * (parseFloat(percentage) || 0) / 100
+    : (parseFloat(fixedAmount) || 0);
+
+  async function handleGenerate() {
+    if (depositAmt <= 0) { setError("Enter a deposit amount greater than $0."); return; }
+    setError(null);
+    setGenerating(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/deposit-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountType, fixedAmount, percentage, contractValue, dueDate, description, notes }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "PDF generation failed"); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `DepositRequest_${job.jobNumber}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { setError(e instanceof Error ? e.message : "Failed to generate deposit request."); }
+    finally { setGenerating(false); }
+  }
+
+  const emailTo = job.gcEmail ?? "";
+  const contactName = job.gcContactName ?? job.gcCompany ?? "";
+  const emailSubject = encodeURIComponent(`Deposit Request — ${job.jobName}`);
+  const dueLine = dueDate
+    ? `\nDue Date: ${new Date(dueDate + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+    : "";
+  const emailBody = encodeURIComponent(
+    `Hi${contactName ? ` ${contactName}` : ""},\n\nPlease find attached the deposit request for ${job.jobName} (Job #${job.jobNumber}).\n\nDeposit Amount: ${depositAmt > 0 ? depositAmt.toLocaleString("en-US", { style: "currency", currency: "USD" }) : "—"}${dueLine}\n\nPlease don't hesitate to reach out with any questions.\n\nThank you,\nJustin Marceau\nOak Ridge Electrical LLC\n603-660-4651`
+  );
+  const mailtoLink = `mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`;
+
+  if (role !== "ADMIN") return null;
+
+  return (
+    <SectionCard icon={<Download className="w-4 h-4" />} title="Deposit Request">
+      {error && <p className="text-xs text-red-500 py-2">{error}</p>}
+
+      {showForm ? (
+        <div className="py-3 space-y-3">
+          {/* Amount type toggle */}
+          <div className="flex gap-2">
+            {(["fixed", "percentage"] as const).map(t => (
+              <button key={t} onClick={() => setAmountType(t)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  amountType === t ? "bg-[#FF5910] text-white border-[#FF5910]" : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+                }`}>
+                {t === "fixed" ? "Fixed Amount" : "Percentage"}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {amountType === "fixed" ? (
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">Deposit Amount *</label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <input type="number" value={fixedAmount} onChange={e => setFixedAmount(e.target.value)}
+                    step="0.01" min="0" placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg pl-6 pr-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Percentage *</label>
+                  <div className="relative">
+                    <input type="number" value={percentage} onChange={e => setPercentage(e.target.value)}
+                      step="1" min="0" max="100" placeholder="50"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Contract Value</label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                    <input type="number" value={contractValue} onChange={e => setContractValue(e.target.value)}
+                      step="0.01" min="0" placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg pl-6 pr-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Due Date</label>
+              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Description</label>
+              <input value={description} onChange={e => setDescription(e.target.value)}
+                placeholder="e.g. Deposit for electrical work"
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="Optional additional notes…"
+              rows={2}
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] resize-none" />
+          </div>
+
+          {depositAmt > 0 && (
+            <p className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              Deposit Amount: <span className="font-bold text-[#002D72]">{depositAmt.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>
+              {amountType === "percentage" && parseFloat(contractValue) > 0
+                ? ` (${percentage}% of ${parseFloat(contractValue).toLocaleString("en-US", { style: "currency", currency: "USD" })})`
+                : ""}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button onClick={() => { setShowForm(false); setError(null); }}
+              className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+            <a href={mailtoLink}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+              <Mail className="w-3.5 h-3.5" /> Email to GC{emailTo ? ` (${emailTo})` : ""}
+            </a>
+            <button onClick={handleGenerate} disabled={generating || depositAmt <= 0}
+              className="flex items-center gap-1.5 text-xs font-medium bg-[#FF5910] text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 disabled:opacity-60 transition-colors">
+              <Download className="w-3.5 h-3.5" />{generating ? "Generating…" : "Download PDF"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="py-2.5">
+          <button onClick={() => setShowForm(true)}
+            className="flex items-center gap-1 text-xs text-[#FF5910] hover:text-orange-600 font-medium">
+            <Plus className="w-3.5 h-3.5" /> Request Deposit
+          </button>
+        </div>
+      )}
     </SectionCard>
   );
 }
@@ -552,6 +736,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
     laborMarkup: number | null;
     subMarkup: number;
     equipMarkup: number;
+    materialMarkup: number;
+    otherMarkup: number;
   };
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -595,7 +781,10 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
       const laborTotal = (computed.laborCost ?? 0) + (computed.laborMarkup ?? 0);
       if (laborTotal > 0) items.push({ label: "Labor" + (job.laborMarkupPct ? ` (incl. ${job.laborMarkupPct}% markup)` : ""), amount: laborTotal });
     }
-    if (computed.materialsCost > 0) items.push({ label: "Materials", amount: computed.materialsCost });
+    if (computed.materialsCost > 0) {
+      const matTotal = computed.materialsCost + computed.materialMarkup;
+      items.push({ label: "Materials" + (job.materialMarkupPct ? ` (incl. ${job.materialMarkupPct}% markup)` : ""), amount: matTotal });
+    }
     if (computed.subCost > 0) {
       const subTotal = computed.subCost + computed.subMarkup;
       items.push({ label: "Subcontractors" + (job.subMarkupPct ? ` (incl. ${job.subMarkupPct}% markup)` : ""), amount: subTotal });
@@ -606,7 +795,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
     }
     const otherCosts = (job.otherCosts as OtherCost[] | null) ?? [];
     for (const oc of otherCosts) {
-      items.push({ label: oc.description, amount: oc.amount });
+      const otherMkupRate = (job.otherMarkupPct ?? 0) / 100;
+      items.push({ label: oc.description + (job.otherMarkupPct ? ` (incl. ${job.otherMarkupPct}% markup)` : ""), amount: oc.amount * (1 + otherMkupRate) });
     }
     return items;
   }
@@ -1125,7 +1315,9 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
     ? laborCost * (job.laborMarkupPct / 100) : null;
   const subMarkup = subCost * ((job.subMarkupPct ?? 0) / 100);
   const equipMarkup = equipmentBilled * ((job.equipmentMarkupPct ?? 0) / 100);
-  const totalMarkup = (laborMarkup ?? 0) + subMarkup + equipMarkup;
+  const materialMarkup = materialsCost * ((job.materialMarkupPct ?? 0) / 100);
+  const otherMarkup = otherTotal * ((job.otherMarkupPct ?? 0) / 100);
+  const totalMarkup = (laborMarkup ?? 0) + subMarkup + equipMarkup + materialMarkup + otherMarkup;
 
   const contractValue = job.contractValue ?? 0;
   const approvedCOs = job.changeOrders
@@ -1186,17 +1378,20 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
       <DirectCostsCard job={job} role={role} computed={{ totalHours, laborCost, materialsCost }} />
 
       {/* Markups */}
-      <MarkupsCard job={job} role={role} computed={{ laborCost, subCost, equipmentBilled }} />
+      <MarkupsCard job={job} role={role} computed={{ laborCost, subCost, equipmentBilled, materialsCost, otherTotal }} />
 
       {/* Contract & Billing */}
       <ContractBillingCard job={job} role={role} computed={{ approvedCOs, revisedContract, totalDirectCosts, totalMarkup, grossBilling, pctComplete }} />
+
+      {/* Deposit Request */}
+      <DepositRequestCard job={job} role={role} />
 
       {/* Invoice Log */}
       <InvoiceLogCard
         job={job}
         role={role}
         grossBilling={grossBilling}
-        computed={{ laborCost, materialsCost, subCost, equipmentCost, otherTotal, laborMarkup, subMarkup, equipMarkup }}
+        computed={{ laborCost, materialsCost, subCost, equipmentCost, otherTotal, laborMarkup, subMarkup, equipMarkup, materialMarkup, otherMarkup }}
       />
 
       {/* Payment Log */}
