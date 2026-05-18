@@ -52,6 +52,41 @@ export async function updateDirectCosts(
   revalidatePath(`/jobs/${jobId}`);
 }
 
+// Combined save — costs + markups + per-item other cost markups in one round-trip
+export async function updateDirectCostsWithMarkups(
+  jobId: string,
+  data: {
+    blendedLaborRate: string;
+    laborMarkupPct: string;
+    subcontractorCost: string;
+    subMarkupPct: string;
+    equipmentCost: string;
+    equipmentBillPct: string;
+    equipmentMarkupPct: string;
+    materialMarkupPct: string;
+    otherMarkupPct: string;
+    otherCosts: { id: string; description: string; amount: number; markupPct: number }[];
+  }
+) {
+  await requireAdmin();
+  await prisma.job.update({
+    where: { id: jobId },
+    data: {
+      blendedLaborRate: data.blendedLaborRate ? parseFloat(data.blendedLaborRate) : null,
+      laborMarkupPct:   data.laborMarkupPct   ? parseFloat(data.laborMarkupPct)   : null,
+      subcontractorCost: data.subcontractorCost ? parseFloat(data.subcontractorCost) : null,
+      subMarkupPct:      data.subMarkupPct      ? parseFloat(data.subMarkupPct)      : null,
+      equipmentCost:     data.equipmentCost     ? parseFloat(data.equipmentCost)     : null,
+      equipmentBillPct:  data.equipmentBillPct  ? parseFloat(data.equipmentBillPct)  : null,
+      equipmentMarkupPct: data.equipmentMarkupPct ? parseFloat(data.equipmentMarkupPct) : null,
+      materialMarkupPct:  data.materialMarkupPct  ? parseFloat(data.materialMarkupPct)  : null,
+      otherMarkupPct:     data.otherMarkupPct     ? parseFloat(data.otherMarkupPct)     : null,
+      otherCosts: data.otherCosts,
+    },
+  });
+  revalidatePath(`/jobs/${jobId}`);
+}
+
 export async function updateMarkups(
   jobId: string,
   data: {
@@ -79,12 +114,18 @@ export async function updateMarkups(
 export async function addOtherCost(
   jobId: string,
   description: string,
-  amount: string
+  amount: string,
+  markupPct?: string
 ) {
   await requireAdmin();
   const job = await prisma.job.findUnique({ where: { id: jobId }, select: { otherCosts: true } });
-  const current = (job?.otherCosts as { id: string; description: string; amount: number }[] | null) ?? [];
-  current.push({ id: crypto.randomUUID(), description: description.trim(), amount: parseFloat(amount) });
+  const current = (job?.otherCosts as { id: string; description: string; amount: number; markupPct?: number }[] | null) ?? [];
+  current.push({
+    id: crypto.randomUUID(),
+    description: description.trim(),
+    amount: parseFloat(amount),
+    markupPct: markupPct ? parseFloat(markupPct) : 0,
+  });
   await prisma.job.update({ where: { id: jobId }, data: { otherCosts: current } });
   revalidatePath(`/jobs/${jobId}`);
 }

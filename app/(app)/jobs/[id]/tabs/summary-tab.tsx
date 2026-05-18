@@ -3,13 +3,13 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  DollarSign, Clock, Package, BarChart3, TrendingUp,
-  Edit2, Save, X, Plus, Trash2, CreditCard, RefreshCw,
+  DollarSign, BarChart3,
+  Edit2, Save, Plus, Trash2, CreditCard, RefreshCw,
   FileText, ChevronDown, ChevronUp, Send, CheckCircle2, ExternalLink,
   Download, Mail,
 } from "lucide-react";
 import {
-  updateDirectCosts, updateMarkups,
+  updateDirectCostsWithMarkups,
   addOtherCost, deleteOtherCost,
   addPayment, deletePayment,
   updateContractBudget,
@@ -17,7 +17,7 @@ import {
 } from "./summary-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
 
-type OtherCost = { id: string; description: string; amount: number };
+type OtherCost = { id: string; description: string; amount: number; markupPct?: number };
 type PaymentEntry = {
   id: string; date: Date; amount: number; note: string | null;
   checkNumber: string | null; reference: string | null;
@@ -72,11 +72,6 @@ function fmt$(n: number | null | undefined) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
-function fmtPct(n: number | null | undefined) {
-  if (n == null) return "—";
-  return `${n.toFixed(1)}%`;
-}
-
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -127,6 +122,30 @@ function StatusBadge({ status }: { status: InvoiceEntry["status"] }) {
 
 // ── Direct Costs Card ─────────────────────────────────────────────────────────
 
+// Small inline markup % input used on each cost row
+function MkupInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <input
+        type="number" value={value} onChange={e => onChange(e.target.value)}
+        step="0.1" min="0" max="999" placeholder="0"
+        className="w-14 border border-orange-300 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#FF5910] text-right"
+      />
+      <span className="text-xs text-gray-400">%</span>
+    </div>
+  );
+}
+
+// Orange pill badge showing markup % in view mode
+function MkupBadge({ pct }: { pct: number | null | undefined }) {
+  if (!pct || pct === 0) return null;
+  return (
+    <span className="text-xs bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-full leading-none">
+      +{pct % 1 === 0 ? pct : pct.toFixed(1)}%
+    </span>
+  );
+}
+
 function DirectCostsCard({ job, role, computed }: {
   job: SummaryTabProps["job"]; role: Role;
   computed: { totalHours: number; laborCost: number | null; materialsCost: number; };
@@ -135,32 +154,81 @@ function DirectCostsCard({ job, role, computed }: {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Cost inputs
   const [rateInput, setRateInput] = useState(String(job.blendedLaborRate ?? ""));
   const [subInput, setSubInput] = useState(String(job.subcontractorCost ?? ""));
   const [equipInput, setEquipInput] = useState(String(job.equipmentCost ?? ""));
   const [billPctInput, setBillPctInput] = useState(String(job.equipmentBillPct ?? "100"));
 
+  // Markup % inputs (one per cost category)
+  const [laborMkup, setLaborMkup] = useState(String(job.laborMarkupPct ?? ""));
+  const [matMkup, setMatMkup] = useState(String(job.materialMarkupPct ?? ""));
+  const [subMkup, setSubMkup] = useState(String(job.subMarkupPct ?? ""));
+  const [equipMkup, setEquipMkup] = useState(String(job.equipmentMarkupPct ?? ""));
+  const [defaultOtherMkup, setDefaultOtherMkup] = useState(String(job.otherMarkupPct ?? ""));
+
+  const otherCosts = (job.otherCosts as OtherCost[] | null) ?? [];
+
+  // Per-item other-cost markup state, keyed by id
+  const [ocMarkups, setOcMarkups] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {};
+    for (const oc of otherCosts) m[oc.id] = String(oc.markupPct ?? job.otherMarkupPct ?? 0);
+    return m;
+  });
+
+  // Add-other-cost form state
   const [addDesc, setAddDesc] = useState("");
   const [addAmt, setAddAmt] = useState("");
+  const [addMkup, setAddMkup] = useState(String(job.otherMarkupPct ?? "0"));
   const [addingOther, setAddingOther] = useState(false);
   const [addPending, startAddTransition] = useTransition();
 
-  const otherCosts = (job.otherCosts as OtherCost[] | null) ?? [];
+  // ── Saved (view-mode) computations ──────────────────────────────────────────
   const subCost = job.subcontractorCost ?? 0;
   const equipCost = job.equipmentCost ?? 0;
   const equipBillPct = job.equipmentBillPct ?? 100;
-  const otherTotal = otherCosts.reduce((s, c) => s + c.amount, 0);
-  const totalDirect = (computed.laborCost ?? 0) + computed.materialsCost + subCost + equipCost + otherTotal;
+  const equipBilled = equipCost * (equipBillPct / 100);
 
+  const laborMkupAmt = computed.laborCost != null ? computed.laborCost * ((job.laborMarkupPct ?? 0) / 100) : null;
+  const laborMarkedUp = computed.laborCost != null ? computed.laborCost + (laborMkupAmt ?? 0) : null;
+
+  const matMkupAmt = computed.materialsCost * ((job.materialMarkupPct ?? 0) / 100);
+  const matMarkedUp = computed.materialsCost + matMkupAmt;
+
+  const subMkupAmt = subCost * ((job.subMarkupPct ?? 0) / 100);
+  const subMarkedUp = subCost + subMkupAmt;
+
+  const equipMkupAmt = equipBilled * ((job.equipmentMarkupPct ?? 0) / 100);
+  const equipMarkedUp = equipBilled + equipMkupAmt;
+
+  const otherMarkedUpTotal = otherCosts.reduce((s, oc) => {
+    const pct = oc.markupPct ?? job.otherMarkupPct ?? 0;
+    return s + oc.amount * (1 + pct / 100);
+  }, 0);
+
+  const totalMarkedUp =
+    (laborMarkedUp ?? 0) + matMarkedUp + subMarkedUp + equipMarkedUp + otherMarkedUpTotal;
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   function handleSave() {
     setError(null);
     startTransition(async () => {
       try {
-        await updateDirectCosts(job.id, {
+        const updatedOtherCosts = otherCosts.map(oc => ({
+          ...oc,
+          markupPct: parseFloat(ocMarkups[oc.id] ?? "0") || 0,
+        }));
+        await updateDirectCostsWithMarkups(job.id, {
           blendedLaborRate: rateInput,
+          laborMarkupPct: laborMkup,
           subcontractorCost: subInput,
+          subMarkupPct: subMkup,
           equipmentCost: equipInput,
           equipmentBillPct: billPctInput,
+          equipmentMarkupPct: equipMkup,
+          materialMarkupPct: matMkup,
+          otherMarkupPct: defaultOtherMkup,
+          otherCosts: updatedOtherCosts,
         });
         setEditing(false);
       } catch (e) { setError(e instanceof Error ? e.message : "Save failed."); }
@@ -171,12 +239,14 @@ function DirectCostsCard({ job, role, computed }: {
     if (!addDesc.trim() || !addAmt) return;
     startAddTransition(async () => {
       try {
-        await addOtherCost(job.id, addDesc, addAmt);
-        setAddDesc(""); setAddAmt(""); setAddingOther(false);
+        await addOtherCost(job.id, addDesc, addAmt, addMkup);
+        setAddDesc(""); setAddAmt(""); setAddMkup(String(job.otherMarkupPct ?? "0"));
+        setAddingOther(false);
       } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
     });
   }
 
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <SectionCard icon={<DollarSign className="w-4 h-4" />} title="Direct Costs">
       {error && <p className="text-xs text-red-500 py-2">{error}</p>}
@@ -186,7 +256,7 @@ function DirectCostsCard({ job, role, computed }: {
           {!editing ? (
             <button onClick={() => setEditing(true)}
               className="flex items-center gap-1.5 text-xs font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
-              <Edit2 className="w-3.5 h-3.5" /> Edit Costs
+              <Edit2 className="w-3.5 h-3.5" /> Edit Costs &amp; Markup
             </button>
           ) : (
             <>
@@ -201,96 +271,192 @@ function DirectCostsCard({ job, role, computed }: {
         </div>
       )}
 
-      {/* Labor row */}
-      <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-        <div>
-          <p className="text-sm text-gray-600">Labor</p>
-          {editing ? (
-            <div className="flex items-center gap-1.5 mt-1">
-              <input type="number" value={rateInput} onChange={e => setRateInput(e.target.value)}
-                placeholder="$/hr" step="0.01" min="0"
-                className="w-24 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-              <span className="text-xs text-gray-400">/hr blended rate</span>
+      {/* ── LABOR ── */}
+      <div className="py-2.5 border-b border-gray-100">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm text-gray-600">Labor</p>
+              {!editing && <MkupBadge pct={job.laborMarkupPct} />}
             </div>
-          ) : (
-            <p className="text-xs text-gray-400 mt-0.5">
-              {computed.totalHours.toFixed(1)} hrs
-              {job.blendedLaborRate != null ? ` @ $${job.blendedLaborRate.toFixed(2)}/hr` : " · set rate below"}
-            </p>
-          )}
-        </div>
-        <span className="text-sm font-semibold text-gray-900 tabular-nums">
-          {computed.laborCost != null ? fmt$(computed.laborCost) : "—"}
-        </span>
-      </div>
-
-      {/* Materials row */}
-      <Row label="Materials" value={fmt$(computed.materialsCost)} sub="From Materials tab" />
-
-      {/* Subcontractors */}
-      <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-        <p className="text-sm text-gray-600">Subcontractors</p>
-        {editing ? (
-          <input type="number" value={subInput} onChange={e => setSubInput(e.target.value)}
-            placeholder="0.00" step="0.01" min="0"
-            className="w-32 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-        ) : (
-          <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(subCost)}</span>
-        )}
-      </div>
-
-      {/* Equipment */}
-      <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-        <div>
-          <p className="text-sm text-gray-600">Equipment Rental</p>
-          {editing ? (
-            <div className="flex items-center gap-1.5 mt-1">
-              <input type="number" value={billPctInput} onChange={e => setBillPctInput(e.target.value)}
-                placeholder="100" step="1" min="0" max="100"
-                className="w-16 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-              <span className="text-xs text-gray-400">% to bill this period</span>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400 mt-0.5">{equipBillPct}% to bill this period</p>
-          )}
-        </div>
-        {editing ? (
-          <input type="number" value={equipInput} onChange={e => setEquipInput(e.target.value)}
-            placeholder="0.00" step="0.01" min="0"
-            className="w-32 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-        ) : (
-          <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(equipCost)}</span>
-        )}
-      </div>
-
-      {/* Other costs */}
-      {otherCosts.map(oc => (
-        <div key={oc.id} className="flex items-center justify-between py-2.5 border-b border-gray-100">
-          <p className="text-sm text-gray-600">{oc.description}</p>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(oc.amount)}</span>
-            {role === "ADMIN" && (
-              <button onClick={() => startTransition(() => deleteOtherCost(job.id, oc.id))}
-                className="p-0.5 text-gray-300 hover:text-red-500 transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+            {editing ? (
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-1">
+                  <input type="number" value={rateInput} onChange={e => setRateInput(e.target.value)}
+                    placeholder="$/hr" step="0.01" min="0"
+                    className="w-24 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  <span className="text-xs text-gray-400">/hr rate</span>
+                </div>
+                <MkupInput value={laborMkup} onChange={setLaborMkup} />
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {computed.totalHours.toFixed(1)} hrs
+                {job.blendedLaborRate != null ? ` @ $${job.blendedLaborRate.toFixed(2)}/hr` : " · set rate to calculate"}
+                {laborMkupAmt != null && laborMkupAmt > 0 ? ` · +${fmt$(laborMkupAmt)} markup` : ""}
+              </p>
             )}
           </div>
+          <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">
+            {laborMarkedUp != null ? fmt$(laborMarkedUp) : "—"}
+          </span>
         </div>
-      ))}
+      </div>
 
-      {/* Add other cost */}
+      {/* ── MATERIALS ── */}
+      <div className="py-2.5 border-b border-gray-100">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm text-gray-600">Materials</p>
+              {!editing && <MkupBadge pct={job.materialMarkupPct} />}
+            </div>
+            {editing ? (
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span className="text-xs text-gray-400 italic">From Purchase Orders tab</span>
+                <MkupInput value={matMkup} onChange={setMatMkup} />
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-0.5">
+                From Purchase Orders tab
+                {matMkupAmt > 0 ? ` · +${fmt$(matMkupAmt)} markup` : ""}
+              </p>
+            )}
+          </div>
+          <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">
+            {fmt$(matMarkedUp)}
+          </span>
+        </div>
+      </div>
+
+      {/* ── SUBCONTRACTORS ── */}
+      <div className="py-2.5 border-b border-gray-100">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm text-gray-600">Subcontractors</p>
+              {!editing && <MkupBadge pct={job.subMarkupPct} />}
+            </div>
+            {editing ? (
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-1">
+                  <input type="number" value={subInput} onChange={e => setSubInput(e.target.value)}
+                    placeholder="0.00" step="0.01" min="0"
+                    className="w-28 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  <span className="text-xs text-gray-400">cost</span>
+                </div>
+                <MkupInput value={subMkup} onChange={setSubMkup} />
+              </div>
+            ) : (
+              subMkupAmt > 0 ? (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Base: {fmt$(subCost)} · +{fmt$(subMkupAmt)} markup
+                </p>
+              ) : null
+            )}
+          </div>
+          <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">
+            {fmt$(subMarkedUp)}
+          </span>
+        </div>
+      </div>
+
+      {/* ── EQUIPMENT ── */}
+      <div className="py-2.5 border-b border-gray-100">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm text-gray-600">Equipment Rental</p>
+              {!editing && <MkupBadge pct={job.equipmentMarkupPct} />}
+            </div>
+            {editing ? (
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-1">
+                  <input type="number" value={equipInput} onChange={e => setEquipInput(e.target.value)}
+                    placeholder="0.00" step="0.01" min="0"
+                    className="w-28 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  <span className="text-xs text-gray-400">total cost</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input type="number" value={billPctInput} onChange={e => setBillPctInput(e.target.value)}
+                    placeholder="100" step="1" min="0" max="100"
+                    className="w-14 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  <span className="text-xs text-gray-400">% bill</span>
+                </div>
+                <MkupInput value={equipMkup} onChange={setEquipMkup} />
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {equipBillPct}% to bill this period
+                {equipMkupAmt > 0 ? ` · +${fmt$(equipMkupAmt)} markup` : ""}
+              </p>
+            )}
+          </div>
+          <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">
+            {fmt$(equipMarkedUp)}
+          </span>
+        </div>
+      </div>
+
+      {/* ── OTHER COSTS ── */}
+      {otherCosts.map(oc => {
+        const ocPct = oc.markupPct ?? job.otherMarkupPct ?? 0;
+        const ocMkupAmt = oc.amount * (ocPct / 100);
+        const ocMarkedUp = oc.amount + ocMkupAmt;
+        return (
+          <div key={oc.id} className="py-2.5 border-b border-gray-100">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-sm text-gray-600">{oc.description}</p>
+                  {!editing && <MkupBadge pct={ocPct} />}
+                </div>
+                {editing ? (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-xs text-gray-400">{fmt$(oc.amount)} base</span>
+                    <MkupInput
+                      value={ocMarkups[oc.id] ?? String(ocPct)}
+                      onChange={v => setOcMarkups(prev => ({ ...prev, [oc.id]: v }))}
+                    />
+                  </div>
+                ) : (
+                  ocMkupAmt > 0 ? (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Base: {fmt$(oc.amount)} · +{fmt$(ocMkupAmt)} markup
+                    </p>
+                  ) : null
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(ocMarkedUp)}</span>
+                {role === "ADMIN" && (
+                  <button onClick={() => startTransition(() => deleteOtherCost(job.id, oc.id))}
+                    className="p-0.5 text-gray-300 hover:text-red-500 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* ── ADD OTHER COST ── */}
       {role === "ADMIN" && (
         addingOther ? (
           <div className="py-2.5 border-b border-gray-100 space-y-2">
-            <div className="flex gap-2">
-              <input value={addDesc} onChange={e => setAddDesc(e.target.value)} placeholder="Description (Permits, etc.)"
-                className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-              <input type="number" value={addAmt} onChange={e => setAddAmt(e.target.value)} placeholder="0.00" step="0.01" min="0"
+            <div className="flex gap-2 flex-wrap">
+              <input value={addDesc} onChange={e => setAddDesc(e.target.value)}
+                placeholder="Description (Permits, etc.)"
+                className="flex-1 min-w-[130px] border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              <input type="number" value={addAmt} onChange={e => setAddAmt(e.target.value)}
+                placeholder="Amount" step="0.01" min="0"
                 className="w-24 border border-gray-300 rounded px-2 py-1.5 text-xs text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              <MkupInput value={addMkup} onChange={setAddMkup} />
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setAddingOther(false); setAddDesc(""); setAddAmt(""); }} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+              <button onClick={() => { setAddingOther(false); setAddDesc(""); setAddAmt(""); }}
+                className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
               <button onClick={handleAddOther} disabled={addPending || !addDesc.trim() || !addAmt}
                 className="text-xs bg-[#002D72] text-white px-2.5 py-1 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
                 {addPending ? "Adding…" : "Add"}
@@ -307,111 +473,13 @@ function DirectCostsCard({ job, role, computed }: {
         )
       )}
 
-      {/* Total */}
+      {/* ── TOTAL (marked-up) ── */}
       <div className="flex items-center justify-between py-3">
-        <p className="text-sm font-bold text-gray-900">Total Direct Costs</p>
-        <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalDirect)}</span>
-      </div>
-    </SectionCard>
-  );
-}
-
-// ── Markups Card ──────────────────────────────────────────────────────────────
-
-function MarkupsCard({ job, role, computed }: {
-  job: SummaryTabProps["job"]; role: Role;
-  computed: { laborCost: number | null; subCost: number; equipmentBilled: number; materialsCost: number; otherTotal: number; };
-}) {
-  const [editing, setEditing] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [laborPct, setLaborPct] = useState(String(job.laborMarkupPct ?? ""));
-  const [subPct, setSubPct] = useState(String(job.subMarkupPct ?? ""));
-  const [equipPct, setEquipPct] = useState(String(job.equipmentMarkupPct ?? ""));
-  const [materialPct, setMaterialPct] = useState(String(job.materialMarkupPct ?? ""));
-  const [otherPct, setOtherPct] = useState(String(job.otherMarkupPct ?? ""));
-
-  const laborMkp = computed.laborCost != null && job.laborMarkupPct != null
-    ? computed.laborCost * (job.laborMarkupPct / 100) : null;
-  const subMkp = computed.subCost * ((job.subMarkupPct ?? 0) / 100);
-  const equipMkp = computed.equipmentBilled * ((job.equipmentMarkupPct ?? 0) / 100);
-  const materialMkp = computed.materialsCost * ((job.materialMarkupPct ?? 0) / 100);
-  const otherMkp = computed.otherTotal * ((job.otherMarkupPct ?? 0) / 100);
-  const totalMarkup = (laborMkp ?? 0) + subMkp + equipMkp + materialMkp + otherMkp;
-
-  function handleSave() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        await updateMarkups(job.id, {
-          laborMarkupPct: laborPct,
-          subMarkupPct: subPct,
-          equipmentMarkupPct: equipPct,
-          materialMarkupPct: materialPct,
-          otherMarkupPct: otherPct,
-        });
-        setEditing(false);
-      } catch (e) { setError(e instanceof Error ? e.message : "Save failed."); }
-    });
-  }
-
-  function MarkupRow({ label, pct, pctInput, setPctInput, mkpAmt }: {
-    label: string; pct: number | null; pctInput: string; setPctInput: (v: string) => void; mkpAmt: number | null;
-  }) {
-    return (
-      <div className="flex items-center justify-between py-2.5 border-b last:border-b-0 border-gray-100">
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-gray-600">{label}</p>
-          {editing ? (
-            <div className="flex items-center gap-1">
-              <input type="number" value={pctInput} onChange={e => setPctInput(e.target.value)}
-                step="0.1" min="0" max="100" placeholder="0"
-                className="w-16 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-              <span className="text-xs text-gray-400">%</span>
-            </div>
-          ) : (
-            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{fmtPct(pct)}</span>
-          )}
+        <div>
+          <p className="text-sm font-bold text-gray-900">Total Direct Costs</p>
+          <p className="text-xs text-gray-400">Base costs + all markups</p>
         </div>
-        <span className="text-sm font-semibold text-gray-900 tabular-nums">
-          {mkpAmt != null ? fmt$(mkpAmt) : "—"}
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <SectionCard icon={<TrendingUp className="w-4 h-4" />} title="Markups">
-      {error && <p className="text-xs text-red-500 py-2">{error}</p>}
-
-      {role === "ADMIN" && (
-        <div className="flex items-center justify-end gap-2 pt-3 pb-1 border-b border-gray-100 mb-1">
-          {!editing ? (
-            <button onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
-              <Edit2 className="w-3.5 h-3.5" /> Edit Markups
-            </button>
-          ) : (
-            <>
-              <button onClick={() => { setEditing(false); setError(null); }}
-                className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
-              <button onClick={handleSave} disabled={pending}
-                className="flex items-center gap-1.5 text-xs font-medium bg-[#002D72] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
-                <Save className="w-3.5 h-3.5" />{pending ? "Saving…" : "Save Changes"}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      <MarkupRow label="Labor Overhead & Profit" pct={job.laborMarkupPct} pctInput={laborPct} setPctInput={setLaborPct} mkpAmt={laborMkp} />
-      <MarkupRow label="Materials Markup" pct={job.materialMarkupPct} pctInput={materialPct} setPctInput={setMaterialPct} mkpAmt={materialMkp} />
-      <MarkupRow label="Subcontractor Markup" pct={job.subMarkupPct} pctInput={subPct} setPctInput={setSubPct} mkpAmt={subMkp} />
-      <MarkupRow label="Equipment Markup" pct={job.equipmentMarkupPct} pctInput={equipPct} setPctInput={setEquipPct} mkpAmt={equipMkp} />
-      <MarkupRow label="Other Costs Markup" pct={job.otherMarkupPct} pctInput={otherPct} setPctInput={setOtherPct} mkpAmt={otherMkp} />
-      <div className="flex items-center justify-between py-3">
-        <p className="text-sm font-bold text-gray-900">Total Markup</p>
-        <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalMarkup)}</span>
+        <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalMarkedUp)}</span>
       </div>
     </SectionCard>
   );
@@ -686,9 +754,7 @@ function ContractBillingCard({ job, role, computed }: {
         </>
       )}
 
-      {/* Computed rows */}
-      <Row label="Total Direct Costs" value={fmt$(totalDirectCosts)} />
-      <Row label="Total Markup" value={fmt$(totalMarkup)} />
+      {/* Gross Billing — equals the marked-up total shown in Direct Costs above */}
       <Row label="Gross Billing Amount" value={fmt$(grossBilling)} accent bold />
 
       {/* Contract-vs-actual comparison — only for BID / ESTIMATE job types */}
@@ -793,10 +859,10 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
       const equipTotal = computed.equipmentCost + computed.equipMarkup;
       items.push({ label: "Equipment Rental" + (job.equipmentMarkupPct ? ` (incl. ${job.equipmentMarkupPct}% markup)` : ""), amount: equipTotal });
     }
-    const otherCosts = (job.otherCosts as OtherCost[] | null) ?? [];
-    for (const oc of otherCosts) {
-      const otherMkupRate = (job.otherMarkupPct ?? 0) / 100;
-      items.push({ label: oc.description + (job.otherMarkupPct ? ` (incl. ${job.otherMarkupPct}% markup)` : ""), amount: oc.amount * (1 + otherMkupRate) });
+    const otherCostsList = (job.otherCosts as OtherCost[] | null) ?? [];
+    for (const oc of otherCostsList) {
+      const pct = oc.markupPct ?? job.otherMarkupPct ?? 0;
+      items.push({ label: oc.description + (pct > 0 ? ` (incl. ${pct}% markup)` : ""), amount: oc.amount * (1 + pct / 100) });
     }
     return items;
   }
@@ -1316,7 +1382,11 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
   const subMarkup = subCost * ((job.subMarkupPct ?? 0) / 100);
   const equipMarkup = equipmentBilled * ((job.equipmentMarkupPct ?? 0) / 100);
   const materialMarkup = materialsCost * ((job.materialMarkupPct ?? 0) / 100);
-  const otherMarkup = otherTotal * ((job.otherMarkupPct ?? 0) / 100);
+  // Use per-item markupPct if available, fall back to job-level otherMarkupPct
+  const otherMarkup = otherCosts.reduce((s, oc) => {
+    const pct = oc.markupPct ?? job.otherMarkupPct ?? 0;
+    return s + oc.amount * (pct / 100);
+  }, 0);
   const totalMarkup = (laborMarkup ?? 0) + subMarkup + equipMarkup + materialMarkup + otherMarkup;
 
   const contractValue = job.contractValue ?? 0;
@@ -1374,11 +1444,8 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
         </button>
       </div>
 
-      {/* Direct Costs */}
+      {/* Direct Costs — includes inline markup % per line */}
       <DirectCostsCard job={job} role={role} computed={{ totalHours, laborCost, materialsCost }} />
-
-      {/* Markups */}
-      <MarkupsCard job={job} role={role} computed={{ laborCost, subCost, equipmentBilled, materialsCost, otherTotal }} />
 
       {/* Contract & Billing */}
       <ContractBillingCard job={job} role={role} computed={{ approvedCOs, revisedContract, totalDirectCosts, totalMarkup, grossBilling, pctComplete }} />
