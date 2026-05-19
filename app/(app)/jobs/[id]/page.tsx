@@ -13,7 +13,7 @@ export default async function JobPage({ params }: PageProps) {
   const session = await auth();
   if (!session?.user?.active) redirect("/login");
 
-  const [job, fieldUsers, allCalendarEvents] = await Promise.all([
+  const [job, fieldUsers, allCalendarEvents, companyRates] = await Promise.all([
     prisma.job.findUnique({
       where: { id },
       include: {
@@ -40,7 +40,23 @@ export default async function JobPage({ params }: PageProps) {
         },
         laborEntries: {
           orderBy: { date: "desc" },
-          include: { user: { select: { id: true, name: true } } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                wage: {
+                  select: {
+                    title: true,
+                    year: true,
+                    hourlyWage: true,
+                    burdenRate: true,
+                    isFieldCrew: true,
+                  },
+                },
+              },
+            },
+          },
         },
         materials: {
           orderBy: { date: "desc" },
@@ -89,6 +105,7 @@ export default async function JobPage({ params }: PageProps) {
         job: { select: { id: true, jobName: true, jobNumber: true, calendarColor: true } },
       },
     }),
+    prisma.companyRates.findUnique({ where: { id: "singleton" } }),
   ]);
 
   if (!job) notFound();
@@ -175,6 +192,7 @@ export default async function JobPage({ params }: PageProps) {
         savedTasks={savedTasks}
         allCalendarEvents={allCalendarEvents}
         canViewSummary={canViewSummary}
+        companyRates={companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
       />
     </div>
   );

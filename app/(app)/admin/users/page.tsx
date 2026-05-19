@@ -19,6 +19,17 @@ export default async function AdminUsersPage() {
       role: true,
       active: true,
       createdAt: true,
+      wage: {
+        select: {
+          title: true,
+          year: true,
+          hourlyWage: true,
+          burdenRate: true,
+          paySchedule: true,
+          isFieldCrew: true,
+          notes: true,
+        },
+      },
     },
   });
 

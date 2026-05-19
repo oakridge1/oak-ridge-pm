@@ -5,7 +5,7 @@ import {
   CheckCircle2, AlertCircle, ExternalLink, Link2Off,
   RefreshCw, Calendar, Sheet, Building2, Bell, Upload, Truck,
   Edit2, Trash2, Plus, X, Package, ChevronDown, ChevronUp, ToggleLeft, ToggleRight,
-  Database,
+  Database, DollarSign, Save,
 } from "lucide-react";
 import { BOM, BOM_CATEGORIES } from "@/lib/bom";
 
@@ -136,6 +136,17 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   const [stockForm, setStockForm] = useState({ category: "", name: "", lingo: "", unitOfMeasure: "EA", isConsumable: false, notes: "" });
   const [stockSaving, setStockSaving] = useState(false);
 
+  // Labor Rates state
+  const [laborRates, setLaborRates] = useState<{ defaultBurden: number; bidRates: Record<string, number> } | null>(null);
+  const [laborRatesLoaded, setLaborRatesLoaded] = useState(false);
+  const [editingBurden, setEditingBurden] = useState(false);
+  const [burdenInput, setBurdenInput] = useState("35");
+  const [editingBidRateKey, setEditingBidRateKey] = useState<string | null>(null);
+  const [bidRateInput, setBidRateInput] = useState("");
+  const [laborRatesSaving, setLaborRatesSaving] = useState(false);
+  const [laborRatesSaved, setLaborRatesSaved] = useState(false);
+  const [laborRatesError, setLaborRatesError] = useState<string | null>(null);
+
   // BOM Pricing overrides state (Fix 9)
   const [bomOverrides, setBomOverrides] = useState<Record<string, { mat: number; lhr: number }>>({});
   const [bomLoaded, setBomLoaded] = useState(false);
@@ -167,6 +178,15 @@ export function SettingsClient({ connection, justConnected, connectError, compan
     }).catch(() => setBomLoaded(true));
   }, []);
 
+  // Load labor rates on mount
+  useEffect(() => {
+    fetch("/api/admin/company-rates").then(r => r.json()).then(data => {
+      setLaborRates({ defaultBurden: data.defaultBurden ?? 0.35, bidRates: data.bidRates ?? {} });
+      setBurdenInput(String(Math.round((data.defaultBurden ?? 0.35) * 100)));
+      setLaborRatesLoaded(true);
+    }).catch(() => setLaborRatesLoaded(true));
+  }, []);
+
   // Load notification preferences on mount (Fix 2)
   useEffect(() => {
     fetch("/api/admin/notification-preferences").then(r => r.json()).then(data => {
@@ -189,6 +209,49 @@ export function SettingsClient({ connection, justConnected, connectError, compan
     } finally {
       setNotifSaving(false);
     }
+  }
+
+  // ── Labor Rates handlers ─────────────────────────────────────────────────────
+
+  async function handleSaveBurden() {
+    if (!laborRates) return;
+    const val = parseFloat(burdenInput) / 100;
+    if (isNaN(val) || val < 0 || val > 2) { setLaborRatesError("Burden rate must be 0–200%."); return; }
+    setLaborRatesSaving(true); setLaborRatesError(null);
+    try {
+      const res = await fetch("/api/admin/company-rates", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultBurden: val, bidRates: laborRates.bidRates }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setLaborRatesError(d.error ?? "Save failed"); return; }
+      const updated = await res.json();
+      setLaborRates({ defaultBurden: updated.defaultBurden, bidRates: updated.bidRates });
+      setEditingBurden(false);
+      setLaborRatesSaved(true); setTimeout(() => setLaborRatesSaved(false), 3000);
+    } catch { setLaborRatesError("Network error — save failed."); }
+    finally { setLaborRatesSaving(false); }
+  }
+
+  async function handleSaveBidRate(key: string) {
+    if (!laborRates) return;
+    const val = parseFloat(bidRateInput);
+    if (isNaN(val) || val < 0) { setLaborRatesError("Enter a valid rate."); return; }
+    const newRates = { ...laborRates.bidRates, [key]: val };
+    setLaborRatesSaving(true); setLaborRatesError(null);
+    try {
+      const res = await fetch("/api/admin/company-rates", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultBurden: laborRates.defaultBurden, bidRates: newRates }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setLaborRatesError(d.error ?? "Save failed"); return; }
+      const updated = await res.json();
+      setLaborRates({ defaultBurden: updated.defaultBurden, bidRates: updated.bidRates });
+      setEditingBidRateKey(null);
+      setLaborRatesSaved(true); setTimeout(() => setLaborRatesSaved(false), 3000);
+    } catch { setLaborRatesError("Network error — save failed."); }
+    finally { setLaborRatesSaving(false); }
   }
 
   // ── BOM Pricing handlers (Fix 9) ────────────────────────────────────────────
@@ -1128,6 +1191,126 @@ export function SettingsClient({ connection, justConnected, connectError, compan
           </button>
         </div>
       )}
+
+      {/* ── Labor Rates card ── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <DollarSign className="w-5 h-5 text-[#FF5910]" />
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Labor Rates</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Bid rates by trade level and default burden rate used in profitability calculations.</p>
+            </div>
+          </div>
+          {laborRatesSaved && (
+            <span className="flex items-center gap-1.5 text-sm text-green-700"><CheckCircle2 className="w-4 h-4" /> Saved</span>
+          )}
+        </div>
+
+        {laborRatesError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg px-3 py-2 mb-4">
+            <AlertCircle className="w-4 h-4 shrink-0" /> {laborRatesError}
+          </div>
+        )}
+
+        {!laborRatesLoaded ? (
+          <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>
+        ) : (
+          <div className="space-y-4">
+            {/* Default burden rate */}
+            <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Default Burden Rate</p>
+                <p className="text-xs text-gray-500">Applied to actual hourly wages (taxes, benefits, insurance)</p>
+              </div>
+              {editingBurden ? (
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <input type="number" value={burdenInput} onChange={e => setBurdenInput(e.target.value)}
+                      step="1" min="0" max="200" placeholder="35"
+                      className="w-20 border border-gray-300 rounded-lg px-2 pr-6 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
+                  </div>
+                  <button onClick={handleSaveBurden} disabled={laborRatesSaving}
+                    className="flex items-center gap-1 text-xs bg-[#002D72] text-white px-2.5 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
+                    <Save className="w-3 h-3" /> {laborRatesSaving ? "…" : "Save"}
+                  </button>
+                  <button onClick={() => setEditingBurden(false)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-bold text-[#002D72]">
+                    {laborRates ? Math.round(laborRates.defaultBurden * 100) : 35}%
+                  </span>
+                  <button onClick={() => { setEditingBurden(true); setBurdenInput(String(Math.round((laborRates?.defaultBurden ?? 0.35) * 100))); }}
+                    className="p-1.5 text-gray-400 hover:text-[#002D72] transition-colors">
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Bid rates table */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Bid Rates by Trade Level</p>
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Title</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Year</th>
+                      <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Bid Rate / hr</th>
+                      <th className="px-2 py-2.5" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {laborRates && Object.entries(laborRates.bidRates).map(([key, rate]) => {
+                      const [title, year] = key.split(":");
+                      const isEditingThis = editingBidRateKey === key;
+                      return (
+                        <tr key={key} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+                          <td className="px-4 py-2.5 text-gray-800">{title}</td>
+                          <td className="px-4 py-2.5 text-gray-500">{year || "—"}</td>
+                          <td className="px-4 py-2.5 text-right">
+                            {isEditingThis ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                                  <input type="number" value={bidRateInput} onChange={e => setBidRateInput(e.target.value)}
+                                    step="0.50" min="0" placeholder="0.00"
+                                    className="w-20 border border-gray-300 rounded px-4 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right" />
+                                </div>
+                                <button onClick={() => handleSaveBidRate(key)} disabled={laborRatesSaving}
+                                  className="text-xs bg-[#002D72] text-white px-2 py-1 rounded hover:bg-[#003d99] disabled:opacity-60">
+                                  {laborRatesSaving ? "…" : "Save"}
+                                </button>
+                                <button onClick={() => setEditingBidRateKey(null)} className="text-xs text-gray-500">✕</button>
+                              </div>
+                            ) : (
+                              <span className="font-semibold text-gray-900 tabular-nums">${rate.toFixed(2)}/hr</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2.5">
+                            {!isEditingThis && (
+                              <button onClick={() => { setEditingBidRateKey(key); setBidRateInput(String(rate)); }}
+                                className="p-1 text-gray-300 hover:text-[#002D72] transition-colors">
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {laborRates && Object.keys(laborRates.bidRates).length === 0 && (
+                      <tr><td colSpan={4} className="px-4 py-4 text-sm text-gray-400 text-center">No bid rates configured. Run the seed endpoint first.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── BOM Pricing Overrides card (Fix 9) ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">

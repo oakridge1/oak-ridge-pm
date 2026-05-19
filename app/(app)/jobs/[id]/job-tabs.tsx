@@ -83,6 +83,7 @@ interface JobTabsProps {
   allCalendarEvents?: any[];
   canViewSummary?: boolean;
   orderingPermissions?: { scope: string; jobId: string | null }[];
+  companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
 }
 
 export function JobTabs({
@@ -95,6 +96,7 @@ export function JobTabs({
   allCalendarEvents = [],
   canViewSummary = false,
   orderingPermissions = [],
+  companyRates = null,
 }: JobTabsProps) {
   const [activeTab, setActiveTab] = useState("info");
 
@@ -190,7 +192,7 @@ export function JobTabs({
           <DocumentsTab job={job} role={role} />
         )}
         {activeTab === "summary" && (
-          <SummaryTab job={job} role={role} />
+          <SummaryTab job={job} role={role} companyRates={companyRates} />
         )}
       </div>
     </div>

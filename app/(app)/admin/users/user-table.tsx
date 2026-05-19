@@ -1,9 +1,22 @@
 "use client";
 
 import { useTransition, useState, useEffect } from "react";
-import { Trash2, ShieldCheck, User, Clock, UserPlus, X, Save, ShoppingCart, Calculator } from "lucide-react";
+import {
+  Trash2, ShieldCheck, User, Clock, UserPlus, X, Save,
+  ShoppingCart, Calculator, ChevronDown, ChevronUp, DollarSign,
+} from "lucide-react";
 import { updateUserRole, toggleUserActive, deleteUser, createUser } from "./actions";
 import type { Role } from "@/app/generated/prisma/client";
+
+type WageData = {
+  title: string;
+  year: string;
+  hourlyWage: number;
+  burdenRate: number;
+  paySchedule: string;
+  isFieldCrew: boolean;
+  notes: string | null;
+} | null;
 
 type UserRow = {
   id: string;
@@ -13,7 +26,10 @@ type UserRow = {
   role: Role;
   active: boolean;
   createdAt: Date;
+  wage: WageData;
 };
+
+// ── Ordering permission toggle ────────────────────────────────────────────────
 
 function OrderingPermissionToggle({ userId, role }: { userId: string; role: Role }) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -65,6 +81,8 @@ function OrderingPermissionToggle({ userId, role }: { userId: string; role: Role
   );
 }
 
+// ── Estimating permission toggle ──────────────────────────────────────────────
+
 function EstimatingPermissionToggle({ userId, role }: { userId: string; role: Role }) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [toggling, setToggling] = useState(false);
@@ -111,6 +129,183 @@ function EstimatingPermissionToggle({ userId, role }: { userId: string; role: Ro
   );
 }
 
+// ── Wage section ──────────────────────────────────────────────────────────────
+
+const TITLES = ["Apprentice", "Journeyman", "Master Electrician", "Foreman", "General Foreman", "Office", "Owner"];
+const YEARS_BY_TITLE: Record<string, string[]> = {
+  "Apprentice": ["1st", "2nd", "3rd", "4th"],
+  "Journeyman": ["1st", "2nd", "3rd"],
+  "Master Electrician": [],
+  "Foreman": [],
+  "General Foreman": [],
+  "Office": [],
+  "Owner": [],
+};
+
+function WageSection({ userId, initialWage }: { userId: string; initialWage: WageData }) {
+  const [wage, setWage] = useState<WageData>(initialWage);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Edit form state
+  const [title, setTitle] = useState(wage?.title ?? "Apprentice");
+  const [year, setYear] = useState(wage?.year ?? "1st");
+  const [hourlyWage, setHourlyWage] = useState(String(wage?.hourlyWage ?? 0));
+  const [burdenRate, setBurdenRate] = useState(String(Math.round((wage?.burdenRate ?? 0.35) * 100)));
+  const [isFieldCrew, setIsFieldCrew] = useState(wage?.isFieldCrew ?? true);
+  const [notes, setNotes] = useState(wage?.notes ?? "");
+
+  const years = YEARS_BY_TITLE[title] ?? [];
+
+  function startEdit() {
+    setTitle(wage?.title ?? "Apprentice");
+    setYear(wage?.year ?? "1st");
+    setHourlyWage(String(wage?.hourlyWage ?? 0));
+    setBurdenRate(String(Math.round((wage?.burdenRate ?? 0.35) * 100)));
+    setIsFieldCrew(wage?.isFieldCrew ?? true);
+    setNotes(wage?.notes ?? "");
+    setError(null);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setError(null);
+    const hw = parseFloat(hourlyWage);
+    const br = parseFloat(burdenRate) / 100;
+    if (isNaN(hw) || hw < 0) { setError("Enter a valid hourly wage."); return; }
+    if (isNaN(br) || br < 0) { setError("Enter a valid burden rate."); return; }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/wage`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, year, hourlyWage: hw, burdenRate: br, isFieldCrew, notes: notes.trim() || null }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error ?? `Save failed (${res.status})`);
+        return;
+      }
+      const updated = await res.json();
+      setWage({
+        title: updated.title,
+        year: updated.year,
+        hourlyWage: updated.hourlyWage,
+        burdenRate: updated.burdenRate,
+        paySchedule: updated.paySchedule,
+        isFieldCrew: updated.isFieldCrew,
+        notes: updated.notes,
+      });
+      setEditing(false);
+    } catch {
+      setError("Network error — save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const burdened = wage ? wage.hourlyWage * (1 + wage.burdenRate) : null;
+
+  return (
+    <div className="mt-2 border border-gray-100 rounded-lg bg-gray-50 p-3">
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-1.5 rounded mb-2">{error}</p>
+      )}
+
+      {editing ? (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Title</label>
+              <select value={title} onChange={e => { setTitle(e.target.value); setYear(""); }}
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]">
+                {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            {years.length > 0 && (
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Year</label>
+                <select value={year} onChange={e => setYear(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]">
+                  <option value="">—</option>
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Hourly Wage ($)</label>
+              <input type="number" value={hourlyWage} onChange={e => setHourlyWage(e.target.value)}
+                step="0.25" min="0" placeholder="0.00"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Burden Rate (%)</label>
+              <div className="relative">
+                <input type="number" value={burdenRate} onChange={e => setBurdenRate(e.target.value)}
+                  step="1" min="0" max="200" placeholder="35"
+                  className="w-full border border-gray-300 rounded px-2 pr-7 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
+              </div>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+            <input type="checkbox" checked={isFieldCrew} onChange={e => setIsFieldCrew(e.target.checked)}
+              className="rounded" />
+            Field crew (included in job labor costs)
+          </label>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
+            <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. overhead, unpaid"
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => { setEditing(false); setError(null); }}
+              className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-1 text-xs bg-[#002D72] text-white px-2.5 py-1 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
+              <Save className="w-3 h-3" />{saving ? "Saving…" : "Save Wage"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-0.5">
+            {wage ? (
+              <>
+                <p className="text-xs font-semibold text-gray-700">
+                  {wage.title}{wage.year ? ` · ${wage.year} year` : ""}
+                  {!wage.isFieldCrew && (
+                    <span className="ml-1.5 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Overhead</span>
+                  )}
+                </p>
+                <p className="text-xs text-gray-500">
+                  ${wage.hourlyWage.toFixed(2)}/hr
+                  {burdened !== null && wage.isFieldCrew
+                    ? ` · ${(wage.burdenRate * 100).toFixed(0)}% burden = $${burdened.toFixed(2)}/hr burdened`
+                    : ""}
+                </p>
+                {wage.notes && <p className="text-xs text-gray-400 italic">{wage.notes}</p>}
+              </>
+            ) : (
+              <p className="text-xs text-gray-400 italic">No wage info set</p>
+            )}
+          </div>
+          <button onClick={startEdit}
+            className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors shrink-0">
+            <DollarSign className="w-3 h-3" /> {wage ? "Edit" : "Set Wage"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── User row components ───────────────────────────────────────────────────────
+
 interface UserTableProps {
   users: UserRow[];
   currentUserId: string;
@@ -151,6 +346,7 @@ function UserRowMobile({
   const [pending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showWage, setShowWage] = useState(false);
   const isSelf = user.id === currentUserId;
 
   function handleRoleChange(role: Role) {
@@ -236,6 +432,14 @@ function UserRowMobile({
         <OrderingPermissionToggle userId={user.id} role={user.role} />
         <EstimatingPermissionToggle userId={user.id} role={user.role} />
 
+        <button
+          onClick={() => setShowWage(v => !v)}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#002D72] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+        >
+          <DollarSign className="w-3 h-3" />
+          {showWage ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+
         {!isSelf && (
           <button
             onClick={handleDelete}
@@ -249,6 +453,10 @@ function UserRowMobile({
           </button>
         )}
       </div>
+
+      {showWage && (
+        <WageSection userId={user.id} initialWage={user.wage} />
+      )}
     </div>
   );
 }
@@ -263,6 +471,7 @@ function UserRowDesktop({
   const [pending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showWage, setShowWage] = useState(false);
   const isSelf = user.id === currentUserId;
 
   function handleRoleChange(role: Role) {
@@ -287,87 +496,113 @@ function UserRowDesktop({
   }
 
   return (
-    <tr
-      className={`border-b last:border-b-0 transition-opacity ${
-        !user.active ? "bg-amber-50" : "bg-white hover:bg-gray-50"
-      } ${pending ? "opacity-60 pointer-events-none" : ""}`}
-    >
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <UserAvatar user={user} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900 text-sm">
-                {user.name ?? "(no name)"}
-              </span>
-              {isSelf && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
-                  You
+    <>
+      <tr
+        className={`border-b transition-opacity ${
+          !user.active ? "bg-amber-50" : "bg-white hover:bg-gray-50"
+        } ${pending ? "opacity-60 pointer-events-none" : ""}`}
+      >
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <UserAvatar user={user} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-gray-900 text-sm">
+                  {user.name ?? "(no name)"}
                 </span>
+                {isSelf && (
+                  <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
+                    You
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+              {/* Wage summary inline */}
+              {user.wage && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {user.wage.title}{user.wage.year ? ` · ${user.wage.year}` : ""} · ${user.wage.hourlyWage.toFixed(2)}/hr
+                  {!user.wage.isFieldCrew ? " · overhead" : ""}
+                </p>
               )}
             </div>
-            <p className="text-xs text-gray-500 truncate">{user.email}</p>
           </div>
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        <select
-          value={user.role}
-          onChange={(e) => handleRoleChange(e.target.value as Role)}
-          disabled={isSelf}
-          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#002D72]"
-        >
-          {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map((r) => (
-            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-          ))}
-        </select>
-      </td>
-      <td className="px-4 py-3">
-        <button
-          onClick={handleToggleActive}
-          disabled={isSelf}
-          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 ${
-            user.active
-              ? "bg-green-100 text-green-700 hover:bg-green-200"
-              : "bg-amber-100 text-amber-700 hover:bg-amber-200"
-          }`}
-        >
-          {user.active ? (
-            <><ShieldCheck className="w-3.5 h-3.5" /> Active</>
-          ) : (
-            <><Clock className="w-3.5 h-3.5" /> Pending — Activate</>
-          )}
-        </button>
-      </td>
-      <td className="px-4 py-3 text-xs text-gray-400">
-        {new Date(user.createdAt).toLocaleDateString()}
-      </td>
-      <td className="px-4 py-3">
-        <div className="space-y-1">
-          <OrderingPermissionToggle userId={user.id} role={user.role} />
-          <EstimatingPermissionToggle userId={user.id} role={user.role} />
-          {!isSelf && (
-            <>
-              <button
-                onClick={handleDelete}
-                onBlur={() => setConfirmDelete(false)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 ${
-                  confirmDelete ? "bg-red-600 text-white" : "bg-red-50 text-red-600 hover:bg-red-100"
-                }`}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                {confirmDelete ? "Confirm delete?" : "Delete"}
-              </button>
-              {deleteError && (
-                <p className="text-xs text-red-600 max-w-[200px]">{deleteError}</p>
-              )}
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
+        </td>
+        <td className="px-4 py-3">
+          <select
+            value={user.role}
+            onChange={(e) => handleRoleChange(e.target.value as Role)}
+            disabled={isSelf}
+            className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          >
+            {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map((r) => (
+              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+            ))}
+          </select>
+        </td>
+        <td className="px-4 py-3">
+          <button
+            onClick={handleToggleActive}
+            disabled={isSelf}
+            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 ${
+              user.active
+                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+            }`}
+          >
+            {user.active ? (
+              <><ShieldCheck className="w-3.5 h-3.5" /> Active</>
+            ) : (
+              <><Clock className="w-3.5 h-3.5" /> Pending — Activate</>
+            )}
+          </button>
+        </td>
+        <td className="px-4 py-3 text-xs text-gray-400">
+          {new Date(user.createdAt).toLocaleDateString()}
+        </td>
+        <td className="px-4 py-3">
+          <div className="space-y-1">
+            <OrderingPermissionToggle userId={user.id} role={user.role} />
+            <EstimatingPermissionToggle userId={user.id} role={user.role} />
+            <button
+              onClick={() => setShowWage(v => !v)}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#002D72] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <DollarSign className="w-3 h-3" /> Wage
+              {showWage ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+            {!isSelf && (
+              <>
+                <button
+                  onClick={handleDelete}
+                  onBlur={() => setConfirmDelete(false)}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 ${
+                    confirmDelete ? "bg-red-600 text-white" : "bg-red-50 text-red-600 hover:bg-red-100"
+                  }`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {confirmDelete ? "Confirm delete?" : "Delete"}
+                </button>
+                {deleteError && (
+                  <p className="text-xs text-red-600 max-w-[200px]">{deleteError}</p>
+                )}
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+      {/* Wage row spans full table width */}
+      {showWage && (
+        <tr className={!user.active ? "bg-amber-50" : "bg-gray-50"}>
+          <td colSpan={5} className="px-4 pb-3">
+            <WageSection userId={user.id} initialWage={user.wage} />
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
+
+// ── Add User Form ─────────────────────────────────────────────────────────────
 
 function AddUserForm({ onDone }: { onDone: () => void }) {
   const [email, setEmail] = useState("");
@@ -432,6 +667,8 @@ function AddUserForm({ onDone }: { onDone: () => void }) {
     </div>
   );
 }
+
+// ── Main UserTable ────────────────────────────────────────────────────────────
 
 export function UserTable({ users, currentUserId }: UserTableProps) {
   const pending = users.filter((u) => !u.active);

@@ -151,6 +151,7 @@ model User {
   createdEstimates         Estimate[]             @relation("EstimateCreatedBy")
   designFeeEstimates       Estimate[]             @relation("EstimateDesignFee")
   notificationPreferences  NotificationPreference?
+  wage                     EmployeeWage?
 }
 
 model Account {
@@ -799,4 +800,31 @@ model BomPricing {
   lhr       Float
   updatedAt DateTime @updatedAt
   updatedBy String?
+}
+
+// ── Employee Wages ────────────────────────────────────────────────────────────
+
+model EmployeeWage {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String   @default("Apprentice")
+  year         String   @default("1st")
+  hourlyWage   Float    @default(0)
+  burdenRate   Float    @default(0.35)
+  paySchedule  String   @default("biweekly")
+  isFieldCrew  Boolean  @default(true)
+  notes        String?
+  wageHistory  Json     @default("[]")
+  updatedAt    DateTime @updatedAt
+  updatedBy    String?
+}
+
+// ── Company Labor Rates (singleton) ──────────────────────────────────────────
+
+model CompanyRates {
+  id            String   @id @default("singleton")
+  defaultBurden Float    @default(0.35)
+  bidRates      Json     @default("{}")
+  updatedAt     DateTime @updatedAt
 }

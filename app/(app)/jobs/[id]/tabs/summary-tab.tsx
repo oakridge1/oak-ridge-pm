@@ -6,7 +6,7 @@ import {
   DollarSign, BarChart3,
   Edit2, Save, Plus, Trash2, CreditCard, RefreshCw,
   FileText, ChevronDown, ChevronUp, Send, CheckCircle2, ExternalLink,
-  Download, Mail,
+  Download, Mail, TrendingUp, TrendingDown,
 } from "lucide-react";
 import {
   updateDirectCostsWithMarkups,
@@ -18,6 +18,20 @@ import {
 import type { Role } from "@/app/generated/prisma/client";
 
 type OtherCost = { id: string; description: string; amount: number; markupPct?: number };
+type LaborEntryWithWage = {
+  hours: number;
+  user: {
+    id: string;
+    name: string | null;
+    wage?: {
+      title: string;
+      year: string;
+      hourlyWage: number;
+      burdenRate: number;
+      isFieldCrew: boolean;
+    } | null;
+  };
+};
 type PaymentEntry = {
   id: string; date: Date; amount: number; note: string | null;
   checkNumber: string | null; reference: string | null;
@@ -58,13 +72,14 @@ interface SummaryTabProps {
     gcEmail: string | null;
     gcContactName: string | null;
     gcCompany: string | null;
-    laborEntries: { hours: number }[];
+    laborEntries: LaborEntryWithWage[];
     materials: { amount: number }[];
     changeOrders: ChangeOrder[];
     payments: PaymentEntry[];
     invoices: InvoiceEntry[];
   };
   role: Role;
+  companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
 }
 
 function fmt$(n: number | null | undefined) {
@@ -1356,9 +1371,276 @@ function PaymentLogCard({ job, role }: {
   );
 }
 
+// ── Profitability Card ────────────────────────────────────────────────────────
+
+function ProfitabilityCard({ job, role, companyRates, computed }: {
+  job: SummaryTabProps["job"];
+  role: Role;
+  companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
+  computed: {
+    grossBilling: number;
+    totalHours: number;
+    materialsCost: number;
+    subCost: number;
+    equipmentBilled: number;
+    otherTotal: number;
+    totalMarkup: number;
+  };
+}) {
+  const [showDetail, setShowDetail] = useState(false);
+
+  // ── Actual labor cost (burdened wages) ──────────────────────────────────────
+  // Group hours by user and compute actual cost using their wage
+  const defaultBurden = companyRates?.defaultBurden ?? 0.35;
+
+  // Per-employee actual labor breakdown
+  type EmployeeBreakdown = {
+    name: string;
+    title: string;
+    year: string;
+    hours: number;
+    wage: number; // $/hr
+    burdened: number; // $/hr burdened
+    actualCost: number;
+    bidRate: number; // $/hr from company rates
+    bidCost: number;
+  };
+
+  const employeeMap = new Map<string, EmployeeBreakdown>();
+  for (const entry of job.laborEntries) {
+    const uid = entry.user.id;
+    if (!employeeMap.has(uid)) {
+      const wage = entry.user.wage;
+      const hourlyWage = wage?.hourlyWage ?? 0;
+      const burdenRate = wage?.burdenRate ?? defaultBurden;
+      const burdened = hourlyWage * (1 + burdenRate);
+      const title = wage?.title ?? "";
+      const year = wage?.year ?? "";
+      const bidKey = `${title}:${year}`;
+      const bidRate = companyRates?.bidRates[bidKey] ?? companyRates?.bidRates[`${title}:`] ?? 0;
+      employeeMap.set(uid, {
+        name: entry.user.name ?? "Unknown",
+        title,
+        year,
+        hours: 0,
+        wage: hourlyWage,
+        burdened,
+        actualCost: 0,
+        bidRate,
+        bidCost: 0,
+      });
+    }
+    const emp = employeeMap.get(uid)!;
+    emp.hours += entry.hours;
+    emp.actualCost += entry.hours * emp.burdened;
+    emp.bidCost += entry.hours * emp.bidRate;
+  }
+
+  const employees = Array.from(employeeMap.values())
+    .filter(e => e.hours > 0)
+    .sort((a, b) => b.hours - a.hours);
+
+  const actualLaborCost = employees.reduce((s, e) => s + e.actualCost, 0);
+  const bidLaborCost = employees.reduce((s, e) => s + e.bidCost, 0);
+  const hasWageData = employees.some(e => e.wage > 0);
+
+  // ── Total actual cost (no markup — what we actually spent) ──────────────────
+  const totalActualCost = actualLaborCost + computed.materialsCost + computed.subCost +
+    computed.equipmentBilled + computed.otherTotal;
+
+  // ── Profit / loss ───────────────────────────────────────────────────────────
+  const grossProfit = computed.grossBilling - totalActualCost;
+  const grossMarginPct = computed.grossBilling > 0
+    ? (grossProfit / computed.grossBilling) * 100 : 0;
+
+  // Labor budget comparison
+  const laborBudgetVariance = job.laborBudgetHours != null
+    ? job.laborBudgetHours - computed.totalHours : null;
+
+  const profitable = grossProfit >= 0;
+
+  if (role !== "ADMIN" && role !== "OFFICE") return null;
+
+  return (
+    <SectionCard icon={<TrendingUp className="w-4 h-4" />} title="Job Profitability">
+      <button
+        onClick={() => setShowDetail(v => !v)}
+        className="w-full flex items-center justify-between py-3 text-xs text-gray-500 hover:text-[#002D72] transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          {profitable
+            ? <TrendingUp className="w-3.5 h-3.5 text-green-600" />
+            : <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+          }
+          <span className="font-medium">
+            Gross Profit: <span className={profitable ? "text-green-700" : "text-red-600"}>{fmt$(grossProfit)}</span>
+            {computed.grossBilling > 0 && (
+              <span className="text-gray-400 ml-1">({grossMarginPct.toFixed(1)}% margin)</span>
+            )}
+          </span>
+        </span>
+        {showDetail ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+      </button>
+
+      {showDetail && (
+        <div className="pb-3 space-y-1">
+          {/* Revenue */}
+          <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 mb-3">
+            <p className="text-xs font-semibold text-blue-800 mb-1">Revenue (Gross Billing)</p>
+            <p className="text-lg font-bold text-[#002D72] tabular-nums">{fmt$(computed.grossBilling)}</p>
+          </div>
+
+          {/* Cost breakdown */}
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider pb-1">Actual Costs</p>
+
+          {/* Labor actual cost */}
+          <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+            <div>
+              <p className="text-sm text-gray-600">Labor (burdened wages)</p>
+              {hasWageData ? (
+                <p className="text-xs text-gray-400">{computed.totalHours.toFixed(1)} hrs · avg ${computed.totalHours > 0 ? (actualLaborCost / computed.totalHours).toFixed(2) : "0"}/hr burdened</p>
+              ) : (
+                <p className="text-xs text-orange-500">Wage data not set — set wages in Admin → Users</p>
+              )}
+            </div>
+            <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">
+              {hasWageData ? fmt$(actualLaborCost) : "—"}
+            </span>
+          </div>
+
+          {/* Materials */}
+          <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+            <p className="text-sm text-gray-600">Materials (actual cost)</p>
+            <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(computed.materialsCost)}</span>
+          </div>
+
+          {/* Subs */}
+          {computed.subCost > 0 && (
+            <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+              <p className="text-sm text-gray-600">Subcontractors</p>
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(computed.subCost)}</span>
+            </div>
+          )}
+
+          {/* Equipment */}
+          {computed.equipmentBilled > 0 && (
+            <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+              <p className="text-sm text-gray-600">Equipment (billed portion)</p>
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(computed.equipmentBilled)}</span>
+            </div>
+          )}
+
+          {/* Other */}
+          {computed.otherTotal > 0 && (
+            <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+              <p className="text-sm text-gray-600">Other Costs</p>
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(computed.otherTotal)}</span>
+            </div>
+          )}
+
+          {/* Total actual cost */}
+          <div className="flex items-center justify-between py-2 border-b border-gray-200">
+            <p className="text-sm font-bold text-gray-900">Total Actual Cost</p>
+            <span className="text-sm font-bold text-gray-900 tabular-nums">{fmt$(totalActualCost)}</span>
+          </div>
+
+          {/* Gross profit */}
+          <div className={`flex items-center justify-between py-2.5 rounded-lg px-3 mt-1 ${
+            profitable ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+          }`}>
+            <p className={`text-sm font-bold ${profitable ? "text-green-800" : "text-red-800"}`}>
+              Gross Profit / Loss
+            </p>
+            <div className="text-right">
+              <span className={`text-sm font-bold tabular-nums ${profitable ? "text-green-700" : "text-red-600"}`}>
+                {fmt$(grossProfit)}
+              </span>
+              {computed.grossBilling > 0 && (
+                <p className={`text-xs ${profitable ? "text-green-600" : "text-red-500"}`}>
+                  {grossMarginPct.toFixed(1)}% margin
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Labor budget variance */}
+          {laborBudgetVariance !== null && (
+            <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <p className="text-xs font-semibold text-gray-500 mb-1">Labor Budget vs Actual</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Budget: {job.laborBudgetHours?.toFixed(1)} hrs · Actual: {computed.totalHours.toFixed(1)} hrs
+                </p>
+                <span className={`text-sm font-semibold tabular-nums ${laborBudgetVariance >= 0 ? "text-green-700" : "text-red-600"}`}>
+                  {laborBudgetVariance >= 0 ? "+" : ""}{laborBudgetVariance.toFixed(1)} hrs
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Bid vs actual labor (if company rates configured) */}
+          {hasWageData && bidLaborCost > 0 && (
+            <div className="mt-3 border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+                <p className="text-xs font-semibold text-gray-500">Bid Rate vs Actual Labor Cost</p>
+              </div>
+              <div className="px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Bid labor estimate</span>
+                  <span className="font-semibold tabular-nums">{fmt$(bidLaborCost)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Actual burdened cost</span>
+                  <span className="font-semibold tabular-nums">{fmt$(actualLaborCost)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm border-t border-gray-100 pt-1">
+                  <span className="text-gray-600">Variance</span>
+                  <span className={`font-bold tabular-nums ${bidLaborCost >= actualLaborCost ? "text-green-700" : "text-red-600"}`}>
+                    {bidLaborCost >= actualLaborCost ? "+" : ""}{fmt$(bidLaborCost - actualLaborCost)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Per-employee detail */}
+          {employees.length > 0 && (
+            <div className="mt-3 border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+                <p className="text-xs font-semibold text-gray-500">Per-Employee Labor Detail</p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {employees.map((emp, i) => (
+                  <div key={i} className="px-3 py-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800">{emp.name}</p>
+                        <p className="text-xs text-gray-400">
+                          {emp.title}{emp.year ? ` · ${emp.year}` : ""}
+                          {emp.wage > 0 ? ` · $${emp.wage.toFixed(2)}/hr · $${emp.burdened.toFixed(2)}/hr burdened` : " · no wage set"}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold tabular-nums text-gray-900">{emp.hours.toFixed(1)} hrs</p>
+                        {emp.wage > 0 && (
+                          <p className="text-xs text-gray-500">{fmt$(emp.actualCost)} cost</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 // ── Main SummaryTab ───────────────────────────────────────────────────────────
 
-export function SummaryTab({ job, role }: SummaryTabProps) {
+export function SummaryTab({ job, role, companyRates = null }: SummaryTabProps) {
   const router = useRouter();
 
   useEffect(() => {
@@ -1449,6 +1731,16 @@ export function SummaryTab({ job, role }: SummaryTabProps) {
 
       {/* Contract & Billing */}
       <ContractBillingCard job={job} role={role} computed={{ approvedCOs, revisedContract, totalDirectCosts, totalMarkup, grossBilling, pctComplete }} />
+
+      {/* Profitability — Admin & Office only */}
+      {(role === "ADMIN" || role === "OFFICE") && (
+        <ProfitabilityCard
+          job={job}
+          role={role}
+          companyRates={companyRates}
+          computed={{ grossBilling, totalHours, materialsCost, subCost, equipmentBilled, otherTotal, totalMarkup }}
+        />
+      )}
 
       {/* Deposit Request */}
       <DepositRequestCard job={job} role={role} />
