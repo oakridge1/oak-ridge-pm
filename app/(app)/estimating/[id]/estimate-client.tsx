@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ClipboardList, Layers, Zap, FileText, Book, BarChart3, Settings,
   Plus, Trash2, ChevronDown, Check, X, ArrowLeft, ExternalLink, DollarSign,
+  CheckCircle2, AlertCircle, Edit2,
 } from "lucide-react";
 import { BOM, BOM_CATEGORIES } from "@/lib/bom";
 import AssembliesTabComponent from "./tabs/assemblies-tab";
@@ -240,11 +241,25 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
     Array.isArray(estimate.subs) ? (estimate.subs as SubItem[]) : []
   );
 
+  // BOM pricing overrides (loaded once from /api/admin/bom-pricing)
+  const [bomOverrides, setBomOverrides] = useState<Record<string, { mat: number; lhr: number }>>({});
+  useEffect(() => {
+    fetch("/api/admin/bom-pricing")
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: Array<{ id: string; mat: number; lhr: number }>) => {
+        const map: Record<string, { mat: number; lhr: number }> = {};
+        for (const row of rows) map[row.id] = { mat: Number(row.mat), lhr: Number(row.lhr) };
+        setBomOverrides(map);
+      })
+      .catch(() => { /* non-fatal — fall back to BOM defaults */ });
+  }, []);
+
   // Build estimateData object for calculations
   const estimateData: EstimateData = {
     laborRate, bulkMarkup, lightMarkup, permitMarkup, subMarkup,
     overhead, profit, nonProd, designFeePct, conditionMult, heightAdj,
     takeoffItems, assemblies, panelItems, permits, subs,
+    bomOverrides,
   };
 
   // Auto-save debounce
@@ -649,7 +664,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
             subMarkup={subMarkup}
           />
         )}
-        {activeTab === "bom" && <BomReferenceTab />}
+        {activeTab === "bom" && <BomReferenceTab bomOverrides={bomOverrides} setBomOverrides={setBomOverrides} />}
         {activeTab === "bid" && (
           <BidSummaryTab
             totals={totals}
@@ -720,6 +735,36 @@ function TakeoffTab({
 }) {
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("All");
+
+  // Line-item price override editing state (FIX 2)
+  const [lineEditing, setLineEditing] = useState<string | null>(null); // item.id
+  const [lineEditFocus, setLineEditFocus] = useState<"mat" | "lhr">("mat");
+  const [lineEditMat, setLineEditMat] = useState("");
+  const [lineEditLhr, setLineEditLhr] = useState("");
+
+  function startLineEdit(item: TakeoffItem, field: "mat" | "lhr") {
+    const bom = BOM.find(b => b.id === item.bomId);
+    setLineEditing(item.id);
+    setLineEditFocus(field);
+    setLineEditMat(String(item.matOverride ?? data.bomOverrides?.[item.bomId]?.mat ?? bom?.mat ?? ""));
+    setLineEditLhr(String(item.lhrOverride ?? data.bomOverrides?.[item.bomId]?.lhr ?? bom?.lhr ?? ""));
+  }
+
+  function saveLineOverride(itemId: string) {
+    const mat = parseFloat(lineEditMat);
+    const lhr = parseFloat(lineEditLhr);
+    if (isNaN(mat) && isNaN(lhr)) { setLineEditing(null); return; }
+    setItems(items.map(i => i.id === itemId ? {
+      ...i,
+      matOverride: isNaN(mat) ? i.matOverride : mat,
+      lhrOverride: isNaN(lhr) ? i.lhrOverride : lhr,
+    } : i));
+    setLineEditing(null);
+  }
+
+  function clearLineOverride(itemId: string) {
+    setItems(items.map(i => i.id === itemId ? { ...i, matOverride: undefined, lhrOverride: undefined } : i));
+  }
 
   const filtered = BOM.filter(b => {
     if (catFilter !== "All" && b.category !== catFilter) return false;
@@ -847,10 +892,13 @@ function TakeoffTab({
                   const bom = BOM.find(b => b.id === item.bomId);
                   if (!bom) return null;
                   const line = calcLine(item, data);
+                  const isLineEditing = lineEditing === item.id;
+                  const hasMatOv = item.matOverride !== undefined;
+                  const hasLhrOv = item.lhrOverride !== undefined;
                   return (
-                    <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={item.id} className={`border-b border-gray-100 hover:bg-gray-50 ${(hasMatOv || hasLhrOv) ? "bg-orange-50/40" : ""}`}>
                       <td className="px-3 py-2 text-gray-400 text-xs">{idx + 1}</td>
-                      <td className="px-3 py-2 font-medium text-gray-900 max-w-[200px] truncate">{bom.name}</td>
+                      <td className="px-3 py-2 font-medium text-gray-900 max-w-[200px] truncate" title={bom.name}>{bom.name}</td>
                       <td className="px-3 py-2 text-gray-500 text-xs">{bom.category}</td>
                       <td className="px-3 py-2 text-right">
                         <input
@@ -862,14 +910,67 @@ function TakeoffTab({
                         />
                       </td>
                       <td className="px-3 py-2 text-gray-500 text-xs">{bom.unit}</td>
-                      <td className="px-3 py-2 text-right text-gray-700 font-mono text-xs">{fmt$(line.mat)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700 font-mono text-xs">{line.lhr.toFixed(2)}</td>
+
+                      {/* Mat Cost — click to override (FIX 2) */}
+                      <td
+                        className={`px-3 py-2 text-right font-mono text-xs ${!isLineEditing ? "cursor-pointer hover:bg-orange-50 select-none" : ""}`}
+                        onClick={!isLineEditing ? () => startLineEdit(item, "mat") : undefined}
+                        title={!isLineEditing ? (hasMatOv ? "Override active — click to edit" : "Click to set price override") : undefined}
+                      >
+                        {isLineEditing ? (
+                          <input
+                            type="number" value={lineEditMat} onChange={e => setLineEditMat(e.target.value)}
+                            onBlur={e => { if ((e.relatedTarget as HTMLElement)?.id === `line-lhr-${item.id}`) return; saveLineOverride(item.id); }}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveLineOverride(item.id); } if (e.key === "Escape") { e.preventDefault(); setLineEditing(null); } }}
+                            step="0.0001" min="0" autoFocus={lineEditFocus === "mat"}
+                            placeholder="unit price"
+                            className="w-20 border border-[#FF5910] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF5910] text-right"
+                          />
+                        ) : (
+                          <span className={hasMatOv ? "text-[#FF5910] font-semibold" : "text-gray-700"}>
+                            {fmt$(line.mat)}
+                            {hasMatOv && <Edit2 className="w-2.5 h-2.5 inline ml-0.5 opacity-60" />}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Labor Hrs — click to override (FIX 2) */}
+                      <td
+                        className={`px-3 py-2 text-right font-mono text-xs ${!isLineEditing ? "cursor-pointer hover:bg-orange-50 select-none" : ""}`}
+                        onClick={!isLineEditing ? () => startLineEdit(item, "lhr") : undefined}
+                        title={!isLineEditing ? (hasLhrOv ? "Override active — click to edit" : "Click to set labor override") : undefined}
+                      >
+                        {isLineEditing ? (
+                          <input
+                            id={`line-lhr-${item.id}`}
+                            type="number" value={lineEditLhr} onChange={e => setLineEditLhr(e.target.value)}
+                            onBlur={() => saveLineOverride(item.id)}
+                            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveLineOverride(item.id); } if (e.key === "Escape") { e.preventDefault(); setLineEditing(null); } }}
+                            step="0.0001" min="0" autoFocus={lineEditFocus === "lhr"}
+                            placeholder="unit hrs"
+                            className="w-16 border border-[#FF5910] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#FF5910] text-right"
+                          />
+                        ) : (
+                          <span className={hasLhrOv ? "text-[#FF5910] font-semibold" : "text-gray-700"}>
+                            {line.lhr.toFixed(2)}
+                            {hasLhrOv && <Edit2 className="w-2.5 h-2.5 inline ml-0.5 opacity-60" />}
+                          </span>
+                        )}
+                      </td>
+
                       <td className="px-3 py-2 text-right text-gray-700 font-mono text-xs">{fmt$(line.laborCost)}</td>
                       <td className="px-3 py-2 text-right font-semibold text-gray-900 font-mono text-xs">{fmt$(line.total)}</td>
                       <td className="px-3 py-2">
-                        <button onClick={() => removeItem(item.id)} className="p-1 text-gray-300 hover:text-red-500 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          {(hasMatOv || hasLhrOv) && (
+                            <button onClick={() => clearLineOverride(item.id)} className="p-1 text-[#FF5910]/60 hover:text-[#FF5910] transition-colors" title="Clear price overrides">
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button onClick={() => removeItem(item.id)} className="p-1 text-gray-300 hover:text-red-500 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1140,12 +1241,55 @@ function PermitsSubsTab({ permits, setPermits, subs, setSubs, permitMarkup, subM
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tab 5: BOM Reference
+// Tab 5: BOM Reference — inline editable (FIX 1)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function BomReferenceTab() {
+function BomReferenceTab({
+  bomOverrides,
+  setBomOverrides,
+}: {
+  bomOverrides: Record<string, { mat: number; lhr: number }>;
+  setBomOverrides: React.Dispatch<React.SetStateAction<Record<string, { mat: number; lhr: number }>>>;
+}) {
   const [catFilter, setCatFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editFocus, setEditFocus] = useState<"mat" | "lhr">("mat");
+  const [editMat, setEditMat] = useState("");
+  const [editLhr, setEditLhr] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [rowStatus, setRowStatus] = useState<Record<string, "ok" | "err">>({});
+
+  function flashStatus(id: string, status: "ok" | "err") {
+    setRowStatus(prev => ({ ...prev, [id]: status }));
+    setTimeout(() => setRowStatus(prev => { const c = { ...prev }; delete c[id]; return c; }), status === "ok" ? 2000 : 3000);
+  }
+
+  async function saveBomOverride(bomId: string) {
+    const mat = parseFloat(editMat);
+    const lhr = parseFloat(editLhr);
+    if (isNaN(mat) || isNaN(lhr)) { flashStatus(bomId, "err"); return; }
+    setSaving(bomId);
+    setRowStatus(prev => { const c = { ...prev }; delete c[bomId]; return c; });
+    try {
+      const res = await fetch("/api/admin/bom-pricing", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: bomId, mat, lhr }),
+      });
+      if (res.ok) {
+        setBomOverrides(prev => ({ ...prev, [bomId]: { mat, lhr } }));
+        setEditing(null);
+        flashStatus(bomId, "ok");
+      } else {
+        flashStatus(bomId, "err");
+      }
+    } catch {
+      flashStatus(bomId, "err");
+    } finally {
+      setSaving(null);
+    }
+  }
 
   const filtered = BOM.filter(b => {
     if (catFilter !== "All" && b.category !== catFilter) return false;
@@ -1158,7 +1302,7 @@ function BomReferenceTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search BOM…"
           className="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
@@ -1166,11 +1310,14 @@ function BomReferenceTab() {
           <option value="All">All Categories</option>
           {BOM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
+        <span className="text-xs text-gray-400 px-1">
+          Click Mat Cost or Labor Hrs to edit · {Object.keys(bomOverrides).length} override{Object.keys(bomOverrides).length !== 1 ? "s" : ""}
+        </span>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-gray-200">
+      <div className="overflow-x-auto rounded-xl border border-gray-200 max-h-[600px] overflow-y-auto">
         <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
+          <thead className="sticky top-0 bg-gray-50 z-10">
+            <tr className="border-b border-gray-200">
               <th className="px-3 py-2 text-left font-semibold text-gray-500">ID</th>
               <th className="px-3 py-2 text-left font-semibold text-gray-500">Name</th>
               <th className="px-3 py-2 text-left font-semibold text-gray-500">Category</th>
@@ -1179,27 +1326,108 @@ function BomReferenceTab() {
               <th className="px-3 py-2 text-right font-semibold text-gray-500">Labor Hrs</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500">Markup</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-500">GCE Stock</th>
+              <th className="px-3 py-2 w-7" />
             </tr>
           </thead>
           <tbody>
-            {filtered.map(b => (
-              <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-3 py-2 font-mono text-gray-400">{b.id}</td>
-                <td className="px-3 py-2 text-gray-900">{b.name}</td>
-                <td className="px-3 py-2 text-gray-500">{b.category}</td>
-                <td className="px-3 py-2 text-right text-gray-500">{b.unit}</td>
-                <td className="px-3 py-2 text-right font-mono">{fmt$(b.mat)}</td>
-                <td className="px-3 py-2 text-right font-mono">{b.lhr.toFixed(4)}</td>
-                <td className="px-3 py-2 text-center">
-                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${b.mk === "bulk" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
-                    {b.mk}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-center">
-                  {b.gc ? <Check className="w-3.5 h-3.5 text-green-500 mx-auto" /> : <span className="text-gray-300">—</span>}
-                </td>
-              </tr>
-            ))}
+            {filtered.map(b => {
+              const ov = bomOverrides[b.id];
+              const isEditing = editing === b.id;
+              const isSaving = saving === b.id;
+              const status = rowStatus[b.id];
+              const effectiveMat = ov?.mat ?? b.mat;
+              const effectiveLhr = ov?.lhr ?? b.lhr;
+
+              function startEdit(field: "mat" | "lhr") {
+                setEditing(b.id);
+                setEditFocus(field);
+                setEditMat(String(effectiveMat));
+                setEditLhr(String(effectiveLhr));
+              }
+
+              return (
+                <tr key={b.id} className={`border-b border-gray-100 ${ov ? "bg-amber-50" : ""}`}>
+                  <td className="px-3 py-2 font-mono text-gray-400">{b.id}</td>
+                  <td className="px-3 py-2 text-gray-900 max-w-[160px] truncate" title={b.name}>{b.name}</td>
+                  <td className="px-3 py-2 text-gray-500">{b.category}</td>
+                  <td className="px-3 py-2 text-right text-gray-500">{b.unit}</td>
+
+                  {/* Mat Cost — click to edit */}
+                  <td
+                    className={`px-3 py-2 text-right font-mono ${!isEditing ? "cursor-pointer hover:bg-blue-50 select-none" : ""}`}
+                    onClick={!isEditing ? () => startEdit("mat") : undefined}
+                    title={!isEditing ? "Click to edit" : undefined}
+                  >
+                    {isEditing ? (
+                      <input
+                        type="number" value={editMat} onChange={e => setEditMat(e.target.value)}
+                        onBlur={e => { if ((e.relatedTarget as HTMLElement)?.id === `bom-lhr-est-${b.id}`) return; saveBomOverride(b.id); }}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveBomOverride(b.id); } if (e.key === "Escape") { e.preventDefault(); setEditing(null); } }}
+                        step="0.0001" min="0" autoFocus={editFocus === "mat"}
+                        className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                      />
+                    ) : (
+                      <span className={ov ? "text-amber-700 font-semibold" : "text-gray-700"}>
+                        ${effectiveMat.toFixed(4)}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Labor Hrs — click to edit */}
+                  <td
+                    className={`px-3 py-2 text-right font-mono ${!isEditing ? "cursor-pointer hover:bg-blue-50 select-none" : ""}`}
+                    onClick={!isEditing ? () => startEdit("lhr") : undefined}
+                    title={!isEditing ? "Click to edit" : undefined}
+                  >
+                    {isEditing ? (
+                      <input
+                        id={`bom-lhr-est-${b.id}`}
+                        type="number" value={editLhr} onChange={e => setEditLhr(e.target.value)}
+                        onBlur={() => saveBomOverride(b.id)}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveBomOverride(b.id); } if (e.key === "Escape") { e.preventDefault(); setEditing(null); } }}
+                        step="0.0001" min="0" autoFocus={editFocus === "lhr"}
+                        className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                      />
+                    ) : (
+                      <span className={ov ? "text-amber-700 font-semibold" : "text-gray-700"}>
+                        {effectiveLhr.toFixed(4)}
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="px-3 py-2 text-center">
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${b.mk === "bulk" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+                      {b.mk}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {b.gc ? <Check className="w-3.5 h-3.5 text-green-500 mx-auto" /> : <span className="text-gray-300">—</span>}
+                  </td>
+
+                  {/* Status column */}
+                  <td className="px-2 py-2 w-7 text-center">
+                    {isSaving ? (
+                      <span className="text-gray-400 text-xs">…</span>
+                    ) : status === "ok" ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 inline" />
+                    ) : status === "err" ? (
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 inline" />
+                    ) : ov && !isEditing ? (
+                      <button
+                        onClick={async () => {
+                          await fetch("/api/admin/bom-pricing", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.id }) });
+                          setBomOverrides(prev => { const c = { ...prev }; delete c[b.id]; return c; });
+                        }}
+                        className="p-0.5 text-gray-300 hover:text-red-400 transition-colors"
+                        title="Remove override"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

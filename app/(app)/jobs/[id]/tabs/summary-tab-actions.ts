@@ -59,6 +59,7 @@ export async function updateDirectCostsWithMarkups(
     blendedLaborRate: string;
     laborMarkupPct: string;
     subcontractorCost: string;
+    subcontractorBillPct: string;
     subMarkupPct: string;
     equipmentCost: string;
     equipmentBillPct: string;
@@ -74,8 +75,9 @@ export async function updateDirectCostsWithMarkups(
     data: {
       blendedLaborRate: data.blendedLaborRate ? parseFloat(data.blendedLaborRate) : null,
       laborMarkupPct:   data.laborMarkupPct   ? parseFloat(data.laborMarkupPct)   : null,
-      subcontractorCost: data.subcontractorCost ? parseFloat(data.subcontractorCost) : null,
-      subMarkupPct:      data.subMarkupPct      ? parseFloat(data.subMarkupPct)      : null,
+      subcontractorCost:    data.subcontractorCost    ? parseFloat(data.subcontractorCost)    : null,
+      subcontractorBillPct: data.subcontractorBillPct ? parseFloat(data.subcontractorBillPct) : null,
+      subMarkupPct:         data.subMarkupPct         ? parseFloat(data.subMarkupPct)         : null,
       equipmentCost:     data.equipmentCost     ? parseFloat(data.equipmentCost)     : null,
       equipmentBillPct:  data.equipmentBillPct  ? parseFloat(data.equipmentBillPct)  : null,
       equipmentMarkupPct: data.equipmentMarkupPct ? parseFloat(data.equipmentMarkupPct) : null,
@@ -170,7 +172,7 @@ export async function createInvoice(jobId: string, data: {
   notes: string;
   paymentTerms?: string;
   scopeOfWork?: string;
-  lineItems: { label: string; amount: number }[];
+  lineItems: Record<string, unknown>[];
   invoiceKind?: string;
   force?: boolean;
 }) {
@@ -228,7 +230,7 @@ export async function createInvoice(jobId: string, data: {
       amount,
       retainagePct,
       retainageHeld,
-      lineItems: data.lineItems.length > 0 ? data.lineItems : undefined,
+      lineItems: data.lineItems.length > 0 ? (data.lineItems as object[]) : undefined,
       notes: data.notes.trim() || null,
       paymentTerms: data.paymentTerms || "due_on_receipt",
       scopeOfWork: data.scopeOfWork?.trim() || null,

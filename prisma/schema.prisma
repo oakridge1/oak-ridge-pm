@@ -224,6 +224,7 @@ model Job {
   blendedLaborRate   Decimal?  @db.Decimal(10, 2)
   // Direct cost fields (Summary tab)
   subcontractorCost  Decimal?  @db.Decimal(12, 2)
+  subcontractorBillPct Float?
   equipmentCost      Decimal?  @db.Decimal(12, 2)
   equipmentBillPct   Float?
   otherCosts         Json?
@@ -259,6 +260,7 @@ model Job {
   userPermissions  UserPermission[]
   stockApprovalRequests StockApprovalRequest[]
   estimate              Estimate?
+  scheduleOfValues      ScheduleOfValues?
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -818,6 +820,17 @@ model EmployeeWage {
   wageHistory  Json     @default("[]")
   updatedAt    DateTime @updatedAt
   updatedBy    String?
+}
+
+// ── Schedule of Values (AIA G703) ────────────────────────────────────────────
+
+model ScheduleOfValues {
+  id        String   @id @default(cuid())
+  jobId     String   @unique
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  rows      Json     @default("[]")
+  updatedAt DateTime @updatedAt
+  updatedBy String?
 }
 
 // ── Company Labor Rates (singleton) ──────────────────────────────────────────

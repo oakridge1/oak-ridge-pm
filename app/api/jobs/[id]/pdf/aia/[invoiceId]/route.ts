@@ -60,7 +60,7 @@ export async function GET(
     const approvedCOs = job.changeOrders.reduce((s, co) => s + (co.approvedValue?.toNumber() ?? 0), 0);
     const revisedContract = contractValue + approvedCOs;
 
-    // Recompute gross billing from Summary tab logic
+    // Recompute gross billing from Summary tab logic (used as fallback)
     const totalHours = job.laborEntries.reduce((s, e) => s + (e.hours ?? 0), 0);
     const blendedRate = job.blendedLaborRate?.toNumber() ?? 0;
     const laborCost = blendedRate > 0 ? totalHours * blendedRate : 0;
@@ -69,10 +69,10 @@ export async function GET(
     const equipCost = job.equipmentCost?.toNumber() ?? 0;
     const equipBillPct = job.equipmentBillPct ?? 100;
     const equipBilled = equipCost * (equipBillPct / 100);
-    const otherCosts = Array.isArray(job.otherCosts)
+    const otherCostsList = Array.isArray(job.otherCosts)
       ? (job.otherCosts as { amount: number }[])
       : [];
-    const otherTotal = otherCosts.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+    const otherTotal = otherCostsList.reduce((s, c) => s + (Number(c.amount) || 0), 0);
 
     const laborMarkupPct = job.laborMarkupPct ?? 0;
     const subMarkupPct = job.subMarkupPct ?? 0;
@@ -83,10 +83,8 @@ export async function GET(
     const grossBilling = laborCost + laborMarkup + materialsCost + subCost + subMarkup + equipBilled + equipMarkup + otherTotal;
 
     const retainagePct = invoice.retainagePct ?? 10;
-    const retainageHeld = grossBilling * (retainagePct / 100);
-    const totalEarnedLessRetainage = grossBilling - retainageHeld;
 
-    // Previous AIA certificates (Line 7) — sum of prior non-draft AIA invoices' net amounts
+    // Previous AIA certificates (Line 7)
     const previousCertificates = job.invoices
       .filter((inv) => inv.id !== invoiceId && inv.invoiceNumber < invoice.invoiceNumber)
       .reduce((sum, inv) => {
@@ -96,74 +94,87 @@ export async function GET(
         return sum + (invAmount - invRetainageHeld);
       }, 0);
 
-    const currentPaymentDue = totalEarnedLessRetainage - previousCertificates;
-    const balanceToFinish = revisedContract - totalEarnedLessRetainage;
-
-    // Always auto-generate G703 line items from computed values.
-    // (Stored lineItems are in Standard invoice format {label,amount} — not G703 format.)
-
-    // Compute prior invoices total for proportional previouslyBilled calculation
-    const priorInvoicesTotal = job.invoices
-      .filter(inv => inv.id !== invoiceId && inv.invoiceNumber < invoice.invoiceNumber)
-      .reduce((s, inv) => s + (inv.amount?.toNumber() ?? 0), 0);
-
-    const lineItems: {
+    type G703Line = {
       no: number; description: string; scheduledValue: number;
       previouslyBilled: number; thisPeriod: number; stored: number;
-    }[] = [];
-    let no = 1;
+    };
 
-    if (laborCost + laborMarkup > 0) {
-      const suffix = laborMarkupPct > 0 ? ` (incl. ${laborMarkupPct}% markup)` : "";
-      const sv = laborCost + laborMarkup;
-      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
-      lineItems.push({
-        no: no++, description: `Labor${suffix}`,
-        scheduledValue: sv, previouslyBilled: prevBilled,
-        thisPeriod: sv - prevBilled, stored: 0,
-      });
-    }
-    if (materialsCost > 0) {
-      const sv = materialsCost;
-      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
-      lineItems.push({
-        no: no++, description: "Materials",
-        scheduledValue: sv, previouslyBilled: prevBilled,
-        thisPeriod: sv - prevBilled, stored: 0,
-      });
-    }
-    if (subCost + subMarkup > 0) {
-      const suffix = subMarkupPct > 0 ? ` (incl. ${subMarkupPct}% markup)` : "";
-      const sv = subCost + subMarkup;
-      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
-      lineItems.push({
-        no: no++, description: `Subcontractors${suffix}`,
-        scheduledValue: sv, previouslyBilled: prevBilled,
-        thisPeriod: sv - prevBilled, stored: 0,
-      });
-    }
-    if (equipBilled + equipMarkup > 0) {
-      const suffix = equipMarkupPct > 0 ? ` (incl. ${equipMarkupPct}% markup)` : "";
-      const sv = equipBilled + equipMarkup;
-      const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
-      lineItems.push({
-        no: no++, description: `Equipment Rental${suffix}`,
-        scheduledValue: sv, previouslyBilled: prevBilled,
-        thisPeriod: sv - prevBilled, stored: 0,
-      });
-    }
-    for (const oc of Array.isArray(job.otherCosts)
-      ? (job.otherCosts as { description: string; amount: number }[])
-      : []) {
-      if (oc.amount > 0) {
-        const sv = Number(oc.amount);
+    // Detect SOV-based invoice
+    const storedItems = Array.isArray(invoice.lineItems)
+      ? (invoice.lineItems as Record<string, unknown>[])
+      : [];
+    const isSovBased = storedItems.length > 0 && storedItems[0]?.fromSov === true;
+
+    let lineItems: G703Line[];
+    let effectiveGrossBilling: number;
+    let effectiveTotalEarnedLessRetainage: number;
+    let effectiveCurrentPaymentDue: number;
+    let effectiveBalanceToFinish: number;
+
+    if (isSovBased) {
+      // Use stored SOV rows directly
+      lineItems = storedItems.map((row, i) => ({
+        no: i + 1,
+        description: String(row.description ?? ""),
+        scheduledValue: Number(row.scheduledValue ?? 0),
+        previouslyBilled: Number(row.previouslyBilled ?? 0),
+        thisPeriod: Number(row.thisPeriod ?? 0),
+        stored: Number(row.materialsStored ?? 0),
+      }));
+
+      const sovScheduledTotal = lineItems.reduce((s, r) => s + r.scheduledValue, 0);
+      const sovCompleted = lineItems.reduce((s, r) => s + r.previouslyBilled + r.thisPeriod + r.stored, 0);
+      const sovRetainageHeld = sovCompleted * (retainagePct / 100);
+      effectiveGrossBilling = sovCompleted;
+      effectiveTotalEarnedLessRetainage = sovCompleted - sovRetainageHeld;
+      effectiveCurrentPaymentDue = effectiveTotalEarnedLessRetainage - previousCertificates;
+      effectiveBalanceToFinish = sovScheduledTotal - sovCompleted;
+    } else {
+      // Legacy auto-generate from computed values
+      const priorInvoicesTotal = job.invoices
+        .filter(inv => inv.id !== invoiceId && inv.invoiceNumber < invoice.invoiceNumber)
+        .reduce((s, inv) => s + (inv.amount?.toNumber() ?? 0), 0);
+
+      lineItems = [];
+      let no = 1;
+
+      if (laborCost + laborMarkup > 0) {
+        const suffix = laborMarkupPct > 0 ? ` (incl. ${laborMarkupPct}% markup)` : "";
+        const sv = laborCost + laborMarkup;
         const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
-        lineItems.push({
-          no: no++, description: oc.description ?? "Other",
-          scheduledValue: sv, previouslyBilled: prevBilled,
-          thisPeriod: sv - prevBilled, stored: 0,
-        });
+        lineItems.push({ no: no++, description: `Labor${suffix}`, scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
       }
+      if (materialsCost > 0) {
+        const sv = materialsCost;
+        const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
+        lineItems.push({ no: no++, description: "Materials", scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
+      }
+      if (subCost + subMarkup > 0) {
+        const suffix = subMarkupPct > 0 ? ` (incl. ${subMarkupPct}% markup)` : "";
+        const sv = subCost + subMarkup;
+        const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
+        lineItems.push({ no: no++, description: `Subcontractors${suffix}`, scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
+      }
+      if (equipBilled + equipMarkup > 0) {
+        const suffix = equipMarkupPct > 0 ? ` (incl. ${equipMarkupPct}% markup)` : "";
+        const sv = equipBilled + equipMarkup;
+        const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
+        lineItems.push({ no: no++, description: `Equipment Rental${suffix}`, scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
+      }
+      for (const oc of Array.isArray(job.otherCosts) ? (job.otherCosts as { description: string; amount: number }[]) : []) {
+        if (oc.amount > 0) {
+          const sv = Number(oc.amount);
+          const prevBilled = grossBilling > 0 ? priorInvoicesTotal * (sv / grossBilling) : 0;
+          lineItems.push({ no: no++, description: oc.description ?? "Other", scheduledValue: sv, previouslyBilled: prevBilled, thisPeriod: sv - prevBilled, stored: 0 });
+        }
+      }
+
+      const retainageHeld = grossBilling * (retainagePct / 100);
+      const totalEarnedLessRetainage = grossBilling - retainageHeld;
+      effectiveGrossBilling = grossBilling;
+      effectiveTotalEarnedLessRetainage = totalEarnedLessRetainage;
+      effectiveCurrentPaymentDue = totalEarnedLessRetainage - previousCertificates;
+      effectiveBalanceToFinish = revisedContract - totalEarnedLessRetainage;
     }
 
     const buf = await renderToBuffer(
@@ -184,11 +195,11 @@ export async function GET(
           originalContractSum: contractValue,
           netChangeByChangeOrders: approvedCOs,
           contractSumToDate: revisedContract,
-          totalCompletedAndStored: grossBilling,
+          totalCompletedAndStored: effectiveGrossBilling,
           retainagePct,
           previousCertificates,
-          currentPaymentDue,
-          balanceToFinish,
+          currentPaymentDue: effectiveCurrentPaymentDue,
+          balanceToFinish: effectiveBalanceToFinish,
           lineItems,
           notes: invoice.notes ?? null,
         },

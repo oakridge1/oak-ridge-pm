@@ -7,6 +7,10 @@ export type TakeoffItem = {
   bomId: string;
   qty: number;
   note?: string;
+  /** Per-item unit price override — overrides BOM default and BomPricing table for this estimate only */
+  matOverride?: number;
+  /** Per-item unit labor hrs override — overrides BOM default and BomPricing table for this estimate only */
+  lhrOverride?: number;
 };
 
 /** One line in an assembly's material/labor breakdown */
@@ -78,6 +82,8 @@ export type EstimateData = {
   panelItems: PanelItem[];
   permits: PermitItem[];
   subs: SubItem[];
+  /** Optional per-item price overrides loaded from the BomPricing table */
+  bomOverrides?: Record<string, { mat: number; lhr: number }>;
 };
 
 export type LineCalc = {
@@ -294,13 +300,17 @@ export function adjustLhr(lhr: number, data: Pick<EstimateData, "conditionMult" 
   return h;
 }
 
-/** Calculate a single takeoff line */
+/** Calculate a single takeoff line.
+ *  Priority: item.matOverride > data.bomOverrides > static BOM default */
 export function calcLine(item: TakeoffItem, data: EstimateData): LineCalc {
   const bom = BOM.find(b => b.id === item.bomId);
   if (!bom) return { mat: 0, lhr: 0, laborCost: 0, total: 0 };
+  const ov = data.bomOverrides?.[item.bomId];
+  const matBase = item.matOverride ?? ov?.mat ?? bom.mat;
+  const lhrBase = item.lhrOverride ?? ov?.lhr ?? bom.lhr;
   const markup = bom.mk === "light" ? data.lightMarkup : data.bulkMarkup;
-  const mat = bom.mat * item.qty * (1 + markup);
-  const lhr = adjustLhr(bom.lhr * item.qty, data);
+  const mat = matBase * item.qty * (1 + markup);
+  const lhr = adjustLhr(lhrBase * item.qty, data);
   const laborCost = lhr * data.laborRate;
   return { mat, lhr, laborCost, total: mat + laborCost };
 }
@@ -1102,18 +1112,20 @@ export function calcBid(data: EstimateData): BidTotals {
     // Other legacy assembly types without mat/lab: contribute 0
   }
 
-  // Panel items
+  // Panel items (respect BomPricing overrides)
   for (const panel of data.panelItems) {
     const panelBom = BOM.find(b => b.id === panel.panelBomId);
     if (panelBom) {
-      rawMat += panelBom.mat * (1 + data.bulkMarkup);
-      rawLhr += adjustLhr(panelBom.lhr, data);
+      const ov = data.bomOverrides?.[panel.panelBomId];
+      rawMat += (ov?.mat ?? panelBom.mat) * (1 + data.bulkMarkup);
+      rawLhr += adjustLhr(ov?.lhr ?? panelBom.lhr, data);
     }
     for (const row of panel.breakerRows) {
       const brkBom = BOM.find(b => b.id === row.bomId);
       if (brkBom) {
-        rawMat += brkBom.mat * row.qty * (1 + data.bulkMarkup);
-        rawLhr += adjustLhr(brkBom.lhr * row.qty, data);
+        const ov = data.bomOverrides?.[row.bomId];
+        rawMat += (ov?.mat ?? brkBom.mat) * row.qty * (1 + data.bulkMarkup);
+        rawLhr += adjustLhr((ov?.lhr ?? brkBom.lhr) * row.qty, data);
       }
     }
   }

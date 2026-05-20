@@ -1,6 +1,6 @@
 # Oak Ridge PM — Session Handoff Document
 
-**Last updated:** 2026-05-17
+**Last updated:** 2026-05-19
 **Deployed at:** https://oak-ridge-pm.vercel.app
 **GitHub repo:** https://github.com/oakridge1/oak-ridge-pm
 **Owner:** Justin Marceau, Oak Ridge Electrical LLC
@@ -36,6 +36,7 @@
 - **React PDF** — any route calling `renderToBuffer` must include `export const runtime = "nodejs"` at the top of the file. Cast the `React.createElement(...)` call with `as any`.
 - **serverExternalPackages** — `["docx", "sharp"]` in `next.config.ts` prevents Turbopack from incorrectly bundling these native packages.
 - **Route params** — in Next.js 16, `params` is a `Promise`. Always `await params` before destructuring: `const { id } = await params`.
+- **No tsx/ts-node** — the project has no tsx or ts-node installed. One-time scripts must be plain Node.js `.js` files using `require("pg")` with the DIRECT_URL connection string. The `pg` package (v8.20.0) is available.
 
 ---
 
@@ -64,7 +65,7 @@ All must be set in **Vercel → Settings → Environment Variables**.
 
 | Variable | Purpose | Notes |
 |---|---|---|
-| `DIRECT_URL` | Direct PostgreSQL connection (port 5432, no pooler) | Required for `prisma db push` and scripts |
+| `DIRECT_URL` | Direct PostgreSQL connection (port 5432, no pooler) | Required for `prisma db push` and plain Node.js scripts |
 
 ### Auto-injected by Vercel
 
@@ -149,9 +150,9 @@ InvoiceStatus         DRAFT | SENT | PARTIALLY_PAID | PAID
 
 ### Key models
 
-**User** — NextAuth users. `id, name, email, emailVerified, image, role (default TEAMMATE), active (default false)`. New Google sign-ins get `active=false` until admin activates. Relations include: `foremanJobs`, `stockRequests`, `stockOrders`, `userPermissions`, `grantedPermissions`, `googleConnections`, `approvalRequests` (StockApprovalRequest requester), `reviewedApprovals` (StockApprovalRequest reviewer).
+**User** — NextAuth users. `id, name, email, emailVerified, image, role (default TEAMMATE), active (default false)`. New Google sign-ins get `active=false` until admin activates. Relations include: `foremanJobs`, `stockRequests`, `stockOrders`, `userPermissions`, `grantedPermissions`, `googleConnections`, `approvalRequests` (StockApprovalRequest requester), `reviewedApprovals` (StockApprovalRequest reviewer), `wage (EmployeeWage?)`.
 
-**Job** — Core entity. Key fields: `jobNumber (unique), jobName, address/city/state/zip, gcCompany/gcContactName/gcPhone/gcEmail, ownerName/ownerPhone/ownerEmail, foremanId (→ User), createdById (→ User), scopeOfWork, contractStartDate, completionDate, permitNumber, status (JobStatus), jobType (JobType, default BID), contractValue, laborBudgetHours, materialBudget, blendedLaborRate, subcontractorCost, equipmentCost, equipmentBillPct, otherCosts (Json), laborMarkupPct, subMarkupPct, equipmentMarkupPct, archived, calendarColor`. Relations include all tabs plus: `stockRequests`, `stockOrders`, `userPermissions`, `stockApprovalRequests`.
+**Job** — Core entity. Key fields: `jobNumber (unique), jobName, address/city/state/zip, gcCompany/gcContactName/gcPhone/gcEmail, ownerName/ownerPhone/ownerEmail, foremanId (→ User), createdById (→ User), scopeOfWork, contractStartDate, completionDate, permitNumber, status (JobStatus), jobType (JobType, default BID), contractValue, laborBudgetHours, materialBudget, blendedLaborRate, subcontractorCost, equipmentCost, equipmentBillPct, otherCosts (Json — array of {id, description, amount, markupPct?}), laborMarkupPct, subMarkupPct, equipmentMarkupPct, materialMarkupPct, otherMarkupPct, archived, calendarColor`. Relations include all tabs plus: `stockRequests`, `stockOrders`, `userPermissions`, `stockApprovalRequests`.
 
 **Invoice** — `invoiceNumber (auto-incremented per job), type (STANDARD|AIA), invoiceKind (string: "PROGRESS_PAYMENT"|"FINAL_INVOICE", default "PROGRESS_PAYMENT"), googleSheetId (String? — set after AIA Sheets export), date, periodTo, applicationNo, status, amount, retainagePct, retainageHeld, lineItems (Json), notes`. Unique: `[jobId, invoiceNumber]`.
 
@@ -164,6 +165,30 @@ InvoiceStatus         DRAFT | SENT | PARTIALLY_PAID | PAID
 **GoogleConnection** — Singleton-style (one record per app, not per user). Fields: `id, email, refreshToken, accessToken, tokenExpiry, scopes, connectedById (→ User), connectedAt, updatedAt`. Stores the Google OAuth connection used for Drive, Sheets, and Calendar API calls. Access via `getValidAccessToken()` in `lib/google.ts` which auto-refreshes 60 seconds before expiry. Scopes granted: `email, profile, spreadsheets, calendar, drive`.
 
 **CompanySettings** — Singleton (`id @default("singleton")`). Fields: `companyName, address, city, state, zip, phone, email, logoUrl`. Source of truth for PDF templates. Upsert via `/api/admin/company-settings`.
+
+**CompanyRates** — Singleton (`id @default("singleton")`). Fields: `defaultBurden (Float, default 0.35), bidRates (Json — {"{Title}:{Year}": ratePerHour})`. Stores bid labor rates by trade level used in the Summary tab profitability calculation. Managed in Admin → Settings → Labor Rates card. Seeded via `scripts/seed-wages.js`. API: `GET/PUT /api/admin/company-rates`.
+
+```
+Bid rates stored format example:
+{
+  "Apprentice:1st": 45, "Apprentice:2nd": 48, "Apprentice:3rd": 52, "Apprentice:4th": 56,
+  "Journeyman:1st": 65, "Journeyman:2nd": 68, "Journeyman:3rd": 72,
+  "Master Electrician:": 85, "Foreman:": 90, "General Foreman:": 95
+}
+```
+
+**EmployeeWage** — One record per field crew member (`userId @unique`). Fields: `title (String), year (String), hourlyWage (Float), burdenRate (Float, default 0.35), paySchedule (String, default "biweekly"), isFieldCrew (Boolean, default true), notes (String?), wageHistory (Json @default("[]") — array of {date, wage, title}), updatedAt, updatedBy`. Managed in Admin → Users → Wage section. API: `GET/PUT /api/admin/users/[userId]/wage`. Seeded via `scripts/seed-wages.js`.
+
+Current crew wages (as seeded):
+| Name | Title | Year | Wage | Burdened (35%) | Field |
+|---|---|---|---|---|---|
+| Tyler Staiti | Apprentice | 1st | $16/hr | $21.60/hr | ✓ |
+| Michael Huggins | Apprentice | 1st | $17/hr | $22.95/hr | ✓ |
+| Caleb Drouin | Journeyman | 1st | $35/hr | $47.25/hr | ✓ |
+| Steven Haradon | Master Electrician | — | $41/hr | $55.35/hr | ✓ |
+| Sam Cosme | Office | — | $0 | — | overhead |
+| Beth Marceau | Office | — | $0 | — | overhead |
+| Justin Marceau | Owner | — | $0 | — | overhead |
 
 **Supplier** — `id, name, repName, email, phone, accountNumber, deliveryNotes, pickupOnly (Boolean), notes`. Managed in Admin → Settings → Suppliers card. `pickupOnly` routes items to the consumables/pickup list instead of the supplier email.
 
@@ -184,7 +209,9 @@ InvoiceStatus         DRAFT | SENT | PARTIALLY_PAID | PAID
 
 **CalendarRequest** — Teammate-submitted calendar event requests. `jobId, requestedById, date, timeOfDay, description, reason, status (CalendarRequestStatus), reviewedById, reviewNotes, reviewedAt`.
 
-**Other models:** LaborEntry, Photo, Note, ChangeOrder, ChangeOrderPhoto, SavedTask, Task, TaskEvent, Inspection, Rfi, Document, Session, Account, VerificationToken.
+**BomPricing** — `id (bomId), mat (Float), lhr (Float), updatedAt, updatedBy`. Override table for BOM item material costs and labor hours. Managed in Admin → Settings → BOM Pricing Overrides card. API: `GET/PATCH /api/admin/bom-pricing`.
+
+**Other models:** LaborEntry, Photo, Note, ChangeOrder, ChangeOrderPhoto, SavedTask, Task, TaskEvent, Inspection, Rfi, Document, Session, Account, VerificationToken, NotificationPreference.
 
 ---
 
@@ -193,16 +220,64 @@ InvoiceStatus         DRAFT | SENT | PARTIALLY_PAID | PAID
 Used consistently across Summary tab, AIA PDF route, and billing reminder cron. **Always use this exact formula:**
 
 ```ts
+// Per-category markup is now inline on each cost line (separate % per category)
 const laborCost = blendedRate > 0 ? totalHours * blendedRate : 0;
-const laborMarkup = laborCost * (laborMarkupPct / 100);
-const subMarkup = subCost * (subMarkupPct / 100);
-const equipBilled = equipCost * (equipBillPct / 100);   // equipBillPct default 100
-const equipMarkup = equipBilled * (equipMarkupPct / 100);
-const grossBilling = laborCost + laborMarkup + materialsCost + subCost + subMarkup
-                   + equipBilled + equipMarkup + otherTotal;
+const laborMarkup = laborCost * ((laborMarkupPct ?? 0) / 100);
+const materialMarkup = materialsCost * ((materialMarkupPct ?? 0) / 100);
+const subMarkup = subCost * ((subMarkupPct ?? 0) / 100);
+const equipBilled = equipCost * ((equipBillPct ?? 100) / 100);
+const equipMarkup = equipBilled * ((equipmentMarkupPct ?? 0) / 100);
+// Other costs: each item has its own markupPct; fall back to job.otherMarkupPct
+const otherMarkedUp = otherCosts.reduce((s, oc) => {
+  const pct = oc.markupPct ?? job.otherMarkupPct ?? 0;
+  return s + oc.amount * (1 + pct / 100);
+}, 0);
+const grossBilling = (laborCost + laborMarkup) + (materialsCost + materialMarkup)
+                   + (subCost + subMarkup) + (equipBilled + equipMarkup) + otherMarkedUp;
 ```
 
 Decimal fields from Prisma need `.toNumber()`: `(job.contractValue as any)?.toNumber?.() ?? Number(job.contractValue ?? 0)`.
+
+---
+
+## Summary Tab — Direct Costs Card
+
+Each cost category (Labor, Materials, Subcontractors, Equipment, Other Costs) has an **inline markup % input** directly beside the cost amount. The separate "Markups" card was removed. All costs + markup %s save together via `updateDirectCostsWithMarkups()` in one round-trip.
+
+- **Labor** — blended rate $/hr input + markup %; shows burdened total with markup applied
+- **Materials** — read-only (from Purchase Orders tab) + markup %
+- **Subcontractors** — cost input + markup %
+- **Equipment Rental** — total cost input + bill % (what fraction to bill this period) + markup %
+- **Other Costs** — JSON array on Job; each item has its own description, amount, and `markupPct` (per-item); default other markup % applies to new items
+- **Total Direct Costs** = sum of all marked-up line totals
+
+The "Gross Billing Amount" in the Contract & Billing card = this total.
+
+---
+
+## Summary Tab — Profitability Card
+
+Visible to **ADMIN and OFFICE** roles only. Collapsible (click to expand). Shows:
+
+- **Gross Profit / Loss** = Gross Billing − Total Actual Cost, with margin %
+- **Actual labor cost** = sum of (each worker's hours × their `hourlyWage × (1 + burdenRate)`) — computed from `LaborEntry.user.wage`
+- **Actual cost breakdown** — labor (burdened), materials (actual purchase cost), subs, equipment billed, other
+- **Labor budget vs actual** — hours over/under if `laborBudgetHours` is set
+- **Bid rate vs actual labor** — compares `CompanyRates.bidRates[title:year]` × hours against burdened wages
+- **Per-employee labor detail** — hours, wage, burdened cost per person
+
+If wage data is not set for a crew member, their labor shows as "—" with a prompt to set wages in Admin → Users.
+
+---
+
+## Summary Tab — Deposit Request Card
+
+Visible to **ADMIN** only. Generates a branded "DEPOSIT REQUEST" PDF for sending to the GC. Fields: deposit amount (fixed $ or % of contract value), due date, description, notes. Two buttons:
+
+- **Email to GC** — opens `mailto:` link with pre-filled subject and body (attaches PDF manually)
+- **Download PDF** — calls `POST /api/jobs/[id]/deposit-request`, returns branded PDF
+
+PDF style matches Standard Invoice: Oak Ridge logo, navy/orange branding, GC "To" block from job's GC contact fields.
 
 ---
 
@@ -306,6 +381,7 @@ All PDF components use `@react-pdf/renderer`. Constants: `NAVY = "#002D72"`, `OR
 | `InspectionDoc` | `/api/jobs/[id]/pdf/inspection/[inspectionId]` |
 | `RfiDoc` | `/api/jobs/[id]/pdf/rfi/[rfiId]` |
 | `StockOrderPdf` | `/api/jobs/[id]/stock-orders` — accepts `title?: string` prop (defaults "MATERIAL ORDER", pass "PICKUP LIST" for consumables) |
+| Deposit Request PDF | `/api/jobs/[id]/deposit-request` (POST) — inline, not in `_templates.tsx` |
 
 ### Standard Invoice format (Oak Ridge branded)
 
@@ -401,6 +477,12 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 
 **Notifications** — Read-only display: email active status (based on env vars), delivery time (4:00 AM EST), Sam CC always on, Admin BCC always on. Includes "Send Test Email" button (`POST /api/admin/test-email`) that fires to all admins + Sam.
 
+**Notification Preferences** — Per-event toggle list. Each key maps to a notification type (stock_order_sent, co_submitted, task_assigned, etc.). Saved to `NotificationPreference` model via `/api/admin/notification-preferences`.
+
+**Labor Rates** — Default burden rate (editable, stored as decimal e.g. 0.35 = 35%) and bid rates table by trade level (editable inline per row). Reads/writes `CompanyRates` singleton via `GET/PUT /api/admin/company-rates`. Rates are keyed as `"Title:Year"` in the bidRates JSON field.
+
+**BOM Pricing Overrides** — Override default material costs and labor hours per BOM item. Filtered by category, searchable. Items with overrides highlighted in amber. API: `GET/PATCH /api/admin/bom-pricing`. Fix: `updatedBy` field uses `session.user.id ?? null` to avoid TypeScript type error.
+
 **Google Integration** — Shows connected Google account or Connect button. Disconnect button. Connect initiates OAuth flow via `getGoogleOAuthUrl()`.
 
 **Google Calendar Sync** — Shown only when Google is connected. Informational — sync is automatic on create/delete, no manual button needed.
@@ -410,6 +492,23 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 **Suppliers** — Full CRUD for supplier records. Fields: name, rep name, email, phone, account number, delivery notes, pickup only toggle. "Reset Supplier List" button replaces all suppliers with 10 pre-configured electrical suppliers (Granite City Electric, CED, Rexel, Northeast Electric, State Electric, Green Mountain Electric, CES, Home Depot, Amazon, Lowes).
 
 **Stock List** — Collapsible. Items organized by category. Inline edit/delete per item. Add Item form at bottom. Items saved here appear in The Crib for all jobs.
+
+---
+
+## Admin Users Page (`/admin/users`)
+
+**Route:** `app/(app)/admin/users/page.tsx` + `user-table.tsx`
+
+Each user row supports:
+- Role selector (ADMIN/OFFICE/FOREMAN/TEAMMATE)
+- Active/Pending toggle
+- **Ordering permission toggle** (TEAMMATE/FOREMAN) — `GET/POST/DELETE /api/admin/users/[userId]/permissions`
+- **Estimating permission toggle** (non-ADMIN) — `GET/POST/DELETE /api/admin/users/[userId]/estimating-permission`
+- **Wage section** (collapsible, click `$` / "Wage" button) — inline edit form for title, year, hourly wage, burden rate, field crew flag, notes. Saves via `PUT /api/admin/users/[userId]/wage`. Previous wage recorded in `wageHistory` on change.
+
+Wage titles available: Apprentice (1st–4th year), Journeyman (1st–3rd year), Master Electrician, Foreman, General Foreman, Office, Owner.
+
+The users page query now includes `wage` relation so wage data renders server-side without a separate fetch for the initial display.
 
 ---
 
@@ -436,16 +535,18 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 │   │   ├── calendar/page.tsx        # Master calendar
 │   │   ├── admin/
 │   │   │   ├── users/
-│   │   │   │   ├── page.tsx         # User management (activate, role, ordering permission)
-│   │   │   │   └── user-table.tsx   # OrderingPermissionToggle per TEAMMATE/FOREMAN
+│   │   │   │   ├── page.tsx         # User management — fetches users with wage relation included
+│   │   │   │   └── user-table.tsx   # OrderingPermissionToggle, EstimatingPermissionToggle,
+│   │   │   │                        # WageSection (collapsible inline edit) per user
 │   │   │   └── settings/
 │   │   │       ├── page.tsx         # Settings server component (fetches GoogleConnection, CompanySettings)
-│   │   │       └── settings-client.tsx  # All settings cards (Company Info, Notifications, Google,
-│   │   │                            #   AIA Sheets, Suppliers, Stock List)
+│   │   │       └── settings-client.tsx  # All settings cards including Labor Rates + BOM Pricing
 │   │   └── jobs/[id]/
-│   │       ├── page.tsx             # Job detail — computes canViewSummary, passes role/userId to tabs
-│   │       ├── job-tabs.tsx         # Tab bar + routing. Tab order: Info→Labor→Invoices→Crib→
-│   │       │                        #   Photos→Notes&Tasks→Calendar→Inspections→RFI→Documents→Summary
+│   │       ├── page.tsx             # Job detail — fetches laborEntries with user.wage included,
+│   │       │                        # fetches CompanyRates singleton, passes both to JobTabs
+│   │       ├── job-tabs.tsx         # Tab bar + routing. Accepts companyRates prop, passes to SummaryTab.
+│   │       │                        # Tab order: Info→Labor→Invoices→Crib→
+│   │       │                        # Photos→Notes&Tasks→Calendar→Inspections→RFI→Documents→Summary
 │   │       └── tabs/
 │   │           ├── job-info-tab.tsx
 │   │           ├── labor-tab.tsx              # Duplicate failsafe modal
@@ -456,9 +557,12 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 │   │           │                              # ThhnWireForm, McRomexWireForm, ItemExpandForm,
 │   │           │                              # CustomItemForm, CategoryCustomAdder,
 │   │           │                              # ConductorGroupCard, SendOrderModal (2-step)
-│   │           ├── summary-tab.tsx            # Financial view. T&M/Estimate branching. Invoice form.
-│   │           │                              # Word doc download button.
-│   │           ├── summary-tab-actions.ts     # createInvoice(force), requireAdminOrForemanOnJob
+│   │           ├── summary-tab.tsx            # Financial view. DirectCostsCard (inline markup per row).
+│   │           │                              # ProfitabilityCard (Admin/Office, collapsible).
+│   │           │                              # DepositRequestCard (Admin only).
+│   │           │                              # ContractBillingCard. InvoiceLogCard. PaymentLogCard.
+│   │           ├── summary-tab-actions.ts     # updateDirectCostsWithMarkups, createInvoice(force),
+│   │           │                              # addOtherCost(markupPct?), requireAdminOrForemanOnJob
 │   │           ├── documents-tab.tsx
 │   │           ├── documents-tab-actions.ts
 │   │           ├── calendar-tab.tsx           # CalendarRequest UI, pending requests panel
@@ -476,7 +580,10 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 │       │   └── sheets/[invoiceId]/route.ts    # Copies Beth's AIA template, writes values, returns URL
 │       ├── admin/
 │       │   ├── company-settings/route.ts      # GET/PUT CompanySettings singleton
+│       │   ├── company-rates/route.ts         # GET/PUT CompanyRates singleton (burden + bid rates)
 │       │   ├── test-email/route.ts            # POST — sends test email to admins + Sam
+│       │   ├── bom-pricing/route.ts           # GET/PATCH BomPricing overrides
+│       │   ├── seed-wages/route.ts            # POST (ADMIN only) — one-time crew wage seeder via API
 │       │   ├── suppliers/
 │       │   │   ├── route.ts                   # GET all, POST new supplier
 │       │   │   ├── [id]/route.ts              # PUT/DELETE supplier
@@ -485,12 +592,16 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 │       │   │   ├── route.ts                   # GET (seeds on first call), POST
 │       │   │   └── [id]/route.ts              # PUT/DELETE
 │       │   └── users/
-│       │       └── [userId]/permissions/route.ts  # GET/POST/DELETE ordering permissions
+│       │       └── [userId]/
+│       │           ├── permissions/route.ts          # GET/POST/DELETE ordering permissions
+│       │           ├── estimating-permission/route.ts # GET/POST/DELETE estimating permission
+│       │           └── wage/route.ts                 # GET/PUT employee wage record
 │       ├── cron/
 │       │   ├── daily-report/route.ts          # Admin + foreman daily emails
 │       │   ├── billing-reminder/route.ts      # Monthly billing reminder (15th-23rd only)
 │       │   └── reset-stock-orders/route.ts    # Midnight PENDING → CANCELLED
 │       └── jobs/[id]/
+│           ├── deposit-request/route.ts       # POST — generates branded Deposit Request PDF
 │           ├── stock-requests/
 │           │   ├── route.ts                   # GET today's requests, POST new request
 │           │   ├── [requestId]/route.ts       # DELETE request
@@ -526,7 +637,9 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 │   ├── logo.png                     # Company logo (used in PDF templates as base64)
 │   └── logo.jpg.jpg                 # Original (double extension — legacy, can be deleted)
 └── scripts/
-    └── migrate-roles.ts             # One-time FIELD→FOREMAN migration (already run, do not re-run)
+    ├── migrate-roles.ts             # One-time FIELD→FOREMAN migration (already run, do not re-run)
+    └── seed-wages.js                # One-time crew wage + CompanyRates seed (plain Node.js, safe to re-run)
+                                     # Run: node scripts/seed-wages.js (uses DIRECT_URL connection)
 ```
 
 ---
@@ -545,33 +658,45 @@ Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `
 
 5. **TypeScript narrowing in JSX** — Inside `{isTeammate ? A : B}`, TypeScript narrows `role` inside B to exclude `"TEAMMATE"`. Comparisons like `role === "TEAMMATE"` inside B trigger TS2367. Hoist the check to a boolean variable before the ternary.
 
+6. **No tsx/ts-node** — One-time database scripts must be plain `.js` files using `require("pg")` directly. TypeScript scripts cannot be run locally without installing tsx. Use `DIRECT_URL` (port 5432, no pgbouncer) for scripts.
+
+7. **EPERM build error** — If `.next` is locked by a running dev server and you try to build, you'll get EPERM unlink errors. Stop the dev server first or clear with: `Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue`
+
 ### Email
 
-6. **SAM_CC is LOCKED** — `sam@oakridgeelectrical.com` must remain CC'd on all outbound email. This constant exists in `lib/notifications.ts` AND `app/api/jobs/[id]/stock-orders/route.ts`. Do not remove it from either.
+8. **SAM_CC is LOCKED** — `sam@oakridgeelectrical.com` must remain CC'd on all outbound email. This constant exists in `lib/notifications.ts` AND `app/api/jobs/[id]/stock-orders/route.ts`. Do not remove it from either.
 
-7. **Stock order email diagnostics** — The stock-orders route has detailed `console.log` statements at each step. If emails aren't arriving, check Vercel function logs for `[stock-order]` entries. The most common failure is `supplierEmail` being null — in that case the fallback sends to Justin with `[NO SUPPLIER EMAIL]` in the subject.
+9. **Stock order email diagnostics** — The stock-orders route has detailed `console.log` statements at each step. If emails aren't arriving, check Vercel function logs for `[stock-order]` entries. The most common failure is `supplierEmail` being null — in that case the fallback sends to Justin with `[NO SUPPLIER EMAIL]` in the subject.
 
-8. **Document Vault saves use data URIs** — Stock order PDFs are stored in `Document.fileUrl` as `data:application/pdf;base64,...` strings. This works for the in-app document viewer but the files are not stored in Supabase Storage. This is intentional for stock orders.
+10. **Document Vault saves use data URIs** — Stock order PDFs are stored in `Document.fileUrl` as `data:application/pdf;base64,...` strings. This works for the in-app document viewer but the files are not stored in Supabase Storage. This is intentional for stock orders.
 
 ### Google Integration
 
-9. **Drive scope requires reconnect** — If a user connected Google before the Drive scope was added, they must Disconnect and Reconnect in Settings to grant the new scope. The AIA Sheets route returns a 403 with a clear reconnect message if Drive isn't granted.
+11. **Drive scope requires reconnect** — If a user connected Google before the Drive scope was added, they must Disconnect and Reconnect in Settings to grant the new scope. The AIA Sheets route returns a 403 with a clear reconnect message if Drive isn't granted.
 
-10. **Beth's AIA template ID** — `1R4r9hrg6DhahiNzE4apUGfxD3uqGVk-k`. The template is copied (not modified) on each AIA Sheets export. The copy is stored in the connected Google account's Drive. Beth's cell positions in the template determine what gets written where — if the template layout changes, the Sheets batchUpdate values need to be recalibrated.
+12. **Beth's AIA template ID** — `1R4r9hrg6DhahiNzE4apUGfxD3uqGVk-k`. The template is copied (not modified) on each AIA Sheets export. The copy is stored in the connected Google account's Drive. Beth's cell positions in the template determine what gets written where — if the template layout changes, the Sheets batchUpdate values need to be recalibrated.
 
 ### The Crib
 
-11. **Stock items seed** — Items are seeded on the first GET to `/api/admin/stock-items` when the DB count is 0. New items added in code use `seedNewItems()` which upserts by name. If an item name changes in code, the old DB record stays and a new one is created — clean up via Admin → Settings → Stock List.
+13. **Stock items seed** — Items are seeded on the first GET to `/api/admin/stock-items` when the DB count is 0. New items added in code use `seedNewItems()` which upserts by name. If an item name changes in code, the old DB record stays and a new one is created — clean up via Admin → Settings → Stock List.
 
-12. **Consumables routing** — Relies on `StockItem.isConsumable` (for catalog items) and `StockRequest.isConsumableOverride` (for custom items where user checked "Is Consumable"). The `SendOrderModal` filters using both. If a stock item that should be consumable isn't routing to the pickup list, check the `isConsumable` flag on the StockItem in the DB.
+14. **Consumables routing** — Relies on `StockItem.isConsumable` (for catalog items) and `StockRequest.isConsumableOverride` (for custom items where user checked "Is Consumable"). The `SendOrderModal` filters using both. If a stock item that should be consumable isn't routing to the pickup list, check the `isConsumable` flag on the StockItem in the DB.
 
-13. **Word doc in Document Vault** — Stock orders generate both a PDF and a Word doc, both saved to Document Vault. The Word doc uses a text-based header (no embedded logo image). The email only attaches the PDF.
+15. **Word doc in Document Vault** — Stock orders generate both a PDF and a Word doc, both saved to Document Vault. The Word doc uses a text-based header (no embedded logo image). The email only attaches the PDF.
 
 ### Cron
 
-14. **Billing reminder window** — The cron fires daily but checks `dayOfMonth` and exits silently outside days 15–23. This is by design — Vercel doesn't support per-day-of-month cron expressions in the free tier schedule format.
+16. **Billing reminder window** — The cron fires daily but checks `dayOfMonth` and exits silently outside days 15–23. This is by design — Vercel doesn't support per-day-of-month cron expressions in the free tier schedule format.
 
-15. **`createdById` on Job is nullable** — Jobs created before Phase 7 have `createdById = null`. The foreman financial access check handles this correctly since `null !== userId`.
+17. **`createdById` on Job is nullable** — Jobs created before Phase 7 have `createdById = null`. The foreman financial access check handles this correctly since `null !== userId`.
+
+### Wages & Profitability
+
+18. **Profitability only as accurate as wage data** — The Profitability card computes actual labor cost from `LaborEntry.user.wage`. If a crew member has no `EmployeeWage` record, their hours show as "—" with a warning. Re-run `node scripts/seed-wages.js` or set wages manually in Admin → Users to fix. The seed script matches users by name substring (case-insensitive) so "Tyler" matches "Tyler Staiti".
+
+19. **Bid rate key format** — `CompanyRates.bidRates` keys are `"{Title}:{Year}"` e.g. `"Apprentice:1st"`, `"Master Electrician:"` (empty year for single-level titles). The colon is always present. The profitability card looks up `bidRates[`${title}:${year}`]` first, then falls back to `bidRates[`${title}:`]`.
+
+20. **BOM Pricing `updatedBy`** — `session.user.id` is typed as `string | undefined` in NextAuth v5. The API route uses `session.user.id ?? null` to safely write to `BomPricing.updatedBy (String?)`. Never pass `undefined` directly to Prisma string fields.
 
 ---
 
@@ -595,6 +720,9 @@ npx prisma generate
 
 # Production build — always run before committing
 npm run build
+
+# One-time crew wage seed (plain Node.js, safe to re-run)
+node scripts/seed-wages.js
 ```
 
 ### Deploy
@@ -641,5 +769,24 @@ Wire/cable smart ordering rules by gauge (THHN footage vs reel, MC roll sizes by
 ### Phase 9B Follow-up Fixes
 Category-level custom adders at bottom of every category. PVC Conduit Fittings (7 items), Rigid / IMC Fittings (6 items), Flex Conduit Fittings (2 items), Liquid Tight Fittings (3 items) — 4 new categories seeded. Send Order modal redesigned as 2-step flow (Step 1: delivery selection required; Step 2: supplier/PO/send). Consumables always route to pickup regardless of delivery selection. `isConsumableOverride` field on StockRequest for custom consumable items — routing fix (was incorrectly filtering by `stockItemId === null`). Consumables now get branded "PICKUP LIST" PDF. Document names use `YYYY-MM-DD — Supplier — Stock Order` format. Word doc (.docx) auto-saved to Document Vault alongside PDF (not emailed). Detailed console logging in stock-orders route for email diagnostics. Fallback email to Justin if no supplier email set.
 
-### Billing Reminder Cron
-`/api/cron/billing-reminder` — fires daily at 9:00 UTC, exits silently outside days 15–23. On days 15–23 sends a billing reminder to Justin + Beth (CC Sam). Shows all active jobs with outstanding balances sorted by balance remaining descending. Columns: Job # / Job Name + Foreman / % Done / Gross Billing / Last Invoice / Last Payment / Balance. Four summary stat tiles. "Not yet invoiced" flagged in red. Footer reminder to invoice by the 20th.
+### Phase 10 — Billing Reminder Cron + Summary Tab Overhaul
+`/api/cron/billing-reminder` — fires daily at 9:00 UTC, exits silently outside days 15–23. Billing reminder to Justin + Beth (CC Sam). Shows all active jobs with outstanding balances sorted by balance remaining descending. Four summary stat tiles. "Not yet invoiced" flagged in red.
+
+Summary tab Direct Costs card rebuilt: **inline markup % per cost category** (Labor, Materials, Subs, Equipment, each Other Cost item). Separate "Markups" card removed. Schema: added `materialMarkupPct Float?` and `otherMarkupPct Float?` to Job. `otherCosts` JSON extended from `{id, description, amount}` to `{id, description, amount, markupPct?}` for per-item markup. `updateDirectCostsWithMarkups()` saves all costs + markups in one round-trip.
+
+**Deposit Request card** added to Summary tab (Admin only). Generates branded "DEPOSIT REQUEST" PDF via `POST /api/jobs/[id]/deposit-request`. Supports fixed amount or % of contract value, due date, description, notes. Includes "Email to GC" mailto link.
+
+**BOM Pricing save fix** — `updatedBy: session.user.id ?? null` prevents TypeScript error on optional string field. Error feedback added to the BOM pricing UI in settings.
+
+### Phase 11 — Employee Wage Tracking + Job Profitability
+New schema models: `EmployeeWage` (per-user wages, burden, title/year, field crew flag, wage history) and `CompanyRates` singleton (default burden rate + bid rates by trade level). `User.wage` relation added.
+
+New API routes: `GET/PUT /api/admin/users/[userId]/wage`, `GET/PUT /api/admin/company-rates`, `POST /api/admin/seed-wages` (API seeder), `scripts/seed-wages.js` (plain Node.js seeder — preferred).
+
+**Admin Users**: expandable Wage section per user. Inline edit: title, year, hourly wage, burden rate %, field crew checkbox, notes. Previous wage auto-appended to `wageHistory` on change.
+
+**Admin Settings → Labor Rates card**: default burden rate + bid rates table by trade level. Both editable inline. Reads/writes `CompanyRates` singleton.
+
+**Summary tab → Profitability card** (Admin/Office only, collapsible): gross profit/loss, margin %, actual cost breakdown (burdened labor + materials + subs + equipment + other), labor budget variance, bid rate vs actual labor comparison, per-employee hours + burdened cost detail.
+
+Crew wages seeded: Tyler ($16/hr), Michael ($17/hr), Caleb ($35/hr), Steven ($41/hr). All at 35% burden. Sam/Beth/Justin marked overhead. Bid rates: Apprentice $45–$56, Journeyman $65–$72, Master Electrician $85, Foreman $90, General Foreman $95.

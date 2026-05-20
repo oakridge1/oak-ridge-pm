@@ -12,7 +12,6 @@ import {
   updateDirectCostsWithMarkups,
   addOtherCost, deleteOtherCost,
   addPayment, deletePayment,
-  updateContractBudget,
   createInvoice, updateInvoiceStatus, deleteInvoice,
 } from "./summary-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
@@ -46,7 +45,13 @@ type InvoiceEntry = {
   lineItems: unknown; notes: string | null;
   payments: { id: string; amount: number }[];
 };
-type ChangeOrder = { id: string; status: string; approvedValue: number | null };
+type ChangeOrder = {
+  id: string;
+  status: string;
+  approvedValue: number | null;
+  coNumber: number | null;
+  description: string;
+};
 
 type LineItem = { label: string; amount: number };
 
@@ -61,6 +66,7 @@ interface SummaryTabProps {
     materialBudget: number | null;
     blendedLaborRate: number | null;
     subcontractorCost: number | null;
+    subcontractorBillPct: number | null;
     equipmentCost: number | null;
     equipmentBillPct: number | null;
     otherCosts: unknown;
@@ -172,6 +178,7 @@ function DirectCostsCard({ job, role, computed }: {
   // Cost inputs
   const [rateInput, setRateInput] = useState(String(job.blendedLaborRate ?? ""));
   const [subInput, setSubInput] = useState(String(job.subcontractorCost ?? ""));
+  const [subBillPctInput, setSubBillPctInput] = useState(String(job.subcontractorBillPct ?? "100"));
   const [equipInput, setEquipInput] = useState(String(job.equipmentCost ?? ""));
   const [billPctInput, setBillPctInput] = useState(String(job.equipmentBillPct ?? "100"));
 
@@ -200,6 +207,8 @@ function DirectCostsCard({ job, role, computed }: {
 
   // ── Saved (view-mode) computations ──────────────────────────────────────────
   const subCost = job.subcontractorCost ?? 0;
+  const subBillPct = job.subcontractorBillPct ?? 100;
+  const subBilled = subCost * (subBillPct / 100);
   const equipCost = job.equipmentCost ?? 0;
   const equipBillPct = job.equipmentBillPct ?? 100;
   const equipBilled = equipCost * (equipBillPct / 100);
@@ -210,8 +219,8 @@ function DirectCostsCard({ job, role, computed }: {
   const matMkupAmt = computed.materialsCost * ((job.materialMarkupPct ?? 0) / 100);
   const matMarkedUp = computed.materialsCost + matMkupAmt;
 
-  const subMkupAmt = subCost * ((job.subMarkupPct ?? 0) / 100);
-  const subMarkedUp = subCost + subMkupAmt;
+  const subMkupAmt = subBilled * ((job.subMarkupPct ?? 0) / 100);
+  const subMarkedUp = subBilled + subMkupAmt;
 
   const equipMkupAmt = equipBilled * ((job.equipmentMarkupPct ?? 0) / 100);
   const equipMarkedUp = equipBilled + equipMkupAmt;
@@ -237,6 +246,7 @@ function DirectCostsCard({ job, role, computed }: {
           blendedLaborRate: rateInput,
           laborMarkupPct: laborMkup,
           subcontractorCost: subInput,
+          subcontractorBillPct: subBillPctInput,
           subMarkupPct: subMkup,
           equipmentCost: equipInput,
           equipmentBillPct: billPctInput,
@@ -263,7 +273,7 @@ function DirectCostsCard({ job, role, computed }: {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <SectionCard icon={<DollarSign className="w-4 h-4" />} title="Direct Costs">
+    <SectionCard icon={<DollarSign className="w-4 h-4" />} title="Direct Costs (Reference Only)">
       {error && <p className="text-xs text-red-500 py-2">{error}</p>}
 
       {role === "ADMIN" && (
@@ -360,14 +370,19 @@ function DirectCostsCard({ job, role, computed }: {
                     className="w-28 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
                   <span className="text-xs text-gray-400">cost</span>
                 </div>
+                <div className="flex items-center gap-1">
+                  <input type="number" value={subBillPctInput} onChange={e => setSubBillPctInput(e.target.value)}
+                    placeholder="100" step="1" min="0" max="100"
+                    className="w-14 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  <span className="text-xs text-gray-400">% bill</span>
+                </div>
                 <MkupInput value={subMkup} onChange={setSubMkup} />
               </div>
             ) : (
-              subMkupAmt > 0 ? (
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Base: {fmt$(subCost)} · +{fmt$(subMkupAmt)} markup
-                </p>
-              ) : null
+              <p className="text-xs text-gray-400 mt-0.5">
+                {subBillPct < 100 ? `${subBillPct}% to bill this period` : "100% to bill this period"}
+                {subMkupAmt > 0 ? ` · +${fmt$(subMkupAmt)} markup` : ""}
+              </p>
             )}
           </div>
           <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">
@@ -666,141 +681,445 @@ function DepositRequestCard({ job, role }: {
   );
 }
 
-// ── Contract & Billing Card ───────────────────────────────────────────────────
+// ── Schedule of Values Card (AIA G703) ───────────────────────────────────────
 
-function ContractBillingCard({ job, role, computed }: {
-  job: SummaryTabProps["job"]; role: Role;
+type SovRow = {
+  id: string;
+  itemNo: string;
+  description: string;
+  scheduledValue: number;
+  type: "labor" | "material" | "co" | "custom";
+  previouslyBilled: number;
+  thisPeriod: number;
+  materialsStored: number;
+  autoFilled?: boolean;
+  manuallyEdited?: boolean;
+  coId?: string;
+};
+
+function numInput(val: string, onChange: (v: string) => void, placeholder = "0") {
+  return (
+    <input
+      type="number"
+      value={val}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      step="0.01"
+      min="0"
+      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right tabular-nums"
+    />
+  );
+}
+
+function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
+  job: SummaryTabProps["job"];
+  role: Role;
+  grossBilling: number;
   computed: {
-    approvedCOs: number; revisedContract: number;
-    totalDirectCosts: number; totalMarkup: number; grossBilling: number; pctComplete: number;
+    laborCost: number | null;
+    materialsCost: number;
+    subCost: number;
+    equipmentCost: number;
+    otherTotal: number;
+    laborMarkup: number | null;
+    subMarkup: number;
+    equipMarkup: number;
+    materialMarkup: number;
+    otherMarkup: number;
   };
 }) {
-  const [editing, setEditing] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [rows, setRows] = useState<SovRow[]>([]);
+  const [appDate, setAppDate] = useState(new Date().toISOString().slice(0, 10));
+  const [periodTo, setPeriodTo] = useState("");
+  const [retainagePct, setRetainagePct] = useState("10");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastInvoiceDate, setLastInvoiceDate] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<{ invoiceNumber: number; date: string } | null>(null);
 
-  const [contractInput, setContractInput] = useState(String(job.contractValue ?? ""));
-  const [hoursInput, setHoursInput] = useState(String(job.laborBudgetHours ?? ""));
-  const [materialInput, setMaterialInput] = useState(String(job.materialBudget ?? ""));
+  useEffect(() => {
+    fetch(`/api/jobs/${job.id}/schedule-of-values`)
+      .then(r => r.json())
+      .then(data => {
+        setRows(data.rows ?? []);
+        setLastInvoiceDate(data.lastInvoiceDate ?? null);
+      })
+      .catch(() => setError("Failed to load schedule of values."))
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job.id]);
 
-  function handleSave() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        await updateContractBudget(job.id, {
-          contractValue: contractInput,
-          laborBudgetHours: hoursInput,
-          materialBudget: materialInput,
-        });
-        setEditing(false);
-      } catch (e) { setError(e instanceof Error ? e.message : "Save failed."); }
-    });
+  function updateRow(id: string, field: keyof SovRow, value: string | number | boolean) {
+    setRows(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      const updated = { ...r, [field]: value };
+      if (field === "thisPeriod" && r.autoFilled) updated.manuallyEdited = true;
+      return updated;
+    }));
   }
 
-  const { approvedCOs, revisedContract, totalDirectCosts, totalMarkup, grossBilling, pctComplete } = computed;
+  function addRow() {
+    const customCount = rows.filter(r => r.type === "custom").length + 1;
+    setRows(prev => [...prev, {
+      id: crypto.randomUUID(),
+      itemNo: `500-${String(customCount).padStart(3, "0")}`,
+      description: "",
+      scheduledValue: 0,
+      type: "custom",
+      previouslyBilled: 0,
+      thisPeriod: 0,
+      materialsStored: 0,
+    }]);
+  }
+
+  function removeRow(id: string) {
+    setRows(prev => prev.filter(r => r.id !== id));
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/schedule-of-values/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ periodTo }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Refresh failed");
+      setLastInvoiceDate(data.lastInvoiceDate ?? null);
+      setRows(prev => prev.map(r => {
+        if (r.type === "labor" && r.autoFilled && !r.manuallyEdited) {
+          return { ...r, thisPeriod: data.laborAutoFill ?? 0 };
+        }
+        if (r.type === "material" && r.autoFilled && !r.manuallyEdited) {
+          return { ...r, thisPeriod: data.materialAutoFill ?? 0 };
+        }
+        return r;
+      }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Refresh failed.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/schedule-of-values`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      if (!res.ok) throw new Error("Save failed.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function doGenerate(force = false) {
+    if (!appDate) { setError("Application date is required."); return; }
+    setGenerating(true);
+    setError(null);
+    try {
+      await fetch(`/api/jobs/${job.id}/schedule-of-values`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+
+      const thisPeriodTotal = rows.reduce((s, r) => s + (r.thisPeriod || 0), 0);
+      const sovLineItems = rows.map(r => ({
+        fromSov: true,
+        id: r.id,
+        itemNo: r.itemNo,
+        description: r.description,
+        scheduledValue: r.scheduledValue,
+        previouslyBilled: r.previouslyBilled,
+        thisPeriod: r.thisPeriod,
+        materialsStored: r.materialsStored,
+        total: r.previouslyBilled + r.thisPeriod + r.materialsStored,
+        type: r.type,
+      }));
+
+      const result = await createInvoice(job.id, {
+        type: "AIA",
+        invoiceKind: "PROGRESS_PAYMENT",
+        date: appDate,
+        periodTo,
+        applicationNo: "",
+        amount: String(thisPeriodTotal),
+        retainagePct,
+        notes: "",
+        paymentTerms: "due_on_receipt",
+        scopeOfWork: "",
+        lineItems: sovLineItems as Record<string, unknown>[],
+        force,
+      });
+
+      if (result?.duplicate) {
+        setDuplicateWarning(result.duplicate);
+        return;
+      }
+      setDuplicateWarning(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to generate invoice.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const grandScheduled = rows.reduce((s, r) => s + (r.scheduledValue || 0), 0);
+  const grandPrev = rows.reduce((s, r) => s + (r.previouslyBilled || 0), 0);
+  const grandThis = rows.reduce((s, r) => s + (r.thisPeriod || 0), 0);
+  const grandStored = rows.reduce((s, r) => s + (r.materialsStored || 0), 0);
+  const grandTotal = grandPrev + grandThis + grandStored;
+  const grandBalance = grandScheduled - grandTotal;
+  const grandPct = grandScheduled > 0 ? (grandTotal / grandScheduled) * 100 : 0;
+  const retainageAmt = grandThis * (parseFloat(retainagePct || "0") / 100);
+  const thisPeriodNet = grandThis - retainageAmt;
+
+  if (loading) {
+    return (
+      <SectionCard icon={<BarChart3 className="w-4 h-4" />} title="Schedule of Values — AIA G703">
+        <p className="text-sm text-gray-400 py-4 text-center">Loading…</p>
+      </SectionCard>
+    );
+  }
 
   return (
-    <SectionCard icon={<BarChart3 className="w-4 h-4" />} title="Contract & Billing">
-      {error && <p className="text-xs text-red-500 py-2">{error}</p>}
+    <SectionCard icon={<BarChart3 className="w-4 h-4" />} title="Schedule of Values — AIA G703">
+      {error && <p className="text-xs text-red-500 pt-2">{error}</p>}
 
-      {role === "ADMIN" && (
-        <div className="flex items-center justify-end gap-2 pt-3 pb-1 border-b border-gray-100 mb-1">
-          {!editing ? (
-            <button onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
-              <Edit2 className="w-3.5 h-3.5" /> Edit Budget
+      {duplicateWarning && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 my-3 space-y-3">
+          <p className="text-sm font-semibold text-amber-800">Invoice Already Exists</p>
+          <p className="text-xs text-amber-700">
+            Invoice #{String(duplicateWarning.invoiceNumber).padStart(3, "0")} was already created for{" "}
+            {new Date(duplicateWarning.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}.
+            Create another?
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => doGenerate(true)} disabled={generating}
+              className="flex-1 bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-amber-700 disabled:opacity-60">
+              {generating ? "Creating…" : "Create Anyway"}
             </button>
-          ) : (
-            <>
-              <button onClick={() => { setEditing(false); setError(null); }}
-                className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
-              <button onClick={handleSave} disabled={pending}
-                className="flex items-center gap-1.5 text-xs font-medium bg-[#002D72] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
-                <Save className="w-3.5 h-3.5" />{pending ? "Saving…" : "Save Changes"}
-              </button>
-            </>
-          )}
+            <button onClick={() => setDuplicateWarning(null)}
+              className="flex-1 border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-amber-50">
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Contract Value + Budget — not applicable for T&M */}
-      {job.jobType !== "TIME_AND_MATERIALS" && (
-        <>
-          {/* Contract Value */}
-          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-            <p className="text-sm text-gray-600">Original Contract Value</p>
-            {editing ? (
-              <input type="number" value={contractInput} onChange={e => setContractInput(e.target.value)}
-                placeholder="0.00" step="0.01" min="0"
-                className="w-36 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-            ) : (
-              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(job.contractValue)}</span>
-            )}
+      {/* ── Application header ── */}
+      <div className="py-3 border-b border-gray-100">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Application Date *</label>
+            <input type="date" value={appDate} onChange={e => setAppDate(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
           </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Period To</label>
+            <input type="date" value={periodTo} onChange={e => setPeriodTo(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Retainage %</label>
+            <input type="number" value={retainagePct} onChange={e => setRetainagePct(e.target.value)}
+              step="0.5" min="0" max="100" placeholder="10"
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+          </div>
+          {lastInvoiceDate && (
+            <div className="flex items-end">
+              <p className="text-xs text-gray-400">
+                Auto-fill cutoff:{" "}
+                {new Date(lastInvoiceDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Labor Budget Hours */}
-          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-            <p className="text-sm text-gray-600">Labor Budget</p>
-            {editing ? (
-              <div className="flex items-center gap-1.5">
-                <input type="number" value={hoursInput} onChange={e => setHoursInput(e.target.value)}
-                  placeholder="0" step="0.5" min="0"
-                  className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-                <span className="text-xs text-gray-400">hrs</span>
-              </div>
-            ) : (
-              <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                {job.laborBudgetHours != null ? `${job.laborBudgetHours.toFixed(1)} hrs` : "—"}
+      {/* ── G703 Table ── */}
+      <div className="py-2 overflow-x-auto -mx-4 px-4">
+        <table className="w-full text-xs border-collapse" style={{ minWidth: 700 }}>
+          <thead>
+            <tr className="border-b-2 border-gray-200">
+              <th className="text-left py-2 pr-2 text-gray-500 font-semibold w-16">Item No</th>
+              <th className="text-left py-2 pr-2 text-gray-500 font-semibold">Description</th>
+              <th className="text-right py-2 pr-2 text-gray-500 font-semibold w-24">Sched. Value</th>
+              <th className="text-right py-2 pr-2 text-gray-500 font-semibold w-24">From Previous</th>
+              <th className="text-right py-2 pr-2 text-gray-500 font-semibold w-24">This Period</th>
+              <th className="text-right py-2 pr-2 text-gray-500 font-semibold w-24">Mat. Stored</th>
+              <th className="text-right py-2 pr-2 text-gray-500 font-semibold w-24">Total</th>
+              <th className="text-right py-2 pr-2 text-gray-500 font-semibold w-14">%</th>
+              <th className="text-right py-2 text-gray-500 font-semibold w-24">Balance</th>
+              {role === "ADMIN" && <th className="w-6" />}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => {
+              const total = (row.previouslyBilled || 0) + (row.thisPeriod || 0) + (row.materialsStored || 0);
+              const pct = (row.scheduledValue || 0) > 0 ? (total / row.scheduledValue) * 100 : 0;
+              const balance = (row.scheduledValue || 0) - total;
+              const isAutoFilled = row.autoFilled && !row.manuallyEdited;
+              return (
+                <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 group">
+                  <td className="py-1.5 pr-2">
+                    <input value={row.itemNo} onChange={e => updateRow(row.id, "itemNo", e.target.value)}
+                      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  </td>
+                  <td className="py-1.5 pr-2">
+                    <input value={row.description} onChange={e => updateRow(row.id, "description", e.target.value)}
+                      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  </td>
+                  <td className="py-1.5 pr-2">
+                    {numInput(String(row.scheduledValue || ""), v => updateRow(row.id, "scheduledValue", parseFloat(v) || 0))}
+                  </td>
+                  <td className="py-1.5 pr-2">
+                    {numInput(String(row.previouslyBilled || ""), v => updateRow(row.id, "previouslyBilled", parseFloat(v) || 0))}
+                  </td>
+                  <td className="py-1.5 pr-2">
+                    <div className="relative">
+                      {numInput(String(row.thisPeriod || ""), v => {
+                        updateRow(row.id, "thisPeriod", parseFloat(v) || 0);
+                        if (row.autoFilled) updateRow(row.id, "manuallyEdited", true);
+                      })}
+                      {isAutoFilled && (
+                        <span className="absolute -top-1 -right-1 text-blue-400 text-xs leading-none" title="Auto-filled from tracked data">✓</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-1.5 pr-2">
+                    {numInput(String(row.materialsStored || ""), v => updateRow(row.id, "materialsStored", parseFloat(v) || 0))}
+                  </td>
+                  <td className="py-1.5 pr-2 text-right font-semibold text-gray-800 tabular-nums">
+                    {total.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                  </td>
+                  <td className="py-1.5 pr-2 text-right tabular-nums">
+                    <span className={pct > 100 ? "text-red-600 font-semibold" : "text-gray-700"}>
+                      {pct.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums">
+                    <span className={balance < 0 ? "text-red-600 font-semibold" : "text-gray-700"}>
+                      {balance.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                    </span>
+                  </td>
+                  {role === "ADMIN" && (
+                    <td className="py-1.5 pl-1">
+                      <button onClick={() => removeRow(row.id)}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-gray-300 bg-gray-50">
+              <td colSpan={2} className="py-2 pr-2 text-xs font-bold text-gray-800">TOTALS</td>
+              <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800 tabular-nums">
+                {grandScheduled.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+              </td>
+              <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800 tabular-nums">
+                {grandPrev.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+              </td>
+              <td className="py-2 pr-2 text-right text-xs font-bold text-[#002D72] tabular-nums">
+                {grandThis.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+              </td>
+              <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800 tabular-nums">
+                {grandStored.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+              </td>
+              <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800 tabular-nums">
+                {grandTotal.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+              </td>
+              <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800">
+                {grandPct.toFixed(1)}%
+              </td>
+              <td className="py-2 text-right text-xs font-bold text-gray-800 tabular-nums">
+                {grandBalance.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+              </td>
+              {role === "ADMIN" && <td />}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* Add Row */}
+      {role === "ADMIN" && (
+        <div className="py-2 border-b border-gray-100">
+          <button onClick={addRow}
+            className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+            <Plus className="w-3.5 h-3.5" /> Add Row
+          </button>
+        </div>
+      )}
+
+      {/* ── This period summary ── */}
+      <div className="py-3 border-b border-gray-100 space-y-1">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600">This Period (gross)</p>
+          <span className="text-sm font-bold text-[#002D72] tabular-nums">
+            {grandThis.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+          </span>
+        </div>
+        {parseFloat(retainagePct || "0") > 0 && (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-500">Less retainage ({retainagePct}%)</p>
+              <span className="text-xs text-gray-700 tabular-nums">
+                −{retainageAmt.toLocaleString("en-US", { style: "currency", currency: "USD" })}
               </span>
-            )}
-          </div>
-
-          {/* Material Budget */}
-          <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
-            <p className="text-sm text-gray-600">Material Budget</p>
-            {editing ? (
-              <input type="number" value={materialInput} onChange={e => setMaterialInput(e.target.value)}
-                placeholder="0.00" step="0.01" min="0"
-                className="w-36 border border-gray-300 rounded px-2 py-1 text-sm text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
-            ) : (
-              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmt$(job.materialBudget)}</span>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Gross Billing — equals the marked-up total shown in Direct Costs above */}
-      <Row label="Gross Billing Amount" value={fmt$(grossBilling)} accent bold />
-
-      {/* Contract-vs-actual comparison — only for BID / ESTIMATE job types */}
-      {job.jobType !== "TIME_AND_MATERIALS" && (
-        <>
-          <div className="border-b border-gray-100" />
-          <Row label="Approved Change Orders" value={fmt$(approvedCOs)}
-            sub={`${job.changeOrders.filter(c => c.status === "APPROVED").length} approved COs`} />
-          <Row label="Revised Contract Total" value={fmt$(revisedContract)} accent bold />
-          <div className="py-3">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-sm text-gray-600">Percent Complete</p>
-              <span className="text-sm font-bold text-[#002D72]">{pctComplete.toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-              <div className="bg-[#002D72] h-2.5 rounded-full transition-all"
-                style={{ width: `${Math.min(pctComplete, 100)}%` }} />
+            <div className="flex items-center justify-between border-t border-gray-100 pt-1">
+              <p className="text-sm font-semibold text-gray-800">Net This Period</p>
+              <span className="text-sm font-bold text-green-700 tabular-nums">
+                {thisPeriodNet.toLocaleString("en-US", { style: "currency", currency: "USD" })}
+              </span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">Gross Billing ÷ Revised Contract</p>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
 
-      {job.jobType === "TIME_AND_MATERIALS" && (
-        <p className="text-xs text-gray-400 py-3">
-          Time &amp; Materials job — billing based on running costs. No contract cap.
-        </p>
+      {/* ── Action buttons ── */}
+      {role === "ADMIN" && (
+        <div className="flex flex-wrap gap-2 py-3">
+          <button onClick={handleRefresh} disabled={refreshing}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-3 py-1.5 rounded-lg transition-colors bg-white disabled:opacity-60">
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing…" : "Refresh Auto-fill"}
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1.5 text-xs font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-60">
+            <Save className="w-3.5 h-3.5" />
+            {saving ? "Saving…" : "Save Schedule"}
+          </button>
+          <button onClick={() => doGenerate(false)} disabled={generating || !appDate || grandThis <= 0}
+            className="flex items-center gap-1.5 text-xs font-medium bg-[#002D72] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+            <FileText className="w-3.5 h-3.5" />
+            {generating ? "Generating…" : "Generate AIA Invoice"}
+          </button>
+        </div>
+      )}
+      {grandThis <= 0 && role === "ADMIN" && (
+        <p className="text-xs text-gray-400 pb-2">Enter &ldquo;This Period&rdquo; amounts above to generate an invoice.</p>
       )}
     </SectionCard>
   );
 }
+
 
 // ── Invoice Log Card ──────────────────────────────────────────────────────────
 
@@ -1652,16 +1971,18 @@ export function SummaryTab({ job, role, companyRates = null }: SummaryTabProps) 
   const laborCost = job.blendedLaborRate != null ? totalHours * job.blendedLaborRate : null;
   const materialsCost = job.materials.reduce((s, m) => s + m.amount, 0);
   const subCost = job.subcontractorCost ?? 0;
+  const subBillPct = job.subcontractorBillPct ?? 100;
+  const subBilled = subCost * (subBillPct / 100);
   const equipmentCost = job.equipmentCost ?? 0;
   const equipmentBillPct = job.equipmentBillPct ?? 100;
   const equipmentBilled = equipmentCost * (equipmentBillPct / 100);
   const otherCosts = (job.otherCosts as OtherCost[] | null) ?? [];
   const otherTotal = otherCosts.reduce((s, c) => s + c.amount, 0);
-  const totalDirectCosts = (laborCost ?? 0) + materialsCost + subCost + equipmentCost + otherTotal;
+  const totalDirectCosts = (laborCost ?? 0) + materialsCost + subBilled + equipmentBilled + otherTotal;
 
   const laborMarkup = laborCost != null && job.laborMarkupPct != null
     ? laborCost * (job.laborMarkupPct / 100) : null;
-  const subMarkup = subCost * ((job.subMarkupPct ?? 0) / 100);
+  const subMarkup = subBilled * ((job.subMarkupPct ?? 0) / 100);
   const equipMarkup = equipmentBilled * ((job.equipmentMarkupPct ?? 0) / 100);
   const materialMarkup = materialsCost * ((job.materialMarkupPct ?? 0) / 100);
   // Use per-item markupPct if available, fall back to job-level otherMarkupPct
@@ -1729,8 +2050,8 @@ export function SummaryTab({ job, role, companyRates = null }: SummaryTabProps) 
       {/* Direct Costs — includes inline markup % per line */}
       <DirectCostsCard job={job} role={role} computed={{ totalHours, laborCost, materialsCost }} />
 
-      {/* Contract & Billing */}
-      <ContractBillingCard job={job} role={role} computed={{ approvedCOs, revisedContract, totalDirectCosts, totalMarkup, grossBilling, pctComplete }} />
+      {/* Schedule of Values — AIA G703 */}
+      <ScheduleOfValuesCard job={job} role={role} grossBilling={grossBilling} computed={{ laborCost, materialsCost, subCost, equipmentCost, otherTotal, laborMarkup, subMarkup, equipMarkup, materialMarkup, otherMarkup }} />
 
       {/* Profitability — Admin & Office only */}
       {(role === "ADMIN" || role === "OFFICE") && (
