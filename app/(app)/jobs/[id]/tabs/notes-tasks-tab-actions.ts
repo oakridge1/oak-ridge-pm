@@ -275,6 +275,7 @@ export async function updateChangeOrder(
       jobId: true,
       status: true,
       coNumber: true,
+      description: true,
       approvedValue: true,
       adminNotes: true,
       requestedBy: { select: { email: true, name: true } },
@@ -300,6 +301,36 @@ export async function updateChangeOrder(
       adminNotes: input.adminNotes?.trim() || null,
     },
   });
+
+  // Auto-create a cost code when CO is approved for the first time
+  if (input.status === "APPROVED" && co.status !== "APPROVED") {
+    const coNum = co.coNumber ?? 1;
+    const codeStr = `400-${String(coNum).padStart(3, "0")}`;
+    const desc = co.description?.trim() || "Change Order";
+    const fullDesc = `CO ${coNum} — ${desc}`;
+    // Only create if one doesn't exist for this CO yet
+    const existing = await prisma.costCode.findFirst({
+      where: { jobId: co.jobId, coId },
+    });
+    if (!existing) {
+      // Find highest sortOrder so CO codes go at the end
+      const lastCode = await prisma.costCode.findFirst({
+        where: { jobId: co.jobId },
+        orderBy: { sortOrder: "desc" },
+        select: { sortOrder: true },
+      });
+      await prisma.costCode.create({
+        data: {
+          jobId: co.jobId,
+          code: codeStr,
+          description: fullDesc,
+          type: "co",
+          coId,
+          sortOrder: (lastCode?.sortOrder ?? 4) + 1,
+        },
+      });
+    }
+  }
 
   // Notify requester if status changed to APPROVED or REJECTED
   const newStatus = input.status;

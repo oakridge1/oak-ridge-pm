@@ -9,7 +9,21 @@ export function CreateJobButton() {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  // Live-calculate labor budget
+  const [laborHours, setLaborHours] = useState("");
+  const [blendedRate, setBlendedRate] = useState("");
+
   const router = useRouter();
+
+  const calcLaborBudget =
+    laborHours && blendedRate
+      ? (parseFloat(laborHours) * parseFloat(blendedRate)).toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        })
+      : null;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,6 +39,13 @@ export function CreateJobButton() {
       }
     });
   };
+
+  function handleClose() {
+    setOpen(false);
+    setLaborHours("");
+    setBlendedRate("");
+    setError(null);
+  }
 
   return (
     <>
@@ -42,7 +63,7 @@ export function CreateJobButton() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="font-bold text-[#002D72] text-lg">New Job</h2>
               <button
-                onClick={() => setOpen(false)}
+                onClick={handleClose}
                 className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -111,6 +132,23 @@ export function CreateJobButton() {
                 />
               </div>
 
+              {/* ── Blended Rate + Labor Budget ── */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Blended Rate ($/hr)
+                </label>
+                <input
+                  name="blendedLaborRate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 65.00"
+                  value={blendedRate}
+                  onChange={e => setBlendedRate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -122,6 +160,8 @@ export function CreateJobButton() {
                     min="0"
                     step="0.5"
                     placeholder="0"
+                    value={laborHours}
+                    onChange={e => setLaborHours(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
                   />
                 </div>
@@ -140,6 +180,16 @@ export function CreateJobButton() {
                 </div>
               </div>
 
+              {/* Live calc: Labor Budget ($) */}
+              {calcLaborBudget && (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 flex items-center justify-between">
+                  <span className="text-xs text-blue-700">
+                    Labor Budget ({laborHours} hrs × ${blendedRate}/hr)
+                  </span>
+                  <span className="text-sm font-bold text-[#002D72]">{calcLaborBudget}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Contract Value ($)
@@ -157,7 +207,7 @@ export function CreateJobButton() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={handleClose}
                   className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
                 >
                   Cancel

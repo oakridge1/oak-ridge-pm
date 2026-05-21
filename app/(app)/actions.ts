@@ -24,6 +24,9 @@ export async function createJob(formData: FormData) {
   const contractValue = formData.get("contractValue")
     ? parseFloat(formData.get("contractValue") as string)
     : null;
+  const blendedLaborRate = formData.get("blendedLaborRate")
+    ? parseFloat(formData.get("blendedLaborRate") as string)
+    : null;
 
   if (!jobNumber || !jobName) {
     return { error: "Job number and name are required" };
@@ -39,8 +42,20 @@ export async function createJob(formData: FormData) {
         laborBudgetHours,
         materialBudget,
         contractValue,
+        blendedLaborRate,
       },
     });
+
+    // Auto-create 4 default cost codes
+    await prisma.costCode.createMany({
+      data: [
+        { jobId: job.id, code: "16-100", description: "Labor",            type: "labor",          sortOrder: 1 },
+        { jobId: job.id, code: "16-200", description: "Materials",        type: "material",       sortOrder: 2 },
+        { jobId: job.id, code: "16-300", description: "Subcontractor",    type: "subcontractor",  sortOrder: 3 },
+        { jobId: job.id, code: "16-400", description: "Equipment Rental", type: "equipment",      sortOrder: 4 },
+      ],
+    });
+
     revalidatePath("/");
     return { jobId: job.id };
   } catch (err: unknown) {

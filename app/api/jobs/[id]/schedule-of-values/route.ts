@@ -18,6 +18,70 @@ export type SovRow = {
   coId?: string;
 };
 
+// ── Row builders ──────────────────────────────────────────────────────────────
+
+function buildRowsFromCostCodes(
+  costCodes: { id: string; code: string; description: string; type: string; coId: string | null; sortOrder: number }[],
+  laborBudget: number,
+  materialBudget: number,
+  approvedCOs: { id: string; coNumber: number | null; description: string; approvedValue: number }[]
+): SovRow[] {
+  const rows: SovRow[] = [];
+  for (const cc of costCodes) {
+    if (cc.type === "labor") {
+      rows.push({
+        id: crypto.randomUUID(),
+        itemNo: cc.code,
+        description: cc.description,
+        scheduledValue: laborBudget,
+        type: "labor",
+        previouslyBilled: 0,
+        thisPeriod: 0,
+        materialsStored: 0,
+        autoFilled: true,
+      });
+    } else if (cc.type === "material") {
+      rows.push({
+        id: crypto.randomUUID(),
+        itemNo: cc.code,
+        description: cc.description,
+        scheduledValue: materialBudget,
+        type: "material",
+        previouslyBilled: 0,
+        thisPeriod: 0,
+        materialsStored: 0,
+        autoFilled: true,
+      });
+    } else if (cc.type === "co" && cc.coId) {
+      const co = approvedCOs.find(c => c.id === cc.coId);
+      rows.push({
+        id: crypto.randomUUID(),
+        itemNo: cc.code,
+        description: co ? coDescription(co) : cc.description,
+        scheduledValue: co?.approvedValue ?? 0,
+        type: "co",
+        previouslyBilled: 0,
+        thisPeriod: 0,
+        materialsStored: 0,
+        coId: cc.coId,
+      });
+    } else {
+      // subcontractor, equipment, other custom types
+      rows.push({
+        id: crypto.randomUUID(),
+        itemNo: cc.code,
+        description: cc.description,
+        scheduledValue: 0,
+        type: "custom",
+        previouslyBilled: 0,
+        thisPeriod: 0,
+        materialsStored: 0,
+      });
+    }
+  }
+  return rows;
+}
+
 function buildDefaultRows(
   laborBudget: number,
   materialBudget: number,
@@ -94,7 +158,7 @@ function computeAutoFill(
 }
 
 /**
- * Compute "From Previous" totals from prior AIA invoices.
+ * Compute "From Previous" totals from ALL prior AIA invoices (including DRAFT).
  * Returns { laborPrev, materialPrev, coPrev: Map<coId, amount> }
  */
 function computeFromPrevious(priorInvoices: { lineItems: unknown }[]): {
@@ -117,11 +181,8 @@ function computeFromPrevious(priorInvoices: { lineItems: unknown }[]): {
       for (const item of items) {
         const iType = String(item.type ?? "");
         const iCoId = item.coId ? String(item.coId) : null;
-        // "Total completed and stored" for that row = previouslyBilled + thisPeriod + materialsStored
-        // But from the prior application's perspective, what they billed in that period is:
-        const thisPeriod = Number(item.thisPeriod ?? 0);
-        const stored = Number(item.materialsStored ?? 0);
-        const periodAmt = thisPeriod + stored;
+        // Amount billed in that period = thisPeriod + materialsStored
+        const periodAmt = Number(item.thisPeriod ?? 0) + Number(item.materialsStored ?? 0);
 
         if (iType === "labor") laborPrev += periodAmt;
         if (iType === "material") materialPrev += periodAmt;
@@ -132,13 +193,11 @@ function computeFromPrevious(priorInvoices: { lineItems: unknown }[]): {
       }
     } else {
       // Legacy standard-format invoice: { label, amount }
-      // Distribute across labor/material by label matching
       for (const item of items) {
         const label = String(item.label ?? "").toLowerCase();
         const amt = Number(item.amount ?? 0);
         if (label.includes("labor")) laborPrev += amt;
         else if (label.includes("material")) materialPrev += amt;
-        // Can't attribute to specific COs in legacy format
       }
     }
   }
@@ -168,11 +227,15 @@ export async function GET(
           select: { id: true, coNumber: true, description: true, approvedValue: true },
           orderBy: { coNumber: "asc" },
         },
+        costCodes: {
+          orderBy: { sortOrder: "asc" },
+          select: { id: true, code: true, description: true, type: true, coId: true, sortOrder: true },
+        },
         laborEntries: { select: { date: true, hours: true }, orderBy: { date: "asc" } },
         materials: { select: { date: true, amount: true }, orderBy: { date: "asc" } },
-        // All non-draft AIA invoices, oldest first — used for "From Previous" and cutoff
+        // ALL AIA invoices (including DRAFT) so From Previous is always current
         invoices: {
-          where: { type: "AIA", status: { not: "DRAFT" } },
+          where: { type: "AIA" },
           select: { id: true, invoiceNumber: true, periodTo: true, date: true, lineItems: true },
           orderBy: { invoiceNumber: "asc" },
         },
@@ -182,7 +245,7 @@ export async function GET(
 
     if (!job) return new NextResponse("Not found", { status: 404 });
 
-    // Most-recent invoice = cutoff for "this period" auto-fill
+    // Most-recent AIA (including DRAFT) = cutoff for "this period" auto-fill
     const lastInv = job.invoices.length > 0 ? job.invoices[job.invoices.length - 1] : null;
     const lastInvoiceDate: Date | null = lastInv
       ? (lastInv.periodTo ?? lastInv.date)
@@ -207,8 +270,8 @@ export async function GET(
       lastInvoiceDate
     );
 
-    // ── Scheduled value defaults (FIX 3) ──────────────────────────────────────
-    // Use budgets when set; fall back to actual all-time cost so the table is meaningful
+    // ── Scheduled value defaults ───────────────────────────────────────────────
+    // Use budgets when set; fall back to actual all-time cost
     const totalLaborHours = laborEntries.reduce((s, e) => s + e.hours, 0);
     const totalLaborCost = blendedRate != null ? totalLaborHours * blendedRate : 0;
     const totalMaterialCost = materials.reduce((s, m) => s + m.amount, 0);
@@ -216,14 +279,14 @@ export async function GET(
     const laborBudget =
       job.laborBudgetHours != null && blendedRate != null
         ? job.laborBudgetHours * blendedRate
-        : totalLaborCost;  // fallback: actual labor cost to date
+        : totalLaborCost;
 
     const materialBudget =
       job.materialBudget != null
         ? Number(job.materialBudget)
-        : totalMaterialCost; // fallback: actual material cost to date
+        : totalMaterialCost;
 
-    // ── From Previous (FIX 5) ─────────────────────────────────────────────────
+    // ── From Previous: scan ALL prior AIA invoices ────────────────────────────
     const { laborPrev, materialPrev, coPrev } = computeFromPrevious(job.invoices);
 
     // ── Load or initialize SOV rows ───────────────────────────────────────────
@@ -253,7 +316,7 @@ export async function GET(
         }
       }
 
-      // FIX 4: Always refresh CO descriptions + scheduled values from live CO data
+      // Always refresh CO descriptions + scheduled values from live CO data
       rows = rows.map(row => {
         if (row.type === "co" && row.coId) {
           const co = approvedCOs.find(c => c.id === row.coId);
@@ -261,13 +324,17 @@ export async function GET(
             return {
               ...row,
               description: coDescription(co),
-              scheduledValue: row.scheduledValue || co.approvedValue, // keep user's value unless 0
+              scheduledValue: row.scheduledValue || co.approvedValue,
             };
           }
         }
         return row;
       });
+    } else if (job.costCodes.length > 0) {
+      // Build from cost codes (new jobs created after this update)
+      rows = buildRowsFromCostCodes(job.costCodes, laborBudget, materialBudget, approvedCOs);
     } else {
+      // Legacy: build from defaults
       rows = buildDefaultRows(laborBudget, materialBudget, approvedCOs);
     }
 
@@ -282,8 +349,7 @@ export async function GET(
       return row;
     });
 
-    // ── Apply "From Previous" from invoice history (FIX 5) ───────────────────
-    // Always recompute from live invoice data — don't rely on saved value
+    // ── Apply "From Previous" from ALL prior AIA invoices ────────────────────
     rows = rows.map(row => {
       if (row.type === "labor") return { ...row, previouslyBilled: laborPrev };
       if (row.type === "material") return { ...row, previouslyBilled: materialPrev };

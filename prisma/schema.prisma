@@ -261,6 +261,7 @@ model Job {
   stockApprovalRequests StockApprovalRequest[]
   estimate              Estimate?
   scheduleOfValues      ScheduleOfValues?
+  costCodes             CostCode[]
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -831,6 +832,20 @@ model ScheduleOfValues {
   rows      Json     @default("[]")
   updatedAt DateTime @updatedAt
   updatedBy String?
+}
+
+// ── Cost Codes ────────────────────────────────────────────────────────────────
+
+model CostCode {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  code        String
+  description String
+  type        String   // "labor" | "material" | "subcontractor" | "equipment" | "co"
+  coId        String?  // linked ChangeOrder id for CO cost codes
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 }
 
 // ── Company Labor Rates (singleton) ──────────────────────────────────────────

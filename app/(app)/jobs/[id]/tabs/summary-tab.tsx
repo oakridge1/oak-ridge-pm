@@ -738,7 +738,6 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastInvoiceDate, setLastInvoiceDate] = useState<string | null>(null);
-  const [duplicateWarning, setDuplicateWarning] = useState<{ invoiceNumber: number; date: string } | null>(null);
 
   useEffect(() => {
     fetch(`/api/jobs/${job.id}/schedule-of-values`)
@@ -824,11 +823,12 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
     }
   }
 
-  async function doGenerate(force = false) {
+  async function doGenerate() {
     if (!appDate) { setError("Application date is required."); return; }
     setGenerating(true);
     setError(null);
     try {
+      // Save current SOV state before generating
       await fetch(`/api/jobs/${job.id}/schedule-of-values`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -836,6 +836,8 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
       });
 
       const thisPeriodTotal = rows.reduce((s, r) => s + (r.thisPeriod || 0), 0);
+
+      // Include coId so computeFromPrevious can track CO rows across applications
       const sovLineItems = rows.map(r => ({
         fromSov: true,
         id: r.id,
@@ -845,30 +847,47 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
         previouslyBilled: r.previouslyBilled,
         thisPeriod: r.thisPeriod,
         materialsStored: r.materialsStored,
-        total: r.previouslyBilled + r.thisPeriod + r.materialsStored,
+        total: (r.previouslyBilled || 0) + (r.thisPeriod || 0) + (r.materialsStored || 0),
         type: r.type,
+        coId: r.coId ?? null,
       }));
 
-      const result = await createInvoice(job.id, {
+      // Auto-increment application number from existing AIA invoices
+      const existingAias = job.invoices.filter(inv => inv.type === "AIA");
+      const maxAppNo = existingAias.reduce(
+        (max, inv) => Math.max(max, inv.applicationNo ?? inv.invoiceNumber),
+        0
+      );
+      const nextAppNo = String(maxAppNo + 1);
+
+      // Always force — AIA applications are always sequential, never duplicates
+      await createInvoice(job.id, {
         type: "AIA",
         invoiceKind: "PROGRESS_PAYMENT",
         date: appDate,
         periodTo,
-        applicationNo: "",
+        applicationNo: nextAppNo,
         amount: String(thisPeriodTotal),
         retainagePct,
         notes: "",
         paymentTerms: "due_on_receipt",
         scopeOfWork: "",
         lineItems: sovLineItems as Record<string, unknown>[],
-        force,
+        force: true,
       });
 
-      if (result?.duplicate) {
-        setDuplicateWarning(result.duplicate);
-        return;
-      }
-      setDuplicateWarning(null);
+      // Reset This Period to 0 for next billing cycle, then reload
+      const resetRows = rows.map(r => ({ ...r, thisPeriod: 0, manuallyEdited: false }));
+      await fetch(`/api/jobs/${job.id}/schedule-of-values`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: resetRows }),
+      });
+
+      // Reload SOV — GET will now include the new invoice in From Previous
+      const freshData = await fetch(`/api/jobs/${job.id}/schedule-of-values`).then(r => r.json());
+      setRows(freshData.rows ?? []);
+      setLastInvoiceDate(freshData.lastInvoiceDate ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate invoice.");
     } finally {
@@ -897,27 +916,6 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
   return (
     <SectionCard icon={<BarChart3 className="w-4 h-4" />} title="Schedule of Values — AIA G703">
       {error && <p className="text-xs text-red-500 pt-2">{error}</p>}
-
-      {duplicateWarning && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 my-3 space-y-3">
-          <p className="text-sm font-semibold text-amber-800">Invoice Already Exists</p>
-          <p className="text-xs text-amber-700">
-            Invoice #{String(duplicateWarning.invoiceNumber).padStart(3, "0")} was already created for{" "}
-            {new Date(duplicateWarning.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}.
-            Create another?
-          </p>
-          <div className="flex gap-2">
-            <button onClick={() => doGenerate(true)} disabled={generating}
-              className="flex-1 bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-amber-700 disabled:opacity-60">
-              {generating ? "Creating…" : "Create Anyway"}
-            </button>
-            <button onClick={() => setDuplicateWarning(null)}
-              className="flex-1 border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-amber-50">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── Application header ── */}
       <div className="py-3 border-b border-gray-100">
@@ -1107,7 +1105,7 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
             <Save className="w-3.5 h-3.5" />
             {saving ? "Saving…" : "Save Schedule"}
           </button>
-          <button onClick={() => doGenerate(false)} disabled={generating || !appDate || grandThis <= 0}
+          <button onClick={() => doGenerate()} disabled={generating || !appDate || grandThis <= 0}
             className="flex items-center gap-1.5 text-xs font-medium bg-[#002D72] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
             <FileText className="w-3.5 h-3.5" />
             {generating ? "Generating…" : "Generate AIA Invoice"}
