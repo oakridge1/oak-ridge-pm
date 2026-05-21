@@ -969,8 +969,9 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
           <tbody>
             {rows.map(row => {
               const total = (row.previouslyBilled || 0) + (row.thisPeriod || 0) + (row.materialsStored || 0);
-              const pct = (row.scheduledValue || 0) > 0 ? (total / row.scheduledValue) * 100 : 0;
+              const pct = (row.scheduledValue || 0) > 0 ? (total / row.scheduledValue) * 100 : null;
               const balance = (row.scheduledValue || 0) - total;
+              const balanceIsNegative = (row.scheduledValue || 0) > 0 && balance < 0;
               const isAutoFilled = row.autoFilled && !row.manuallyEdited;
               return (
                 <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 group">
@@ -1006,12 +1007,12 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
                     {total.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                   </td>
                   <td className="py-1.5 pr-2 text-right tabular-nums">
-                    <span className={pct > 100 ? "text-red-600 font-semibold" : "text-gray-700"}>
-                      {pct.toFixed(1)}%
+                    <span className={pct != null && pct > 100 ? "text-red-600 font-semibold" : "text-gray-700"}>
+                      {pct == null ? "—" : `${pct.toFixed(1)}%`}
                     </span>
                   </td>
                   <td className="py-1.5 text-right tabular-nums">
-                    <span className={balance < 0 ? "text-red-600 font-semibold" : "text-gray-700"}>
+                    <span className={balanceIsNegative ? "text-red-600 font-semibold" : "text-gray-700"}>
                       {balance.toLocaleString("en-US", { style: "currency", currency: "USD" })}
                     </span>
                   </td>
@@ -1046,9 +1047,9 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
                 {grandTotal.toLocaleString("en-US", { style: "currency", currency: "USD" })}
               </td>
               <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800">
-                {grandPct.toFixed(1)}%
+                {grandScheduled > 0 ? `${grandPct.toFixed(1)}%` : "—"}
               </td>
-              <td className="py-2 text-right text-xs font-bold text-gray-800 tabular-nums">
+              <td className={`py-2 text-right text-xs font-bold tabular-nums ${grandScheduled > 0 && grandBalance < 0 ? "text-red-600" : "text-gray-800"}`}>
                 {grandBalance.toLocaleString("en-US", { style: "currency", currency: "USD" })}
               </td>
               {role === "ADMIN" && <td />}
