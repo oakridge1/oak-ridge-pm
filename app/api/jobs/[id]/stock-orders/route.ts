@@ -76,7 +76,12 @@ async function generateOrderDocx(data: StockOrderPdfData): Promise<Buffer> {
         new Paragraph({ children: [new TextRun({ text: `To: ${data.supplierName}${data.supplierRepName ? ` — ${data.supplierRepName}` : ""}`, bold: true })] }),
         new Paragraph({ children: [new TextRun(`Date: ${data.orderDate}`)] }),
         new Paragraph({ children: [new TextRun(`PO/Job: ${data.poNumber ?? data.jobNumber}`)] }),
-        new Paragraph({ children: [new TextRun(`Delivery: ${data.deliveryMethod}${data.deliveryAddress ? ` — ${data.deliveryAddress}` : ""}`)] }),
+        new Paragraph({ children: [new TextRun("")] }),
+        // ── DELIVERY INSTRUCTIONS block ──
+        new Paragraph({ children: [new TextRun({ text: "⚠  DELIVERY INSTRUCTIONS", bold: true, size: 24, color: "8B0000" })] }),
+        new Paragraph({ children: [new TextRun({ text: data.deliveryMethod.toUpperCase(), bold: true, size: 28, color: "8B0000" })] }),
+        ...(data.deliveryAddress ? [new Paragraph({ children: [new TextRun({ text: data.deliveryAddress, bold: true, size: 24, color: "8B0000" })] })] : []),
+        ...(data.notes ? [new Paragraph({ children: [new TextRun({ text: `NOTES: ${data.notes.toUpperCase()}`, bold: true, size: 24, color: "CC0000" })] })] : []),
         new Paragraph({ children: [new TextRun("")] }),
         new Table({
           rows: [
@@ -246,13 +251,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ? `Pickup List — ${job.jobNumber} ${job.jobName} — ${today}`
       : `Material Order — ${supplierName} — ${job.jobNumber} ${job.jobName} — ${today}`;
 
+    const deliveryHeader = [
+      `⚠️ DELIVERY: ${deliveryStr.toUpperCase()}`,
+      deliveryNotes ? `⚠️ NOTES: ${deliveryNotes.toUpperCase()}` : "",
+    ].filter(Boolean).join("\n");
+
     const emailBodyText = isConsumables
       ? [
+          deliveryHeader,
+          "──────────────────────────────────",
           `PICKUP / CONSUMABLES LIST`,
           `Job: ${job.jobName} (Job #${job.jobNumber})`,
           poNumber ? `PO / Job #: ${poNumber}` : "",
-          `Delivery: ${deliveryStr}`,
-          deliveryNotes ? `Notes: ${deliveryNotes}` : "",
           "",
           "ITEMS:",
           requests.map(r => buildItemLine(r)).join("\n"),
@@ -261,8 +271,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           "Oak Ridge Electrical LLC",
           "209 W. River Rd, Hooksett, NH 03106",
           "603-660-4651",
-        ].filter(s => s !== undefined).join("\n")
-      : `Please find our material order attached. Delivery: ${deliveryShort}. PO/Job: ${poNumber ?? job.jobNumber}. Thank you, Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com`;
+        ].filter(s => s !== undefined && s !== "").join("\n")
+      : [
+          deliveryHeader,
+          "──────────────────────────────────",
+          `Material order attached.`,
+          `Job: ${job.jobName} (Job #${job.jobNumber})`,
+          `PO/Job: ${poNumber ?? job.jobNumber}`,
+          "",
+          "Thank you,",
+          "Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com",
+        ].filter(Boolean).join("\n");
 
     // Build PDF data
     const pdfData: StockOrderPdfData = {

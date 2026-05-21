@@ -1299,6 +1299,9 @@ export type StockOrderPdfData = {
   title?: string | null;
 };
 
+const DARK_RED = "#8B0000";
+const RED_BG   = "#fff0f0";
+
 const SS = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 9, padding: 40, color: "#1a1a1a" },
   headerRow: {
@@ -1313,7 +1316,18 @@ const SS = StyleSheet.create({
   },
   coName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: NAVY },
   coInfo: { fontSize: 7, color: GRAY, marginTop: 2 },
-  docTitle: { fontSize: 16, fontFamily: "Helvetica-Bold", color: ORANGE, textAlign: "center", marginBottom: 12 },
+  docTitle: { fontSize: 16, fontFamily: "Helvetica-Bold", color: ORANGE, textAlign: "center", marginBottom: 10 },
+  // Delivery banner
+  deliveryBanner: {
+    backgroundColor: DARK_RED,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 12,
+  },
+  deliveryBannerLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#ffcccc", letterSpacing: 1, marginBottom: 4 },
+  deliveryBannerMethod: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#ffffff", marginBottom: 2 },
+  deliveryBannerAddress: { fontSize: 10, color: "#ffdddd", marginBottom: 0 },
+  deliveryBannerNotes: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#ffff00", marginTop: 6 },
   infoGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 14 },
   infoCell: { width: "50%", flexDirection: "row", marginBottom: 4 },
   infoLabel: { width: 80, fontSize: 8, color: GRAY },
@@ -1384,6 +1398,18 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
         {/* Title */}
         <Text style={SS.docTitle}>{data.title ?? "MATERIAL ORDER"}</Text>
 
+        {/* ── DELIVERY INSTRUCTIONS BANNER ─────────────────────────────────── */}
+        <View style={SS.deliveryBanner}>
+          <Text style={SS.deliveryBannerLabel}>⚠  DELIVERY INSTRUCTIONS</Text>
+          <Text style={SS.deliveryBannerMethod}>{data.deliveryMethod.toUpperCase()}</Text>
+          {data.deliveryAddress ? (
+            <Text style={SS.deliveryBannerAddress}>{data.deliveryAddress}</Text>
+          ) : null}
+          {data.notes ? (
+            <Text style={SS.deliveryBannerNotes}>NOTES: {data.notes.toUpperCase()}</Text>
+          ) : null}
+        </View>
+
         {/* Info block */}
         <View style={SS.infoGrid}>
           <View style={SS.infoCell}>
@@ -1403,10 +1429,6 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
           <View style={SS.infoCell}>
             <Text style={SS.infoLabel}>Job:</Text>
             <Text style={SS.infoValue}>{data.jobNumber} — {data.jobName}</Text>
-          </View>
-          <View style={SS.infoCell}>
-            <Text style={SS.infoLabel}>Delivery:</Text>
-            <Text style={SS.infoValue}>{data.deliveryMethod}{data.deliveryAddress ? ` — ${data.deliveryAddress}` : ""}</Text>
           </View>
           {data.supplierEmail ? (
             <View style={SS.infoCell}>
@@ -1449,13 +1471,6 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
         <View style={{ marginTop: 8, flexDirection: "row", justifyContent: "flex-end" }}>
           <Text style={{ fontSize: 8, color: GRAY }}>Total: {data.items.length} line item{data.items.length !== 1 ? "s" : ""}</Text>
         </View>
-
-        {data.notes ? (
-          <View style={{ marginTop: 10, backgroundColor: "#f9fafb", padding: 8, borderRadius: 4 }}>
-            <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: GRAY, marginBottom: 3 }}>NOTES</Text>
-            <Text style={{ fontSize: 8, color: "#1a1a1a" }}>{data.notes}</Text>
-          </View>
-        ) : null}
 
         {/* Footer */}
         <View style={SS.footer} fixed>
