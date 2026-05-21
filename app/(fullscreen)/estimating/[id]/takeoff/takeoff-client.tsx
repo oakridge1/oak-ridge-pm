@@ -165,6 +165,7 @@ export function TakeoffClient({
   );
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // Mode & UI
   const [mode, setMode] = useState<Mode>("count");
@@ -285,6 +286,7 @@ export function TakeoffClient({
 
     // Legacy base64 support (pdfData is a very long string, not a storage path)
     if (!drawing.pdfData.startsWith("takeoff-pdfs/") && drawing.pdfData.length > 200) {
+      setPdfError(null);
       loadPDFFromBase64(drawing.pdfData);
       return;
     }
@@ -293,12 +295,19 @@ export function TakeoffClient({
     if (!drawing.pdfData.startsWith("takeoff-pdfs/")) return;
 
     setPdfLoading(true);
+    setPdfError(null);
     try {
       const res = await fetch(`/api/takeoff-drawings/${targetId}/upload-pdf`);
-      if (!res.ok) { setPdfLoading(false); return; }
+      if (!res.ok) {
+        const msg = await res.text().catch(() => `HTTP ${res.status}`);
+        setPdfError(`Failed to load PDF: ${msg}`);
+        setPdfLoading(false);
+        return;
+      }
       const ab = await res.arrayBuffer();
       await loadPDFFromBytes(new Uint8Array(ab));
     } catch (err) {
+      setPdfError(`PDF load error: ${err instanceof Error ? err.message : String(err)}`);
       console.error("Auto-load error:", err);
     } finally {
       setPdfLoading(false);
@@ -314,8 +323,12 @@ export function TakeoffClient({
       pdfDocRef.current = doc;
       setTotalPages(doc.numPages);
       setPdfLoaded(true);
+      setPdfError(null);
       await renderPage(1, zoomRef.current);
-    } catch (err) { console.error("PDF load error", err); }
+    } catch (err) {
+      console.error("PDF load error", err);
+      setPdfError(`PDF render error: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   async function loadPDFFromBase64(b64: string) {
@@ -670,6 +683,7 @@ export function TakeoffClient({
 
     // 1. Load into PDF.js immediately for instant local preview
     const ab = await file.arrayBuffer();
+    setPdfError(null);
     loadPDFFromBytes(new Uint8Array(ab));
 
     setSaveStatus("saving");
@@ -678,7 +692,7 @@ export function TakeoffClient({
       const urlRes = await fetch(`/api/takeoff-drawings/${drawingId}/upload-url`);
       if (!urlRes.ok) {
         const msg = await urlRes.text();
-        alert(`Failed to get upload URL: ${msg}`);
+        setPdfError(`Failed to get upload URL: ${msg}`);
         setSaveStatus("unsaved");
         return;
       }
@@ -695,18 +709,25 @@ export function TakeoffClient({
         body: file,
       });
       if (!putRes.ok) {
-        alert(`Storage upload failed: ${putRes.status} ${putRes.statusText}`);
+        const putMsg = await putRes.text().catch(() => putRes.statusText);
+        setPdfError(`Storage upload failed (${putRes.status}): ${putMsg}`);
         setSaveStatus("unsaved");
         return;
       }
 
       // 4. Save storage path + page count to the drawing record
       const pc = pdfDocRef.current?.numPages ?? 1;
-      await fetch(`/api/takeoff-drawings/${drawingId}`, {
+      const patchRes = await fetch(`/api/takeoff-drawings/${drawingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pdfData: storagePath, pageCount: pc }),
       });
+      if (!patchRes.ok) {
+        const patchMsg = await patchRes.text().catch(() => `HTTP ${patchRes.status}`);
+        setPdfError(`PDF uploaded but failed to save path to DB: ${patchMsg}. The PDF will be gone on reload.`);
+        setSaveStatus("unsaved");
+        return;
+      }
 
       // 5. Update local state so switching drawings / reloading auto-loads correctly
       setDrawings(prev => prev.map(d =>
@@ -715,7 +736,7 @@ export function TakeoffClient({
 
       setSaveStatus("saved");
     } catch (err) {
-      alert(`Upload error: ${err}`);
+      setPdfError(`Upload error: ${err instanceof Error ? err.message : String(err)}`);
       setSaveStatus("unsaved");
     }
   }
@@ -738,6 +759,7 @@ export function TakeoffClient({
     pdfDocRef.current = null;
     redrawAll(1, zoomRef.current, null);
 
+    setPdfError(null);
     if (d.pdfData) {
       if (!d.pdfData.startsWith("takeoff-pdfs/") && d.pdfData.length > 200) {
         // Legacy base64
@@ -746,9 +768,18 @@ export function TakeoffClient({
         // Storage path — fetch from server
         setPdfLoading(true);
         fetch(`/api/takeoff-drawings/${drawingId}/upload-pdf`)
-          .then(res => res.ok ? res.arrayBuffer() : Promise.reject(res.status))
+          .then(async res => {
+            if (!res.ok) {
+              const msg = await res.text().catch(() => `HTTP ${res.status}`);
+              throw new Error(msg);
+            }
+            return res.arrayBuffer();
+          })
           .then(ab => loadPDFFromBytes(new Uint8Array(ab)))
-          .catch(err => console.error("switchDrawing PDF load error:", err))
+          .catch(err => {
+            console.error("switchDrawing PDF load error:", err);
+            setPdfError(`Failed to load PDF: ${err instanceof Error ? err.message : String(err)}`);
+          })
           .finally(() => setPdfLoading(false));
       }
     }
@@ -1108,10 +1139,23 @@ export function TakeoffClient({
                 <div style={{ fontSize: 15, color: "#FF5910", fontWeight: 700, letterSpacing: "0.1em" }}>Loading PDF…</div>
               </div>
             )}
+            {pdfError && pdfLoaded && (
+              <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", background: "#1e1010", border: "1px solid #e03a3a", borderRadius: 8, padding: "8px 14px", zIndex: 20, display: "flex", alignItems: "center", gap: 10, maxWidth: 420 }}>
+                <span style={{ fontSize: 12, color: "#e03a3a" }}>⚠ {pdfError}</span>
+                <button onClick={() => setPdfError(null)} style={{ background: "none", border: "none", color: "#9aa0ab", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0, flexShrink: 0 }}>✕</button>
+              </div>
+            )}
             {!pdfLoaded && !pdfLoading && (
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, pointerEvents: "none" }}>
                 <div style={{ fontSize: 22, fontWeight: 900, color: "#2e3138", textTransform: "uppercase", letterSpacing: "0.1em" }}>No Drawing Loaded</div>
-                <div style={{ fontSize: 14, color: "#2e3138", textAlign: "center", maxWidth: 280 }}>Upload a PDF to begin</div>
+                {pdfError ? (
+                  <div style={{ fontSize: 13, color: "#e03a3a", textAlign: "center", maxWidth: 360, background: "rgba(224,58,58,0.1)", border: "1px solid #e03a3a", borderRadius: 8, padding: "10px 16px", pointerEvents: "all", lineHeight: 1.5 }}>
+                    ⚠ {pdfError}
+                    <button onClick={() => setPdfError(null)} style={{ display: "block", marginTop: 8, background: "none", border: "none", color: "#9aa0ab", cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>Dismiss</button>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 14, color: "#2e3138", textAlign: "center", maxWidth: 280 }}>Upload a PDF to begin</div>
+                )}
                 <label style={{ pointerEvents: "all", background: "#FF5910", border: "none", borderRadius: 8, color: "#111", fontFamily: "inherit", fontSize: 15, fontWeight: 900, letterSpacing: "0.08em", padding: "12px 24px", cursor: "pointer", textTransform: "uppercase" }}>
                   📄 Load PDF
                   <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFileUpload} />
