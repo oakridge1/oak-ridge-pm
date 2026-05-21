@@ -1035,13 +1035,14 @@ export type StandardInvoiceData = {
 
 const IS = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 9, padding: 45, color: "#1a1a1a", backgroundColor: "#fff" },
-  // Centered header block
-  headerCenter: { alignItems: "center", marginBottom: 10 },
-  logo: { width: 64, height: 64, marginBottom: 6 },
-  companyName: { fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY, textAlign: "center", letterSpacing: 1 },
-  companyInfo: { fontSize: 8, color: GRAY, textAlign: "center", marginTop: 2, lineHeight: 1.5 },
+  // Letterhead row (logo left, company info right)
+  letterheadRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 14 },
+  letterheadLogo: { width: 80, height: 80 },
+  letterheadRight: { flex: 1, justifyContent: "center" },
+  companyName: { fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 1 },
+  companyInfo: { fontSize: 8, color: GRAY, marginTop: 2, lineHeight: 1.5 },
   // Dividers
-  heavyDivider: { borderBottomWidth: 3, borderBottomColor: NAVY, borderBottomStyle: "solid", marginVertical: 10 },
+  heavyDivider: { borderBottomWidth: 3, borderBottomColor: ORANGE, borderBottomStyle: "solid", marginVertical: 10 },
   thinDivider: { borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid", marginVertical: 8 },
   // Invoice title row
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 4 },
@@ -1131,13 +1132,15 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
     <Document>
       <Page size="LETTER" style={IS.page}>
 
-        {/* ── Centered Header ── */}
-        <View style={IS.headerCenter}>
+        {/* ── Letterhead Header ── */}
+        <View style={IS.letterheadRow}>
           {data.logoSrc ? (
-            <Image src={data.logoSrc} style={IS.logo} />
+            <Image src={data.logoSrc} style={IS.letterheadLogo} />
           ) : null}
-          <Text style={IS.companyName}>{co_name.toUpperCase()}</Text>
-          <Text style={IS.companyInfo}>{co_address} · {co_cityState}{"\n"}{co_email}</Text>
+          <View style={IS.letterheadRight}>
+            <Text style={IS.companyName}>{co_name.toUpperCase()}</Text>
+            <Text style={IS.companyInfo}>{co_address} · {co_cityState}{"\n"}{co_phone} · {co_email}</Text>
+          </View>
         </View>
 
         <View style={IS.heavyDivider} />
@@ -1147,7 +1150,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
           <Text style={IS.invoiceTitle}>INVOICE</Text>
           <View style={IS.invoiceNumDate}>
             <Text style={IS.invoiceKindLabel}>{invoiceKind}</Text>
-            <Text style={IS.invoiceNum}>Invoice #{String(data.invoiceNumber).padStart(3, "0")}</Text>
+            <Text style={IS.invoiceNum}>Invoice #{data.jobNumber}-{String(data.invoiceNumber).padStart(3, "0")}</Text>
             <Text style={IS.invoiceDate}>Date: {fmtDate(data.invoiceDate)}</Text>
             {data.periodTo ? <Text style={IS.invoiceDate}>Period To: {fmtDate(data.periodTo)}</Text> : null}
           </View>
@@ -1469,6 +1472,7 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
 export type AiaData = {
   jobNumber: string;
   jobName: string;
+  logoSrc?: string;
   ownerName: string | null;
   gcCompany: string | null;
   gcContactName: string | null;
@@ -1539,8 +1543,11 @@ export function AiaDoc({ data }: { data: AiaData }) {
     <Document>
       {/* Page 1 — G702 */}
       <Page size="LETTER" style={AS.page}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
-          <View>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 12 }}>
+          {data.logoSrc ? (
+            <Image src={data.logoSrc} style={{ width: 64, height: 64 }} />
+          ) : null}
+          <View style={{ flex: 1 }}>
             <Text style={AS.title}>AIA Document G702</Text>
             <Text style={AS.subtitle}>Application and Certificate for Payment</Text>
             <Text style={{ fontSize: 7, color: LIGHT }}>Oak Ridge Electrical LLC · 76 Oak Ridge Rd, Weare NH 03281</Text>
@@ -1551,6 +1558,7 @@ export function AiaDoc({ data }: { data: AiaData }) {
             {data.periodTo ? <Text style={{ fontSize: 8, color: GRAY }}>Period To: {fmtDate(data.periodTo)}</Text> : null}
           </View>
         </View>
+        <View style={{ borderBottomWidth: 2, borderBottomColor: ORANGE, borderBottomStyle: "solid", marginBottom: 10 }} />
 
         <View style={AS.aiaRow}>
           <View style={AS.aiaBox}>

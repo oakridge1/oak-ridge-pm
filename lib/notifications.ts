@@ -419,6 +419,51 @@ export async function notifyCalendarRequestSubmitted(params: {
   );
 }
 
+// ── Payment recorded ─────────────────────────────────────────────────────────
+
+export async function notifyPaymentRecorded(params: {
+  jobName: string;
+  jobId: string;
+  amount: number;
+  date: string;
+  checkNumber?: string | null;
+  reference?: string | null;
+  note?: string | null;
+  invoiceLabel?: string | null;
+  receiptImageUrl?: string | null;
+  recordedBy: string;
+}) {
+  const { jobName, jobId, amount, date, checkNumber, reference, note, invoiceLabel, receiptImageUrl, recordedBy } = params;
+  const url = jobUrl(jobId);
+  const amountStr = amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  const detailLines = [
+    checkNumber ? `Check #${checkNumber}` : null,
+    reference ? `Ref: ${reference}` : null,
+    note ?? null,
+    invoiceLabel ? `Applied to: ${invoiceLabel}` : null,
+  ].filter(Boolean).join(" · ");
+  const receiptLine = receiptImageUrl
+    ? `<p style="margin:4px 0 0;font-size:13px"><a href="${receiptImageUrl}" style="color:#002D72">View receipt image →</a></p>`
+    : "";
+  await send(
+    "justin@oakridgeelectrical.com",
+    `Payment recorded — ${amountStr} — ${jobName}`,
+    `Payment of ${amountStr} recorded on ${jobName} for ${date}.\n${detailLines}\nRecorded by: ${recordedBy}\n\n${url}`,
+    wrap(`
+      <h2 style="font-size:18px;color:#16a34a;margin:0 0 12px">💰 Payment Recorded</h2>
+      <p style="margin:0 0 16px">A payment has been recorded on <strong>${jobName}</strong>.</p>
+      <div style="background:#f0fff4;border-left:4px solid #16a34a;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+        <strong style="font-size:16px">${amountStr}</strong><br/>
+        <span style="font-size:13px;color:#666">${date}</span>
+        ${detailLines ? `<br/><span style="font-size:13px;color:#666">${detailLines}</span>` : ""}
+        ${receiptLine}
+        <p style="margin:6px 0 0;font-size:12px;color:#999">Recorded by: ${recordedBy}</p>
+      </div>
+      ${btn(url, "View Job →")}
+    `)
+  );
+}
+
 // ── Calendar request approved / denied ────────────────────────────────────────
 
 export async function notifyCalendarRequestDecision(params: {

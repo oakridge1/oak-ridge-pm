@@ -15,6 +15,7 @@ export async function addMaterial(
   data: {
     date: string;
     vendor: string;
+    poNumber?: string;
     description: string;
     amount: string;
     markupPct?: string;
@@ -38,6 +39,7 @@ export async function addMaterial(
       userId: session.user.id,
       date: new Date(data.date),
       vendor: data.vendor?.trim() || null,
+      poNumber: data.poNumber?.trim() || null,
       description: data.description.trim(),
       amount,
       markupPct: isNaN(markupPct) ? 0 : markupPct,
@@ -84,6 +86,7 @@ export async function updateMaterial(
   data: {
     date: string;
     vendor: string;
+    poNumber?: string;
     description: string;
     amount: string;
     markupPct?: string;
@@ -101,6 +104,7 @@ export async function updateMaterial(
     data: {
       date: new Date(data.date),
       vendor: data.vendor?.trim() || null,
+      poNumber: data.poNumber?.trim() || null,
       description: data.description.trim(),
       amount,
       markupPct: isNaN(markupPct) ? 0 : markupPct,

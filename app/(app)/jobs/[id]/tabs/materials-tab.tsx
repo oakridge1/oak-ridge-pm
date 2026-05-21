@@ -20,6 +20,7 @@ type MaterialEntry = {
   id: string;
   date: Date;
   vendor: string | null;
+  poNumber: string | null;
   description: string;
   amount: number;
   markupPct: number;
@@ -64,6 +65,7 @@ function EditRow({
 }) {
   const [date, setDate] = useState(toDateInput(entry.date));
   const [vendor, setVendor] = useState(entry.vendor ?? "");
+  const [poNumber, setPoNumber] = useState(entry.poNumber ?? "");
   const [description, setDescription] = useState(entry.description);
   const [amount, setAmount] = useState(String(entry.amount));
   const [markupPct, setMarkupPct] = useState(String(entry.markupPct ?? 0));
@@ -78,7 +80,7 @@ function EditRow({
     setError(null);
     startTransition(async () => {
       try {
-        await updateMaterial(entry.id, jobId, { date, vendor, description, amount, markupPct });
+        await updateMaterial(entry.id, jobId, { date, vendor, poNumber, description, amount, markupPct });
         onCancel();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Save failed.");
@@ -93,6 +95,8 @@ function EditRow({
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
           className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
         <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="Vendor"
+          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+        <input type="text" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="PO # (optional)"
           className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
         <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" required
           className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] col-span-2" />
@@ -143,6 +147,9 @@ function EntryRow({
           <span className="text-xs text-gray-400">{fmtDate(entry.date)}</span>
           {entry.vendor && (
             <span className="text-xs font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{entry.vendor}</span>
+          )}
+          {entry.poNumber && (
+            <span className="text-xs font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">PO# {entry.poNumber}</span>
           )}
         </div>
         <p className="text-sm font-medium text-gray-900 mt-0.5">{entry.description}</p>
@@ -202,6 +209,7 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
   const [vendor, setVendor] = useState("");
+  const [poNumber, setPoNumber] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [markupPct, setMarkupPct] = useState("0");
@@ -240,7 +248,7 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
 
     startTransition(async () => {
       try {
-        await addMaterial(jobId, { date, vendor, description, amount, markupPct, fileUrl, fileName });
+        await addMaterial(jobId, { date, vendor, poNumber, description, amount, markupPct, fileUrl, fileName });
         onDone();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save.");
@@ -271,6 +279,11 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Vendor</label>
           <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="Home Depot"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">PO #</label>
+          <input type="text" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="e.g. PO-2025-001"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
         </div>
         <div className="col-span-2">

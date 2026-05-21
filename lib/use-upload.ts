@@ -1,6 +1,6 @@
 "use client";
 
-type Endpoint = "jobPhoto" | "materialAttachment" | "jobDocument";
+type Endpoint = "jobPhoto" | "materialAttachment" | "jobDocument" | "paymentReceipt";
 
 export function useUpload(_endpoint: Endpoint) {
   async function startUpload(

@@ -6,8 +6,9 @@ import {
   DollarSign, BarChart3,
   Edit2, Save, Plus, Trash2, CreditCard, RefreshCw,
   FileText, ChevronDown, ChevronUp, Send, CheckCircle2, ExternalLink,
-  Download, Mail, TrendingUp, TrendingDown,
+  Download, Mail, TrendingUp, TrendingDown, Link2, Upload,
 } from "lucide-react";
+import { useUpload } from "@/lib/use-upload";
 import {
   updateDirectCostsWithMarkups,
   addOtherCost, deleteOtherCost,
@@ -34,6 +35,7 @@ type LaborEntryWithWage = {
 type PaymentEntry = {
   id: string; date: Date; amount: number; note: string | null;
   checkNumber: string | null; reference: string | null;
+  receiptImageUrl: string | null;
   includesRetainageRelease: boolean;
   invoice: { id: string; invoiceNumber: number } | null;
 };
@@ -43,6 +45,7 @@ type InvoiceEntry = {
   status: "DRAFT" | "SENT" | "PARTIALLY_PAID" | "PAID";
   amount: number; retainagePct: number | null; retainageHeld: number | null;
   lineItems: unknown; notes: string | null;
+  shareToken: string | null;
   payments: { id: string; amount: number }[];
 };
 type ChangeOrder = {
@@ -1167,6 +1170,9 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   const [payRef, setPayRef] = useState("");
   const [payRetainage, setPayRetainage] = useState(false);
   const [payNote, setPayNote] = useState("");
+  const [payReceiptFile, setPayReceiptFile] = useState<File | null>(null);
+  const [payReceiptUploading, setPayReceiptUploading] = useState(false);
+  const { startUpload: startReceiptUpload } = useUpload("paymentReceipt");
 
   const invoices = job.invoices.map(inv => ({ ...inv, date: new Date(inv.date), periodTo: inv.periodTo ? new Date(inv.periodTo) : null }));
   const totalInvoiced = invoices.reduce((s, inv) => s + inv.amount, 0);
@@ -1267,13 +1273,26 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
     }
   }
 
-  function handleAddPayment(invoiceId: string) {
+  async function handleAddPayment(invoiceId: string) {
     setError(null);
+    let receiptUrl: string | undefined;
+    if (payReceiptFile) {
+      setPayReceiptUploading(true);
+      try {
+        const res = await startReceiptUpload([payReceiptFile]);
+        if (res?.[0]) receiptUrl = res[0].ufsUrl;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Receipt upload failed.");
+        setPayReceiptUploading(false);
+        return;
+      }
+      setPayReceiptUploading(false);
+    }
     startTransition(async () => {
       try {
-        await addPayment(job.id, payDate, payAmount, payNote, invoiceId, payCheck, payRef, payRetainage);
+        await addPayment(job.id, payDate, payAmount, payNote, invoiceId, payCheck, payRef, payRetainage, receiptUrl);
         setShowPayForm(null);
-        setPayAmount(""); setPayCheck(""); setPayRef(""); setPayNote(""); setPayRetainage(false);
+        setPayAmount(""); setPayCheck(""); setPayRef(""); setPayNote(""); setPayRetainage(false); setPayReceiptFile(null);
       } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
     });
   }
@@ -1287,7 +1306,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 my-3 space-y-3">
           <p className="text-sm font-semibold text-amber-800">Invoice Already Exists</p>
           <p className="text-xs text-amber-700">
-            Invoice #{String(duplicateWarning.invoiceNumber).padStart(3, "0")} was already created for{" "}
+            Invoice #{job.jobNumber}-{String(duplicateWarning.invoiceNumber).padStart(3, "0")} was already created for{" "}
             {new Date(duplicateWarning.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}.
             Do you want to create another invoice for this period?
           </p>
@@ -1313,7 +1332,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
           const isExpanded = expandedInvoice === inv.id;
           const label = inv.type === "AIA"
             ? `AIA Application #${inv.applicationNo ?? inv.invoiceNumber}`
-            : `Invoice #${String(inv.invoiceNumber).padStart(3, "0")}`;
+            : `Invoice #${job.jobNumber}-${String(inv.invoiceNumber).padStart(3, "0")}`;
           const pdfUrl = inv.type === "AIA"
             ? `/api/jobs/${job.id}/pdf/aia/${inv.id}`
             : `/api/jobs/${job.id}/pdf/invoice/${inv.id}`;
@@ -1358,7 +1377,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                     {inv.type === "STANDARD" && (
                       <a href={`/api/jobs/${job.id}/pdf/invoice/${inv.id}/docx`}
                         target="_blank" rel="noopener noreferrer"
-                        download={`Invoice_${String(inv.invoiceNumber).padStart(3, "0")}.docx`}
+                        download={`Invoice_${job.jobNumber}-${String(inv.invoiceNumber).padStart(3, "0")}.docx`}
                         className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                         <FileText className="w-3.5 h-3.5" /> Download Word
                       </a>
@@ -1406,6 +1425,18 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                         {sheetsLoading === inv.id ? "Syncing..." : "Open in Sheets"}
                       </button>
                     )}
+
+                    {/* Copy shareable link (Standard only) */}
+                    {inv.shareToken && inv.type === "STANDARD" && (
+                      <button
+                        onClick={() => {
+                          const url = `${window.location.origin}/invoice/${inv.shareToken}`;
+                          navigator.clipboard.writeText(url).catch(() => {});
+                        }}
+                        className="flex items-center gap-1.5 text-xs font-medium text-purple-700 border border-purple-200 px-2.5 py-1.5 rounded-lg hover:bg-purple-50 transition-colors">
+                        <Link2 className="w-3.5 h-3.5" /> Copy Link
+                      </button>
+                    )}
                   </div>
 
                   {/* Sheets error */}
@@ -1440,12 +1471,17 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                           className="rounded" />
                         Includes retainage release
                       </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer border border-dashed border-gray-300 rounded-lg px-3 py-2 hover:border-green-500 hover:text-green-700 transition-colors bg-white">
+                        <Upload className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{payReceiptFile ? payReceiptFile.name : "Attach deposit receipt (optional)"}</span>
+                        <input type="file" accept="image/*,.pdf" className="sr-only" onChange={e => setPayReceiptFile(e.target.files?.[0] ?? null)} />
+                      </label>
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => { setShowPayForm(null); setError(null); }}
+                        <button onClick={() => { setShowPayForm(null); setError(null); setPayReceiptFile(null); }}
                           className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-                        <button onClick={() => handleAddPayment(inv.id)} disabled={pending || !payAmount}
+                        <button onClick={() => handleAddPayment(inv.id)} disabled={pending || payReceiptUploading || !payAmount}
                           className="bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-800 disabled:opacity-60">
-                          {pending ? "Saving…" : "Save Payment"}
+                          {payReceiptUploading ? "Uploading…" : pending ? "Saving…" : "Save Payment"}
                         </button>
                       </div>
                     </div>
@@ -1602,17 +1638,33 @@ function PaymentLogCard({ job, role }: {
   const [dateInput, setDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [amountInput, setAmountInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const { startUpload } = useUpload("paymentReceipt");
 
   const payments = job.payments.map(p => ({ ...p, date: new Date(p.date) }));
 
-  function handleAdd() {
+  async function handleAdd() {
     setError(null);
+    let receiptUrl: string | undefined;
+    if (receiptFile) {
+      setUploading(true);
+      try {
+        const res = await startUpload([receiptFile]);
+        if (res?.[0]) receiptUrl = res[0].ufsUrl;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Receipt upload failed.");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
     startTransition(async () => {
       try {
-        await addPayment(job.id, dateInput, amountInput, noteInput);
-        setAmountInput(""); setNoteInput(""); setShowForm(false);
+        await addPayment(job.id, dateInput, amountInput, noteInput, undefined, undefined, undefined, undefined, receiptUrl);
+        setAmountInput(""); setNoteInput(""); setReceiptFile(null); setShowForm(false);
       } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
     });
   }
@@ -1631,7 +1683,7 @@ function PaymentLogCard({ job, role }: {
                 <p className="text-sm font-medium text-gray-900">{fmt$(p.amount)}</p>
                 {p.invoice && (
                   <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
-                    Inv #{String(p.invoice.invoiceNumber).padStart(3, "0")}
+                    Inv #{job.jobNumber}-{String(p.invoice.invoiceNumber).padStart(3, "0")}
                   </span>
                 )}
                 {p.includesRetainageRelease && (
@@ -1645,12 +1697,24 @@ function PaymentLogCard({ job, role }: {
                 {p.note ? ` · ${p.note}` : ""}
               </p>
             </div>
-            {role === "ADMIN" && (
-              <button onClick={() => startTransition(() => deletePayment(p.id, job.id))}
-                className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {p.receiptImageUrl && (
+                <a href={p.receiptImageUrl} target="_blank" rel="noopener noreferrer"
+                  className="block shrink-0" title="View receipt">
+                  {/\.(jpg|jpeg|png|gif|webp|heic)$/i.test(p.receiptImageUrl) ? (
+                    <img src={p.receiptImageUrl} alt="receipt" className="w-8 h-8 rounded object-cover border border-gray-200 hover:opacity-80" />
+                  ) : (
+                    <span className="text-xs text-blue-600 underline">Receipt</span>
+                  )}
+                </a>
+              )}
+              {role === "ADMIN" && (
+                <button onClick={() => startTransition(() => deletePayment(p.id, job.id))}
+                  className="p-1 text-gray-300 hover:text-red-500 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         ))
       )}
@@ -1668,11 +1732,16 @@ function PaymentLogCard({ job, role }: {
               <input value={noteInput} onChange={e => setNoteInput(e.target.value)}
                 placeholder="Note (optional)" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
             </div>
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer border border-dashed border-gray-300 rounded-lg px-3 py-2 hover:border-[#002D72] hover:text-[#002D72] transition-colors bg-white">
+              <Upload className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{receiptFile ? receiptFile.name : "Attach deposit receipt (optional)"}</span>
+              <input type="file" accept="image/*,.pdf" className="sr-only" onChange={e => setReceiptFile(e.target.files?.[0] ?? null)} />
+            </label>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setShowForm(false); setError(null); }} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
-              <button onClick={handleAdd} disabled={pending || !amountInput}
+              <button onClick={() => { setShowForm(false); setError(null); setReceiptFile(null); }} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+              <button onClick={handleAdd} disabled={pending || uploading || !amountInput}
                 className="bg-[#002D72] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
-                {pending ? "Saving…" : "Add Payment"}
+                {uploading ? "Uploading…" : pending ? "Saving…" : "Add Payment"}
               </button>
             </div>
           </div>

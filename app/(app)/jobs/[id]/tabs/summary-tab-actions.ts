@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { notifyPaymentRecorded } from "@/lib/notifications";
 
 async function requireAdmin() {
   const session = await auth();
@@ -216,6 +217,14 @@ export async function createInvoice(jobId: string, data: {
   const amount = parseFloat(data.amount);
   const retainageHeld = retainagePct != null ? amount * (retainagePct / 100) : null;
 
+  // Generate share token for public link (Standard invoices only)
+  const shareToken = data.type !== "AIA"
+    ? crypto.randomUUID().replace(/-/g, "")
+    : null;
+  const shareExpiry = shareToken
+    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+    : null;
+
   await prisma.invoice.create({
     data: {
       jobId,
@@ -234,6 +243,8 @@ export async function createInvoice(jobId: string, data: {
       notes: data.notes.trim() || null,
       paymentTerms: data.paymentTerms || "due_on_receipt",
       scopeOfWork: data.scopeOfWork?.trim() || null,
+      shareToken,
+      shareExpiry,
     },
   });
 
@@ -279,9 +290,10 @@ export async function addPayment(
   invoiceId?: string,
   checkNumber?: string,
   reference?: string,
-  includesRetainageRelease?: boolean
+  includesRetainageRelease?: boolean,
+  receiptImageUrl?: string
 ) {
-  await requireAdmin();
+  const session = await requireAdmin();
   if (!date) throw new Error("Date is required.");
   if (!amount || parseFloat(amount) <= 0) throw new Error("Amount must be greater than 0.");
 
@@ -293,23 +305,44 @@ export async function addPayment(
       amount: parseFloat(amount),
       checkNumber: checkNumber?.trim() || null,
       reference: reference?.trim() || null,
+      receiptImageUrl: receiptImageUrl?.trim() || null,
       includesRetainageRelease: includesRetainageRelease ?? false,
       note: note.trim() || null,
     },
   });
 
   // Auto-update invoice status if linked
+  let invoiceLabel: string | null = null;
   if (invoiceId) {
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { payments: { select: { amount: true } } },
     });
     if (invoice) {
+      invoiceLabel = `Invoice #${invoice.invoiceNumber}`;
       const totalPaid = invoice.payments.reduce((s, p) => s + p.amount.toNumber(), 0);
       const invoiceAmount = invoice.amount.toNumber();
       const newStatus = totalPaid >= invoiceAmount ? "PAID" : "PARTIALLY_PAID";
       await prisma.invoice.update({ where: { id: invoiceId }, data: { status: newStatus } });
     }
+  }
+
+  // Fire payment notification (non-blocking)
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobName: true } });
+  if (job) {
+    const recordedBy = session.user.name ?? session.user.email ?? "Unknown";
+    notifyPaymentRecorded({
+      jobName: job.jobName,
+      jobId,
+      amount: parseFloat(amount),
+      date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      checkNumber: checkNumber?.trim() || null,
+      reference: reference?.trim() || null,
+      note: note.trim() || null,
+      invoiceLabel,
+      receiptImageUrl: receiptImageUrl?.trim() || null,
+      recordedBy,
+    }).catch((err) => console.error("[notify]", err));
   }
 
   revalidatePath(`/jobs/${jobId}`);

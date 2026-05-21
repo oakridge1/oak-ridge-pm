@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   // Always allow public paths
-  const publicPaths = ["/login", "/api/auth", "/api/cron", "/_next", "/favicon", "/logo"];
+  const publicPaths = ["/login", "/api/auth", "/api/cron", "/_next", "/favicon", "/logo", "/invoice", "/api/public"];
   if (publicPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }

@@ -6,6 +6,19 @@ import { prisma } from "@/lib/prisma";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { AiaDoc } from "../../_templates";
 import React from "react";
+import fs from "fs";
+import path from "path";
+
+function getLogoSrc(): string | undefined {
+  try {
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      const buf = fs.readFileSync(logoPath);
+      return `data:image/png;base64,${buf.toString("base64")}`;
+    }
+  } catch { /* ignore */ }
+  return undefined;
+}
 
 export async function GET(
   _req: Request,
@@ -177,11 +190,14 @@ export async function GET(
       effectiveBalanceToFinish = revisedContract - totalEarnedLessRetainage;
     }
 
+    const logoSrc = getLogoSrc();
+
     const buf = await renderToBuffer(
       React.createElement(AiaDoc, {
         data: {
           jobNumber: job.jobNumber ?? "",
           jobName: job.jobName ?? "",
+          logoSrc,
           ownerName: job.ownerName ?? null,
           gcCompany: job.gcCompany ?? null,
           gcContactName: job.gcContactName ?? null,
