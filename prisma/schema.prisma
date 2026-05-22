@@ -242,6 +242,7 @@ model Job {
   otherMarkupPct     Float?
   // System jobs (Office/Overhead and Shop/Equipment)
   isSystemJob        Boolean   @default(false)
+  excludeFromPL      Boolean   @default(false)
   // Archive
   archived           Boolean   @default(false)
   createdById        String?

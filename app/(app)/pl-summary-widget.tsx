@@ -8,15 +8,24 @@ export default async function PlSummaryWidget() {
 
   const [payments, laborEntries, materials] = await Promise.all([
     prisma.payment.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: {
+        date: { gte: monthStart, lte: monthEnd },
+        job: { excludeFromPL: false, isSystemJob: false },
+      },
       select: { amount: true },
     }),
     prisma.laborEntry.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: {
+        date: { gte: monthStart, lte: monthEnd },
+        job: { excludeFromPL: false, isSystemJob: false },
+      },
       include: { user: { include: { wage: true } } },
     }),
     prisma.material.findMany({
-      where: { createdAt: { gte: monthStart, lte: monthEnd } },
+      where: {
+        createdAt: { gte: monthStart, lte: monthEnd },
+        job: { excludeFromPL: false, isSystemJob: false },
+      },
       select: { amount: true },
     }),
   ]);

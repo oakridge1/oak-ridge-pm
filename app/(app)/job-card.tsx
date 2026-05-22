@@ -36,9 +36,11 @@ const statusConfig: Record<
 export function JobCard({
   job,
   isSystemJob = false,
+  excludeFromPL = false,
 }: {
   job: JobWithRelations;
   isSystemJob?: boolean;
+  excludeFromPL?: boolean;
 }) {
   const cfg = statusConfig[job.status];
 
@@ -59,6 +61,11 @@ export function JobCard({
               {isSystemJob && (
                 <span className="text-[10px] font-semibold tracking-wider uppercase bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded shrink-0">
                   System Job
+                </span>
+              )}
+              {excludeFromPL && (
+                <span className="text-[10px] font-semibold tracking-wider uppercase bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded shrink-0">
+                  TEST
                 </span>
               )}
             </h3>

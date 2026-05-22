@@ -30,9 +30,9 @@ export async function GET(_req: NextRequest) {
     }
   }
 
-  // Active non-system jobs
+  // Active non-system, non-excluded jobs
   const activeJobs = await prisma.job.findMany({
-    where: { isSystemJob: false, status: "ACTIVE" },
+    where: { isSystemJob: false, excludeFromPL: false, status: "ACTIVE" },
     select: { id: true, jobNumber: true, jobName: true },
   });
 

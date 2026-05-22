@@ -130,11 +130,15 @@ export async function GET(req: NextRequest) {
       where: {
         date: { gte: start, lte: end },
         status: { not: "DRAFT" },
+        job: { excludeFromPL: false, isSystemJob: false },
       },
       select: { amount: true, status: true, jobId: true },
     }),
     prisma.payment.findMany({
-      where: { date: { gte: start, lte: end } },
+      where: {
+        date: { gte: start, lte: end },
+        job: { excludeFromPL: false, isSystemJob: false },
+      },
       select: { amount: true },
     }),
   ]);
@@ -146,7 +150,7 @@ export async function GET(req: NextRequest) {
   // ── Direct costs — per job ───────────────────────────────────────────────────
 
   const jobs = await prisma.job.findMany({
-    where: { isSystemJob: false },
+    where: { isSystemJob: false, excludeFromPL: false },
     include: {
       laborEntries: {
         where: { date: { gte: start, lte: end } },

@@ -105,6 +105,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
   const [deletePending, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [archivePending, startArchiveTransition] = useTransition();
+  const [excludeFromPL, setExcludeFromPL] = useState(job.excludeFromPL);
   const canEdit = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -312,6 +313,26 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
               placeholder="Describe the scope of work for this job…"
             />
           </div>
+
+          {role === "ADMIN" && (
+            <div className="col-span-full">
+              <hr className="border-gray-100 my-1" />
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Exclude from P&amp;L</label>
+                  <p className="text-xs text-gray-400">Mark as test/training job — excluded from all financial reporting</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExcludeFromPL(v => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${excludeFromPL ? "bg-orange-500" : "bg-gray-300"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${excludeFromPL ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+              <input type="hidden" name="excludeFromPL" value={excludeFromPL ? "true" : "false"} />
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">

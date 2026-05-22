@@ -36,11 +36,18 @@ export async function POST(req: NextRequest) {
   // Revenue
   const [invoices, payments] = await Promise.all([
     prisma.invoice.findMany({
-      where: { date: { gte: start, lte: end }, status: { not: "DRAFT" } },
+      where: {
+        date: { gte: start, lte: end },
+        status: { not: "DRAFT" },
+        job: { excludeFromPL: false, isSystemJob: false },
+      },
       select: { amount: true },
     }),
     prisma.payment.findMany({
-      where: { date: { gte: start, lte: end } },
+      where: {
+        date: { gte: start, lte: end },
+        job: { excludeFromPL: false, isSystemJob: false },
+      },
       select: { amount: true },
     }),
   ]);
@@ -54,9 +61,9 @@ export async function POST(req: NextRequest) {
   const totalCollected = payments.reduce((s, p) => s + toNum(p.amount), 0);
   const outstanding = Math.max(0, totalInvoiced - totalCollected);
 
-  // Direct costs
+  // Direct costs (excluding test/excluded jobs)
   const jobs = await prisma.job.findMany({
-    where: { isSystemJob: false },
+    where: { isSystemJob: false, excludeFromPL: false },
     include: {
       laborEntries: {
         where: { date: { gte: start, lte: end } },

@@ -109,7 +109,7 @@ export default async function DashboardPage() {
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {group.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <JobCard key={job.id} job={job} excludeFromPL={job.excludeFromPL} />
               ))}
             </div>
           </div>

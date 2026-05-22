@@ -104,8 +104,14 @@ export async function GET(req: NextRequest) {
   const allOverheadCosts = await prisma.overheadCost.findMany();
   const totalOverhead = getOverheadTotal(allOverheadCosts, start, end);
 
-  // Fetch all jobs with period-filtered related data
+  // Fetch all jobs with period-filtered related data (exclude test/excluded jobs)
   const jobs = await prisma.job.findMany({
+    where: {
+      OR: [
+        { isSystemJob: true },
+        { isSystemJob: false, excludeFromPL: false },
+      ],
+    },
     include: {
       laborEntries: {
         where: { date: { gte: start, lte: end } },
@@ -129,9 +135,9 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  // Count active non-system jobs for overhead allocation
+  // Count active non-system, non-excluded jobs for overhead allocation
   const activeJobCount = jobs.filter(
-    (j) => !j.isSystemJob && (j.status === "ACTIVE" || j.status === "COMPLETED")
+    (j) => !j.isSystemJob && !j.excludeFromPL && (j.status === "ACTIVE" || j.status === "COMPLETED")
   ).length;
 
   const overheadAllocation =
@@ -179,7 +185,7 @@ export async function GET(req: NextRequest) {
     }
 
     const directCosts = labor + materials + subcontractors + equipment + other;
-    const alloc = job.isSystemJob ? 0 : overheadAllocation;
+    const alloc = (job.isSystemJob || job.excludeFromPL) ? 0 : overheadAllocation;
     const trueProfit = invoiced - directCosts - alloc;
     const marginPct = invoiced > 0 ? (trueProfit / invoiced) * 100 : 0;
 
@@ -199,11 +205,13 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  // Sort: non-system jobs first, system jobs last
-  jobRows.sort((a, b) => {
-    if (a.isSystemJob !== b.isSystemJob) return a.isSystemJob ? 1 : -1;
-    return b.invoiced - a.invoiced;
-  });
+  const regularJobs = jobRows
+    .filter((r) => !r.isSystemJob)
+    .sort((a, b) => b.invoiced - a.invoiced);
 
-  return NextResponse.json({ jobs: jobRows });
+  const systemJobRows = jobRows
+    .filter((r) => r.isSystemJob)
+    .sort((a, b) => b.invoiced - a.invoiced);
+
+  return NextResponse.json({ jobs: regularJobs, systemJobs: systemJobRows });
 }

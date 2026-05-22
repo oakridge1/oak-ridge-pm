@@ -63,6 +63,9 @@ export async function updateJobInfo(jobId: string, fd: FormData) {
       laborBudgetHours: optFloat("laborBudgetHours"),
       materialBudget: optDecimal("materialBudget"),
       calendarColor: getString("calendarColor"),
+      ...(fd.get("excludeFromPL") !== null && session.user.role === "ADMIN"
+        ? { excludeFromPL: fd.get("excludeFromPL") === "true" }
+        : {}),
     },
   });
 

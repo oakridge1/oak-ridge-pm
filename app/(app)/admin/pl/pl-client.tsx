@@ -637,8 +637,9 @@ export default function PlClient({ initialData }: { initialData: PlData }) {
     setLoadingJobs(true);
     try {
       const res = await fetch(`/api/admin/pl/jobs?${queryString}`);
-      const json = await res.json() as { jobs: JobRow[] };
-      setJobs(json.jobs ?? []);
+      const json = await res.json() as { jobs: JobRow[]; systemJobs: JobRow[] };
+      // Combine regular jobs and system jobs; system jobs render last (gray) via isSystemJob flag
+      setJobs([...(json.jobs ?? []), ...(json.systemJobs ?? [])]);
     } finally {
       setLoadingJobs(false);
     }

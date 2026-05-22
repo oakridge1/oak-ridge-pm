@@ -14,20 +14,21 @@ export async function GET(_req: NextRequest) {
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  // Revenue: invoices (non-draft) in current month
+  // Revenue: invoices (non-draft) in current month, excluding test jobs
   const invoices = await prisma.invoice.findMany({
     where: {
       date: { gte: start, lte: end },
       status: { not: "DRAFT" },
+      job: { excludeFromPL: false, isSystemJob: false },
     },
     select: { amount: true },
   });
 
   const revenue = invoices.reduce((s, inv) => s + inv.amount.toNumber(), 0);
 
-  // Direct costs: labor + materials for jobs with activity in period
+  // Direct costs: labor + materials for jobs with activity in period (excluding test jobs)
   const jobs = await prisma.job.findMany({
-    where: { isSystemJob: false },
+    where: { isSystemJob: false, excludeFromPL: false },
     include: {
       laborEntries: {
         where: { date: { gte: start, lte: end } },
