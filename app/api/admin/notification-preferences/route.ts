@@ -24,6 +24,7 @@ export async function GET() {
     "calendar_reminder",
     "daily_report",
     "billing_reminder",
+    "contractor_payment_due",
   ];
 
   const stored = (pref?.preferences as Record<string, boolean>) ?? {};

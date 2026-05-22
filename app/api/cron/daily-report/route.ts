@@ -395,6 +395,84 @@ export async function GET(request: Request) {
 
     console.log(`[daily-report] ✓ admin report sent to ${adminEmails.join(", ")}`);
 
+    // ── Contractor Payment Reminders ──────────────────────────────────────────
+
+    const twoDaysFromNow = new Date();
+    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+    const twoDaysFromNowEnd = new Date(twoDaysFromNow);
+    twoDaysFromNowEnd.setHours(23, 59, 59, 999);
+    twoDaysFromNow.setHours(0, 0, 0, 0);
+
+    // Get the most recent payment per contractor (within last 30 days)
+    const recentPayments = await prisma.contractorPayment.findMany({
+      where: { paymentDate: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { paymentDate: "desc" },
+      distinct: ["userId"],
+    });
+
+    const paymentsComingDue = recentPayments.filter((p) => {
+      const nextDue = new Date(p.paymentDate);
+      nextDue.setDate(nextDue.getDate() + 14);
+      return nextDue >= twoDaysFromNow && nextDue <= twoDaysFromNowEnd;
+    });
+
+    if (paymentsComingDue.length > 0) {
+      // Fetch admin users with IDs for notification preference lookup
+      const adminUsersWithId = await prisma.user.findMany({
+        where: { active: true, role: "ADMIN" },
+        select: { id: true, email: true },
+      });
+
+      // Check which admins have contractor_payment_due notifications enabled
+      const adminPrefs = await prisma.notificationPreference.findMany({
+        where: { userId: { in: adminUsersWithId.map((a) => a.id) } },
+      });
+
+      // Build set of admin IDs that have opted out
+      const optedOut = new Set(
+        adminPrefs
+          .filter((pref) => {
+            const prefs = pref.preferences as Record<string, boolean>;
+            return prefs["contractor_payment_due"] === false;
+          })
+          .map((pref) => pref.userId)
+      );
+
+      const notifyEmails = adminUsersWithId
+        .filter((a) => !optedOut.has(a.id))
+        .map((a) => a.email);
+
+      if (notifyEmails.length > 0) {
+        const reminderRows = paymentsComingDue
+          .map((p) => {
+            const nextDue = new Date(p.paymentDate);
+            nextDue.setDate(nextDue.getDate() + 14);
+            return row(
+              p.user.name ?? p.user.email,
+              `$${p.amountUSD.toFixed(2)} USD — due ${fmtDate(nextDue)}`
+            );
+          })
+          .join("");
+
+        const reminderHtml = wrap(
+          section("💸 Contractor Payments Due in 2 Days", "#002D72", reminderRows),
+          "Contractor Payment Reminder",
+          now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+        );
+
+        await transport.sendMail({
+          from: `"Oak Ridge PM" <${FROM}>`,
+          to: notifyEmails.join(", "),
+          subject: `Contractor Payment Reminder — ${now.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+          text: `Contractor payments due in 2 days:\n${paymentsComingDue.map((p) => `- ${p.user.name}: $${p.amountUSD}`).join("\n")}`,
+          html: reminderHtml,
+        });
+
+        console.log(`[daily-report] ✓ contractor payment reminder sent for ${paymentsComingDue.length} contractor(s)`);
+      }
+    }
+
     // ── Per-Foreman per-job daily emails (Step 10) ────────────────────────────
 
     // Get all active foremen with their assigned active jobs

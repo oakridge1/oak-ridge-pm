@@ -99,6 +99,18 @@ export default async function AdminReceiptsPage() {
         >
           Overhead
         </a>
+        <a
+          href="/admin/owner-draws"
+          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+        >
+          Owner Draws
+        </a>
+        <a
+          href="/admin/contractor-payments"
+          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+        >
+          Contractor Pay
+        </a>
       </div>
 
       <ReceiptManagerClient

@@ -150,6 +150,12 @@ function AdminNav() {
       <a href="/admin/overhead" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
         Overhead
       </a>
+      <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        Owner Draws
+      </a>
+      <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        Contractor Pay
+      </a>
     </div>
   );
 }

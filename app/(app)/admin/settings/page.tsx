@@ -47,7 +47,7 @@ export default async function SettingsPage({
       </div>
 
       {/* Admin nav */}
-      <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4">
+      <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
         <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
           Users
         </a>
@@ -62,6 +62,12 @@ export default async function SettingsPage({
         </a>
         <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
           Overhead
+        </a>
+        <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+          Owner Draws
+        </a>
+        <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+          Contractor Pay
         </a>
       </div>
 

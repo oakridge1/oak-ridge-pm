@@ -156,6 +156,8 @@ model User {
   wage                     EmployeeWage?
   receipts                 Receipt[]              @relation("ReceiptUploader")
   payrollRecords           PayrollRecord[]
+  ownerDraws               OwnerDraw[]
+  contractorPayments       ContractorPayment[]
 }
 
 model Account {
@@ -954,4 +956,39 @@ model OverheadCost {
   createdById   String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+// ── Owner Draws ───────────────────────────────────────────────────────────────
+
+model OwnerDraw {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  amount     Float
+  drawDate   DateTime
+  method     String   @default("ATM")
+  notes      String?
+  receiptUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ── Contractor Payments ───────────────────────────────────────────────────────
+
+model ContractorPayment {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  amountUSD      Float
+  amountLocal    Float?
+  localCurrency  String?
+  exchangeRate   Float?
+  paymentDate    DateTime
+  payPeriodStart DateTime?
+  payPeriodEnd   DateTime?
+  method         String    @default("Wire")
+  notes          String?
+  receiptUrl     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
