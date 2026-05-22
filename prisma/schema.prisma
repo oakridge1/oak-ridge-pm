@@ -85,6 +85,7 @@ enum JobType {
   BID
   TIME_AND_MATERIALS
   ESTIMATE
+  SYSTEM
 }
 
 enum InvoiceType {
@@ -152,6 +153,8 @@ model User {
   designFeeEstimates       Estimate[]             @relation("EstimateDesignFee")
   notificationPreferences  NotificationPreference?
   wage                     EmployeeWage?
+  receipts                 Receipt[]              @relation("ReceiptUploader")
+  payrollRecords           PayrollRecord[]
 }
 
 model Account {
@@ -234,6 +237,8 @@ model Job {
   equipmentMarkupPct Float?
   materialMarkupPct  Float?
   otherMarkupPct     Float?
+  // System jobs (Office/Overhead and Shop/Equipment)
+  isSystemJob        Boolean   @default(false)
   // Archive
   archived           Boolean   @default(false)
   createdById        String?
@@ -262,6 +267,7 @@ model Job {
   estimate              Estimate?
   scheduleOfValues      ScheduleOfValues?
   costCodes             CostCode[]
+  receipts              Receipt[]
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -859,4 +865,70 @@ model CompanyRates {
   defaultBurden Float    @default(0.35)
   bidRates      Json     @default("{}")
   updatedAt     DateTime @updatedAt
+}
+
+// ── Vehicles ──────────────────────────────────────────────────────────────────
+
+model Vehicle {
+  id            String    @id @default(cuid())
+  tag           String
+  year          String?
+  make          String?
+  model         String?
+  plate         String?
+  primaryDriver String?
+  notes         String?
+  isActive      Boolean   @default(true)
+  receipts      Receipt[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ── Receipts ──────────────────────────────────────────────────────────────────
+
+model Receipt {
+  id             String    @id @default(cuid())
+  companyId      String?
+  jobId          String?
+  job            Job?      @relation(fields: [jobId], references: [id])
+  uploadedById   String
+  uploadedBy     User      @relation("ReceiptUploader", fields: [uploadedById], references: [id])
+  type           String    @default("job")
+  category       String?
+  vendor         String?
+  amount         Float?
+  receiptDate    DateTime?
+  description    String?
+  imageUrl       String?
+  fileUrl        String?
+  vehicleId      String?
+  vehicle        Vehicle?  @relation(fields: [vehicleId], references: [id])
+  mileage        Int?
+  isFuel         Boolean   @default(false)
+  isRecurring    Boolean   @default(false)
+  recurringDay   Int?
+  notes          String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  flagged        Boolean   @default(false)
+  flagReason     String?
+  archivedToVault Boolean  @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// ── Payroll Records ───────────────────────────────────────────────────────────
+
+model PayrollRecord {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  payPeriodStart DateTime
+  payPeriodEnd   DateTime
+  regularHours   Float    @default(0)
+  otHours        Float    @default(0)
+  grossPay       Float    @default(0)
+  importedFrom   String?
+  importedAt     DateTime @default(now())
+  importedBy     String?
 }

@@ -61,8 +61,9 @@ export default async function DashboardPage() {
       : Promise.resolve([]),
   ]);
 
-  // Only show non-estimate jobs
-  const jobs = allJobs.filter((j) => j.jobType !== "ESTIMATE");
+  // Only show non-estimate, non-system jobs
+  const jobs = allJobs.filter((j) => j.jobType !== "ESTIMATE" && j.jobType !== "SYSTEM");
+  const systemJobs = allJobs.filter((j) => j.jobType === "SYSTEM");
 
   const grouped = statusOrder.reduce<Record<string, typeof jobs>>(
     (acc, s) => ({ ...acc, [s]: jobs.filter((j) => j.status === s) }),
@@ -184,6 +185,22 @@ export default async function DashboardPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {systemJobs.length > 0 && (
+        <div className="mb-8 opacity-75">
+          <h2 className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-3 flex items-center gap-2">
+            System Jobs
+            <span className="bg-gray-200 text-gray-500 text-xs px-2 py-0.5 rounded-full font-medium">
+              {systemJobs.length}
+            </span>
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {systemJobs.map((job) => (
+              <JobCard key={job.id} job={job} isSystemJob={true} />
+            ))}
+          </div>
         </div>
       )}
 

@@ -13,6 +13,7 @@ import {
   HelpCircle,
   FolderOpen,
   ShoppingCart,
+  Receipt,
 } from "lucide-react";
 import { JobInfoTab } from "./tabs/job-info-tab";
 import { LaborTab } from "./tabs/labor-tab";
@@ -25,6 +26,7 @@ import { InspectionsTab } from "./tabs/inspections-tab";
 import { RfiTab } from "./tabs/rfi-tab";
 import { DocumentsTab } from "./tabs/documents-tab";
 import { CribTab } from "./tabs/crib-tab";
+import { ReceiptsTab } from "./tabs/receipts-tab";
 import type { Role } from "@/app/generated/prisma/client";
 
 type Tab = {
@@ -39,6 +41,7 @@ const TABS: Tab[] = [
   { id: "labor", label: "Labor", icon: <Clock className="w-4 h-4" /> },
   { id: "invoices", label: "Purchase Orders", icon: <Package className="w-4 h-4" /> },
   { id: "crib", label: "The Crib", icon: <ShoppingCart className="w-4 h-4" /> },
+  { id: "receipts", label: "Receipts", icon: <Receipt className="w-4 h-4" /> },
   { id: "photos", label: "Photos", icon: <Camera className="w-4 h-4" /> },
   {
     id: "notes-tasks",
@@ -156,6 +159,9 @@ export function JobTabs({
         )}
         {activeTab === "crib" && (
           <CribTab job={job} role={role} currentUserId={currentUserId} />
+        )}
+        {activeTab === "receipts" && (
+          <ReceiptsTab jobId={job.id} userId={currentUserId} userRole={role} />
         )}
         {activeTab === "photos" && (
           <PhotosTab job={job} role={role} />

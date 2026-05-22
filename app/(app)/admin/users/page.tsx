@@ -43,12 +43,15 @@ export default async function AdminUsersPage() {
       </div>
 
       {/* Admin nav */}
-      <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4">
+      <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
         <a href="/admin/users" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
           Users
         </a>
         <a href="/admin/saved-tasks" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
           Saved Tasks
+        </a>
+        <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+          Receipts
         </a>
         <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
           Settings

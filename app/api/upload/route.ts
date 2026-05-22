@@ -9,6 +9,7 @@ const BUCKET_MAP: Record<string, string> = {
   jobPhoto: "job-photos",
   materialAttachment: "material-attachments",
   jobDocument: "job-documents",
+  receiptImage: "receipts",
 };
 
 export async function POST(req: NextRequest) {

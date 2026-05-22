@@ -33,13 +33,19 @@ const statusConfig: Record<
   },
 };
 
-export function JobCard({ job }: { job: JobWithRelations }) {
+export function JobCard({
+  job,
+  isSystemJob = false,
+}: {
+  job: JobWithRelations;
+  isSystemJob?: boolean;
+}) {
   const cfg = statusConfig[job.status];
 
   return (
     <Link
       href={`/jobs/${job.id}`}
-      className={`block bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 ${cfg.border} hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all`}
+      className={`block rounded-xl shadow-sm border border-gray-200 border-l-4 ${cfg.border} hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all ${isSystemJob ? "bg-gray-50" : "bg-white"}`}
     >
       <div className="p-4">
         {/* Header row */}
@@ -48,8 +54,13 @@ export function JobCard({ job }: { job: JobWithRelations }) {
             <span className="text-xs font-mono text-gray-400">
               #{job.jobNumber}
             </span>
-            <h3 className="font-semibold text-[#002D72] leading-tight truncate text-base">
+            <h3 className="font-semibold text-[#002D72] leading-tight truncate text-base flex items-center gap-2">
               {job.jobName}
+              {isSystemJob && (
+                <span className="text-[10px] font-semibold tracking-wider uppercase bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded shrink-0">
+                  System Job
+                </span>
+              )}
             </h3>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
