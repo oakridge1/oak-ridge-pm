@@ -86,5 +86,24 @@ export async function POST(
     },
   });
 
+  // Archive to Document Vault
+  if (imageUrl) {
+    const vendorName = vendor ?? "Receipt";
+    const dateStr = receiptDate
+      ? new Date(receiptDate).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    await prisma.document.create({
+      data: {
+        jobId,
+        uploadedById: session.user.id,
+        category: "RECEIPTS",
+        name: `${dateStr} — ${vendorName}`,
+        fileUrl: imageUrl,
+        fileName: `receipt-${dateStr}.jpg`,
+        fileSize: null,
+      },
+    });
+  }
+
   return NextResponse.json({ receipt }, { status: 201 });
 }

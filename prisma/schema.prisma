@@ -78,6 +78,7 @@ enum DocumentCategory {
   CLOSEOUT
   MATERIAL_RECEIPTS
   STOCK_ORDERS
+  RECEIPTS
   OTHER
 }
 
@@ -931,4 +932,26 @@ model PayrollRecord {
   importedFrom   String?
   importedAt     DateTime @default(now())
   importedBy     String?
+}
+
+// ── Overhead Costs ────────────────────────────────────────────────────────────
+
+model OverheadCost {
+  id            String    @id @default(cuid())
+  category      String
+  description   String
+  amount        Float
+  effectiveDate DateTime
+  endDate       DateTime?
+  isRecurring   Boolean   @default(false)
+  recurringDay  Int?
+  recurringFreq String?
+  autoIncrease  Boolean   @default(false)
+  increaseRate  Float?
+  increaseMonth Int?
+  notes         String?
+  receiptUrl    String?
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

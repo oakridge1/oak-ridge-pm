@@ -93,6 +93,12 @@ export default async function AdminReceiptsPage() {
         >
           Settings
         </a>
+        <a
+          href="/admin/overhead"
+          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+        >
+          Overhead
+        </a>
       </div>
 
       <ReceiptManagerClient

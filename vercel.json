@@ -1,12 +1,8 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/daily-report",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/billing-reminder",
-      "schedule": "0 9 * * *"
-    }
+    { "path": "/api/cron/daily-report",        "schedule": "0 9 * * *" },
+    { "path": "/api/cron/billing-reminder",    "schedule": "0 9 * * *" },
+    { "path": "/api/cron/reset-stock-orders",  "schedule": "0 5 * * *" },
+    { "path": "/api/cron/generate-overhead",   "schedule": "0 11 1 * *" }
   ]
 }

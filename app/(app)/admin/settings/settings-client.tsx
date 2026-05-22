@@ -195,6 +195,17 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   const [vehicleSaving, setVehicleSaving] = useState(false);
   const [vehicleDeleteId, setVehicleDeleteId] = useState<string | null>(null);
 
+  // ── Vehicle cost log state ────────────────────────────────────────────────────
+  interface VehicleCost { id: string; category: string | null; amount: number | null; receiptDate: string | null; description: string | null; vendor: string | null; imageUrl: string | null; }
+  const [logCostVehicleId, setLogCostVehicleId] = useState<string | null>(null);
+  const [costForm, setCostForm] = useState({ costType: "Maintenance", amount: "", date: new Date().toISOString().slice(0, 10), description: "" });
+  const [costSaving, setCostSaving] = useState(false);
+  const [costSuccess, setCostSuccess] = useState<string | null>(null);
+  const costFileInputRef = useRef<HTMLInputElement>(null);
+  const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
+  const [vehicleCosts, setVehicleCosts] = useState<Record<string, VehicleCost[]>>({});
+  const [historyLoading, setHistoryLoading] = useState<string | null>(null);
+
   // ── Payroll Import state ──────────────────────────────────────────────────────
   const payrollFileRef = useRef<HTMLInputElement>(null);
   const [payrollPreviewing, setPayrollPreviewing] = useState(false);
@@ -648,6 +659,77 @@ export function SettingsClient({ connection, justConnected, connectError, compan
         setVehicles(prev => prev.map(x => x.id === id ? { ...x, isActive: false } : x));
       } else {
         setVehicles(prev => prev.filter(x => x.id !== id));
+      }
+    }
+  }
+
+  // ── Vehicle cost handlers ─────────────────────────────────────────────────────
+
+  async function handleLogCost(vehicleId: string) {
+    if (!costForm.amount) return;
+    setCostSaving(true);
+    try {
+      let receiptUrl: string | null = null;
+      const file = costFileInputRef.current?.files?.[0];
+      if (file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("endpoint", "receiptImage");
+        const up = await fetch("/api/upload", { method: "POST", body: fd });
+        if (up.ok) { const d = await up.json(); receiptUrl = d.url ?? null; }
+      }
+
+      const res = await fetch(`/api/admin/vehicles/${vehicleId}/costs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          costType: costForm.costType,
+          amount: parseFloat(costForm.amount),
+          date: costForm.date,
+          description: costForm.description,
+          receiptUrl,
+        }),
+      });
+
+      if (res.ok) {
+        setCostSuccess(vehicleId);
+        setCostForm({ costType: "Maintenance", amount: "", date: new Date().toISOString().slice(0, 10), description: "" });
+        if (costFileInputRef.current) costFileInputRef.current.value = "";
+        setTimeout(() => {
+          setCostSuccess(null);
+          setLogCostVehicleId(null);
+          // Refresh cost history if it was open
+          if (historyOpenId === vehicleId) {
+            setVehicleCosts(prev => ({ ...prev, [vehicleId]: [] }));
+            loadVehicleCosts(vehicleId);
+          }
+        }, 1500);
+      }
+    } finally {
+      setCostSaving(false);
+    }
+  }
+
+  async function loadVehicleCosts(vehicleId: string) {
+    setHistoryLoading(vehicleId);
+    try {
+      const res = await fetch(`/api/admin/vehicles/${vehicleId}/costs`);
+      if (res.ok) {
+        const data = await res.json();
+        setVehicleCosts(prev => ({ ...prev, [vehicleId]: data }));
+      }
+    } finally {
+      setHistoryLoading(null);
+    }
+  }
+
+  function toggleCostHistory(vehicleId: string) {
+    if (historyOpenId === vehicleId) {
+      setHistoryOpenId(null);
+    } else {
+      setHistoryOpenId(vehicleId);
+      if (!vehicleCosts[vehicleId]) {
+        loadVehicleCosts(vehicleId);
       }
     }
   }
@@ -1816,32 +1898,132 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 border border-gray-100">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-[#002D72]">{v.tag}</span>
-                        {(v.year || v.make || v.model) && (
-                          <span className="text-sm text-gray-700">{[v.year, v.make, v.model].filter(Boolean).join(" ")}</span>
-                        )}
-                        {v.plate && <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded font-mono">{v.plate}</span>}
-                        {v.primaryDriver && <span className="text-xs text-gray-500">{v.primaryDriver}</span>}
-                        {!v.isActive && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">Inactive</span>}
-                        {v.isActive && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Active</span>}
+                  <div className="border border-gray-100 rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-[#002D72]">{v.tag}</span>
+                          {(v.year || v.make || v.model) && (
+                            <span className="text-sm text-gray-700">{[v.year, v.make, v.model].filter(Boolean).join(" ")}</span>
+                          )}
+                          {v.plate && <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded font-mono">{v.plate}</span>}
+                          {v.primaryDriver && <span className="text-xs text-gray-500">{v.primaryDriver}</span>}
+                          {!v.isActive && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">Inactive</span>}
+                          {v.isActive && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Active</span>}
+                        </div>
+                        {v.notes && <p className="text-xs text-gray-400 mt-0.5 italic">{v.notes}</p>}
                       </div>
-                      {v.notes && <p className="text-xs text-gray-400 mt-0.5 italic">{v.notes}</p>}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => { setLogCostVehicleId(logCostVehicleId === v.id ? null : v.id); setCostForm({ costType: "Maintenance", amount: "", date: new Date().toISOString().slice(0, 10), description: "" }); }}
+                          className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          Log Cost
+                        </button>
+                        <button onClick={() => {
+                          setEditingVehicleId(v.id);
+                          setVehicleForm({ tag: v.tag, year: v.year ?? "", make: v.make ?? "", model: v.model ?? "", plate: v.plate ?? "", primaryDriver: v.primaryDriver ?? "", notes: v.notes ?? "" });
+                          setAddingVehicle(false);
+                        }} className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setVehicleDeleteId(v.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => {
-                        setEditingVehicleId(v.id);
-                        setVehicleForm({ tag: v.tag, year: v.year ?? "", make: v.make ?? "", model: v.model ?? "", plate: v.plate ?? "", primaryDriver: v.primaryDriver ?? "", notes: v.notes ?? "" });
-                        setAddingVehicle(false);
-                      }} className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors">
-                        <Edit2 className="w-3.5 h-3.5" />
+
+                    {/* Log Cost inline form */}
+                    {logCostVehicleId === v.id && (
+                      <div className="border-t border-gray-100 bg-gray-50 px-3 py-3 space-y-2">
+                        <p className="text-xs font-medium text-gray-700">Log a vehicle cost</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={costForm.costType}
+                            onChange={e => setCostForm(f => ({ ...f, costType: e.target.value }))}
+                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                          >
+                            {["Tires", "Registration", "Maintenance", "Inspection", "Repair", "Other"].map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input
+                              type="number" step="0.01" min="0" required
+                              value={costForm.amount}
+                              onChange={e => setCostForm(f => ({ ...f, amount: e.target.value }))}
+                              placeholder="Amount"
+                              className="w-full border border-gray-300 rounded-lg pl-5 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                            />
+                          </div>
+                          <input
+                            type="date"
+                            value={costForm.date}
+                            onChange={e => setCostForm(f => ({ ...f, date: e.target.value }))}
+                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                          />
+                          <input
+                            type="text"
+                            value={costForm.description}
+                            onChange={e => setCostForm(f => ({ ...f, description: e.target.value }))}
+                            placeholder="Description"
+                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                          />
+                        </div>
+                        <input
+                          ref={costFileInputRef}
+                          type="file" accept="image/*" capture="environment"
+                          className="text-xs text-gray-600 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                        />
+                        <div className="flex items-center gap-2 justify-end pt-1">
+                          {costSuccess === v.id && (
+                            <span className="text-xs text-green-600 font-medium">Saved!</span>
+                          )}
+                          <button onClick={() => setLogCostVehicleId(null)} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">Cancel</button>
+                          <button
+                            onClick={() => handleLogCost(v.id)}
+                            disabled={costSaving || !costForm.amount}
+                            className="bg-[#002D72] text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-[#003d99] disabled:opacity-60"
+                          >
+                            {costSaving ? "Saving…" : "Save Cost"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cost history toggle */}
+                    <div className="border-t border-gray-100">
+                      <button
+                        onClick={() => toggleCostHistory(v.id)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <span>View Cost History</span>
+                        {historyOpenId === v.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       </button>
-                      <button onClick={() => setVehicleDeleteId(v.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+
+                      {historyOpenId === v.id && (
+                        <div className="px-3 pb-3 space-y-1">
+                          {historyLoading === v.id ? (
+                            <p className="text-xs text-gray-400 py-2">Loading…</p>
+                          ) : !vehicleCosts[v.id] || vehicleCosts[v.id].length === 0 ? (
+                            <p className="text-xs text-gray-400 py-2">No costs recorded yet.</p>
+                          ) : (
+                            <>
+                              {vehicleCosts[v.id].slice(0, 5).map(c => (
+                                <div key={c.id} className="flex items-center gap-2 text-xs py-1 border-b border-gray-50 last:border-0">
+                                  <span className="text-gray-400 shrink-0">{c.receiptDate ? new Date(c.receiptDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</span>
+                                  <span className="text-gray-600 font-medium shrink-0">{c.category ?? "—"}</span>
+                                  <span className="text-gray-900 font-semibold shrink-0">${(c.amount ?? 0).toFixed(2)}</span>
+                                  {c.description && <span className="text-gray-400 truncate">{c.description}</span>}
+                                </div>
+                              ))}
+                              <a href={`/admin/receipts?vehicleId=${v.id}`} className="block text-xs text-[#002D72] hover:underline pt-1">View All →</a>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

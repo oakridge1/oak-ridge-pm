@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { JobCard } from "./job-card";
 import { CreateJobButton } from "./create-job-button";
 import { ArchivedJobsSection } from "./archived-jobs-section";
+import { ShopExpenseButton } from "./shop-expense-button";
 import Link from "next/link";
 import { Calculator, ChevronRight } from "lucide-react";
 import type { JobStatus } from "@/app/generated/prisma/client";
@@ -80,7 +81,10 @@ export default async function DashboardPage() {
             {jobs.filter((j) => j.status === "ACTIVE").length !== 1 ? "s" : ""}
           </p>
         </div>
-        {(isAdmin || isOffice) && <CreateJobButton />}
+        <div className="flex items-center gap-2">
+          {isAdmin && <ShopExpenseButton />}
+          {(isAdmin || isOffice) && <CreateJobButton />}
+        </div>
       </div>
 
       {jobs.length === 0 && archivedJobs.length === 0 && (
