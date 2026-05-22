@@ -6,7 +6,7 @@ import {
   DollarSign, BarChart3,
   Edit2, Save, Plus, Trash2, CreditCard, RefreshCw,
   FileText, ChevronDown, ChevronUp, Send, CheckCircle2, ExternalLink,
-  Download, Mail, TrendingUp, TrendingDown, Link2, Upload,
+  Download, Mail, TrendingUp, TrendingDown, Link2, Upload, Building2,
 } from "lucide-react";
 import { useUpload } from "@/lib/use-upload";
 import {
@@ -89,6 +89,7 @@ interface SummaryTabProps {
   };
   role: Role;
   companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
+  overheadAllocation?: number;
 }
 
 function fmt$(n: number | null | undefined) {
@@ -1760,7 +1761,7 @@ function PaymentLogCard({ job, role }: {
 
 // ── Profitability Card ────────────────────────────────────────────────────────
 
-function ProfitabilityCard({ job, role, companyRates, computed }: {
+function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocation = 0 }: {
   job: SummaryTabProps["job"];
   role: Role;
   companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
@@ -1773,6 +1774,7 @@ function ProfitabilityCard({ job, role, companyRates, computed }: {
     otherTotal: number;
     totalMarkup: number;
   };
+  overheadAllocation?: number;
 }) {
   const [showDetail, setShowDetail] = useState(false);
 
@@ -1839,6 +1841,9 @@ function ProfitabilityCard({ job, role, companyRates, computed }: {
   const grossProfit = computed.grossBilling - totalActualCost;
   const grossMarginPct = computed.grossBilling > 0
     ? (grossProfit / computed.grossBilling) * 100 : 0;
+  const trueNetProfit = grossProfit - overheadAllocation;
+  const trueNetMarginPct = computed.grossBilling > 0
+    ? (trueNetProfit / computed.grossBilling) * 100 : 0;
 
   // Labor budget comparison
   const laborBudgetVariance = job.laborBudgetHours != null
@@ -1950,6 +1955,28 @@ function ProfitabilityCard({ job, role, companyRates, computed }: {
             </div>
           </div>
 
+          {overheadAllocation > 0 && (
+            <div className="flex justify-between items-center py-1.5 border-t border-gray-100">
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <Building2 className="w-3 h-3" /> Overhead Allocation
+              </span>
+              <span className="text-xs tabular-nums text-orange-600">-{fmt$(overheadAllocation)}</span>
+            </div>
+          )}
+          {overheadAllocation > 0 && (
+            <div className="flex justify-between items-center py-1.5 border-t border-gray-200 bg-gray-50 -mx-3 px-3 rounded-b">
+              <span className="text-xs font-semibold text-gray-700">
+                True Net Profit
+                {computed.grossBilling > 0 && (
+                  <span className="text-gray-400 font-normal ml-1">({trueNetMarginPct.toFixed(1)}%)</span>
+                )}
+              </span>
+              <span className={`text-sm font-bold tabular-nums ${trueNetProfit >= 0 ? "text-green-700" : "text-red-600"}`}>
+                {fmt$(trueNetProfit)}
+              </span>
+            </div>
+          )}
+
           {/* Labor budget variance */}
           {laborBudgetVariance !== null && (
             <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -2027,7 +2054,7 @@ function ProfitabilityCard({ job, role, companyRates, computed }: {
 
 // ── Main SummaryTab ───────────────────────────────────────────────────────────
 
-export function SummaryTab({ job, role, companyRates = null }: SummaryTabProps) {
+export function SummaryTab({ job, role, companyRates = null, overheadAllocation = 0 }: SummaryTabProps) {
   const router = useRouter();
 
   useEffect(() => {
@@ -2128,6 +2155,7 @@ export function SummaryTab({ job, role, companyRates = null }: SummaryTabProps) 
           role={role}
           companyRates={companyRates}
           computed={{ grossBilling, totalHours, materialsCost, subCost, equipmentBilled, otherTotal, totalMarkup }}
+          overheadAllocation={overheadAllocation}
         />
       )}
 

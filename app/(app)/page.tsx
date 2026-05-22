@@ -4,6 +4,7 @@ import { JobCard } from "./job-card";
 import { CreateJobButton } from "./create-job-button";
 import { ArchivedJobsSection } from "./archived-jobs-section";
 import { ShopExpenseButton } from "./shop-expense-button";
+import PlSummaryWidget from "./pl-summary-widget";
 import Link from "next/link";
 import { Calculator, ChevronRight } from "lucide-react";
 import type { JobStatus } from "@/app/generated/prisma/client";
@@ -86,6 +87,8 @@ export default async function DashboardPage() {
           {(isAdmin || isOffice) && <CreateJobButton />}
         </div>
       </div>
+
+      {(isAdmin || isOffice) && <PlSummaryWidget />}
 
       {jobs.length === 0 && archivedJobs.length === 0 && (
         <div className="text-center py-20 text-gray-400">

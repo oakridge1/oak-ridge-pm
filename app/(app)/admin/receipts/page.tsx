@@ -111,6 +111,12 @@ export default async function AdminReceiptsPage() {
         >
           Contractor Pay
         </a>
+        <a
+          href="/admin/pl"
+          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+        >
+          P&amp;L
+        </a>
       </div>
 
       <ReceiptManagerClient

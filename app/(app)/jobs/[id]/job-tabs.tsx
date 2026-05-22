@@ -87,6 +87,7 @@ interface JobTabsProps {
   canViewSummary?: boolean;
   orderingPermissions?: { scope: string; jobId: string | null }[];
   companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
+  overheadAllocation?: number;
 }
 
 export function JobTabs({
@@ -100,6 +101,7 @@ export function JobTabs({
   canViewSummary = false,
   orderingPermissions = [],
   companyRates = null,
+  overheadAllocation = 0,
 }: JobTabsProps) {
   const [activeTab, setActiveTab] = useState("info");
 
@@ -198,7 +200,7 @@ export function JobTabs({
           <DocumentsTab job={job} role={role} />
         )}
         {activeTab === "summary" && (
-          <SummaryTab job={job} role={role} companyRates={companyRates} />
+          <SummaryTab job={job} role={role} companyRates={companyRates} overheadAllocation={overheadAllocation} />
         )}
       </div>
     </div>

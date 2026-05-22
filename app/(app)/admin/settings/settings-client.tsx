@@ -69,6 +69,10 @@ interface CompanySettings {
   email: string;
   logoUrl: string | null;
   defaultPaymentTerms: string;
+  accountantEmail: string;
+  overheadAllocMethod: string;
+  taxYearStartMonth: number;
+  fiscalYearType: string;
 }
 
 interface Vehicle {
@@ -980,6 +984,51 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 <option value="net_30">Net 30</option>
                 <option value="net_45">Net 45</option>
                 <option value="net_60">Net 60</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Accountant Email</label>
+              <input
+                type="email"
+                value={company.accountantEmail ?? ""}
+                onChange={(e) => setCompany({ ...company, accountantEmail: e.target.value })}
+                placeholder="accountant@example.com"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Overhead Allocation Method</label>
+              <select
+                value={company.overheadAllocMethod ?? "equal"}
+                onChange={(e) => setCompany({ ...company, overheadAllocMethod: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              >
+                <option value="equal">Equal Split</option>
+                <option value="contract_value">By Contract Value</option>
+                <option value="manual">Manual per Job</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Tax Year Start Month</label>
+              <select
+                value={company.taxYearStartMonth ?? 1}
+                onChange={(e) => setCompany({ ...company, taxYearStartMonth: parseInt(e.target.value, 10) })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              >
+                {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
+                  <option key={i + 1} value={i + 1}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Fiscal Year Type</label>
+              <select
+                value={company.fiscalYearType ?? "calendar"}
+                onChange={(e) => setCompany({ ...company, fiscalYearType: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+              >
+                <option value="calendar">Calendar Year</option>
+                <option value="fiscal">Custom Fiscal Year</option>
               </select>
             </div>
           </div>

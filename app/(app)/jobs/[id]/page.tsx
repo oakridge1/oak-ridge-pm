@@ -114,6 +114,26 @@ export default async function JobPage({ params }: PageProps) {
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
+  // Calculate overhead allocation for this job
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const [monthlyOverhead, activeJobCount] = await Promise.all([
+    prisma.overheadCost.aggregate({
+      where: { effectiveDate: { gte: monthStart, lte: monthEnd }, isRecurring: false },
+      _sum: { amount: true },
+    }),
+    prisma.job.count({
+      where: { status: "ACTIVE", isSystemJob: false },
+    }),
+  ]);
+  const overheadAllocAmount = (() => {
+    const raw = monthlyOverhead._sum.amount;
+    const total = (raw as { toNumber?: () => number } | null)?.toNumber?.() ?? (typeof raw === "number" ? raw : 0);
+    return activeJobCount > 0 ? total / activeJobCount : 0;
+  })();
+
   // Serialize Prisma Decimal objects — they can't be passed to Client Components
   const serializedJob = {
     ...job,
@@ -193,6 +213,7 @@ export default async function JobPage({ params }: PageProps) {
         allCalendarEvents={allCalendarEvents}
         canViewSummary={canViewSummary}
         companyRates={companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
+        overheadAllocation={overheadAllocAmount}
       />
     </div>
   );

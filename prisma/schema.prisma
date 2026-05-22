@@ -595,6 +595,10 @@ model CompanySettings {
   email               String   @default("Justin@oakridgeelectrical.com")
   logoUrl             String?
   defaultPaymentTerms String   @default("due_on_receipt")
+  accountantEmail     String?
+  overheadAllocMethod String   @default("equal")
+  taxYearStartMonth   Int      @default(1)
+  fiscalYearType      String   @default("calendar")
   updatedAt           DateTime @updatedAt
 }
 

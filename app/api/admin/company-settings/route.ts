@@ -23,12 +23,23 @@ export async function PUT(req: Request) {
   if (session.user.role !== "ADMIN") return new NextResponse("Forbidden", { status: 403 });
 
   const body = await req.json();
-  const { name, address, city, state, zip, phone, email, logoUrl, defaultPaymentTerms } = body;
+  const {
+    name, address, city, state, zip, phone, email, logoUrl, defaultPaymentTerms,
+    accountantEmail, overheadAllocMethod, taxYearStartMonth, fiscalYearType,
+  } = body;
+
+  const data = {
+    name, address, city, state, zip, phone, email, logoUrl, defaultPaymentTerms,
+    ...(accountantEmail !== undefined ? { accountantEmail } : {}),
+    ...(overheadAllocMethod !== undefined ? { overheadAllocMethod } : {}),
+    ...(taxYearStartMonth !== undefined ? { taxYearStartMonth: Number(taxYearStartMonth) } : {}),
+    ...(fiscalYearType !== undefined ? { fiscalYearType } : {}),
+  };
 
   const settings = await prisma.companySettings.upsert({
     where: { id: "singleton" },
-    update: { name, address, city, state, zip, phone, email, logoUrl, defaultPaymentTerms },
-    create: { id: "singleton", name, address, city, state, zip, phone, email, logoUrl, defaultPaymentTerms },
+    update: data,
+    create: { id: "singleton", ...data },
   });
   return NextResponse.json(settings);
 }
