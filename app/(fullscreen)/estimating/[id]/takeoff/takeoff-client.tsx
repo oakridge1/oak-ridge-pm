@@ -38,7 +38,7 @@ function pxPerFootFromPreset(feetPerInch: number): number {
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Mode = "count" | "run" | "pan";
+type Mode = "count" | "run" | "pan" | "fixtures";
 type SaveStatus = "saved" | "saving" | "unsaved";
 
 interface Pt { x: number; y: number }
@@ -60,6 +60,10 @@ interface Markup {
   runTypeId?: string;
   transferred?: boolean;
   name?: string;
+  footageOverride?: number;
+  isFixture?: boolean;
+  fixtureId?: string;
+  tag?: string;
 }
 
 interface RunType {
@@ -85,6 +89,7 @@ export interface SerializedDrawing {
   runTypes: any[];
   assemblies: any[];
   pageScales: Record<string, number>;
+  fixtures?: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -107,22 +112,70 @@ function calcRunPixelDist(pts: Pt[]): number {
   return d;
 }
 
+function distToSegment(p: Pt, a: Pt, b: Pt): number {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+}
+
 function drawMarker(
   ctx: CanvasRenderingContext2D,
-  symId: string, x: number, y: number, size: number, color: string, alpha = 1
+  symId: string, x: number, y: number, size: number, color: string, alpha = 1, rotation = 0
 ) {
   ctx.save();
   ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  if (rotation) ctx.rotate(rotation * Math.PI / 180);
   ctx.fillStyle = "rgba(0,0,0,0.5)";
-  ctx.beginPath(); ctx.arc(x, y, size * 0.7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, size * 0.7, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = color; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(x, y, size * 0.7, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, size * 0.7, 0, Math.PI * 2); ctx.stroke();
   ctx.shadowColor = color; ctx.shadowBlur = 8;
   const fn = DRAW_SYMBOLS[symId] ?? DRAW_SYMBOLS["dot"];
-  fn(ctx, x, y, size, color);
+  fn(ctx, 0, 0, size, color);
   ctx.shadowBlur = 0;
   ctx.restore();
 }
+
+function drawFixtureMarker(
+  ctx: CanvasRenderingContext2D, tag: string,
+  x: number, y: number, size: number, color: string
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  const r = size * 0.65;
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  ctx.shadowColor = color; ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(0, r); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color;
+  ctx.font = `bold ${Math.round(size * 0.5)}px "JetBrains Mono", monospace`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText(tag, 0, r + 2);
+  ctx.restore();
+}
+
+// ── Fixture schedule ──────────────────────────────────────────────────────────
+interface FixtureItem {
+  id: string;
+  tag: string;
+  description: string;
+  manufacturer: string;
+  baseType: string;
+  color: string;
+  notes: string;
+}
+
+const FIXTURE_BASE_TYPES = [
+  "LED Troffer 2×4", "LED Troffer 2×2", "LED Strip", "LED High Bay",
+  "LED Recessed Can", "LED Pendant", "LED Vapor Tight", "LED Wall Pack",
+  "Exit Sign", "Emergency Light", "Ceiling Fan", "Track Light",
+  "Surface Mount", "Undercabinet", "Custom",
+];
 
 const DEFAULT_RUN_TYPE: RunType = {
   id: "rt_default",
@@ -220,6 +273,33 @@ export function TakeoffClient({
   const [rtfColor, setRtfColor] = useState("#f0a500");
   const [rtfDifficulty, setRtfDifficulty] = useState(1.0);
 
+  // Fixtures
+  const [fixtures, setFixtures] = useState<FixtureItem[]>(() =>
+    Array.isArray(initialDrawings[0]?.fixtures) ? (initialDrawings[0].fixtures as FixtureItem[]) : []
+  );
+  const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
+  const [showFixtureForm, setShowFixtureForm] = useState(false);
+  const [fixTag, setFixTag] = useState("");
+  const [fixDescription, setFixDescription] = useState("");
+  const [fixManufacturer, setFixManufacturer] = useState("");
+  const [fixBaseType, setFixBaseType] = useState(FIXTURE_BASE_TYPES[0]);
+  const [fixColor, setFixColor] = useState("#3a8fe8");
+  const [fixNotes, setFixNotes] = useState("");
+
+  // Context menu
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; markup: Markup } | null>(null);
+  const [editTagModal, setEditTagModal] = useState(false);
+  const [editTagValue, setEditTagValue] = useState("");
+  const [editTagMarkupId, setEditTagMarkupId] = useState("");
+  const [editFootageModal, setEditFootageModal] = useState(false);
+  const [editFootageValue, setEditFootageValue] = useState("");
+  const [editFootageMarkupId, setEditFootageMarkupId] = useState("");
+  const [changeRTModal, setChangeRTModal] = useState(false);
+  const [changeRTId, setChangeRTId] = useState("");
+  const [changeRTMarkupId, setChangeRTMarkupId] = useState("");
+  const [propsModal, setPropsModal] = useState(false);
+  const [propsMarkup, setPropsMarkup] = useState<Markup | null>(null);
+
   // Markups
   const [markups, setMarkups] = useState<Markup[]>(() =>
     (initialDrawings[0]?.markups ?? []) as Markup[]
@@ -270,6 +350,9 @@ export function TakeoffClient({
   useEffect(() => { orthoSnapRef.current = orthoSnap; }, [orthoSnap]);
   useEffect(() => { measuringActiveRef.current = measuringActive; }, [measuringActive]);
   useEffect(() => { measurePt1Ref.current = measurePt1; }, [measurePt1]);
+
+  const fixturesRef = useRef(fixtures);
+  useEffect(() => { fixturesRef.current = fixtures; }, [fixtures]);
 
   // Fix 3: drive scaleBannerVisible from state, not from inside a setState updater
   useEffect(() => {
@@ -393,10 +476,14 @@ export function TakeoffClient({
       for (const m of markupsRef.current) {
         if (m.page !== page) continue;
         if (m.type === "symbol" && m.x != null && m.y != null) {
-          drawMarker(ctx, m.symId ?? "dot", m.x * z, m.y * z, (m.size ?? MARKER_SIZE) * z, m.color ?? "#e03a3a");
+          if (m.isFixture) {
+            drawFixtureMarker(ctx, m.tag ?? "?", m.x * z, m.y * z, (m.size ?? MARKER_SIZE) * z, m.color ?? "#3a8fe8");
+          } else {
+            drawMarker(ctx, m.symId ?? "dot", m.x * z, m.y * z, (m.size ?? MARKER_SIZE) * z, m.color ?? "#e03a3a", 1, m.rotation ?? 0);
+          }
         } else if (m.type === "run" && m.points && m.points.length >= 2) {
           const pts = m.points.map(p => ({ x: p.x * z, y: p.y * z }));
-          drawRun(ctx, pts, m.color ?? "#f0a500", m.footage ?? 0, m.transferred ?? false);
+          drawRun(ctx, pts, m.color ?? "#f0a500", m.footageOverride ?? m.footage ?? 0, m.transferred ?? false);
         } else if (m.type === "endpoint" && m.x != null && m.y != null) {
           drawEndpoint(ctx, m.x * z, m.y * z, m.name ?? "EP");
         }
@@ -524,6 +611,7 @@ export function TakeoffClient({
     if (modeRef.current === "pan" || spaceHeld.current) return;
     if (modeRef.current === "count") handleCountClick(pos);
     else if (modeRef.current === "run") handleRunClick(pos, e.shiftKey);
+    else if (modeRef.current === "fixtures") handleFixtureClick(pos);
   }
 
   function handleDblClick(e: React.MouseEvent) {
@@ -534,11 +622,19 @@ export function TakeoffClient({
 
   function handleRightClick(e: React.MouseEvent) {
     e.preventDefault();
-    if (modeRef.current === "run") {
+    // If a run is in progress, pop the last point
+    if (modeRef.current === "run" && runInProgressRef.current.length > 0) {
       const rip = runInProgressRef.current;
       const next = rip.length > 1 ? rip.slice(0, -1) : [];
       setRunInProgress(next); runInProgressRef.current = next;
       redrawAll(currentPageRef.current, zoomRef.current, null);
+      return;
+    }
+    // Otherwise hit-detect and show context menu
+    const pos = getCanvasPos(e);
+    const found = getMarkupAtPoint(pos.x, pos.y);
+    if (found) {
+      setContextMenu({ x: e.clientX, y: e.clientY, markup: found });
     }
   }
 
@@ -674,6 +770,7 @@ export function TakeoffClient({
       if (e.key === "c" || e.key === "C") { setMode("count"); modeRef.current = "count"; }
       if (e.key === "r" || e.key === "R") { setMode("run"); modeRef.current = "run"; }
       if (e.key === "p" || e.key === "P") { setMode("pan"); modeRef.current = "pan"; }
+      if (e.key === "f" || e.key === "F") { setMode("fixtures"); modeRef.current = "fixtures"; }
       if (e.key === "Escape") {
         setRunInProgress([]); runInProgressRef.current = [];
         setMeasuringActive(false); measuringActiveRef.current = false;
@@ -767,8 +864,10 @@ export function TakeoffClient({
     const mups = Array.isArray(d.markups) ? (d.markups as Markup[]) : [];
     const rts = Array.isArray(d.runTypes) && d.runTypes.length > 0
       ? (d.runTypes as RunType[]) : [DEFAULT_RUN_TYPE];
+    const fxs = Array.isArray(d.fixtures) ? (d.fixtures as FixtureItem[]) : [];
     setMarkups(mups); markupsRef.current = mups;
     setRunTypes(rts); setActiveRunTypeId(rts[0].id);
+    setFixtures(fxs); fixturesRef.current = fxs;
     setPageScales(d.pageScales ?? {}); pageScalesRef.current = d.pageScales ?? {};
     setCurrentPage(1); currentPageRef.current = 1;
     setTotalPages(d.pageCount ?? 1);
@@ -815,7 +914,7 @@ export function TakeoffClient({
     const d: SerializedDrawing = {
       ...(await resp.json()),
       pdfData: null, markups: [], runTypes: [DEFAULT_RUN_TYPE],
-      assemblies: [], pageScales: {},
+      assemblies: [], pageScales: {}, fixtures: [],
     };
     setDrawings(prev => [...prev, d]);
     switchDrawing(d.id);
@@ -962,6 +1061,146 @@ export function TakeoffClient({
     alert(`Synced to counter: ${job.name ?? jobKey}`);
   }
 
+  // ── Context menu & hit detection ──────────────────────────────────────────
+  function getMarkupAtPoint(px: number, py: number): Markup | null {
+    const z = zoomRef.current;
+    const page = currentPageRef.current;
+    // Symbols first (18px screen radius)
+    for (let i = markupsRef.current.length - 1; i >= 0; i--) {
+      const m = markupsRef.current[i];
+      if (m.page !== page) continue;
+      if (m.type === "symbol" && m.x != null && m.y != null) {
+        if (Math.hypot(px - m.x, py - m.y) <= 18 / z) return m;
+      }
+    }
+    // Runs (8px screen distance from any segment)
+    for (let i = markupsRef.current.length - 1; i >= 0; i--) {
+      const m = markupsRef.current[i];
+      if (m.page !== page) continue;
+      if (m.type === "run" && m.points && m.points.length >= 2) {
+        for (let j = 1; j < m.points.length; j++) {
+          if (distToSegment({ x: px, y: py }, m.points[j - 1], m.points[j]) <= 8 / z) return m;
+        }
+      }
+    }
+    return null;
+  }
+
+  function ctxDelete() {
+    if (!contextMenu) return;
+    const id = contextMenu.markup.id;
+    setContextMenu(null);
+    setMarkups(prev => {
+      const next = prev.filter(m => m.id !== id);
+      markupsRef.current = next;
+      scheduleAutosave({ markups: next });
+      return next;
+    });
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  function ctxRotate() {
+    if (!contextMenu) return;
+    const id = contextMenu.markup.id;
+    setContextMenu(null);
+    setMarkups(prev => {
+      const next = prev.map(m => m.id === id ? { ...m, rotation: ((m.rotation ?? 0) + 90) % 360 } : m);
+      markupsRef.current = next;
+      scheduleAutosave({ markups: next });
+      return next;
+    });
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  function ctxSaveTag() {
+    setMarkups(prev => {
+      const next = prev.map(m => m.id === editTagMarkupId ? { ...m, tag: editTagValue } : m);
+      markupsRef.current = next;
+      scheduleAutosave({ markups: next });
+      return next;
+    });
+    setEditTagModal(false);
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  function ctxSaveFootage() {
+    const val = parseFloat(editFootageValue);
+    if (isNaN(val) || val < 0) return;
+    setMarkups(prev => {
+      const next = prev.map(m => m.id === editFootageMarkupId ? { ...m, footageOverride: val } : m);
+      markupsRef.current = next;
+      scheduleAutosave({ markups: next });
+      return next;
+    });
+    setEditFootageModal(false);
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  function ctxChangeRunType() {
+    const rt = runTypes.find(r => r.id === changeRTId);
+    if (!rt) return;
+    setMarkups(prev => {
+      const next = prev.map(m => m.id === changeRTMarkupId ? { ...m, runTypeId: changeRTId, color: rt.color } : m);
+      markupsRef.current = next;
+      scheduleAutosave({ markups: next });
+      return next;
+    });
+    setChangeRTModal(false);
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  // ── Fixture functions ─────────────────────────────────────────────────────
+  function handleFixtureClick(pos: Pt) {
+    const fixture = fixturesRef.current.find(f => f.id === selectedFixtureId);
+    if (!fixture) return;
+    const m: Markup = {
+      id: genId(), type: "symbol", page: currentPageRef.current,
+      symId: "dot", x: pos.x, y: pos.y, size: MARKER_SIZE,
+      color: fixture.color, rotation: 0,
+      isFixture: true, fixtureId: fixture.id, tag: fixture.tag,
+    };
+    setMarkups(prev => {
+      const next = [...prev, m]; markupsRef.current = next;
+      scheduleAutosave({ markups: next }); return next;
+    });
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  function saveNewFixture() {
+    if (!fixTag.trim()) return;
+    const f: FixtureItem = {
+      id: genId(),
+      tag: fixTag.trim().toUpperCase(),
+      description: fixDescription.trim(),
+      manufacturer: fixManufacturer.trim(),
+      baseType: fixBaseType,
+      color: fixColor,
+      notes: fixNotes.trim(),
+    };
+    setFixtures(prev => {
+      const next = [...prev, f];
+      fixturesRef.current = next;
+      scheduleAutosave({ fixtures: next });
+      return next;
+    });
+    setSelectedFixtureId(f.id);
+    setShowFixtureForm(false);
+    setFixTag(""); setFixDescription(""); setFixManufacturer(""); setFixNotes("");
+    setFixBaseType(FIXTURE_BASE_TYPES[0]); setFixColor("#3a8fe8");
+  }
+
+  function exportFixtureSchedule() {
+    const schedule = fixturesRef.current.map(f => ({
+      ...f,
+      count: markupsRef.current.filter(m => m.isFixture && m.fixtureId === f.id).length,
+    }));
+    const blob = new Blob([JSON.stringify(schedule, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `fixture-schedule-${Date.now()}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
   // ── Computed audit data ────────────────────────────────────────────────────
   const symbolCounts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -1001,8 +1240,14 @@ export function TakeoffClient({
         wire[lbl] = (wire[lbl] ?? 0) + Math.round(ft) * c.count;
       }
     }
-    return { byCat, rtTotals, wire };
-  }, [markups, runTypes]);
+    // Fixture counts
+    const fixtureCounts: Array<{ tag: string; description: string; color: string; count: number }> = [];
+    for (const f of fixtures) {
+      const count = markups.filter(m => m.isFixture && m.fixtureId === f.id).length;
+      if (count > 0) fixtureCounts.push({ tag: f.tag, description: f.description, color: f.color, count });
+    }
+    return { byCat, rtTotals, wire, fixtureCounts };
+  }, [markups, runTypes, fixtures]);
 
   const currentPxPerFoot = pageScales[String(currentPage)];
   const scaleLabel = currentPxPerFoot
@@ -1089,7 +1334,7 @@ export function TakeoffClient({
         <div style={S.sep} />
 
         {/* Mode buttons */}
-        {(["count", "run", "pan"] as Mode[]).map(m => (
+        {(["count", "run", "pan", "fixtures"] as Mode[]).map(m => (
           <button key={m} onClick={() => {
             setMode(m); modeRef.current = m;
             if (m !== "run") { setRunInProgress([]); runInProgressRef.current = []; redrawAll(currentPageRef.current, zoomRef.current, null); }
@@ -1119,6 +1364,10 @@ export function TakeoffClient({
 
         {/* Sync to counter */}
         <HBtn onClick={syncToCounter}>⇅ Sync</HBtn>
+        {/* Export fixture schedule (fixtures mode only) */}
+        {mode === "fixtures" && fixtures.length > 0 && (
+          <HBtn onClick={exportFixtureSchedule}>↓ Schedule</HBtn>
+        )}
 
         {/* Save status */}
         <span style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: saveStatus === "saved" ? "#2db562" : saveStatus === "saving" ? "#f0a500" : "#e03a3a" }}>
@@ -1204,6 +1453,31 @@ export function TakeoffClient({
                     ))}
                   </div>
                 </div>
+              </Section>
+            )}
+
+            {/* Fixture types (FIXTURES mode) */}
+            {mode === "fixtures" && (
+              <Section label="Fixtures">
+                {fixtures.length === 0 && (
+                  <div style={{ fontSize: 11, color: "#5a6070", marginBottom: 8 }}>No fixture types yet</div>
+                )}
+                {fixtures.map(f => {
+                  const cnt = markups.filter(m => m.isFixture && m.fixtureId === f.id).length;
+                  const active = selectedFixtureId === f.id;
+                  return (
+                    <button key={f.id} onClick={() => setSelectedFixtureId(f.id)}
+                      style={{ display: "flex", alignItems: "center", gap: 6, background: active ? "rgba(58,143,232,0.08)" : "#22252b", border: `1px solid ${active ? "#3a8fe8" : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", width: "100%", marginBottom: 3, textAlign: "left" }}>
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: f.color, border: "1.5px solid rgba(255,255,255,0.2)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? "#e8eaed" : "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.tag}</span>
+                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: cnt > 0 ? "#f0a500" : "#5a6070", fontWeight: 700, flexShrink: 0 }}>
+                        {cnt}<span style={{ fontSize: 9, color: "#5a6070" }}> e</span>
+                      </span>
+                    </button>
+                  );
+                })}
+                <button onClick={() => setShowFixtureForm(true)} style={{ ...S.panelBtn, marginTop: 4, borderStyle: "dashed" }}>+ Fixture Type</button>
+                <div style={{ marginTop: 6, fontSize: 10, color: "#5a6070" }}>Select type · click to place</div>
               </Section>
             )}
 
@@ -1293,7 +1567,23 @@ export function TakeoffClient({
                     ))}
                   </>
                 )}
-                {Object.keys(auditData.byCat).length === 0 && Object.keys(auditData.rtTotals).length === 0 && (
+                {/* Fixture schedule counts */}
+                {auditData.fixtureCounts.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase", padding: "5px 12px 2px" }}>
+                      Fixtures ({auditData.fixtureCounts.reduce((s, f) => s + f.count, 0)})
+                    </div>
+                    {auditData.fixtureCounts.map(f => (
+                      <div key={f.tag} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1px 12px 1px 18px" }}>
+                        <span style={{ fontSize: 11, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>[{f.tag}] {f.description || f.tag}</span>
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#f0a500", fontWeight: 700, flexShrink: 0, marginLeft: 6 }}>
+                          {f.count}<span style={{ fontSize: 9, color: "#5a6070" }}> ea</span>
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {Object.keys(auditData.byCat).length === 0 && Object.keys(auditData.rtTotals).length === 0 && auditData.fixtureCounts.length === 0 && (
                   <div style={{ fontSize: 11, color: "#5a6070", padding: "4px 12px" }}>No items placed yet</div>
                 )}
               </div>
@@ -1496,6 +1786,157 @@ export function TakeoffClient({
           </div>
         </div>
       )}
+
+      {/* CONTEXT MENU */}
+      {contextMenu && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setContextMenu(null)} />
+          <div style={{ position: "fixed", top: contextMenu.y, left: contextMenu.x, background: "#1a1c20", border: "1px solid #2e3138", borderTop: "2px solid #FF5910", borderRadius: 8, boxShadow: "0 4px 24px rgba(0,0,0,0.7)", zIndex: 300, minWidth: 170, padding: "4px 0", fontFamily: "'Barlow Condensed', sans-serif" }}>
+            {contextMenu.markup.type === "symbol" ? (<>
+              <CtxItem onClick={ctxDelete}>🗑 Delete</CtxItem>
+              {!contextMenu.markup.isFixture && <CtxItem onClick={ctxRotate}>↻ Rotate 90°</CtxItem>}
+              <CtxItem onClick={() => { setEditTagValue(contextMenu.markup.tag ?? contextMenu.markup.label ?? ""); setEditTagMarkupId(contextMenu.markup.id); setEditTagModal(true); setContextMenu(null); }}>🏷 Rename Tag</CtxItem>
+              <CtxItem onClick={() => { setPropsMarkup(contextMenu.markup); setPropsModal(true); setContextMenu(null); }}>ℹ Properties</CtxItem>
+            </>) : (<>
+              <CtxItem onClick={ctxDelete}>🗑 Delete Run</CtxItem>
+              <CtxItem onClick={() => { setChangeRTId(contextMenu.markup.runTypeId ?? runTypes[0]?.id ?? ""); setChangeRTMarkupId(contextMenu.markup.id); setChangeRTModal(true); setContextMenu(null); }}>⇄ Change Run Type</CtxItem>
+              <CtxItem onClick={() => { setEditFootageValue(String(contextMenu.markup.footageOverride ?? contextMenu.markup.footage ?? 0)); setEditFootageMarkupId(contextMenu.markup.id); setEditFootageModal(true); setContextMenu(null); }}>📏 Edit Footage</CtxItem>
+              <CtxItem onClick={() => { setPropsMarkup(contextMenu.markup); setPropsModal(true); setContextMenu(null); }}>ℹ Properties</CtxItem>
+            </>)}
+          </div>
+        </>
+      )}
+
+      {/* EDIT TAG MODAL */}
+      {editTagModal && (
+        <div style={S.modalOverlay}>
+          <div style={S.modalBox}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>Rename Tag</h3>
+              <button onClick={() => setEditTagModal(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Tag Label</label>
+            <input autoFocus type="text" value={editTagValue}
+              onChange={e => setEditTagValue(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") ctxSaveTag(); if (e.key === "Escape") setEditTagModal(false); }}
+              style={S.modalInput} />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setEditTagModal(false)} style={S.btnCancel}>Cancel</button>
+              <button onClick={ctxSaveTag} style={S.btnConfirm}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT FOOTAGE MODAL */}
+      {editFootageModal && (
+        <div style={S.modalOverlay}>
+          <div style={S.modalBox}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>Edit Footage</h3>
+              <button onClick={() => setEditFootageModal(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Footage (feet)</label>
+            <input autoFocus type="number" min="0" step="0.5" value={editFootageValue}
+              onChange={e => setEditFootageValue(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") ctxSaveFootage(); if (e.key === "Escape") setEditFootageModal(false); }}
+              style={S.modalInput} />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setEditFootageModal(false)} style={S.btnCancel}>Cancel</button>
+              <button onClick={ctxSaveFootage} style={S.btnConfirm}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHANGE RUN TYPE MODAL */}
+      {changeRTModal && (
+        <div style={S.modalOverlay}>
+          <div style={S.modalBox}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>Change Run Type</h3>
+              <button onClick={() => setChangeRTModal(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Run Type</label>
+            <select value={changeRTId} onChange={e => setChangeRTId(e.target.value)} style={S.modalInput}>
+              {runTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.label}</option>)}
+            </select>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setChangeRTModal(false)} style={S.btnCancel}>Cancel</button>
+              <button onClick={ctxChangeRunType} style={S.btnConfirm}>Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PROPERTIES MODAL */}
+      {propsModal && propsMarkup && (
+        <div style={S.modalOverlay}>
+          <div style={S.modalBox}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>Properties</h3>
+              <button onClick={() => setPropsModal(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "#9aa0ab", lineHeight: 1.9 }}>
+              <div><span style={{ color: "#5a6070" }}>Type: </span>{propsMarkup.type}</div>
+              {propsMarkup.type === "symbol" && <>
+                {propsMarkup.isFixture
+                  ? <div><span style={{ color: "#5a6070" }}>Tag: </span>{propsMarkup.tag}</div>
+                  : <div><span style={{ color: "#5a6070" }}>Symbol: </span>{propsMarkup.symId}</div>}
+                <div><span style={{ color: "#5a6070" }}>Pos: </span>{Math.round(propsMarkup.x ?? 0)}, {Math.round(propsMarkup.y ?? 0)}</div>
+                {!propsMarkup.isFixture && <div><span style={{ color: "#5a6070" }}>Rotation: </span>{propsMarkup.rotation ?? 0}°</div>}
+                <div><span style={{ color: "#5a6070" }}>Page: </span>{propsMarkup.page}</div>
+              </>}
+              {propsMarkup.type === "run" && <>
+                <div><span style={{ color: "#5a6070" }}>Run Type: </span>{runTypes.find(r => r.id === propsMarkup.runTypeId)?.label ?? "—"}</div>
+                <div><span style={{ color: "#5a6070" }}>Footage: </span>{propsMarkup.footageOverride ?? propsMarkup.footage ?? 0} ft{propsMarkup.footageOverride != null ? " (manual)" : ""}</div>
+                <div><span style={{ color: "#5a6070" }}>Segments: </span>{(propsMarkup.points?.length ?? 1) - 1}</div>
+                <div><span style={{ color: "#5a6070" }}>Page: </span>{propsMarkup.page}</div>
+              </>}
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <button onClick={() => setPropsModal(false)} style={{ ...S.btnConfirm, width: "100%" }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FIXTURE FORM MODAL */}
+      {showFixtureForm && (
+        <div style={S.modalOverlay}>
+          <div style={{ ...S.modalBox, width: 360 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>New Fixture Type</h3>
+              <button onClick={() => setShowFixtureForm(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Tag (e.g. "A", "LP-1")</label>
+            <input autoFocus type="text" value={fixTag} onChange={e => setFixTag(e.target.value)} placeholder="A" style={S.modalInput} />
+            <label style={S.modalLabel}>Base Type</label>
+            <select value={fixBaseType} onChange={e => setFixBaseType(e.target.value)} style={S.modalInput}>
+              {FIXTURE_BASE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <label style={S.modalLabel}>Description</label>
+            <input type="text" value={fixDescription} onChange={e => setFixDescription(e.target.value)} placeholder="e.g. 2×4 LED Troffer 50W" style={S.modalInput} />
+            <label style={S.modalLabel}>Manufacturer</label>
+            <input type="text" value={fixManufacturer} onChange={e => setFixManufacturer(e.target.value)} placeholder="Lithonia, etc." style={S.modalInput} />
+            <label style={S.modalLabel}>Marker Color</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 2 }}>
+              {["#3a8fe8", "#e03a3a", "#2db562", "#f0a500", "#b03ae0", "#e03a99", "#3adde0", "#e0773a", "#9aa0ab", "#FF5910"].map(c => (
+                <div key={c} onClick={() => setFixColor(c)}
+                  style={{ width: 22, height: 22, borderRadius: 4, background: c, cursor: "pointer",
+                    border: `2px solid ${fixColor === c ? "#fff" : "transparent"}`,
+                    transform: fixColor === c ? "scale(1.15)" : "scale(1)", transition: "transform 0.1s" }} />
+              ))}
+            </div>
+            <label style={S.modalLabel}>Notes</label>
+            <input type="text" value={fixNotes} onChange={e => setFixNotes(e.target.value)} placeholder="Optional" style={S.modalInput} />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setShowFixtureForm(false)} style={S.btnCancel}>Cancel</button>
+              <button onClick={saveNewFixture} style={S.btnConfirm}>Add Fixture</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1545,6 +1986,19 @@ function SymPreview({ symId, color }: { symId: string; color: string }) {
     fn(ctx, 10, 10, 14, color);
   }, [symId, color]);
   return <canvas ref={ref} width={20} height={20} style={{ flexShrink: 0 }} />;
+}
+
+function CtxItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ display: "block", width: "100%", background: "none", border: "none", color: "#e8eaed", fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", textAlign: "left", padding: "7px 14px", cursor: "pointer" }}
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#2e3138"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+    >
+      {children}
+    </button>
+  );
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
