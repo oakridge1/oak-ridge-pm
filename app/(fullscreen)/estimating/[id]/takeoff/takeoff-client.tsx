@@ -130,10 +130,26 @@ const DEFAULT_RUN_TYPE: RunType = {
   size: "3/4",
   conductors: [
     { count: 2, size: "#12", type: "THHN", isGround: false },
-    { count: 1, size: "#12", type: "GND",  isGround: true  },
+    { count: 1, size: "#12", type: "THHN", isGround: true  },
   ],
   material: "Cu", support: "1-Hole Strap", makeup: 2, difficulty: 1.0,
-  color: "#f0a500", label: '3/4" EMT | 2×#12 THHN',
+  color: "#f0a500", label: '3/4" EMT | 2×#12 + 1×#12 GND',
+};
+
+// ── Wire sizing constants ─────────────────────────────────────────────────────
+const WIRE_SIZES = [
+  "#14", "#12", "#10", "#8", "#6", "#4", "#3", "#2", "#1",
+  "1/0", "2/0", "3/0", "4/0", "250", "300", "350", "400", "500",
+];
+
+/** NEC Table 250.122 — minimum equipment grounding conductor sizes */
+const NEC_GROUND_TABLE: Record<string, string> = {
+  "#14": "#14", "#12": "#12", "#10": "#10",
+  "#8":  "#10", "#6":  "#10", "#4":  "#10",
+  "#3":  "#10", "#2":  "#10", "#1":  "#8",
+  "1/0": "#8",  "2/0": "#6",  "3/0": "#4",
+  "4/0": "#3",  "250": "#2",  "300": "#1",
+  "350": "#1",  "400": "1/0", "500": "1/0",
 };
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -199,6 +215,8 @@ export function TakeoffClient({
   const [rtfPhaseCount, setRtfPhaseCount] = useState(2);
   const [rtfPhaseSize, setRtfPhaseSize] = useState("#12");
   const [rtfHasGround, setRtfHasGround] = useState(true);
+  const [rtfGroundCount, setRtfGroundCount] = useState(1);
+  const [rtfGroundSize, setRtfGroundSize] = useState("#12");
   const [rtfColor, setRtfColor] = useState("#f0a500");
   const [rtfDifficulty, setRtfDifficulty] = useState(1.0);
 
@@ -979,7 +997,7 @@ export function TakeoffClient({
     const wire: Record<string, number> = {};
     for (const { rt, ft } of Object.values(rtTotals)) {
       for (const c of rt.conductors) {
-        const lbl = `${c.count}×${c.size} ${c.type}`;
+        const lbl = `${c.count}×${c.size} ${c.type}${c.isGround ? " (GND)" : ""}`;
         wire[lbl] = (wire[lbl] ?? 0) + Math.round(ft) * c.count;
       }
     }
@@ -999,6 +1017,8 @@ export function TakeoffClient({
     setRtfPhaseCount(2);
     setRtfPhaseSize("#12");
     setRtfHasGround(true);
+    setRtfGroundCount(1);
+    setRtfGroundSize("#12"); // NEC 250.122 default for #12 phase
     setRtfColor("#f0a500");
     setRtfDifficulty(1.0);
     setShowRunTypeForm(true);
@@ -1008,13 +1028,16 @@ export function TakeoffClient({
     const conductors: RunType["conductors"] = [
       { count: rtfPhaseCount, size: rtfPhaseSize, type: "THHN", isGround: false },
     ];
-    if (rtfHasGround) conductors.push({ count: 1, size: rtfPhaseSize, type: "GND", isGround: true });
+    if (rtfHasGround) {
+      conductors.push({ count: rtfGroundCount, size: rtfGroundSize, type: "THHN", isGround: true });
+    }
 
     const isMC = rtfCategory === "MC" || rtfCategory === "NM";
+    const gndPart = rtfHasGround ? ` + ${rtfGroundCount}×${rtfGroundSize} GND` : "";
     const autoLabel = rtfLabel.trim() ||
       (isMC
         ? `${rtfCategory} ${rtfPhaseSize}/2 — ${rtfPhaseCount} ckt`
-        : `${rtfSize}" ${rtfCategory} | ${rtfPhaseCount}×${rtfPhaseSize} THHN`);
+        : `${rtfSize}" ${rtfCategory} | ${rtfPhaseCount}×${rtfPhaseSize}${gndPart}`);
 
     const rt: RunType = {
       id: genId(),
@@ -1367,24 +1390,53 @@ export function TakeoffClient({
               </select>
             )}
 
-            {/* Conductors */}
+            {/* Conductors — conduit runs only */}
             {rtfCategory !== "MC" && rtfCategory !== "NM" && (
               <>
+                {/* Phase conductors */}
                 <label style={S.modalLabel}>Phase Conductors</label>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input type="number" min={1} max={12} value={rtfPhaseCount}
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input type="number" min={1} max={20} value={rtfPhaseCount}
                     onChange={e => setRtfPhaseCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    style={{ ...S.modalInput, width: 64 }} />
-                  <span style={{ color: "#5a6070", fontSize: 13 }}>×</span>
-                  <select value={rtfPhaseSize} onChange={e => setRtfPhaseSize(e.target.value)} style={{ ...S.modalInput, flex: 1 }}>
-                    {["#14", "#12", "#10", "#8", "#6", "#4", "#2", "#1", "1/0", "2/0", "3/0", "4/0"].map(s => <option key={s} value={s}>{s}</option>)}
+                    style={{ ...S.modalInput, width: 52 }} />
+                  <span style={{ color: "#5a6070", fontSize: 13, flexShrink: 0 }}>×</span>
+                  <select value={rtfPhaseSize} onChange={e => {
+                    const sz = e.target.value;
+                    setRtfPhaseSize(sz);
+                    // Auto-suggest NEC 250.122 minimum ground size
+                    setRtfGroundSize(NEC_GROUND_TABLE[sz] ?? sz);
+                  }} style={{ ...S.modalInput, flex: 1 }}>
+                    {WIRE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <span style={{ color: "#5a6070", fontSize: 13 }}>THHN</span>
+                  <span style={{ color: "#5a6070", fontSize: 12, flexShrink: 0 }}>THHN</span>
                 </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, cursor: "pointer" }}>
-                  <input type="checkbox" checked={rtfHasGround} onChange={e => setRtfHasGround(e.target.checked)} />
-                  <span style={{ fontSize: 12, color: "#9aa0ab" }}>Include ground conductor</span>
-                </label>
+
+                {/* Ground conductor — independent size */}
+                <label style={S.modalLabel}>Ground Conductor</label>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "nowrap" }}>
+                  <input type="checkbox" checked={rtfHasGround}
+                    onChange={e => setRtfHasGround(e.target.checked)}
+                    style={{ accentColor: "#f0a500", width: 14, height: 14, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: "#9aa0ab", flexShrink: 0 }}>Include</span>
+                  {rtfHasGround && (
+                    <>
+                      <input type="number" min={1} max={4} value={rtfGroundCount}
+                        onChange={e => setRtfGroundCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        style={{ ...S.modalInput, width: 44 }} />
+                      <span style={{ color: "#5a6070", fontSize: 13, flexShrink: 0 }}>×</span>
+                      <select value={rtfGroundSize} onChange={e => setRtfGroundSize(e.target.value)}
+                        style={{ ...S.modalInput, flex: 1 }}>
+                        {WIRE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#2db562", flexShrink: 0 }}>GND</span>
+                    </>
+                  )}
+                </div>
+                {rtfHasGround && rtfGroundSize !== rtfPhaseSize && (
+                  <div style={{ fontSize: 10, color: "#5a6070", marginTop: 2, paddingLeft: 1 }}>
+                    NEC 250.122 — auto-sized from phase
+                  </div>
+                )}
               </>
             )}
 
@@ -1408,7 +1460,11 @@ export function TakeoffClient({
             {/* Label override */}
             <label style={S.modalLabel}>Label (auto-generated if blank)</label>
             <input type="text" value={rtfLabel} onChange={e => setRtfLabel(e.target.value)}
-              placeholder={rtfCategory === "MC" ? `MC ${rtfSize}/2 — ${rtfPhaseCount} ckt` : `${rtfSize}" ${rtfCategory} | ${rtfPhaseCount}×${rtfPhaseSize}`}
+              placeholder={
+                rtfCategory === "MC" || rtfCategory === "NM"
+                  ? `${rtfCategory} ${rtfSize}/2 — ${rtfPhaseCount} ckt`
+                  : `${rtfSize}" ${rtfCategory} | ${rtfPhaseCount}×${rtfPhaseSize}${rtfHasGround ? ` + ${rtfGroundCount}×${rtfGroundSize} GND` : ""}`
+              }
               style={S.modalInput} />
 
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
