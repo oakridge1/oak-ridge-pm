@@ -1,6 +1,6 @@
 # Oak Ridge PM — Session Handoff Document
 
-**Last updated:** 2026-05-19
+**Last updated:** 2026-06-01
 **Deployed at:** https://oak-ridge-pm.vercel.app
 **GitHub repo:** https://github.com/oakridge1/oak-ridge-pm
 **Owner:** Justin Marceau, Oak Ridge Electrical LLC
@@ -134,7 +134,7 @@ npx prisma generate
 ```
 Role                  ADMIN | OFFICE | FOREMAN | TEAMMATE
 JobStatus             ACTIVE | COMPLETED | ON_HOLD | CANCELLED
-JobType               BID | TIME_AND_MATERIALS | ESTIMATE
+JobType               BID | TIME_AND_MATERIALS | ESTIMATE | SYSTEM
 ChangeOrderStatus     PENDING | APPROVED | REJECTED
 TaskStatus            OPEN | IN_PROGRESS | COMPLETED
 CalendarEventType     MILESTONE | TASK_DUE | COMPLETION | DAY_OFF | CUSTOM
@@ -150,9 +150,13 @@ InvoiceStatus         DRAFT | SENT | PARTIALLY_PAID | PAID
 
 ### Key models
 
-**User** — NextAuth users. `id, name, email, emailVerified, image, role (default TEAMMATE), active (default false)`. New Google sign-ins get `active=false` until admin activates. Relations include: `foremanJobs`, `stockRequests`, `stockOrders`, `userPermissions`, `grantedPermissions`, `googleConnections`, `approvalRequests` (StockApprovalRequest requester), `reviewedApprovals` (StockApprovalRequest reviewer), `wage (EmployeeWage?)`.
+**User** — NextAuth users. `id, name, email, emailVerified, image, role (default TEAMMATE), active (default false)`. New Google sign-ins get `active=false` until admin activates. Relations include: `foremanJobs`, `stockRequests`, `stockOrders`, `userPermissions`, `grantedPermissions`, `googleConnections`, `approvalRequests` (StockApprovalRequest requester), `reviewedApprovals` (StockApprovalRequest reviewer), `wage (EmployeeWage?)`, `receipts`, `ownerDraws`, `contractorPayments`, `payrollRecords`.
 
-**Job** — Core entity. Key fields: `jobNumber (unique), jobName, address/city/state/zip, gcCompany/gcContactName/gcPhone/gcEmail, ownerName/ownerPhone/ownerEmail, foremanId (→ User), createdById (→ User), scopeOfWork, contractStartDate, completionDate, permitNumber, status (JobStatus), jobType (JobType, default BID), contractValue, laborBudgetHours, materialBudget, blendedLaborRate, subcontractorCost, equipmentCost, equipmentBillPct, otherCosts (Json — array of {id, description, amount, markupPct?}), laborMarkupPct, subMarkupPct, equipmentMarkupPct, materialMarkupPct, otherMarkupPct, archived, calendarColor`. Relations include all tabs plus: `stockRequests`, `stockOrders`, `userPermissions`, `stockApprovalRequests`.
+**Job** — Core entity. Key fields: `jobNumber (unique), jobName, address/city/state/zip, gcCompany/gcContactName/gcPhone/gcEmail, ownerName/ownerPhone/ownerEmail, foremanId (→ User), createdById (→ User), scopeOfWork, contractStartDate, completionDate, permitNumber, status (JobStatus), jobType (JobType, default BID), contractValue, laborBudgetHours, materialBudget, blendedLaborRate, subcontractorCost, equipmentCost, equipmentBillPct, otherCosts (Json — array of {id, description, amount, markupPct?}), laborMarkupPct, subMarkupPct, equipmentMarkupPct, materialMarkupPct, otherMarkupPct, archived, calendarColor, isSystemJob (Boolean default false), excludeFromPL (Boolean default false)`. Relations include all tabs plus: `stockRequests`, `stockOrders`, `userPermissions`, `stockApprovalRequests`, `receipts`.
+
+**System Jobs** — Two special jobs are auto-created per year: `YY-000` (Office & Shop expenses) and `YY-999` (Shop Expenses / overhead bucket). `isSystemJob = true` on these records. They appear in a separate "System Jobs" section on the dashboard (reduced opacity). They're used to attach overhead receipts, material purchases, and shop expenses without polluting the P&L job list. Excluded from all P&L calculations. Year-end close route creates next year's jobs: `POST /api/admin/system-jobs/year-end-close`.
+
+`excludeFromPL` — boolean on all jobs. When true, the job's labor, materials, and payments are excluded from the dashboard P&L summary widget and the /admin/pl calculations. Used to filter out training jobs, internal projects, and test jobs.
 
 **Invoice** — `invoiceNumber (auto-incremented per job), type (STANDARD|AIA), invoiceKind (string: "PROGRESS_PAYMENT"|"FINAL_INVOICE", default "PROGRESS_PAYMENT"), googleSheetId (String? — set after AIA Sheets export), date, periodTo, applicationNo, status, amount, retainagePct, retainageHeld, lineItems (Json), notes`. Unique: `[jobId, invoiceNumber]`.
 
@@ -210,6 +214,18 @@ Current crew wages (as seeded):
 **CalendarRequest** — Teammate-submitted calendar event requests. `jobId, requestedById, date, timeOfDay, description, reason, status (CalendarRequestStatus), reviewedById, reviewNotes, reviewedAt`.
 
 **BomPricing** — `id (bomId), mat (Float), lhr (Float), updatedAt, updatedBy`. Override table for BOM item material costs and labor hours. Managed in Admin → Settings → BOM Pricing Overrides card. API: `GET/PATCH /api/admin/bom-pricing`.
+
+**Vehicle** — Company truck/van inventory. `id, tag (vehicle identifier e.g. "Truck 1"), year, make, model, plate, primaryDriver, notes, isActive (default true)`. Receipts can be linked to a vehicle. Managed via Admin → Vehicles API (`GET/POST/PUT/DELETE /api/admin/vehicles`, `GET/POST /api/admin/vehicles/[id]/costs`).
+
+**Receipt** — Photo receipts uploaded from the field or office. `id, jobId (optional → Job), vehicleId (optional → Vehicle), uploadedById (→ User), type (default "job"), category, vendor, amount, receiptDate, description, imageUrl, fileUrl, notes, isFuel (Boolean), mileage, reviewedBy, reviewStatus, flagReason`. Receipts tab is on the job detail page (all roles can upload). Admin receipts page shows all receipts with filters by job/user/vehicle/status, move-to-job, split, and approve/flag actions. APIs: `GET/POST /api/receipts`, `GET/PUT/DELETE /api/receipts/[id]`, `POST /api/receipts/[id]/move`, `POST /api/receipts/split`, `GET /api/jobs/[id]/receipts`, `POST /api/admin/receipts/remind`.
+
+**PayrollRecord** — Imported Gusto payroll data. `id, userId (→ User), payPeriodStart, payPeriodEnd, regularHours, otHours, grossPay`. Populated via `POST /api/admin/payroll/import` (CSV upload) and confirmed via `POST /api/admin/payroll/confirm`. Gusto CSV headers are auto-detected. Used to reconcile actual payroll vs. burdened labor cost estimates.
+
+**OverheadCost** — Company overhead expenses (rent, insurance, utilities, etc.). `id, category, description, amount, effectiveDate, endDate, isRecurring (Boolean), recurringDay (Int), recurringFreq (String), autoIncrease (Boolean), increaseRate, increaseMonth`. One-time costs have `isRecurring=false` and a specific `effectiveDate`. Recurring costs have `isRecurring=true` and `recurringFreq`. Managed at Admin → Overhead. APIs: `GET/POST /api/admin/overhead`, `PUT/DELETE /api/admin/overhead/[id]`, `GET /api/admin/overhead/summary` (returns monthly totals + per-category breakdown).
+
+**OwnerDraw** — Owner ATM withdrawals, personal payments, draws. `id, userId (→ User), amount, drawDate, method (default "ATM"), notes, receiptUrl`. ADMIN only. Managed at `/admin/owner-draws`. APIs: `GET/POST /api/admin/owner-draws`, `PUT/DELETE /api/admin/owner-draws/[id]`. Used in P&L distributions section.
+
+**ContractorPayment** — Payments to overseas/international contractors (e.g. Belize crew). `id, userId (→ User), amountUSD, amountLocal, localCurrency, exchangeRate, paymentDate, payPeriodStart, payPeriodEnd, method (default "Wire"), notes, receiptUrl`. Exchange rate captured at time of payment. Managed at `/admin/contractor-payments`. APIs: `GET/POST /api/admin/contractor-payments`, `PUT/DELETE /api/admin/contractor-payments/[id]`. Used in P&L distributions section.
 
 **Other models:** LaborEntry, Photo, Note, ChangeOrder, ChangeOrderPhoto, SavedTask, Task, TaskEvent, Inspection, Rfi, Document, Session, Account, VerificationToken, NotificationPreference.
 
@@ -283,11 +299,13 @@ PDF style matches Standard Invoice: Oak Ridge logo, navy/orange branding, GC "To
 
 ## Tab Order (Job Detail Page)
 
-Info → Labor → Invoices → The Crib → Photos → Notes & Tasks → Calendar → Inspections → RFI → Documents → Summary
+Info → Labor → Purchase Orders → The Crib → Receipts → Photos → Notes & Tasks → Calendar → Inspections → RFI → Documents → Summary
 
-**"Invoices" tab** = the renamed Materials tab (was "Materials" through Phase 8). DB model and server actions still use the name `materials` — only the UI label changed.
+**"Purchase Orders" tab** = the renamed Materials/Invoices tab (was "Materials" through Phase 8, "Invoices" through Phase 9). DB model and server actions still use the name `materials` — only the UI label changed.
 
-**"The Crib" tab** = stock ordering system (Phase 9+). Added after the Invoices tab.
+**"The Crib" tab** = stock ordering system (Phase 9+). Added after Purchase Orders.
+
+**"Receipts" tab** = photo receipt upload (Phase 12A+). Added after The Crib. All roles can upload receipts from mobile. Links receipts to the job.
 
 Tab visibility rules are enforced in `job-tabs.tsx` by role and jobType.
 
@@ -408,6 +426,107 @@ All PDF components use `@react-pdf/renderer`. Constants: `NAVY = "#002D72"`, `OR
 
 ---
 
+## P&L Dashboard (`/admin/pl`)
+
+**Route:** `app/(app)/admin/pl/page.tsx` + `pl-client.tsx`
+**Access:** ADMIN and OFFICE only.
+
+The P&L dashboard shows a full profit-and-loss view for a selectable period (current month by default). Period selector supports month, quarter, and year views. Data is server-rendered on the page component and re-fetched on period change via `GET /api/admin/pl?period=month&month=6&year=2026`.
+
+### P&L sections
+
+**Revenue** — Total invoiced (non-DRAFT invoices in period), total collected (payments in period), outstanding balance.
+
+**Direct Costs** — Burdened labor cost (from LaborEntry × hourlyWage × (1 + burdenRate)), materials (from Material.amount), subcontractors (from Job.subcontractorCost), equipment, other costs. Excludes `isSystemJob` and `excludeFromPL` jobs.
+
+**Gross Profit** — Revenue − Direct Costs. Shows margin %.
+
+**Overhead** — Sum of OverheadCosts active in the period (one-time + recurring), grouped by category.
+
+**Distributions** — Owner draws + contractor payments for the period, grouped by person. Shows type (draw vs contractor).
+
+**Net Profit** — Gross Profit − Overhead − Distributions. Shows net margin %.
+
+### Overhead allocation per job
+
+On the job detail page, the Summary tab's Profitability card shows an **overhead allocation** line. This is: `(total one-time OverheadCosts for current month) / (count of active non-system jobs)`. Computed in `app/(app)/jobs/[id]/page.tsx` and passed as `overheadAllocation` prop to `SummaryTab`.
+
+### Dashboard P&L summary widget
+
+`PlSummaryWidget` (in `app/(app)/pl-summary-widget.tsx`) — server component rendered above the jobs list on the dashboard for ADMIN/OFFICE users. Shows month-to-date: revenue collected, burdened labor cost, materials spend. Excludes `isSystemJob` and `excludeFromPL` jobs.
+
+### Shop Expense Button
+
+`ShopExpenseButton` — floating button on the dashboard for ADMIN users. Opens a quick-entry form to log an overhead cost directly to `OverheadCost` without navigating to Admin → Overhead. Pre-fills today's date and common overhead categories.
+
+### Quarterly Tax Package PDF
+
+`POST /api/admin/pl/tax-package` — generates a PDF tax summary for a quarter. Request body: `{ quarter: 1-4, year: 2026, notes: "..." }`. PDF includes:
+- Revenue (invoiced, collected, outstanding) for the quarter
+- Direct costs breakdown
+- Overhead costs by category
+- Owner draws and contractor payments
+- Net income
+- Notes section for CPA
+
+PDF is returned as binary for download. Uses `TaxPackagePDF` React component in `app/api/admin/pl/tax-package/_template.tsx`.
+
+### Generate Overhead Cron
+
+`/api/cron/generate-overhead` — creates recurring overhead records on the 1st of each month (or configured recurringDay). Frequency options: monthly, quarterly, annually. Auto-increase applies the increaseRate each year on increaseMonth. Added to `vercel.json` schedule.
+
+---
+
+## Overhead Page (`/admin/overhead`)
+
+**Route:** `app/(app)/admin/overhead/page.tsx` + `overhead-client.tsx`
+**Access:** ADMIN and OFFICE only.
+
+CRUD for OverheadCost records. Forms support:
+- One-time expense: category, description, amount, effective date
+- Recurring expense: same fields + recurring day, frequency (monthly/quarterly/annually), auto-increase toggle (rate % + month)
+
+Month/year selector at top shows total overhead for that period. "Summary" view breaks down by category.
+
+---
+
+## Owner Draws Page (`/admin/owner-draws`)
+
+**Route:** `app/(app)/admin/owner-draws/page.tsx` + `owner-draws-client.tsx`
+**Access:** ADMIN only.
+
+Log and view owner draws by year. Form: owner (from ADMIN users list), amount, date, method (ATM/Check/Transfer/Other), notes, receipt URL. All draws appear in the P&L distributions section.
+
+---
+
+## Contractor Payments Page (`/admin/contractor-payments`)
+
+**Route:** `app/(app)/admin/contractor-payments/page.tsx` + `contractor-payments-client.tsx`
+**Access:** ADMIN only.
+
+Log payments to contractors (international/1099 workers). Form: employee, amount USD, local currency amount, currency code (BZD/CAD/MXN/etc.), exchange rate, payment date, pay period start/end, method (Wire/Check/Cash/Other), notes, receipt URL. Exchange rate is captured at payment time for accurate USD reporting. All contractor payments appear in the P&L distributions section.
+
+---
+
+## Admin Navigation
+
+Admin pages use `AdminNav` component (`app/(app)/admin/admin-nav.tsx`) which renders a tab bar with **Users** and **Saved Tasks**. Other admin financial pages (Overhead, Owner Draws, Contractor Payments, P&L, Receipts) are reachable from the main admin section header or by direct URL — they are linked from the P&L dashboard and from the dashboard quick-access buttons.
+
+Admin page structure:
+```
+/admin          → redirects to /admin/users
+/admin/users           AdminNav shown — user management + wage section
+/admin/saved-tasks     AdminNav shown — saved task library
+/admin/settings        Settings (no AdminNav — full-page sections)
+/admin/overhead        Overhead costs (ADMIN/OFFICE)
+/admin/owner-draws     Owner draws (ADMIN only)
+/admin/contractor-payments  Contractor payments (ADMIN only)
+/admin/pl              P&L dashboard (ADMIN/OFFICE)
+/admin/receipts        Receipt manager (ADMIN/OFFICE)
+```
+
+---
+
 ## Cron Jobs
 
 All cron routes require `Authorization: Bearer <CRON_SECRET>` header (auto-set by Vercel). Add to `publicPaths` in `proxy.ts` to bypass auth middleware.
@@ -417,14 +536,15 @@ All cron routes require `Authorization: Bearer <CRON_SECRET>` header (auto-set b
 ```json
 {
   "crons": [
-    { "path": "/api/cron/daily-report",      "schedule": "0 9 * * *" },
-    { "path": "/api/cron/billing-reminder",  "schedule": "0 9 * * *" },
-    { "path": "/api/cron/reset-stock-orders","schedule": "0 5 * * *" }
+    { "path": "/api/cron/daily-report",       "schedule": "0 9 * * *"  },
+    { "path": "/api/cron/billing-reminder",   "schedule": "0 9 * * *"  },
+    { "path": "/api/cron/reset-stock-orders", "schedule": "0 5 * * *"  },
+    { "path": "/api/cron/generate-overhead",  "schedule": "0 11 1 * *" }
   ]
 }
 ```
 
-All times are UTC. `0 9 * * *` = 4:00 AM EST / 5:00 AM EDT.
+All times are UTC. `0 9 * * *` = 4:00 AM EST / 5:00 AM EDT. `0 11 1 * *` = 7:00 AM EDT on the 1st of each month.
 
 ### `/api/cron/daily-report`
 
@@ -463,6 +583,10 @@ Gross billing computed using the standard Summary tab formula. Fully paid jobs (
 ### `/api/cron/reset-stock-orders`
 
 Fires daily at 5:00 AM UTC. Cancels all StockRequests with status `PENDING` or `PENDING_APPROVAL` from prior days (`orderDate < today`). Requires `CRON_SECRET` bearer auth.
+
+### `/api/cron/generate-overhead`
+
+Fires on the 1st of each month at 11:00 AM UTC (7:00 AM EDT). Creates OverheadCost records for any recurring costs due this month (monthly frequency), this quarter (quarterly frequency), or this month if it matches the annual increaseMonth (yearly). Applies `increaseRate` compounded from the base amount if `autoIncrease` is set. Requires `CRON_SECRET` bearer auth.
 
 ---
 
@@ -538,27 +662,50 @@ The users page query now includes `wage` relation so wage data renders server-si
 │   │   │   │   ├── page.tsx         # User management — fetches users with wage relation included
 │   │   │   │   └── user-table.tsx   # OrderingPermissionToggle, EstimatingPermissionToggle,
 │   │   │   │                        # WageSection (collapsible inline edit) per user
+│   │   │   ├── overhead/
+│   │   │   │   ├── page.tsx         # Overhead costs (ADMIN/OFFICE)
+│   │   │   │   └── overhead-client.tsx  # CRUD for one-time + recurring overhead costs
+│   │   │   ├── owner-draws/
+│   │   │   │   ├── page.tsx         # Owner draws log (ADMIN only)
+│   │   │   │   └── owner-draws-client.tsx
+│   │   │   ├── contractor-payments/
+│   │   │   │   ├── page.tsx         # Contractor payments (ADMIN only)
+│   │   │   │   └── contractor-payments-client.tsx  # USD + local currency, exchange rate
+│   │   │   ├── pl/
+│   │   │   │   ├── page.tsx         # P&L dashboard (ADMIN/OFFICE) — revenue, direct costs,
+│   │   │   │   │                    # gross profit, overhead, distributions, net profit
+│   │   │   │   └── pl-client.tsx    # Period selector (month/quarter/year), chart-style display
+│   │   │   ├── receipts/
+│   │   │   │   ├── page.tsx         # All-receipts manager (ADMIN/OFFICE)
+│   │   │   │   └── receipt-manager-client.tsx  # Filter by job/user/vehicle, move, split, flag
 │   │   │   └── settings/
 │   │   │       ├── page.tsx         # Settings server component (fetches GoogleConnection, CompanySettings)
 │   │   │       └── settings-client.tsx  # All settings cards including Labor Rates + BOM Pricing
+│   │   ├── pl-summary-widget.tsx    # Dashboard MTD stats widget (ADMIN/OFFICE only)
+│   │   ├── shop-expense-button.tsx  # Quick overhead entry button on dashboard (ADMIN only)
 │   │   └── jobs/[id]/
 │   │       ├── page.tsx             # Job detail — fetches laborEntries with user.wage included,
-│   │       │                        # fetches CompanyRates singleton, passes both to JobTabs
-│   │       ├── job-tabs.tsx         # Tab bar + routing. Accepts companyRates prop, passes to SummaryTab.
-│   │       │                        # Tab order: Info→Labor→Invoices→Crib→
+│   │       │                        # fetches CompanyRates singleton, computes overheadAllocation
+│   │       │                        # (monthly overhead / active job count), passes both to JobTabs
+│   │       ├── job-tabs.tsx         # Tab bar + routing. Accepts companyRates + overheadAllocation props.
+│   │       │                        # Tab order: Info→Labor→Purchase Orders→Crib→Receipts→
 │   │       │                        # Photos→Notes&Tasks→Calendar→Inspections→RFI→Documents→Summary
 │   │       └── tabs/
 │   │           ├── job-info-tab.tsx
 │   │           ├── labor-tab.tsx              # Duplicate failsafe modal
 │   │           ├── labor-tab-actions.ts       # addLaborEntries(mode: check|add|replace)
-│   │           ├── materials-tab.tsx          # UI label "Invoices"; auto-archives to Document Vault
+│   │           ├── materials-tab.tsx          # UI label "Purchase Orders"; auto-archives to Document Vault
 │   │           ├── materials-tab-actions.ts   # addMaterial — archives beyond 5 with fileUrls
 │   │           ├── crib-tab.tsx               # The Crib — full stock ordering UI (~1200 lines)
 │   │           │                              # ThhnWireForm, McRomexWireForm, ItemExpandForm,
 │   │           │                              # CustomItemForm, CategoryCustomAdder,
 │   │           │                              # ConductorGroupCard, SendOrderModal (2-step)
+│   │           ├── receipts-tab.tsx           # Photo receipt upload for field crew. Calls
+│   │           │                              # GET/POST /api/jobs/[id]/receipts. Shows thumbnails,
+│   │           │                              # vendor, amount, date. Vehicle link for fuel receipts.
 │   │           ├── summary-tab.tsx            # Financial view. DirectCostsCard (inline markup per row).
-│   │           │                              # ProfitabilityCard (Admin/Office, collapsible).
+│   │           │                              # ProfitabilityCard (Admin/Office, collapsible) includes
+│   │           │                              # overhead allocation line.
 │   │           │                              # DepositRequestCard (Admin only).
 │   │           │                              # ContractBillingCard. InvoiceLogCard. PaymentLogCard.
 │   │           ├── summary-tab-actions.ts     # updateDirectCostsWithMarkups, createInvoice(force),
@@ -591,17 +738,54 @@ The users page query now includes `wage` relation so wage data renders server-si
 │       │   ├── stock-items/
 │       │   │   ├── route.ts                   # GET (seeds on first call), POST
 │       │   │   └── [id]/route.ts              # PUT/DELETE
+│       │   ├── overhead/
+│       │   │   ├── route.ts                   # GET all / POST new OverheadCost
+│       │   │   ├── [id]/route.ts              # PUT / DELETE overhead cost
+│       │   │   └── summary/route.ts           # GET monthly overhead totals + per-category breakdown
+│       │   ├── owner-draws/
+│       │   │   ├── route.ts                   # GET / POST owner draws
+│       │   │   └── [id]/route.ts              # PUT / DELETE
+│       │   ├── contractor-payments/
+│       │   │   ├── route.ts                   # GET / POST contractor payments
+│       │   │   └── [id]/route.ts              # PUT / DELETE
+│       │   ├── payroll/
+│       │   │   ├── import/route.ts            # POST — parse Gusto CSV, return preview rows
+│       │   │   └── confirm/route.ts           # POST — confirmed rows → PayrollRecords
+│       │   ├── pl/
+│       │   │   ├── route.ts                   # GET P&L data (period=month|quarter|year params)
+│       │   │   ├── dashboard-summary/route.ts # GET MTD stats for PlSummaryWidget
+│       │   │   ├── jobs/route.ts              # GET per-job P&L breakdown
+│       │   │   ├── overhead-allocation/route.ts # GET overhead per active job for current month
+│       │   │   └── tax-package/route.ts       # POST → quarterly tax package PDF
+│       │   ├── receipts/
+│       │   │   └── remind/route.ts            # POST — missing receipt reminder emails
+│       │   ├── system-jobs/
+│       │   │   ├── route.ts                   # GET active system jobs
+│       │   │   └── year-end-close/route.ts    # POST — creates next-year YY-000 and YY-999 jobs
+│       │   ├── vehicles/
+│       │   │   ├── route.ts                   # GET all / POST new vehicle
+│       │   │   └── [id]/
+│       │   │       ├── route.ts               # PUT / DELETE vehicle
+│       │   │       └── costs/route.ts         # GET / POST vehicle cost entries
 │       │   └── users/
 │       │       └── [userId]/
 │       │           ├── permissions/route.ts          # GET/POST/DELETE ordering permissions
 │       │           ├── estimating-permission/route.ts # GET/POST/DELETE estimating permission
 │       │           └── wage/route.ts                 # GET/PUT employee wage record
+│       ├── receipts/
+│       │   ├── route.ts                       # GET all receipts / POST new receipt
+│       │   ├── split/route.ts                 # POST — split receipt across multiple jobs
+│       │   └── [id]/
+│       │       ├── route.ts                   # GET / PUT / DELETE receipt
+│       │       └── move/route.ts              # POST — reassign receipt to different job
 │       ├── cron/
 │       │   ├── daily-report/route.ts          # Admin + foreman daily emails
 │       │   ├── billing-reminder/route.ts      # Monthly billing reminder (15th-23rd only)
-│       │   └── reset-stock-orders/route.ts    # Midnight PENDING → CANCELLED
+│       │   ├── reset-stock-orders/route.ts    # Midnight PENDING → CANCELLED
+│       │   └── generate-overhead/route.ts     # 1st of month — create recurring overhead records
 │       └── jobs/[id]/
 │           ├── deposit-request/route.ts       # POST — generates branded Deposit Request PDF
+│           ├── receipts/route.ts              # GET receipts for this job / POST new receipt
 │           ├── stock-requests/
 │           │   ├── route.ts                   # GET today's requests, POST new request
 │           │   ├── [requestId]/route.ts       # DELETE request
@@ -790,3 +974,143 @@ New API routes: `GET/PUT /api/admin/users/[userId]/wage`, `GET/PUT /api/admin/co
 **Summary tab → Profitability card** (Admin/Office only, collapsible): gross profit/loss, margin %, actual cost breakdown (burdened labor + materials + subs + equipment + other), labor budget variance, bid rate vs actual labor comparison, per-employee hours + burdened cost detail.
 
 Crew wages seeded: Tyler ($16/hr), Michael ($17/hr), Caleb ($35/hr), Steven ($41/hr). All at 35% burden. Sam/Beth/Justin marked overhead. Bid rates: Apprentice $45–$56, Journeyman $65–$72, Master Electrician $85, Foreman $90, General Foreman $95.
+
+### Phase 12A — System Jobs, Receipts, Vehicles, Payroll Import
+
+**System Jobs** — `JobType.SYSTEM` enum value added. Two system jobs auto-exist per calendar year: `YY-000` (Office & Shop expenses) and `YY-999` (Shop expenses overflow). `isSystemJob Boolean @default(false)` and `excludeFromPL Boolean @default(false)` added to Job model. System jobs displayed in their own section on the dashboard (reduced opacity). Year-end close route (`POST /api/admin/system-jobs/year-end-close`) creates the next year's pair. `ShopExpenseButton` on dashboard for quick overhead entry (ADMIN only). Jobs with `excludeFromPL=true` are excluded from P&L calculations — used for training/internal jobs.
+
+**Receipts system** — New `Receipt` model. `ReceiptsTab` added to job detail page (all roles can upload). Admin receipts page at `/admin/receipts` for office review: filter by job/user/vehicle/status, move receipt to different job, split across multiple jobs, approve/flag. APIs: `GET/POST /api/receipts`, `GET/PUT/DELETE /api/receipts/[id]`, `POST /api/receipts/[id]/move`, `POST /api/receipts/split`, `GET/POST /api/jobs/[id]/receipts`, `POST /api/admin/receipts/remind`.
+
+**Vehicles** — New `Vehicle` model: tag, year, make, model, plate, primaryDriver, isActive. Receipts can be linked to vehicles (e.g. fuel receipts). Admin CRUD via `/api/admin/vehicles` and `/api/admin/vehicles/[id]`. Vehicle cost logging via `/api/admin/vehicles/[id]/costs`.
+
+**Gusto payroll import** — New `PayrollRecord` model. Two-step flow: `POST /api/admin/payroll/import` parses a Gusto CSV export (handles quoted fields, auto-detects headers) and returns preview rows. `POST /api/admin/payroll/confirm` saves confirmed rows as PayrollRecords. Used to reconcile actual payroll spend against burdened labor cost estimates. Located in Admin settings (accessible from Admin nav area).
+
+### Phase 12B — Overhead Costs, Recurring Expenses, Vehicle Costs
+
+**OverheadCost model** — `category, description, amount, effectiveDate, endDate, isRecurring, recurringDay, recurringFreq (monthly/quarterly/annually), autoIncrease, increaseRate, increaseMonth`. One-time costs use `effectiveDate` + `isRecurring=false`. Recurring costs have `recurringFreq` and optional annual auto-increase (e.g. rent going up 3% each January).
+
+**Admin Overhead page** (`/admin/overhead`) — CRUD for overhead costs. Month/year period selector shows total for that month. Summary view groups by category. Client component (`overhead-client.tsx`) handles inline add/edit forms.
+
+**Overhead API** — `GET/POST /api/admin/overhead`, `PUT/DELETE /api/admin/overhead/[id]`, `GET /api/admin/overhead/summary` (returns monthly totals + per-category breakdown with period params).
+
+**Generate-overhead cron** — `POST /api/cron/generate-overhead` fires 1st of each month. Creates OverheadCost records for due recurring costs. Applies compound auto-increase when applicable. Added to `vercel.json`.
+
+**Vehicle cost logging** — `GET/POST /api/admin/vehicles/[id]/costs` tracks per-vehicle expense entries (fuel, maintenance, registration, etc.).
+
+### Phase 12C — Owner Draws, Contractor Payments, Exchange Rate Tracking
+
+**OwnerDraw model** — Tracks owner ATM withdrawals, check payments, personal draws. `userId, amount, drawDate, method (ATM/Check/Transfer/Other), notes, receiptUrl`. ADMIN only. Admin page at `/admin/owner-draws`. Filter by year. APIs: `GET/POST /api/admin/owner-draws`, `PUT/DELETE /api/admin/owner-draws/[id]`.
+
+**ContractorPayment model** — Tracks payments to international/1099 contractors. `userId, amountUSD, amountLocal, localCurrency, exchangeRate, paymentDate, payPeriodStart, payPeriodEnd, method (Wire/Check/Cash/Other), notes, receiptUrl`. Exchange rate captured at time of payment for accurate USD reporting. Admin page at `/admin/contractor-payments`. Filter by year. APIs: `GET/POST /api/admin/contractor-payments`, `PUT/DELETE /api/admin/contractor-payments/[id]`.
+
+Both owner draws and contractor payments feed into the **Distributions** section of the P&L dashboard. Exchange rate field supports international workers being paid in local currency (e.g. BZD for Belize).
+
+### Phase 12D — P&L Dashboard, Overhead Allocation, Quarterly Tax Package
+
+**P&L Dashboard** (`/admin/pl`) — Full profit-and-loss view with period selector (month/quarter/year). Sections: Revenue (invoiced, collected, outstanding), Direct Costs (burdened labor + materials + subs + equipment + other), Gross Profit with margin %, Overhead (by category), Distributions (owner draws + contractor payments), Net Profit with margin %. All calculations exclude `isSystemJob` and `excludeFromPL` jobs. Server-rendered page re-fetches data on period change via `GET /api/admin/pl`.
+
+**Dashboard P&L widget** — `PlSummaryWidget` server component above the jobs list. Shows month-to-date: revenue collected, burdened labor cost, materials spend. Visible to ADMIN and OFFICE.
+
+**Overhead allocation per job** — `Summary tab → Profitability card` now includes an overhead allocation line: `(total one-time overhead costs for current month) ÷ (count of active non-system jobs)`. Computed in `jobs/[id]/page.tsx` via two parallel queries and passed as `overheadAllocation` prop.
+
+**Quarterly tax package PDF** — `POST /api/admin/pl/tax-package` generates a branded PDF with Q1/Q2/Q3/Q4 financials: revenue, costs, overhead, draws, net income, notes section. Accepts `{quarter, year, notes}` in request body. React PDF component in `app/api/admin/pl/tax-package/_template.tsx`.
+
+**`excludeFromPL` toggle** — Added to job detail Info tab (ADMIN/OFFICE only). Filters jobs from all P&L widgets and calculations when training, internal, or test jobs should not affect the books. Commit e5b974d.
+
+### Phase 13 — REVERTED (GPS, Push Notifications, Field Crew, Schedule)
+
+**What was attempted:** GPS check-in/check-out for field crew, VAPID web push notifications, a "Command Center" admin page, daily photo system for field crew, and a schedule management section.
+
+**Why it was reverted:** The deployment broke the existing app in multiple ways:
+1. `PushSetup` component was added to the app layout and ran on every page load — it called `/api/push/vapid-public-key` but VAPID keys were never added to Vercel env, causing errors on every page
+2. A field crew redirect (`if role is not ADMIN/OFFICE, redirect to /field`) prevented FOREMANs and TEAMMATEs from seeing their jobs
+3. The generated Prisma client was regenerated from the Phase 13 schema, making the Phase 12 source code type-incompatible
+4. Multiple new routes and components were broken or incomplete
+
+**How it was fixed:**
+1. The local repo had no git remote configured — added: `git remote add origin https://github.com/oakridge1/oak-ridge-pm.git`
+2. Fetched the real GitHub history: `git fetch origin`
+3. Hard-reset to last working commit: `git reset --hard e5b974d`
+4. Regenerated Prisma client from the e5b974d schema (the gitignored `app/generated/prisma/` was stale): `npx prisma generate`
+5. Fixed 4 API route files with wrong Prisma 7 include key casing (documents: `User`→`uploadedBy`, inspections: `User`→`createdBy`, rfis: `User`→`submittedBy`, crib: `StockItem`/`User`→`stockItem`/`user`/`sentBy`)
+6. Installed missing packages (`npm install`), committed fixes, force-pushed to GitHub, redeployed to Vercel
+
+**Important lesson:** The `app/generated/prisma/` directory is in `.gitignore`. After any `git reset --hard`, always run `npx prisma generate` to regenerate the client from the current schema — the reset does NOT restore the generated files.
+
+**Phase 13 features are deferred.** GPS, push notifications, command center, daily photos, and schedule management may be revisited after Belize trip. Do NOT re-introduce them without a dedicated branch and thorough testing before merging.
+
+---
+
+## Current State & Pending Work
+
+**As of 2026-06-01** — App is live at https://oak-ridge-pm.vercel.app at commit `3bf65ff` (e5b974d + route fixes). Build is clean, TypeScript passes.
+
+### What's working
+
+- All Phase 1–12D features are live and functional
+- Jobs dashboard, all job tabs (Info, Labor, Purchase Orders, The Crib, Receipts, Photos, Notes & Tasks, Calendar, Inspections, RFI, Documents, Summary)
+- Estimating tool (`/estimating`) — list + detail with assemblies tab, BOM takeoff, bid calculation
+- Admin section: Users (with wages), Saved Tasks, Settings, Overhead, Owner Draws, Contractor Payments, P&L Dashboard, Receipts
+- PDFs: invoices, AIA G703, job report, summary, change orders, inspections, RFIs, stock orders, deposit requests, tax package
+- Email: daily report cron, billing reminder, stock orders (SAM_CC locked)
+- Google integration: Calendar sync, AIA → Sheets
+
+### Pending work
+
+#### 1. Takeoff tool — symbol set update (HIGH PRIORITY)
+
+The estimating tool has a takeoff/counter feature at `/estimating/[id]/counter` (counter areas tab in estimate detail). The **takeoff symbols** (icons representing different electrical items on the plan) need to be updated to reflect the current BOM item set.
+
+The original HTML-based estimator (`OakRidge_Estimator_33.html`) had a symbol set that was ported to the app. The current symbols in the app's counter tool may not match the BOM categories or may be missing new items added since the port.
+
+**What needs to happen:**
+- Review the current symbol set in `app/(app)/estimating/[id]/tabs/assemblies-tab.tsx` and the counter area components
+- Cross-reference against `lib/bom.ts` to ensure every BOM category has appropriate symbols
+- Update or add symbols as needed to match the current BOM item list
+
+#### 2. Estimating tool — restore HTML logic from OakRidge_Estimator_33.html (HIGH PRIORITY)
+
+The estimating tool (`/estimating/[id]/estimate-client.tsx`) was ported from a standalone HTML estimator file (`OakRidge_Estimator_33.html`). The HTML version may have bid calculation logic, assembly definitions, or panel-board/permit/sub features that weren't fully ported.
+
+**What needs to happen:**
+- Justin to provide the `OakRidge_Estimator_33.html` file (not currently in the repo)
+- Review the HTML estimator's full feature set against the current `estimate-client.tsx`
+- Port any missing logic: bid formula edge cases, assembly types, panel schedules, permit fee calculations, sub quote handling
+- The `lib/estimating.ts` and `lib/bom.ts` files contain the core calculation engine — changes should go there first, then surface in the UI
+
+**Key files for the estimating tool:**
+```
+lib/bom.ts                                          # BOM item catalog + NECA labor hours
+lib/estimating.ts                                   # calcBid(), calcLine(), assembly calculators
+app/(app)/estimating/
+  page.tsx + estimating-client.tsx                  # Estimates list
+  [id]/
+    page.tsx + estimate-client.tsx                  # Main estimate editor (tabs: takeoff, assemblies,
+    │                                               # panels, permits, subs, financials, settings)
+    tabs/assemblies-tab.tsx                         # Assembly calculator tab
+app/api/estimates/
+  route.ts                                          # GET all / POST new estimate
+  [id]/route.ts                                     # GET / PUT / DELETE estimate
+  [id]/counter-areas/route.ts                       # GET / POST counter areas
+  [id]/counter-areas/[areaId]/route.ts              # PUT / DELETE counter area
+  [id]/counter-areas/sync/route.ts                  # POST — sync counter area counts to takeoff items
+  [id]/export/route.ts                              # POST — export estimate to spreadsheet
+  [id]/pdf/route.ts                                 # POST — generate estimate PDF
+  [id]/deposit-request/route.ts                     # POST — deposit request PDF for estimate
+  [id]/create-job/route.ts                          # POST — convert awarded estimate to a Job
+```
+
+#### 3. Admin nav — financial pages not in nav (MINOR)
+
+The `AdminNav` component shows only Users and Saved Tasks tabs. The financial admin pages (Overhead, Owner Draws, Contractor Payments, P&L, Receipts) are reachable but not in the nav. Consider adding a "Financials" dropdown or a second nav row if these pages need to be more discoverable.
+
+#### 4. Phase 13 deferred features (POST-BELIZE)
+
+When ready to resume Phase 13:
+- GPS check-in/check-out for field crew time tracking
+- Web push notifications (VAPID — need to add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Vercel env)
+- Command Center admin view (real-time crew status)
+- Daily photo workflow (field crew uploads end-of-day progress photos)
+- Schedule management (foreman assigns crew to jobs by day)
+
+**Always work on a separate branch. Test the layout first before touching job tabs, admin layout, or proxy.ts.**
