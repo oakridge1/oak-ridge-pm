@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import { STD_ITEMS, CAT_COLORS, CATEGORY_TABS } from "@/lib/takeoff-items";
-import { SYMBOLS as DRAW_SYMBOLS } from "@/lib/takeoff-symbols";
+import { SYMBOLS as DRAW_SYMBOLS, CAT_ORDER } from "@/lib/takeoff-symbols";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const BASE_SCALE = 1.5;
@@ -901,6 +901,49 @@ export function TakeoffClient({
     for (const m of pending) await transferRun(m.id);
   }
 
+  // ── Sync to counter tool ───────────────────────────────────────────────────
+  function syncToCounter() {
+    const JOBS_KEY = "ore_jobs_v1";
+    let jobs: Record<string, any> = {};
+    try { jobs = JSON.parse(localStorage.getItem(JOBS_KEY) ?? "{}") || {}; } catch {}
+    const jobKeys = Object.keys(jobs);
+    if (!jobKeys.length) {
+      alert("No counter job found. Open the counter tool first, then sync.");
+      return;
+    }
+    const jobKey = jobKeys[jobKeys.length - 1];
+    const job = jobs[jobKey];
+    if (!job?.areas?.length) { alert("Counter job has no areas."); return; }
+    const area = job.areas[job.currentAreaIdx ?? 0] ?? job.areas[0];
+    if (!area.counts) area.counts = {};
+
+    // Push symbol counts
+    for (const m of markupsRef.current) {
+      if (m.type !== "symbol" || !m.itemKey) continue;
+      area.counts[m.itemKey] = (area.counts[m.itemKey] ?? 0) + 1;
+    }
+    // Push conduit/run footage
+    for (const m of markupsRef.current) {
+      if (m.type !== "run") continue;
+      const rt = runTypesRef.current.find(r => r.id === m.runTypeId) ?? runTypesRef.current[0];
+      if (!rt) continue;
+      const ft = Math.round(m.footage ?? 0);
+      if (!ft) continue;
+      let key = "";
+      if (rt.category === "EMT")    key = `conduit_emt_${rt.size.replace(/[^0-9a-z]/gi, "_").toLowerCase()}`;
+      if (rt.category === "PVC")    key = `conduit_pvc_${rt.size.replace(/[^0-9a-z]/gi, "_").toLowerCase()}`;
+      if (rt.category === "Rigid")  key = "conduit_rigid";
+      if (rt.category === "MC" || rt.category === "NM")
+                                    key = `mc_${rt.size.replace(/[^a-z0-9]/gi, "_").toLowerCase()}`;
+      if (rt.category === "Custom") key = `run_custom_${rt.id}`;
+      if (key) area.counts[key] = (area.counts[key] ?? 0) + ft;
+    }
+
+    jobs[jobKey] = job;
+    localStorage.setItem(JOBS_KEY, JSON.stringify(jobs));
+    alert(`Synced to counter: ${job.name ?? jobKey}`);
+  }
+
   // ── Computed audit data ────────────────────────────────────────────────────
   const symbolCounts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -909,15 +952,38 @@ export function TakeoffClient({
     return c;
   }, [markups]);
 
-  const runGrouped = useMemo(() => {
-    const g: Record<string, { rt: RunType; runs: Markup[] }> = {};
+  const auditData = useMemo(() => {
+    // Symbol counts grouped by category
+    const byCat: Record<string, Array<{ label: string; count: number }>> = {};
+    for (const m of markups) {
+      if (m.type !== "symbol" || !m.itemKey) continue;
+      const item = STD_ITEMS.find(i => i.key === m.itemKey);
+      if (!item) continue;
+      const cat = item.category;
+      if (!byCat[cat]) byCat[cat] = [];
+      const ex = byCat[cat].find(e => e.label === item.label);
+      if (ex) ex.count++;
+      else byCat[cat].push({ label: item.label, count: 1 });
+    }
+    // Run totals by run type
+    const rtTotals: Record<string, { rt: RunType; ft: number; segs: number }> = {};
     for (const m of markups) {
       if (m.type !== "run") continue;
       const rt = runTypes.find(r => r.id === m.runTypeId) ?? runTypes[0];
-      if (!g[rt.id]) g[rt.id] = { rt, runs: [] };
-      g[rt.id].runs.push(m);
+      if (!rt) continue;
+      if (!rtTotals[rt.id]) rtTotals[rt.id] = { rt, ft: 0, segs: 0 };
+      rtTotals[rt.id].ft += m.footage ?? 0;
+      rtTotals[rt.id].segs++;
     }
-    return g;
+    // Wire totals (conductor count × conduit footage)
+    const wire: Record<string, number> = {};
+    for (const { rt, ft } of Object.values(rtTotals)) {
+      for (const c of rt.conductors) {
+        const lbl = `${c.count}×${c.size} ${c.type}`;
+        wire[lbl] = (wire[lbl] ?? 0) + Math.round(ft) * c.count;
+      }
+    }
+    return { byCat, rtTotals, wire };
   }, [markups, runTypes]);
 
   const currentPxPerFoot = pageScales[String(currentPage)];
@@ -1025,8 +1091,11 @@ export function TakeoffClient({
         {/* PDF upload */}
         <label style={{ ...S.hdrBtn, cursor: "pointer" }}>
           📄 PDF
-          <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFileUpload} />
+          <input type="file" accept=".pdf,.PDF,application/pdf" style={{ display: "none" }} onChange={handleFileUpload} />
         </label>
+
+        {/* Sync to counter */}
+        <HBtn onClick={syncToCounter}>⇅ Sync</HBtn>
 
         {/* Save status */}
         <span style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: saveStatus === "saved" ? "#2db562" : saveStatus === "saving" ? "#f0a500" : "#e03a3a" }}>
@@ -1057,78 +1126,156 @@ export function TakeoffClient({
       <div style={S.body}>
         {/* LEFT PANEL */}
         <aside style={S.leftPanel}>
-          {/* Scale */}
-          <Section label="Scale">
-            <select defaultValue="" onChange={e => { if (e.target.value) applyScalePreset(parseFloat(e.target.value)); }} style={S.panelSelect}>
-              <option value="">— preset —</option>
-              {SCALE_PRESETS.map(p => <option key={p.label} value={p.feetPerInch}>{p.label}</option>)}
-            </select>
-            <button
-              onClick={() => { setMeasuringActive(v => !v); if (!measuringActiveRef.current) { setMeasurePt1(null); measurePt1Ref.current = null; } measuringActiveRef.current = !measuringActiveRef.current; }}
-              style={{ ...S.panelBtn, marginTop: 4, borderColor: measuringActive ? "#FF5910" : "#2e3138", color: measuringActive ? "#FF5910" : "#9aa0ab" }}>
-              {measuringActive ? "Click first point…" : "Measure distance"}
-            </button>
-            <div style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: currentPxPerFoot ? "#2db562" : "#5a6070", marginTop: 4 }}>
-              {currentPxPerFoot ? `✓ ${scaleLabel}` : "Not set"}
-            </div>
-          </Section>
+          {/* Scrollable top content */}
+          <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+            {/* Scale */}
+            <Section label="Scale">
+              <select defaultValue="" onChange={e => { if (e.target.value) applyScalePreset(parseFloat(e.target.value)); }} style={S.panelSelect}>
+                <option value="">— preset —</option>
+                {SCALE_PRESETS.map(p => <option key={p.label} value={p.feetPerInch}>{p.label}</option>)}
+              </select>
+              <button
+                onClick={() => { setMeasuringActive(v => !v); if (!measuringActiveRef.current) { setMeasurePt1(null); measurePt1Ref.current = null; } measuringActiveRef.current = !measuringActiveRef.current; }}
+                style={{ ...S.panelBtn, marginTop: 4, borderColor: measuringActive ? "#FF5910" : "#2e3138", color: measuringActive ? "#FF5910" : "#9aa0ab" }}>
+                {measuringActive ? "Click first point…" : "Measure distance"}
+              </button>
+              <div style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: currentPxPerFoot ? "#2db562" : "#5a6070", marginTop: 4 }}>
+                {currentPxPerFoot ? `✓ ${scaleLabel}` : "No scale set"}
+              </div>
+            </Section>
 
-          {/* Symbols (COUNT mode) */}
-          {mode === "count" && (
-            <Section label="Symbol">
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginBottom: 6 }}>
-                {CATEGORY_TABS.map(tab => (
-                  <button key={tab.id} onClick={() => setLeftPanelTab(tab.id)}
-                    style={{ background: leftPanelTab === tab.id ? "#FF5910" : "#22252b", border: `1px solid ${leftPanelTab === tab.id ? "#FF5910" : "#2e3138"}`, color: leftPanelTab === tab.id ? "#111" : "#9aa0ab", borderRadius: 4, fontFamily: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 5px", cursor: "pointer", textTransform: "uppercase" }}>
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {STD_ITEMS.filter(item => CATEGORY_TABS.find(t => t.id === leftPanelTab)?.categories.includes(item.category)).map(item => {
-                  const color = CAT_COLORS[item.category] ?? "#9aa0ab";
-                  const active = selectedItemKey === item.key;
-                  return (
-                    <button key={item.key} onClick={() => { setSelectedItemKey(item.key); setSelectedColor(color); }}
-                      style={{ display: "flex", alignItems: "center", gap: 6, background: active ? "rgba(255,89,16,0.12)" : "#22252b", border: `1px solid ${active ? "#FF5910" : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", textAlign: "left" }}>
-                      <SymPreview symId={item.symId} color={color} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? "#e8eaed" : "#9aa0ab", flex: 1, lineHeight: 1.2 }}>{item.label}</span>
+            {/* Symbols (COUNT mode) */}
+            {mode === "count" && (
+              <Section label="Symbol">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginBottom: 6 }}>
+                  {CATEGORY_TABS.map(tab => (
+                    <button key={tab.id} onClick={() => setLeftPanelTab(tab.id)}
+                      style={{ background: leftPanelTab === tab.id ? "#FF5910" : "#22252b", border: `1px solid ${leftPanelTab === tab.id ? "#FF5910" : "#2e3138"}`, color: leftPanelTab === tab.id ? "#111" : "#9aa0ab", borderRadius: 4, fontFamily: "inherit", fontSize: 10, fontWeight: 700, padding: "3px 5px", cursor: "pointer", textTransform: "uppercase" }}>
+                      {tab.label}
                     </button>
-                  );
-                })}
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", color: "#5a6070", textTransform: "uppercase", marginBottom: 4 }}>Color</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {Object.values(CAT_COLORS).map(c => (
-                    <div key={c} onClick={() => setSelectedColor(c)}
-                      style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: "pointer", border: `2px solid ${selectedColor === c ? "#fff" : "transparent"}`, transition: "transform 0.1s", transform: selectedColor === c ? "scale(1.15)" : "scale(1)" }} />
                   ))}
                 </div>
-              </div>
-            </Section>
-          )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {STD_ITEMS.filter(item => CATEGORY_TABS.find(t => t.id === leftPanelTab)?.categories.includes(item.category)).map(item => {
+                    const color = CAT_COLORS[item.category] ?? "#9aa0ab";
+                    const active = selectedItemKey === item.key;
+                    const cnt = symbolCounts[item.key] ?? 0;
+                    return (
+                      <button key={item.key} onClick={() => { setSelectedItemKey(item.key); setSelectedColor(color); }}
+                        style={{ display: "flex", alignItems: "center", gap: 6, background: active ? "rgba(240,165,0,0.08)" : cnt > 0 ? "#1a1e12" : "#22252b", border: `1px solid ${active ? "#f0a500" : cnt > 0 ? "#3a3f20" : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", textAlign: "left", width: "100%" }}>
+                        <SymPreview symId={item.symId} color={color} />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: active ? "#e8eaed" : "#9aa0ab", flex: 1, lineHeight: 1.2 }}>{item.label}</span>
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: cnt > 0 ? "#f0a500" : "#5a6070", fontWeight: 700, flexShrink: 0 }}>
+                          {cnt}<span style={{ fontSize: 9, color: "#5a6070" }}> e</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", color: "#5a6070", textTransform: "uppercase", marginBottom: 4 }}>Color</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {Object.values(CAT_COLORS).map(c => (
+                      <div key={c} onClick={() => setSelectedColor(c)}
+                        style={{ width: 18, height: 18, borderRadius: 3, background: c, cursor: "pointer", border: `2px solid ${selectedColor === c ? "#fff" : "transparent"}`, transition: "transform 0.1s", transform: selectedColor === c ? "scale(1.15)" : "scale(1)" }} />
+                    ))}
+                  </div>
+                </div>
+              </Section>
+            )}
 
-          {/* Run types (RUN mode) */}
-          {mode === "run" && (
-            <Section label="Run Type">
-              {runTypes.map(rt => (
-                <button key={rt.id} onClick={() => setActiveRunTypeId(rt.id)}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: activeRunTypeId === rt.id ? "rgba(255,89,16,0.12)" : "#22252b", border: `1px solid ${activeRunTypeId === rt.id ? "#FF5910" : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", width: "100%", marginBottom: 3, textAlign: "left" }}>
-                  <div style={{ width: 10, height: 3, background: rt.color, borderRadius: 1, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rt.label}</span>
-                </button>
-              ))}
-              <button onClick={openRunTypeForm} style={{ ...S.panelBtn, marginTop: 4, borderStyle: "dashed" }}>+ Run Type</button>
-              <div style={{ marginTop: 8, fontSize: 10, color: "#5a6070" }}>
-                Ortho: <button onClick={() => { const v = !orthoSnap; setOrthoSnap(v); orthoSnapRef.current = v; }}
-                  style={{ background: "none", border: "none", color: orthoSnap ? "#2db562" : "#9aa0ab", cursor: "pointer", fontFamily: "inherit", fontSize: 10 }}>
-                  {orthoSnap ? "ON" : "OFF"}
-                </button>
+            {/* Run types (RUN mode) */}
+            {mode === "run" && (
+              <Section label="Run Type">
+                {runTypes.map(rt => (
+                  <button key={rt.id} onClick={() => setActiveRunTypeId(rt.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: activeRunTypeId === rt.id ? "rgba(240,165,0,0.08)" : "#22252b", border: `1px solid ${activeRunTypeId === rt.id ? "#f0a500" : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", width: "100%", marginBottom: 3, textAlign: "left" }}>
+                    <div style={{ width: 10, height: 3, background: rt.color, borderRadius: 1, flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rt.label}</span>
+                  </button>
+                ))}
+                <button onClick={openRunTypeForm} style={{ ...S.panelBtn, marginTop: 4, borderStyle: "dashed" }}>+ Run Type</button>
+                <div style={{ marginTop: 8, fontSize: 10, color: "#5a6070" }}>
+                  Ortho: <button onClick={() => { const v = !orthoSnap; setOrthoSnap(v); orthoSnapRef.current = v; }}
+                    style={{ background: "none", border: "none", color: orthoSnap ? "#2db562" : "#9aa0ab", cursor: "pointer", fontFamily: "inherit", fontSize: 10 }}>
+                    {orthoSnap ? "ON" : "OFF"}
+                  </button>
+                </div>
+                <div style={{ marginTop: 2, fontSize: 10, color: "#5a6070" }}>Enter = finish · Esc = cancel</div>
+              </Section>
+            )}
+          </div>
+
+          {/* AUDIT TRAIL — collapsible, pinned to bottom of left sidebar */}
+          <div style={{ borderTop: "1px solid #2e3138", flexShrink: 0 }}>
+            <button
+              onClick={() => setAuditOpen(v => !v)}
+              style={{ width: "100%", background: "none", border: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 12px", cursor: "pointer" }}
+            >
+              <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.15em", color: "#5a6070", textTransform: "uppercase" }}>Audit Trail</span>
+              <span style={{ fontSize: 10, color: "#5a6070" }}>{auditOpen ? "▲" : "▼"}</span>
+            </button>
+            {auditOpen && (
+              <div style={{ maxHeight: 300, overflowY: "auto", paddingBottom: 8 }}>
+                {/* Symbol counts by category */}
+                {CAT_ORDER.map(cat => {
+                  const items = auditData.byCat[cat];
+                  if (!items || items.length === 0) return null;
+                  const subtotal = items.reduce((s, i) => s + i.count, 0);
+                  return (
+                    <div key={cat}>
+                      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase", padding: "5px 12px 2px" }}>
+                        {cat} ({subtotal})
+                      </div>
+                      {items.map(item => (
+                        <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1px 12px 1px 18px" }}>
+                          <span style={{ fontSize: 11, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#f0a500", fontWeight: 700, flexShrink: 0, marginLeft: 6 }}>
+                            {item.count}<span style={{ fontSize: 9, color: "#5a6070" }}> ea</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+                {/* Conduit runs */}
+                {Object.keys(auditData.rtTotals).length > 0 && (
+                  <>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase", padding: "5px 12px 2px" }}>Conduit</div>
+                    {Object.values(auditData.rtTotals).map(({ rt, ft, segs }) => {
+                      const totalFt = Math.round(ft);
+                      const avg = segs > 0 ? Math.round(ft / segs) : 0;
+                      return (
+                        <div key={rt.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "1px 12px 1px 18px" }}>
+                          <span style={{ fontSize: 11, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rt.label}</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#f0a500", flexShrink: 0, marginLeft: 6, whiteSpace: "nowrap" }}>
+                            {totalFt.toLocaleString()}' /{segs}r ~{avg}'
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                {/* Wire (calculated from conduit footage × conductors) */}
+                {Object.keys(auditData.wire).length > 0 && (
+                  <>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase", padding: "5px 12px 2px" }}>Wire (Calculated)</div>
+                    {Object.entries(auditData.wire).map(([lbl, footage]) => (
+                      <div key={lbl} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1px 12px 1px 18px" }}>
+                        <span style={{ fontSize: 11, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lbl}</span>
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#f0a500", fontWeight: 700, flexShrink: 0, marginLeft: 6 }}>
+                          {footage.toLocaleString()}<span style={{ fontSize: 9, color: "#5a6070" }}> ft</span>
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {Object.keys(auditData.byCat).length === 0 && Object.keys(auditData.rtTotals).length === 0 && (
+                  <div style={{ fontSize: 11, color: "#5a6070", padding: "4px 12px" }}>No items placed yet</div>
+                )}
               </div>
-              <div style={{ marginTop: 2, fontSize: 10, color: "#5a6070" }}>Enter = finish · Esc = cancel</div>
-            </Section>
-          )}
+            )}
+          </div>
         </aside>
 
         {/* CANVAS */}
@@ -1158,7 +1305,7 @@ export function TakeoffClient({
                 )}
                 <label style={{ pointerEvents: "all", background: "#FF5910", border: "none", borderRadius: 8, color: "#111", fontFamily: "inherit", fontSize: 15, fontWeight: 900, letterSpacing: "0.08em", padding: "12px 24px", cursor: "pointer", textTransform: "uppercase" }}>
                   📄 Load PDF
-                  <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFileUpload} />
+                  <input type="file" accept=".pdf,.PDF,application/pdf" style={{ display: "none" }} onChange={handleFileUpload} />
                 </label>
               </div>
             )}
@@ -1174,7 +1321,7 @@ export function TakeoffClient({
             />
           </div>
           {/* Float zoom controls */}
-          <div style={{ position: "absolute", bottom: 16, right: auditOpen ? 292 : 16, display: "flex", flexDirection: "column", gap: 4, zIndex: 40 }}>
+          <div style={{ position: "absolute", bottom: 16, right: 16, display: "flex", flexDirection: "column", gap: 4, zIndex: 40 }}>
             <ZBtn onClick={() => applyZoom(0.10)}>+</ZBtn>
             <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#5a6070", textAlign: "center" }}>{Math.round(zoom * 100)}%</div>
             <ZBtn onClick={() => applyZoom(-0.10)}>−</ZBtn>
@@ -1182,82 +1329,6 @@ export function TakeoffClient({
           </div>
         </div>
 
-        {/* RIGHT AUDIT PANEL */}
-        {auditOpen ? (
-          <aside style={S.auditPanel}>
-            <div style={{ padding: "10px 12px", borderBottom: "1px solid #2e3138", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.15em", color: "#5a6070", textTransform: "uppercase" }}>Audit</span>
-              <button onClick={() => setAuditOpen(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer" }}>✕</button>
-            </div>
-            <div style={{ overflow: "auto", flex: 1, padding: "8px 0" }}>
-              {/* Symbol counts */}
-              <div style={{ padding: "0 12px 8px" }}>
-                <div style={S.auditSectionLabel}>Assembly Counts</div>
-                {Object.entries(symbolCounts).length === 0 && <div style={S.auditEmpty}>No symbols placed</div>}
-                {Object.entries(symbolCounts).map(([key, count]) => {
-                  const item = STD_ITEMS.find(i => i.key === key);
-                  if (!item) return null;
-                  const color = CAT_COLORS[item.category] ?? "#9aa0ab";
-                  return (
-                    <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                      <SymPreview symId={item.symId} color={color} />
-                      <div style={{ flex: 1, fontSize: 11, color: "#9aa0ab" }}>{item.label}</div>
-                      <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, color: "#e8eaed", fontWeight: 700 }}>{count}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ height: 1, background: "#2e3138", margin: "4px 0" }} />
-              {/* Runs */}
-              <div style={{ padding: "8px 12px" }}>
-                <div style={S.auditSectionLabel}>Conduit / Wire Runs</div>
-                {Object.keys(runGrouped).length === 0 && <div style={S.auditEmpty}>No runs placed</div>}
-                {Object.values(runGrouped).map(({ rt, runs }) => {
-                  const total = runs.reduce((s, r) => s + (r.footage ?? 0), 0);
-                  const avg = runs.length > 0 ? Math.round(total / runs.length) : 0;
-                  const done = runs.filter(r => r.transferred).length;
-                  return (
-                    <div key={rt.id} style={{ marginBottom: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                        <div style={{ width: 10, height: 3, background: rt.color, borderRadius: 1 }} />
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#e8eaed" }}>{rt.label}</div>
-                      </div>
-                      <div style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: "#9aa0ab", paddingLeft: 16 }}>
-                        {Math.round(total)}ft / {runs.length} runs ~{avg}ft avg
-                      </div>
-                      <div style={{ paddingLeft: 16, marginTop: 2 }}>
-                        {rt.conductors.map((c, i) => (
-                          <div key={i} style={{ fontSize: 10, fontFamily: "JetBrains Mono, monospace", color: c.isGround ? "#2db562" : "#5a6070" }}>
-                            {c.count}×{c.size} {c.type}: {Math.round(total * c.count)}ft
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ paddingLeft: 16, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 10, color: "#5a6070" }}>{done}/{runs.length} xferred</span>
-                        <button onClick={async () => {
-                          for (const r of runs.filter(x => !x.transferred)) await transferRun(r.id);
-                        }}
-                          style={{ fontSize: 10, background: "#22252b", border: "1px solid #2e3138", color: "#9aa0ab", borderRadius: 4, padding: "2px 6px", cursor: "pointer", fontFamily: "inherit" }}>
-                          Add to Estimate →
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{ padding: 12, borderTop: "1px solid #2e3138" }}>
-              <button onClick={transferAllRuns}
-                style={{ width: "100%", background: "#2db562", border: "none", borderRadius: 6, color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, padding: 9, cursor: "pointer", letterSpacing: "0.05em" }}>
-                Transfer All Untransferred →
-              </button>
-            </div>
-          </aside>
-        ) : (
-          <button onClick={() => setAuditOpen(true)} style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "#1a1c20", border: "1px solid #2e3138", borderRight: "none", borderRadius: "6px 0 0 6px", color: "#5a6070", cursor: "pointer", fontSize: 11, padding: "8px 5px", zIndex: 45, writingMode: "vertical-rl" }}>
-            AUDIT
-          </button>
-        )}
       </div>
 
       {/* RUN TYPE FORM MODAL */}
@@ -1448,7 +1519,7 @@ const styles = {
     color: "#9aa0ab", fontFamily: "Barlow Condensed, sans-serif" as const, fontSize: 12,
     fontWeight: 700, padding: "5px 9px", cursor: "pointer",
   },
-  modeBtnActive: { background: "#FF5910", borderColor: "#FF5910", color: "#111" },
+  modeBtnActive: { background: "#f0a500", borderColor: "#f0a500", color: "#111", letterSpacing: "0.05em" },
   zoomRow: { display: "flex", alignItems: "center", gap: 4 },
   zoomLabel: { fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#9aa0ab", minWidth: 36, textAlign: "center" as const },
   navBtn: {
@@ -1465,17 +1536,11 @@ const styles = {
   body: { display: "flex", flex: 1, overflow: "hidden", position: "relative" as const },
   leftPanel: {
     width: 200, background: "#1a1c20", borderRight: "1px solid #2e3138",
-    display: "flex", flexDirection: "column" as const, flexShrink: 0, overflowY: "auto" as const,
+    display: "flex", flexDirection: "column" as const, flexShrink: 0, overflow: "hidden" as const,
   },
   canvasWrap: {
     flex: 1, overflow: "auto", background: "#0a0b0c", position: "relative" as const,
   },
-  auditPanel: {
-    width: 280, background: "#1a1c20", borderLeft: "1px solid #2e3138",
-    display: "flex", flexDirection: "column" as const, flexShrink: 0, overflow: "hidden",
-  },
-  auditSectionLabel: { fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase" as const, marginBottom: 6 },
-  auditEmpty: { fontSize: 11, color: "#5a6070" },
   panelSelect: { width: "100%", background: "#22252b", border: "1px solid #2e3138", borderRadius: 6, color: "#e8eaed", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 600, padding: "6px 8px", outline: "none" },
   panelBtn: { width: "100%", background: "none", border: "1px solid #2e3138", borderRadius: 6, color: "#9aa0ab", fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", padding: 7, cursor: "pointer", textTransform: "uppercase" as const },
   modalOverlay: { position: "fixed" as const, inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" },
