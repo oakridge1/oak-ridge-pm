@@ -550,3 +550,296 @@ export function calcData(p: DataParams): SavedAssembly | null {
   const label = `${p.ports}-port Cat6 — ${p.feet}ft — ${p.support}`;
   return toAsm(acc, label, p as unknown as Record<string, unknown>);
 }
+
+// ─── calcFireAlarm ────────────────────────────────────────────────────────────
+
+export interface FireAlarmParams {
+  mountType: 'wood' | 'metal' | 'pipe';
+  wireType: 'slc' | 'nac' | 'ann';
+  feet: number;
+  qty: number;
+  quoted: boolean;
+  diff: number;
+}
+
+const FA_CABLE: Record<string, Record<string, string>> = {
+  wood:  { slc: 'fa1', nac: 'fa2', ann: 'fa3' },
+  metal: { slc: 'fa4', nac: 'fa5', ann: 'fa6' },
+  pipe:  { slc: 'fa4', nac: 'fa5', ann: 'fa6' },
+};
+
+export function calcFireAlarm(p: FireAlarmParams): SavedAssembly | null {
+  if (p.qty <= 0) return null;
+  const R = getRates();
+  const acc = newAcc();
+
+  // Cable
+  const cableId = FA_CABLE[p.mountType]?.[p.wireType];
+  if (cableId) addItem(acc, cableId, p.feet);
+
+  // Box hardware
+  if (p.mountType === 'wood') {
+    addItem(acc, 'b7',  p.qty);                      // single-gang old-work box
+    addItem(acc, 'fa_st', Math.ceil(p.feet / 4));    // staples every 4ft
+  } else if (p.mountType === 'metal') {
+    addItem(acc, 'b1',  p.qty);                      // 4" square box
+    addItem(acc, 'bs1', p.qty);                      // single-gang mud ring
+    addItem(acc, 'mr1', p.qty);                      // mud ring
+    addItem(acc, 'bs2', p.qty);                      // box support
+    addItem(acc, 'mc1', p.qty * 2);                  // MC connectors (2 per box)
+  } else {
+    // pipe — same hardware as metal
+    addItem(acc, 'b1',  p.qty);
+    addItem(acc, 'bs1', p.qty);
+    addItem(acc, 'mr1', p.qty);
+    addItem(acc, 'bs2', p.qty);
+    addItem(acc, 'mc1', p.qty * 2);
+  }
+
+  // Device — PER QUOTE
+  if (p.quoted) {
+    addManual(acc, 'FA device (per quote)', p.qty, 'EA', 0.01 * p.qty, 0);
+  }
+
+  // Rough-in labor
+  const lhrEa = p.mountType === 'wood' ? 0.25 : 0.35;
+  addManual(acc, `FA rough-in labor (${p.qty} × ${lhrEa}hr)`, p.qty, 'EA', 0,
+    lhrEa * p.qty * p.diff * R.labor);
+
+  const label = `Fire alarm — ${p.mountType} — ${p.wireType} — ${p.qty}ea`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─── GEAR_DEF + calcGear ──────────────────────────────────────────────────────
+
+export interface GearDef {
+  lhrEa: number;
+  mount?: string;   // BOM id for mounting hardware, if any
+}
+
+export const GEAR_DEF: Record<string, GearDef> = {
+  panel:       { lhrEa: 2.00 },
+  panel_lighting: { lhrEa: 1.50 },
+  xfmr:        { lhrEa: 3.00 },
+  xfmr_1p:     { lhrEa: 2.00 },
+  xfmr_iso:    { lhrEa: 3.00 },
+  xfmr_bb:     { lhrEa: 4.00 },
+  disc_nf:     { lhrEa: 0.75 },
+  disc_f:      { lhrEa: 0.75 },
+  disc_ac:     { lhrEa: 1.00 },
+  disc_motor:  { lhrEa: 1.00 },
+  meter:       { lhrEa: 2.00 },
+  meter_bank:  { lhrEa: 4.00 },
+  meter_main:  { lhrEa: 3.00 },
+  ct_cab:      { lhrEa: 1.50 },
+  mdp:         { lhrEa: 6.00 },
+  swgr:        { lhrEa: 8.00 },
+  mcc:         { lhrEa: 8.00 },
+  ats:         { lhrEa: 4.00 },
+  bypass:      { lhrEa: 4.00 },
+  vfd:         { lhrEa: 3.00 },
+  soft:        { lhrEa: 2.00 },
+  ctrl:        { lhrEa: 1.50 },
+};
+
+export interface GearParams {
+  gearType: keyof typeof GEAR_DEF;
+  qty: number;
+  nema3r: boolean;
+  fused: boolean;
+  diff: number;
+}
+
+export function calcGear(p: GearParams): SavedAssembly | null {
+  if (p.qty <= 0) return null;
+  const R = getRates();
+  const acc = newAcc();
+  const def = GEAR_DEF[p.gearType] as GearDef | undefined;
+  if (!def) return null;
+
+  // Mount hardware
+  if (def.mount) addItem(acc, def.mount, p.qty);
+
+  // Gear itself — PER QUOTE
+  addManual(acc, `${p.gearType} (per quote)`, p.qty, 'EA', 0.01 * p.qty, 0);
+
+  // Install labor
+  let lhrEa = def.lhrEa;
+  if (p.nema3r) lhrEa += 0.50;
+  if (p.fused)  lhrEa += 0.25;
+
+  addManual(acc, `${p.gearType} install labor (${p.qty} × ${lhrEa}hr)`, p.qty, 'EA', 0,
+    lhrEa * p.qty * p.diff * R.labor);
+
+  const label = `Gear — ${p.gearType} — ${p.qty}ea${p.nema3r ? ' NEMA3R' : ''}${p.fused ? ' fused' : ''}`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─── calcFloorBox ─────────────────────────────────────────────────────────────
+
+export interface FloorBoxParams {
+  floorType: 'wood' | 'concrete_new' | 'concrete_core';
+  gangs: number;
+  qty: number;
+  quoted: boolean;
+  diff: number;
+}
+
+const FLOOR_LAB: Record<string, { base: number; perGang: number }> = {
+  wood:          { base: 0.75, perGang: 0.25 },
+  concrete_new:  { base: 1.00, perGang: 0.25 },
+  concrete_core: { base: 1.50, perGang: 0.35 },
+};
+
+export function calcFloorBox(p: FloorBoxParams): SavedAssembly | null {
+  if (p.qty <= 0) return null;
+  const R = getRates();
+  const acc = newAcc();
+  const lab = FLOOR_LAB[p.floorType];
+  if (!lab) return null;
+
+  // Floor box — PER QUOTE
+  if (p.quoted) {
+    addManual(acc, 'Floor box assembly (per quote)', p.qty, 'EA', 0.01 * p.qty, 0);
+  }
+
+  // Optional mount mat for wood
+  if (p.floorType === 'wood') {
+    addItem(acc, 'fb_mnt', p.qty);
+  }
+
+  // Labor
+  const lhrEa = lab.base + (p.gangs - 1) * lab.perGang;
+  addManual(acc, `Floor box labor (${p.qty} × ${lhrEa.toFixed(2)}hr)`, p.qty, 'EA', 0,
+    lhrEa * p.qty * p.diff * R.labor);
+
+  const label = `Floor box — ${p.floorType} — ${p.gangs}-gang — ${p.qty}ea`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─── calcHighAmpRecept ────────────────────────────────────────────────────────
+
+export interface HighAmpReceptParams {
+  receptType: '30A' | '50A' | '240V' | 'twist';
+  whipFeet: number;
+  qty: number;
+  diff: number;
+}
+
+const HA_DEF: Record<string, { cableId: string; plateId: string; lhrEa: number }> = {
+  '30A':  { cableId: 'rm2', plateId: 'wn_ss',  lhrEa: 1.00 },
+  '50A':  { cableId: 'w1',  plateId: 'wn_ss',  lhrEa: 1.25 },
+  '240V': { cableId: 'w1',  plateId: 'wn_ss',  lhrEa: 1.00 },
+  twist:  { cableId: 'w3',  plateId: 'wn_ss',  lhrEa: 1.50 },
+};
+
+export function calcHighAmpRecept(p: HighAmpReceptParams): SavedAssembly | null {
+  if (p.qty <= 0) return null;
+  const R = getRates();
+  const acc = newAcc();
+  const def = HA_DEF[p.receptType] as (typeof HA_DEF)[string] | undefined;
+  if (!def) return null;
+
+  // Whip cable
+  addItem(acc, def.cableId, p.whipFeet * p.qty);
+  // MC connectors (2 per whip)
+  addItem(acc, 'mc1', 2 * p.qty);
+  // CJ6 cord grip
+  addItem(acc, 'cj6', p.qty);
+  // Box hardware
+  addItem(acc, 'b1', p.qty);      // 4" square box
+  addItem(acc, 'bs2', p.qty);     // box support
+  // Device (PER QUOTE) + plate + wire nuts + ground screw
+  addManual(acc, `${p.receptType} receptacle (per quote)`, p.qty, 'EA', 0.01 * p.qty, 0);
+  addItem(acc, def.plateId, p.qty);
+  addItem(acc, 'wn1', p.qty * 3); // wire nuts
+  addItem(acc, 'gs1', p.qty);     // ground screw
+
+  // Device install labor
+  addManual(acc, `${p.receptType} install labor (${p.qty} × ${def.lhrEa}hr)`, p.qty, 'EA', 0,
+    def.lhrEa * p.qty * p.diff * R.labor);
+
+  const label = `High-amp recept — ${p.receptType} — ${p.whipFeet}ft whip — ${p.qty}ea`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─── calcBid ──────────────────────────────────────────────────────────────────
+
+export interface BidInput {
+  conduitRuns:     SavedAssembly[];
+  racks:           SavedAssembly[];
+  mcHomeRuns:      SavedAssembly[];
+  threeWays:       SavedAssembly[];
+  dataDrops:       SavedAssembly[];
+  fireAlarm:       SavedAssembly[];
+  gear:            SavedAssembly[];
+  floorBoxes:      SavedAssembly[];
+  highAmpRecepts:  SavedAssembly[];
+  misc:            SavedAssembly[];
+  lighting:        SavedAssembly[];
+  heating:         SavedAssembly[];
+  tempPower:       SavedAssembly[];
+  underground:     SavedAssembly[];
+  other:           SavedAssembly[];
+  condMult: number;  // labor-only multiplier (e.g. 1.10 for difficult access)
+}
+
+export interface BidResult {
+  matTotal:   number;
+  laborTotal: number;
+  permits:    number;
+  subs:       number;
+  overhead:   number;
+  profit:     number;
+  grandTotal: number;
+  totalHrs:   number;
+  breakdown:  Record<string, { mat: number; lab: number }>;
+}
+
+export function calcBid(input: BidInput): BidResult {
+  const R = getRates();
+
+  const groups: Array<[string, SavedAssembly[]]> = [
+    ['conduitRuns',    input.conduitRuns],
+    ['racks',          input.racks],
+    ['mcHomeRuns',     input.mcHomeRuns],
+    ['threeWays',      input.threeWays],
+    ['dataDrops',      input.dataDrops],
+    ['fireAlarm',      input.fireAlarm],
+    ['gear',           input.gear],
+    ['floorBoxes',     input.floorBoxes],
+    ['highAmpRecepts', input.highAmpRecepts],
+    ['misc',           input.misc],
+    ['lighting',       input.lighting],
+    ['heating',        input.heating],
+    ['tempPower',      input.tempPower],
+    ['underground',    input.underground],
+    ['other',          input.other],
+  ];
+
+  let matTotal   = 0;
+  let laborTotal = 0;
+  const breakdown: Record<string, { mat: number; lab: number }> = {};
+
+  for (const [key, asms] of groups) {
+    let gMat = 0;
+    let gLab = 0;
+    for (const asm of asms) {
+      gMat += asm.mat;
+      gLab += asm.lab * input.condMult;
+    }
+    breakdown[key] = { mat: gMat, lab: gLab };
+    matTotal   += gMat;
+    laborTotal += gLab;
+  }
+
+  const permits  = R.permit;
+  const subs     = R.sub;
+  const overhead = laborTotal * R.overhead;
+  const subtotal = matTotal + laborTotal + permits + subs + overhead;
+  const profit   = subtotal * R.profit;
+  const grandTotal = subtotal + profit;
+  const totalHrs = laborTotal / R.labor;
+
+  return { matTotal, laborTotal, permits, subs, overhead, profit, grandTotal, totalHrs, breakdown };
+}
