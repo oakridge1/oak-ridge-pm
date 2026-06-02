@@ -38,14 +38,14 @@ function pxPerFootFromPreset(feetPerInch: number): number {
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Mode = "count" | "run" | "pan" | "fixtures";
+type Mode = "count" | "run" | "pan" | "fixtures" | "gear";
 type SaveStatus = "saved" | "saving" | "unsaved";
 
 interface Pt { x: number; y: number }
 
 interface Markup {
   id: string;
-  type: "symbol" | "run" | "endpoint";
+  type: "symbol" | "run" | "endpoint" | "flag" | "note" | "gear";
   page: number;
   symId?: string;
   x?: number;
@@ -64,6 +64,20 @@ interface Markup {
   isFixture?: boolean;
   fixtureId?: string;
   tag?: string;
+  // Flag fields
+  description?: string;
+  category?: string;
+  qty?: number;
+  notes?: string;
+  priority?: "normal" | "needs_attention" | "urgent";
+  resolved?: boolean;
+  // Note fields
+  text?: string;
+  noteColor?: "amber" | "red" | "blue";
+  // Gear fields
+  gearTypeId?: string;
+  location?: string;
+  feedFrom?: string;
 }
 
 interface RunType {
@@ -90,6 +104,7 @@ export interface SerializedDrawing {
   assemblies: any[];
   pageScales: Record<string, number>;
   fixtures?: any[];
+  gearTypes?: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -176,6 +191,154 @@ const FIXTURE_BASE_TYPES = [
   "Exit Sign", "Emergency Light", "Ceiling Fan", "Track Light",
   "Surface Mount", "Undercabinet", "Custom",
 ];
+
+// ── Gear tracking ─────────────────────────────────────────────────────────────
+interface GearType {
+  id: string;
+  category: string;
+  label: string;
+  phases: 1 | 3;
+  voltage: number;
+  amperage: number;
+  poles: number;
+  mounting: string;
+  enclosure: string;
+  mainType: string;
+  fuseAmp: number | null;
+  fuseType: string | null;
+  spaces: number;
+  manufacturer: string;
+  catalog: string;
+  notes: string;
+  color: string;
+  symId: string;
+}
+
+const GEAR_CATEGORIES = [
+  { value: "disconnect",  label: "Disconnect Switch" },
+  { value: "panel",       label: "Panelboard" },
+  { value: "transformer", label: "Transformer" },
+  { value: "switchgear",  label: "Switchgear" },
+  { value: "mcc",         label: "Motor Control Center (MCC)" },
+  { value: "ats",         label: "Automatic Transfer Switch (ATS)" },
+  { value: "meter",       label: "Meter / CT Cabinet" },
+  { value: "custom",      label: "Custom / Other" },
+];
+
+const FLAG_CATEGORIES = [
+  "Gear / Disconnect", "Special Fixture", "Unusual Conduit",
+  "Fire Alarm", "Low Voltage", "Other",
+];
+
+// ── Note/cloud draw helpers ────────────────────────────────────────────────────
+function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const test = current ? current + " " + word : word;
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current); current = word;
+    } else { current = test; }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function drawNoteAnnotation(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, noteColor: string, z: number) {
+  const COLORS: Record<string, { fill: string; stroke: string; text: string }> = {
+    amber: { fill: "rgba(240,165,0,0.14)", stroke: "rgba(240,165,0,0.55)", text: "#f0a500" },
+    red:   { fill: "rgba(224,58,58,0.14)",  stroke: "rgba(224,58,58,0.55)",  text: "#e03a3a" },
+    blue:  { fill: "rgba(58,143,232,0.14)", stroke: "rgba(58,143,232,0.55)", text: "#3a8fe8" },
+  };
+  const c = COLORS[noteColor] ?? COLORS.amber;
+  const px = x * z, py = y * z;
+  ctx.save();
+  ctx.font = `bold ${Math.round(11 * z)}px "Barlow Condensed", sans-serif`;
+  const maxW = 180 * z;
+  const lines = wrapTextLines(ctx, text, maxW);
+  const lh = 14 * z, pad = 8 * z;
+  const bw = maxW + pad * 2, bh = lines.length * lh + pad * 2;
+  // Rounded rect
+  const r = 6 * z;
+  ctx.beginPath();
+  ctx.moveTo(px + r, py);
+  ctx.lineTo(px + bw - r, py);
+  ctx.quadraticCurveTo(px + bw, py, px + bw, py + r);
+  ctx.lineTo(px + bw, py + bh - r);
+  ctx.quadraticCurveTo(px + bw, py + bh, px + bw - r, py + bh);
+  ctx.lineTo(px + r, py + bh);
+  ctx.quadraticCurveTo(px, py + bh, px, py + bh - r);
+  ctx.lineTo(px, py + r);
+  ctx.quadraticCurveTo(px, py, px + r, py);
+  ctx.closePath();
+  ctx.fillStyle = c.fill; ctx.fill();
+  ctx.strokeStyle = c.stroke; ctx.lineWidth = 1.5; ctx.stroke();
+  // Text
+  ctx.fillStyle = c.text;
+  ctx.textAlign = "left"; ctx.textBaseline = "top";
+  lines.forEach((ln, i) => ctx.fillText(ln, px + pad, py + pad + i * lh));
+  // Pin dot
+  ctx.fillStyle = c.stroke;
+  ctx.beginPath(); ctx.arc(px + bw / 2, py + bh + 4 * z, 3 * z, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawFlagMarker(ctx: CanvasRenderingContext2D, x: number, y: number, priority: string, desc: string, z: number) {
+  const col = priority === "urgent" ? "#e03a3a" : priority === "needs_attention" ? "#f0a500" : "#2db562";
+  const px = x * z, py = y * z;
+  ctx.save();
+  ctx.translate(px, py);
+  // Flag pole
+  ctx.strokeStyle = col; ctx.lineWidth = 2 * z;
+  ctx.shadowColor = col; ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -20 * z); ctx.stroke();
+  // Flag triangle
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(0, -20 * z); ctx.lineTo(12 * z, -15 * z); ctx.lineTo(0, -10 * z); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+  // Truncated label
+  const label = desc.length > 18 ? desc.slice(0, 17) + "…" : desc;
+  ctx.font = `bold ${Math.round(9 * z)}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = col; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText(label, 4 * z, 2 * z);
+  ctx.restore();
+}
+
+function formatGearSpec(gt: GearType): string {
+  const ph = gt.phases === 3 ? "3P" : "1P";
+  const fused = gt.mainType === "fusible" ? "F" : gt.mainType === "MB" ? "MB" : "MLO";
+  return `${ph} ${gt.voltage}V ${gt.amperage}A ${fused}`;
+}
+
+function drawGearMarker(ctx: CanvasRenderingContext2D, x: number, y: number, gt: GearType, tag: string, z: number) {
+  const size = 26 * z;
+  const px = x * z, py = y * z;
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  ctx.beginPath(); ctx.arc(0, 0, size * 0.75, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = gt.color; ctx.lineWidth = 2.5 * z;
+  ctx.shadowColor = gt.color; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(0, 0, size * 0.75, 0, Math.PI * 2); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // Draw base symbol
+  const fn = DRAW_SYMBOLS[gt.symId] ?? DRAW_SYMBOLS["panel_box"] ?? DRAW_SYMBOLS["dot"];
+  fn(ctx, 0, 0, size, gt.color);
+  // Tag above
+  if (tag) {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `900 ${Math.round(size * 0.55)}px "Barlow Condensed", sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+    ctx.fillText(tag, 0, -size * 0.8);
+  }
+  // Spec label below
+  ctx.fillStyle = gt.color;
+  ctx.font = `700 ${Math.round(size * 0.38)}px "Barlow Condensed", sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText(formatGearSpec(gt), 0, size * 0.85);
+  ctx.restore();
+}
 
 const DEFAULT_RUN_TYPE: RunType = {
   id: "rt_default",
@@ -287,7 +450,7 @@ export function TakeoffClient({
   const [fixNotes, setFixNotes] = useState("");
 
   // Context menu
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; markup: Markup } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; cx: number; cy: number; markup: Markup | null } | null>(null);
   const [editTagModal, setEditTagModal] = useState(false);
   const [editTagValue, setEditTagValue] = useState("");
   const [editTagMarkupId, setEditTagMarkupId] = useState("");
@@ -299,6 +462,61 @@ export function TakeoffClient({
   const [changeRTMarkupId, setChangeRTMarkupId] = useState("");
   const [propsModal, setPropsModal] = useState(false);
   const [propsMarkup, setPropsMarkup] = useState<Markup | null>(null);
+
+  // Gear tracking
+  const [gearTypes, setGearTypes] = useState<GearType[]>(() =>
+    Array.isArray(initialDrawings[0]?.gearTypes) ? (initialDrawings[0].gearTypes as GearType[]) : []
+  );
+  const [selectedGearTypeId, setSelectedGearTypeId] = useState<string | null>(null);
+  const [showGearTypeForm, setShowGearTypeForm] = useState(false);
+  const [pendingGearPos, setPendingGearPos] = useState<Pt | null>(null);
+  const [gearTag, setGearTag] = useState("");
+  const [gearDesc, setGearDesc] = useState("");
+  const [gearLocation, setGearLocation] = useState("");
+  const [gearFeedFrom, setGearFeedFrom] = useState("");
+  // Gear type form fields
+  const [gtfCategory, setGtfCategory] = useState("disconnect");
+  const [gtfLabel, setGtfLabel] = useState("");
+  const [gtfPhases, setGtfPhases] = useState<1 | 3>(3);
+  const [gtfVoltage, setGtfVoltage] = useState(480);
+  const [gtfAmperage, setGtfAmperage] = useState(60);
+  const [gtfPoles, setGtfPoles] = useState(3);
+  const [gtfMainType, setGtfMainType] = useState("fusible");
+  const [gtfFuseAmp, setGtfFuseAmp] = useState<number | null>(60);
+  const [gtfFuseType, setGtfFuseType] = useState<string | null>("Class R");
+  const [gtfEnclosure, setGtfEnclosure] = useState("NEMA3R");
+  const [gtfMounting, setGtfMounting] = useState("surface");
+  const [gtfSpaces, setGtfSpaces] = useState(0);
+  const [gtfManufacturer, setGtfManufacturer] = useState("");
+  const [gtfCatalog, setGtfCatalog] = useState("");
+  const [gtfNotes, setGtfNotes] = useState("");
+  const [gtfColor, setGtfColor] = useState("#b03ae0");
+
+  // Flagged items
+  const [showFlagForm, setShowFlagForm] = useState(false);
+  const [pendingFlagPos, setPendingFlagPos] = useState<Pt | null>(null);
+  const [flagMarkupId, setFlagMarkupId] = useState<string | null>(null); // for edits
+  const [flagDesc, setFlagDesc] = useState("");
+  const [flagCategory, setFlagCategory] = useState(FLAG_CATEGORIES[0]);
+  const [flagQty, setFlagQty] = useState(1);
+  const [flagNotes, setFlagNotes] = useState("");
+  const [flagPriority, setFlagPriority] = useState<"normal" | "needs_attention" | "urgent">("normal");
+
+  // Drawing notes
+  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [pendingNotePos, setPendingNotePos] = useState<Pt | null>(null);
+  const [editNoteId, setEditNoteId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [noteColor, setNoteColor] = useState<"amber" | "red" | "blue">("amber");
+
+  // Quote export
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [quoteEmail, setQuoteEmail] = useState("");
+  const [quoteSubject, setQuoteSubject] = useState("");
+  const [quoteMessage, setQuoteMessage] = useState("");
+  const [quoteIncFixtures, setQuoteIncFixtures] = useState(true);
+  const [quoteIncGear, setQuoteIncGear] = useState(true);
+  const [quoteIncFlags, setQuoteIncFlags] = useState(true);
 
   // Markups
   const [markups, setMarkups] = useState<Markup[]>(() =>
@@ -353,6 +571,9 @@ export function TakeoffClient({
 
   const fixturesRef = useRef(fixtures);
   useEffect(() => { fixturesRef.current = fixtures; }, [fixtures]);
+
+  const gearTypesRef = useRef(gearTypes);
+  useEffect(() => { gearTypesRef.current = gearTypes; }, [gearTypes]);
 
   // Fix 3: drive scaleBannerVisible from state, not from inside a setState updater
   useEffect(() => {
@@ -486,6 +707,13 @@ export function TakeoffClient({
           drawRun(ctx, pts, m.color ?? "#f0a500", m.footageOverride ?? m.footage ?? 0, m.transferred ?? false);
         } else if (m.type === "endpoint" && m.x != null && m.y != null) {
           drawEndpoint(ctx, m.x * z, m.y * z, m.name ?? "EP");
+        } else if (m.type === "flag" && m.x != null && m.y != null) {
+          drawFlagMarker(ctx, m.x, m.y, m.priority ?? "normal", m.description ?? "Flag", z);
+        } else if (m.type === "note" && m.x != null && m.y != null) {
+          drawNoteAnnotation(ctx, m.x, m.y, m.text ?? "", m.noteColor ?? "amber", z);
+        } else if (m.type === "gear" && m.x != null && m.y != null) {
+          const gt = gearTypesRef.current.find(g => g.id === m.gearTypeId);
+          if (gt) drawGearMarker(ctx, m.x, m.y, gt, m.tag ?? "?", z);
         }
       }
 
@@ -612,6 +840,7 @@ export function TakeoffClient({
     if (modeRef.current === "count") handleCountClick(pos);
     else if (modeRef.current === "run") handleRunClick(pos, e.shiftKey);
     else if (modeRef.current === "fixtures") handleFixtureClick(pos);
+    else if (modeRef.current === "gear") handleGearClick(pos);
   }
 
   function handleDblClick(e: React.MouseEvent) {
@@ -630,12 +859,10 @@ export function TakeoffClient({
       redrawAll(currentPageRef.current, zoomRef.current, null);
       return;
     }
-    // Otherwise hit-detect and show context menu
+    // Hit-detect and always show context menu (markup may be null — still show Add Note/Flag)
     const pos = getCanvasPos(e);
     const found = getMarkupAtPoint(pos.x, pos.y);
-    if (found) {
-      setContextMenu({ x: e.clientX, y: e.clientY, markup: found });
-    }
+    setContextMenu({ x: e.clientX, y: e.clientY, cx: pos.x, cy: pos.y, markup: found });
   }
 
   function handleMouseMove(e: React.MouseEvent) {
@@ -771,6 +998,7 @@ export function TakeoffClient({
       if (e.key === "r" || e.key === "R") { setMode("run"); modeRef.current = "run"; }
       if (e.key === "p" || e.key === "P") { setMode("pan"); modeRef.current = "pan"; }
       if (e.key === "f" || e.key === "F") { setMode("fixtures"); modeRef.current = "fixtures"; }
+      if (e.key === "g" || e.key === "G") { setMode("gear"); modeRef.current = "gear"; }
       if (e.key === "Escape") {
         setRunInProgress([]); runInProgressRef.current = [];
         setMeasuringActive(false); measuringActiveRef.current = false;
@@ -865,9 +1093,11 @@ export function TakeoffClient({
     const rts = Array.isArray(d.runTypes) && d.runTypes.length > 0
       ? (d.runTypes as RunType[]) : [DEFAULT_RUN_TYPE];
     const fxs = Array.isArray(d.fixtures) ? (d.fixtures as FixtureItem[]) : [];
+    const gts = Array.isArray(d.gearTypes) ? (d.gearTypes as GearType[]) : [];
     setMarkups(mups); markupsRef.current = mups;
     setRunTypes(rts); setActiveRunTypeId(rts[0].id);
     setFixtures(fxs); fixturesRef.current = fxs;
+    setGearTypes(gts); gearTypesRef.current = gts;
     setPageScales(d.pageScales ?? {}); pageScalesRef.current = d.pageScales ?? {};
     setCurrentPage(1); currentPageRef.current = 1;
     setTotalPages(d.pageCount ?? 1);
@@ -914,7 +1144,7 @@ export function TakeoffClient({
     const d: SerializedDrawing = {
       ...(await resp.json()),
       pdfData: null, markups: [], runTypes: [DEFAULT_RUN_TYPE],
-      assemblies: [], pageScales: {}, fixtures: [],
+      assemblies: [], pageScales: {}, fixtures: [], gearTypes: [],
     };
     setDrawings(prev => [...prev, d]);
     switchDrawing(d.id);
@@ -1061,16 +1291,223 @@ export function TakeoffClient({
     alert(`Synced to counter: ${job.name ?? jobKey}`);
   }
 
+  // ── Gear functions ────────────────────────────────────────────────────────
+  function openGearTypeForm() {
+    setGtfCategory("disconnect"); setGtfLabel(""); setGtfPhases(3); setGtfVoltage(480);
+    setGtfAmperage(60); setGtfPoles(3); setGtfMainType("fusible"); setGtfFuseAmp(60);
+    setGtfFuseType("Class R"); setGtfEnclosure("NEMA3R"); setGtfMounting("surface");
+    setGtfSpaces(0); setGtfManufacturer(""); setGtfCatalog(""); setGtfNotes(""); setGtfColor("#b03ae0");
+    setShowGearTypeForm(true);
+  }
+
+  function saveNewGearType() {
+    const catLabel = GEAR_CATEGORIES.find(c => c.value === gtfCategory)?.label ?? gtfCategory;
+    const isFusible = gtfMainType === "fusible";
+    const gt: GearType = {
+      id: genId(), category: gtfCategory,
+      label: gtfLabel.trim() || catLabel,
+      phases: gtfPhases, voltage: gtfVoltage, amperage: gtfAmperage, poles: gtfPoles,
+      mounting: gtfMounting, enclosure: gtfEnclosure, mainType: gtfMainType,
+      fuseAmp: isFusible ? gtfFuseAmp : null,
+      fuseType: isFusible ? gtfFuseType : null,
+      spaces: gtfSpaces, manufacturer: gtfManufacturer, catalog: gtfCatalog, notes: gtfNotes,
+      color: gtfColor, symId: "panel_box",
+    };
+    setGearTypes(prev => {
+      const next = [...prev, gt];
+      gearTypesRef.current = next;
+      scheduleAutosave({ gearTypes: next });
+      return next;
+    });
+    setSelectedGearTypeId(gt.id);
+    setShowGearTypeForm(false);
+  }
+
+  function handleGearClick(pos: Pt) {
+    const gt = gearTypesRef.current.find(g => g.id === selectedGearTypeId);
+    if (!gt) return;
+    setPendingGearPos(pos);
+    const prefix = gt.label || GEAR_CATEGORIES.find(c => c.value === gt.category)?.label?.split(" ")[0] || "G";
+    const existing = markupsRef.current.filter(m => m.type === "gear" && m.gearTypeId === gt.id).length;
+    setGearTag(`${prefix}-${existing + 1}`);
+    setGearDesc(""); setGearLocation(""); setGearFeedFrom("");
+  }
+
+  function confirmGearPlace() {
+    if (!pendingGearPos) return;
+    const gt = gearTypesRef.current.find(g => g.id === selectedGearTypeId);
+    if (!gt) return;
+    const m: Markup = {
+      id: genId(), type: "gear", page: currentPageRef.current,
+      x: pendingGearPos.x, y: pendingGearPos.y, size: 26,
+      color: gt.color, gearTypeId: gt.id,
+      tag: gearTag, description: gearDesc, location: gearLocation, feedFrom: gearFeedFrom,
+    };
+    setMarkups(prev => {
+      const next = [...prev, m]; markupsRef.current = next;
+      scheduleAutosave({ markups: next }); return next;
+    });
+    setPendingGearPos(null);
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  // ── Flag functions ────────────────────────────────────────────────────────
+  function openFlagForm(pos: Pt, existingId?: string) {
+    if (existingId) {
+      const m = markupsRef.current.find(x => x.id === existingId);
+      if (m) {
+        setFlagDesc(m.description ?? ""); setFlagCategory(m.category ?? FLAG_CATEGORIES[0]);
+        setFlagQty(m.qty ?? 1); setFlagNotes(m.notes ?? ""); setFlagPriority(m.priority ?? "normal");
+      }
+      setFlagMarkupId(existingId);
+    } else {
+      setFlagDesc(""); setFlagCategory(FLAG_CATEGORIES[0]); setFlagQty(1); setFlagNotes(""); setFlagPriority("normal");
+      setFlagMarkupId(null);
+    }
+    setPendingFlagPos(pos);
+    setShowFlagForm(true);
+  }
+
+  function saveFlagItem() {
+    if (!flagDesc.trim()) return;
+    if (flagMarkupId) {
+      // Edit existing
+      setMarkups(prev => {
+        const next = prev.map(m => m.id === flagMarkupId
+          ? { ...m, description: flagDesc.trim(), category: flagCategory, qty: flagQty, notes: flagNotes, priority: flagPriority }
+          : m);
+        markupsRef.current = next; scheduleAutosave({ markups: next }); return next;
+      });
+    } else if (pendingFlagPos) {
+      const m: Markup = {
+        id: genId(), type: "flag", page: currentPageRef.current,
+        x: pendingFlagPos.x, y: pendingFlagPos.y,
+        description: flagDesc.trim(), category: flagCategory, qty: flagQty,
+        notes: flagNotes, priority: flagPriority, resolved: false,
+      };
+      setMarkups(prev => {
+        const next = [...prev, m]; markupsRef.current = next;
+        scheduleAutosave({ markups: next }); return next;
+      });
+    }
+    setShowFlagForm(false); setPendingFlagPos(null); setFlagMarkupId(null);
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  // ── Note functions ────────────────────────────────────────────────────────
+  function openNoteForm(pos: Pt, existingId?: string) {
+    if (existingId) {
+      const m = markupsRef.current.find(x => x.id === existingId);
+      if (m) { setNoteText(m.text ?? ""); setNoteColor(m.noteColor ?? "amber"); }
+      setEditNoteId(existingId);
+    } else {
+      setNoteText(""); setNoteColor("amber"); setEditNoteId(null);
+    }
+    setPendingNotePos(pos);
+    setShowNoteForm(true);
+  }
+
+  function saveNote() {
+    if (!noteText.trim()) return;
+    if (editNoteId) {
+      setMarkups(prev => {
+        const next = prev.map(m => m.id === editNoteId ? { ...m, text: noteText.trim(), noteColor: noteColor } : m);
+        markupsRef.current = next; scheduleAutosave({ markups: next }); return next;
+      });
+    } else if (pendingNotePos) {
+      const m: Markup = {
+        id: genId(), type: "note", page: currentPageRef.current,
+        x: pendingNotePos.x, y: pendingNotePos.y,
+        text: noteText.trim(), noteColor: noteColor,
+      };
+      setMarkups(prev => {
+        const next = [...prev, m]; markupsRef.current = next;
+        scheduleAutosave({ markups: next }); return next;
+      });
+    }
+    setShowNoteForm(false); setPendingNotePos(null); setEditNoteId(null);
+    requestAnimationFrame(() => redrawAll(currentPageRef.current, zoomRef.current, null));
+  }
+
+  // ── Quote export ──────────────────────────────────────────────────────────
+  function openQuoteModal() {
+    const drawing = drawings.find(d => d.id === activeDrawingId);
+    setQuoteSubject(`Quote Request — ${estimate.name} — Oak Ridge Electrical`);
+    setQuoteEmail(""); setQuoteMessage(""); setQuoteIncFixtures(true); setQuoteIncGear(true); setQuoteIncFlags(true);
+    setShowQuoteModal(true);
+  }
+
+  function buildQuoteData() {
+    const drawingName = drawings.find(d => d.id === activeDrawingId)?.name ?? "";
+    const fixtureSched = fixturesRef.current.map(f => ({
+      tag: f.tag, description: f.description, manufacturer: f.manufacturer,
+      count: markupsRef.current.filter(m => m.isFixture && m.fixtureId === f.id).length,
+      notes: f.notes,
+    })).filter(f => f.count > 0).sort((a, b) => a.tag.localeCompare(b.tag));
+    const gearList = markupsRef.current.filter(m => m.type === "gear").map(m => {
+      const gt = gearTypesRef.current.find(g => g.id === m.gearTypeId);
+      return { tag: m.tag ?? "?", description: m.description ?? "", location: m.location ?? "", spec: gt ? formatGearSpec(gt) : "", enclosure: gt?.enclosure ?? "", mainType: gt?.mainType ?? "", spaces: gt?.spaces ?? 0, manufacturer: gt?.manufacturer ?? "", notes: m.notes ?? gt?.notes ?? "" };
+    }).sort((a, b) => a.tag.localeCompare(b.tag));
+    const flags = markupsRef.current.filter(m => m.type === "flag" && !m.resolved).map(m => ({
+      description: m.description ?? "", category: m.category ?? "", qty: m.qty ?? 1,
+      priority: m.priority ?? "normal", notes: m.notes ?? "", drawing: drawingName, page: m.page,
+    }));
+    return { fixtureSched, gearList, flags };
+  }
+
+  function downloadQuoteCSV() {
+    const { fixtureSched, gearList, flags } = buildQuoteData();
+    const escCsv = (s: string | number) => `"${String(s).replace(/"/g, '""')}"`;
+    if (quoteIncFixtures && fixtureSched.length > 0) {
+      const rows = ["Tag,Description,Manufacturer,Quantity,Notes",
+        ...fixtureSched.map(f => [f.tag, f.description, f.manufacturer, f.count, f.notes].map(escCsv).join(","))];
+      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = `fixtures-${Date.now()}.csv`; a.click();
+    }
+    if (quoteIncGear && gearList.length > 0) {
+      const rows = ["Tag,Description,Spec,Enclosure,Location,Notes",
+        ...gearList.map(g => [g.tag, g.description, g.spec, g.enclosure, g.location, g.notes].map(escCsv).join(","))];
+      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = `gear-${Date.now()}.csv`; a.click();
+    }
+    if (quoteIncFlags && flags.length > 0) {
+      const rows = ["Description,Category,Qty,Priority,Notes,Drawing,Page",
+        ...flags.map(f => [f.description, f.category, f.qty, f.priority, f.notes, f.drawing, f.page].map(escCsv).join(","))];
+      const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = `flagged-items-${Date.now()}.csv`; a.click();
+    }
+  }
+
+  function downloadQuoteJSON() {
+    const { fixtureSched, gearList, flags } = buildQuoteData();
+    const data = {
+      meta: { jobName: estimate.name, projectNumber: estimate.estimateNumber, date: new Date().toISOString().slice(0, 10), preparedBy: "Oak Ridge Electrical" },
+      ...(quoteIncFixtures ? { fixtures: fixtureSched } : {}),
+      ...(quoteIncGear    ? { gear: gearList } : {}),
+      ...(quoteIncFlags   ? { flaggedItems: flags } : {}),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `quote-request-${Date.now()}.json`; a.click();
+  }
+
   // ── Context menu & hit detection ──────────────────────────────────────────
   function getMarkupAtPoint(px: number, py: number): Markup | null {
     const z = zoomRef.current;
     const page = currentPageRef.current;
-    // Symbols first (18px screen radius)
+    const HIT = 18 / z;
     for (let i = markupsRef.current.length - 1; i >= 0; i--) {
       const m = markupsRef.current[i];
       if (m.page !== page) continue;
-      if (m.type === "symbol" && m.x != null && m.y != null) {
-        if (Math.hypot(px - m.x, py - m.y) <= 18 / z) return m;
+      if ((m.type === "symbol" || m.type === "flag" || m.type === "gear") && m.x != null && m.y != null) {
+        if (Math.hypot(px - m.x, py - m.y) <= HIT) return m;
+      }
+      if (m.type === "note" && m.x != null && m.y != null) {
+        // Hit test: within 200×60 box from note origin
+        if (px >= m.x && px <= m.x + 200 / z && py >= m.y && py <= m.y + 60 / z) return m;
       }
     }
     // Runs (8px screen distance from any segment)
@@ -1087,7 +1524,7 @@ export function TakeoffClient({
   }
 
   function ctxDelete() {
-    if (!contextMenu) return;
+    if (!contextMenu?.markup) return;
     const id = contextMenu.markup.id;
     setContextMenu(null);
     setMarkups(prev => {
@@ -1100,7 +1537,7 @@ export function TakeoffClient({
   }
 
   function ctxRotate() {
-    if (!contextMenu) return;
+    if (!contextMenu?.markup) return;
     const id = contextMenu.markup.id;
     setContextMenu(null);
     setMarkups(prev => {
@@ -1246,8 +1683,17 @@ export function TakeoffClient({
       const count = markups.filter(m => m.isFixture && m.fixtureId === f.id).length;
       if (count > 0) fixtureCounts.push({ tag: f.tag, description: f.description, color: f.color, count });
     }
-    return { byCat, rtTotals, wire, fixtureCounts };
-  }, [markups, runTypes, fixtures]);
+    // Flagged items
+    const flagItems = markups.filter(m => m.type === "flag" && !m.resolved);
+    // Gear pieces
+    const gearPieces = markups
+      .filter(m => m.type === "gear")
+      .map(m => {
+        const gt = gearTypes.find(g => g.id === m.gearTypeId);
+        return { tag: m.tag ?? "?", description: m.description ?? "", spec: gt ? formatGearSpec(gt) : "", color: gt?.color ?? "#b03ae0" };
+      });
+    return { byCat, rtTotals, wire, fixtureCounts, flagItems, gearPieces };
+  }, [markups, runTypes, fixtures, gearTypes]);
 
   const currentPxPerFoot = pageScales[String(currentPage)];
   const scaleLabel = currentPxPerFoot
@@ -1334,7 +1780,7 @@ export function TakeoffClient({
         <div style={S.sep} />
 
         {/* Mode buttons */}
-        {(["count", "run", "pan", "fixtures"] as Mode[]).map(m => (
+        {(["count", "run", "pan", "fixtures", "gear"] as Mode[]).map(m => (
           <button key={m} onClick={() => {
             setMode(m); modeRef.current = m;
             if (m !== "run") { setRunInProgress([]); runInProgressRef.current = []; redrawAll(currentPageRef.current, zoomRef.current, null); }
@@ -1368,6 +1814,8 @@ export function TakeoffClient({
         {mode === "fixtures" && fixtures.length > 0 && (
           <HBtn onClick={exportFixtureSchedule}>↓ Schedule</HBtn>
         )}
+        {/* Quote export */}
+        <HBtn onClick={openQuoteModal}>📋 Quote</HBtn>
 
         {/* Save status */}
         <span style={{ fontSize: 11, fontFamily: "JetBrains Mono, monospace", color: saveStatus === "saved" ? "#2db562" : saveStatus === "saving" ? "#f0a500" : "#e03a3a" }}>
@@ -1481,6 +1929,32 @@ export function TakeoffClient({
               </Section>
             )}
 
+            {/* Gear tracking (GEAR mode) */}
+            {mode === "gear" && (
+              <Section label="Gear">
+                {gearTypes.length === 0 && (
+                  <div style={{ fontSize: 11, color: "#5a6070", marginBottom: 8 }}>No gear types defined</div>
+                )}
+                {gearTypes.map(gt => {
+                  const cnt = markups.filter(m => m.type === "gear" && m.gearTypeId === gt.id).length;
+                  const active = selectedGearTypeId === gt.id;
+                  return (
+                    <button key={gt.id} onClick={() => setSelectedGearTypeId(gt.id)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, background: active ? "rgba(176,58,224,0.08)" : "#22252b", border: `1px solid ${active ? gt.color : "#2e3138"}`, borderRadius: 5, padding: "5px 7px", cursor: "pointer", width: "100%", marginBottom: 3, textAlign: "left" }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: gt.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: active ? "#e8eaed" : "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gt.label || GEAR_CATEGORIES.find(c => c.value === gt.category)?.label}</span>
+                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: gt.color, flexShrink: 0 }}>{formatGearSpec(gt)}</span>
+                      <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: cnt > 0 ? "#f0a500" : "#5a6070", fontWeight: 700, flexShrink: 0 }}>
+                        {cnt}<span style={{ fontSize: 9, color: "#5a6070" }}> e</span>
+                      </span>
+                    </button>
+                  );
+                })}
+                <button onClick={openGearTypeForm} style={{ ...S.panelBtn, marginTop: 4, borderStyle: "dashed" }}>+ Gear Type</button>
+                <div style={{ marginTop: 6, fontSize: 10, color: "#5a6070" }}>Select type · click to place · G key</div>
+              </Section>
+            )}
+
             {/* Run types (RUN mode) */}
             {mode === "run" && (
               <Section label="Run Type">
@@ -1583,7 +2057,40 @@ export function TakeoffClient({
                     ))}
                   </>
                 )}
-                {Object.keys(auditData.byCat).length === 0 && Object.keys(auditData.rtTotals).length === 0 && auditData.fixtureCounts.length === 0 && (
+                {/* Gear pieces */}
+                {auditData.gearPieces.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase", padding: "5px 12px 2px" }}>
+                      Gear & Switchgear ({auditData.gearPieces.length})
+                    </div>
+                    {auditData.gearPieces.map((g, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "1px 12px 1px 18px", gap: 4 }}>
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: g.color, fontWeight: 700, flexShrink: 0 }}>{g.tag}</span>
+                        <span style={{ fontSize: 11, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.description || g.spec}</span>
+                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "#5a6070", flexShrink: 0, whiteSpace: "nowrap" }}>{g.spec}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {/* Flagged items */}
+                {auditData.flagItems.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.12em", color: "#5a6070", textTransform: "uppercase", padding: "5px 12px 2px" }}>
+                      🚩 Flagged Items ({auditData.flagItems.length})
+                    </div>
+                    {auditData.flagItems.map(f => {
+                      const priBadge = f.priority === "urgent" ? "🔴 URGENT" : f.priority === "needs_attention" ? "⚠️ Attn" : "○";
+                      const priColor = f.priority === "urgent" ? "#e03a3a" : f.priority === "needs_attention" ? "#f0a500" : "#5a6070";
+                      return (
+                        <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1px 12px 1px 18px", gap: 4 }}>
+                          <span style={{ fontSize: 11, color: "#9aa0ab", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.description}</span>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 9, color: priColor, flexShrink: 0 }}>{priBadge}</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                {Object.keys(auditData.byCat).length === 0 && Object.keys(auditData.rtTotals).length === 0 && auditData.fixtureCounts.length === 0 && auditData.gearPieces.length === 0 && auditData.flagItems.length === 0 && (
                   <div style={{ fontSize: 11, color: "#5a6070", padding: "4px 12px" }}>No items placed yet</div>
                 )}
               </div>
@@ -1791,18 +2298,37 @@ export function TakeoffClient({
       {contextMenu && (
         <>
           <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setContextMenu(null)} />
-          <div style={{ position: "fixed", top: contextMenu.y, left: contextMenu.x, background: "#1a1c20", border: "1px solid #2e3138", borderTop: "2px solid #FF5910", borderRadius: 8, boxShadow: "0 4px 24px rgba(0,0,0,0.7)", zIndex: 300, minWidth: 170, padding: "4px 0", fontFamily: "'Barlow Condensed', sans-serif" }}>
-            {contextMenu.markup.type === "symbol" ? (<>
+          <div style={{ position: "fixed", top: contextMenu.y, left: contextMenu.x, background: "#1a1c20", border: "1px solid #2e3138", borderTop: "2px solid #FF5910", borderRadius: 8, boxShadow: "0 4px 24px rgba(0,0,0,0.7)", zIndex: 300, minWidth: 175, padding: "4px 0", fontFamily: "'Barlow Condensed', sans-serif" }}>
+            {/* Markup-specific items */}
+            {contextMenu.markup?.type === "symbol" && <>
               <CtxItem onClick={ctxDelete}>🗑 Delete</CtxItem>
               {!contextMenu.markup.isFixture && <CtxItem onClick={ctxRotate}>↻ Rotate 90°</CtxItem>}
-              <CtxItem onClick={() => { setEditTagValue(contextMenu.markup.tag ?? contextMenu.markup.label ?? ""); setEditTagMarkupId(contextMenu.markup.id); setEditTagModal(true); setContextMenu(null); }}>🏷 Rename Tag</CtxItem>
+              <CtxItem onClick={() => { setEditTagValue(contextMenu.markup!.tag ?? contextMenu.markup!.label ?? ""); setEditTagMarkupId(contextMenu.markup!.id); setEditTagModal(true); setContextMenu(null); }}>🏷 Rename Tag</CtxItem>
               <CtxItem onClick={() => { setPropsMarkup(contextMenu.markup); setPropsModal(true); setContextMenu(null); }}>ℹ Properties</CtxItem>
-            </>) : (<>
+            </>}
+            {contextMenu.markup?.type === "run" && <>
               <CtxItem onClick={ctxDelete}>🗑 Delete Run</CtxItem>
-              <CtxItem onClick={() => { setChangeRTId(contextMenu.markup.runTypeId ?? runTypes[0]?.id ?? ""); setChangeRTMarkupId(contextMenu.markup.id); setChangeRTModal(true); setContextMenu(null); }}>⇄ Change Run Type</CtxItem>
-              <CtxItem onClick={() => { setEditFootageValue(String(contextMenu.markup.footageOverride ?? contextMenu.markup.footage ?? 0)); setEditFootageMarkupId(contextMenu.markup.id); setEditFootageModal(true); setContextMenu(null); }}>📏 Edit Footage</CtxItem>
+              <CtxItem onClick={() => { setChangeRTId(contextMenu.markup!.runTypeId ?? runTypes[0]?.id ?? ""); setChangeRTMarkupId(contextMenu.markup!.id); setChangeRTModal(true); setContextMenu(null); }}>⇄ Change Run Type</CtxItem>
+              <CtxItem onClick={() => { setEditFootageValue(String(contextMenu.markup!.footageOverride ?? contextMenu.markup!.footage ?? 0)); setEditFootageMarkupId(contextMenu.markup!.id); setEditFootageModal(true); setContextMenu(null); }}>📏 Edit Footage</CtxItem>
               <CtxItem onClick={() => { setPropsMarkup(contextMenu.markup); setPropsModal(true); setContextMenu(null); }}>ℹ Properties</CtxItem>
-            </>)}
+            </>}
+            {contextMenu.markup?.type === "flag" && <>
+              <CtxItem onClick={() => { openFlagForm({ x: contextMenu.markup!.x!, y: contextMenu.markup!.y! }, contextMenu.markup!.id); setContextMenu(null); }}>✏️ Edit Flag</CtxItem>
+              <CtxItem onClick={ctxDelete}>🗑 Delete Flag</CtxItem>
+            </>}
+            {contextMenu.markup?.type === "note" && <>
+              <CtxItem onClick={() => { openNoteForm({ x: contextMenu.markup!.x!, y: contextMenu.markup!.y! }, contextMenu.markup!.id); setContextMenu(null); }}>✏️ Edit Note</CtxItem>
+              <CtxItem onClick={ctxDelete}>🗑 Delete Note</CtxItem>
+            </>}
+            {contextMenu.markup?.type === "gear" && <>
+              <CtxItem onClick={ctxDelete}>🗑 Delete Gear Piece</CtxItem>
+              <CtxItem onClick={() => { setPropsMarkup(contextMenu.markup); setPropsModal(true); setContextMenu(null); }}>ℹ Properties</CtxItem>
+            </>}
+            {/* Divider before universal actions */}
+            {contextMenu.markup && <div style={{ height: 1, background: "#2e3138", margin: "3px 0" }} />}
+            {/* Always-available actions (use right-click position) */}
+            <CtxItem onClick={() => { openNoteForm({ x: contextMenu.cx, y: contextMenu.cy }); setContextMenu(null); }}>📝 Add Note Here</CtxItem>
+            <CtxItem onClick={() => { openFlagForm({ x: contextMenu.cx, y: contextMenu.cy }); setContextMenu(null); }}>🚩 Flag Item Here</CtxItem>
           </div>
         </>
       )}
@@ -1934,6 +2460,238 @@ export function TakeoffClient({
               <button onClick={() => setShowFixtureForm(false)} style={S.btnCancel}>Cancel</button>
               <button onClick={saveNewFixture} style={S.btnConfirm}>Add Fixture</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLAG FORM MODAL */}
+      {showFlagForm && (
+        <div style={S.modalOverlay}>
+          <div style={{ ...S.modalBox, width: 360 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#f0a500" }}>🚩 {flagMarkupId ? "Edit Flag" : "Flag Custom Item"}</h3>
+              <button onClick={() => { setShowFlagForm(false); setPendingFlagPos(null); setFlagMarkupId(null); }} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Description (required)</label>
+            <input autoFocus type="text" value={flagDesc} onChange={e => setFlagDesc(e.target.value)} placeholder="3P 480V 60A Fused Disconnect" style={S.modalInput} />
+            <label style={S.modalLabel}>Category</label>
+            <select value={flagCategory} onChange={e => setFlagCategory(e.target.value)} style={S.modalInput}>
+              {FLAG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <label style={S.modalLabel}>Qty</label>
+            <input type="number" min={1} value={flagQty} onChange={e => setFlagQty(Math.max(1, parseInt(e.target.value) || 1))} style={{ ...S.modalInput, width: 80 }} />
+            <label style={S.modalLabel}>Notes for estimator</label>
+            <input type="text" value={flagNotes} onChange={e => setFlagNotes(e.target.value)} placeholder="Verify fuse size with engineer" style={S.modalInput} />
+            <label style={S.modalLabel}>Priority</label>
+            <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+              {(["normal", "needs_attention", "urgent"] as const).map(p => (
+                <label key={p} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 13, color: p === "urgent" ? "#e03a3a" : p === "needs_attention" ? "#f0a500" : "#9aa0ab", fontWeight: flagPriority === p ? 900 : 600 }}>
+                  <input type="radio" name="priority" checked={flagPriority === p} onChange={() => setFlagPriority(p)} />
+                  {p === "normal" ? "Normal" : p === "needs_attention" ? "Needs Attention" : "URGENT"}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => { setShowFlagForm(false); setPendingFlagPos(null); setFlagMarkupId(null); }} style={S.btnCancel}>Cancel</button>
+              <button onClick={saveFlagItem} style={{ ...S.btnConfirm, background: "#f0a500", borderColor: "#f0a500" }}>{flagMarkupId ? "Save" : "Flag & Place"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NOTE FORM MODAL */}
+      {showNoteForm && (
+        <div style={S.modalOverlay}>
+          <div style={S.modalBox}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>📝 {editNoteId ? "Edit Note" : "Add Drawing Note"}</h3>
+              <button onClick={() => { setShowNoteForm(false); setPendingNotePos(null); setEditNoteId(null); }} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Note Text</label>
+            <textarea autoFocus value={noteText} onChange={e => setNoteText(e.target.value)} rows={4} placeholder="Type your note here…" style={{ ...S.modalInput, resize: "vertical", lineHeight: 1.4 }} />
+            <label style={S.modalLabel}>Color</label>
+            <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+              {(["amber", "red", "blue"] as const).map(c => {
+                const colHex = c === "amber" ? "#f0a500" : c === "red" ? "#e03a3a" : "#3a8fe8";
+                return (
+                  <label key={c} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 13, color: colHex, fontWeight: noteColor === c ? 900 : 600 }}>
+                    <input type="radio" name="noteColor" checked={noteColor === c} onChange={() => setNoteColor(c)} />
+                    {c.charAt(0).toUpperCase() + c.slice(1)}
+                  </label>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => { setShowNoteForm(false); setPendingNotePos(null); setEditNoteId(null); }} style={S.btnCancel}>Cancel</button>
+              <button onClick={saveNote} style={S.btnConfirm}>{editNoteId ? "Save Note" : "Place Note"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GEAR TYPE FORM MODAL */}
+      {showGearTypeForm && (
+        <div style={S.modalOverlay}>
+          <div style={{ ...S.modalBox, width: 380, maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>Add Gear Type</h3>
+              <button onClick={() => setShowGearTypeForm(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Category</label>
+            <select value={gtfCategory} onChange={e => setGtfCategory(e.target.value)} style={S.modalInput}>
+              {GEAR_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+            <label style={S.modalLabel}>Tag / Label Prefix</label>
+            <input type="text" value={gtfLabel} onChange={e => setGtfLabel(e.target.value)} placeholder={GEAR_CATEGORIES.find(c => c.value === gtfCategory)?.label} style={S.modalInput} />
+            <div style={{ background: "#22252b", border: "1px solid #2e3138", borderRadius: 8, padding: "10px 12px", marginTop: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", color: "#5a6070", textTransform: "uppercase", marginBottom: 8 }}>Electrical Spec</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ fontSize: 12, color: "#9aa0ab" }}>Phases:</label>
+                {([1, 3] as const).map(p => (
+                  <label key={p} style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer", fontSize: 13, color: "#9aa0ab", fontWeight: gtfPhases === p ? 700 : 400 }}>
+                    <input type="radio" name="phases" checked={gtfPhases === p} onChange={() => setGtfPhases(p)} /> {p}-Phase
+                  </label>
+                ))}
+                <label style={{ fontSize: 12, color: "#9aa0ab", marginLeft: 8 }}>Voltage:</label>
+                <select value={gtfVoltage} onChange={e => setGtfVoltage(parseInt(e.target.value))} style={{ ...S.modalInput, width: 72 }}>
+                  {[120, 208, 240, 277, 480, 600].map(v => <option key={v} value={v}>{v}V</option>)}
+                </select>
+                <label style={{ fontSize: 12, color: "#9aa0ab" }}>Amps:</label>
+                <input type="number" value={gtfAmperage} onChange={e => setGtfAmperage(parseInt(e.target.value) || 0)} style={{ ...S.modalInput, width: 72 }} />
+              </div>
+            </div>
+            {gtfCategory !== "transformer" && (
+              <div style={{ background: "#22252b", border: "1px solid #2e3138", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.1em", color: "#5a6070", textTransform: "uppercase", marginBottom: 8 }}>Disconnect / Panel</div>
+                <label style={S.modalLabel}>Type</label>
+                <select value={gtfMainType} onChange={e => setGtfMainType(e.target.value)} style={S.modalInput}>
+                  <option value="MLO">MLO (Main Lug Only)</option>
+                  <option value="MB">Main Breaker</option>
+                  <option value="fusible">Fusible</option>
+                  <option value="non_fusible">Non-Fusible</option>
+                </select>
+                {gtfMainType === "fusible" && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
+                    <label style={{ fontSize: 12, color: "#9aa0ab" }}>Fuse Amp:</label>
+                    <input type="number" value={gtfFuseAmp ?? ""} onChange={e => setGtfFuseAmp(parseInt(e.target.value) || null)} style={{ ...S.modalInput, width: 72 }} />
+                    <label style={{ fontSize: 12, color: "#9aa0ab" }}>Type:</label>
+                    <select value={gtfFuseType ?? ""} onChange={e => setGtfFuseType(e.target.value || null)} style={{ ...S.modalInput, flex: 1 }}>
+                      <option value="Class R">Class R</option>
+                      <option value="Class J">Class J</option>
+                      <option value="Class L">Class L</option>
+                    </select>
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
+                  <label style={{ fontSize: 12, color: "#9aa0ab" }}>Enclosure:</label>
+                  <select value={gtfEnclosure} onChange={e => setGtfEnclosure(e.target.value)} style={{ ...S.modalInput, flex: 1 }}>
+                    {["NEMA1", "NEMA3R", "NEMA4", "NEMA4X", "NEMA12"].map(n => <option key={n}>{n}</option>)}
+                  </select>
+                  <label style={{ fontSize: 12, color: "#9aa0ab" }}>Mount:</label>
+                  <select value={gtfMounting} onChange={e => setGtfMounting(e.target.value)} style={{ ...S.modalInput, flex: 1 }}>
+                    <option value="surface">Surface</option>
+                    <option value="flush">Flush</option>
+                    <option value="free_standing">Free Standing</option>
+                  </select>
+                </div>
+                {gtfCategory === "panel" && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
+                    <label style={{ fontSize: 12, color: "#9aa0ab" }}>Spaces:</label>
+                    <input type="number" value={gtfSpaces} onChange={e => setGtfSpaces(parseInt(e.target.value) || 0)} style={{ ...S.modalInput, width: 72 }} />
+                  </div>
+                )}
+              </div>
+            )}
+            <label style={S.modalLabel}>Manufacturer</label>
+            <input type="text" value={gtfManufacturer} onChange={e => setGtfManufacturer(e.target.value)} placeholder="Square D, Eaton, etc." style={S.modalInput} />
+            <label style={S.modalLabel}>Catalog #</label>
+            <input type="text" value={gtfCatalog} onChange={e => setGtfCatalog(e.target.value)} style={S.modalInput} />
+            <label style={S.modalLabel}>Notes</label>
+            <input type="text" value={gtfNotes} onChange={e => setGtfNotes(e.target.value)} style={S.modalInput} />
+            <label style={S.modalLabel}>Marker Color</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 2 }}>
+              {["#b03ae0", "#e03a3a", "#3a8fe8", "#f0a500", "#2db562", "#e03a99", "#3adde0", "#e0773a", "#9aa0ab", "#FF5910"].map(c => (
+                <div key={c} onClick={() => setGtfColor(c)}
+                  style={{ width: 22, height: 22, borderRadius: 4, background: c, cursor: "pointer", border: `2px solid ${gtfColor === c ? "#fff" : "transparent"}`, transform: gtfColor === c ? "scale(1.15)" : "scale(1)", transition: "transform 0.1s" }} />
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setShowGearTypeForm(false)} style={S.btnCancel}>Cancel</button>
+              <button onClick={saveNewGearType} style={S.btnConfirm}>Add Gear Type</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GEAR PIECE PLACEMENT DIALOG */}
+      {pendingGearPos && (
+        <div style={S.modalOverlay}>
+          <div style={S.modalBox}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>
+                Place Gear — {gearTypes.find(g => g.id === selectedGearTypeId) ? formatGearSpec(gearTypes.find(g => g.id === selectedGearTypeId)!) : ""}
+              </h3>
+              <button onClick={() => setPendingGearPos(null)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <label style={S.modalLabel}>Panel / Gear Tag</label>
+            <input autoFocus type="text" value={gearTag} onChange={e => setGearTag(e.target.value)} placeholder="MDP-1" style={S.modalInput} />
+            <label style={S.modalLabel}>Description (optional)</label>
+            <input type="text" value={gearDesc} onChange={e => setGearDesc(e.target.value)} placeholder="Main Distribution Panel" style={S.modalInput} />
+            <label style={S.modalLabel}>Location</label>
+            <input type="text" value={gearLocation} onChange={e => setGearLocation(e.target.value)} placeholder="1st Floor Electrical Room" style={S.modalInput} />
+            <label style={S.modalLabel}>Fed From (optional)</label>
+            <input type="text" value={gearFeedFrom} onChange={e => setGearFeedFrom(e.target.value)} placeholder="Utility / MDP-1" style={S.modalInput} />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setPendingGearPos(null)} style={S.btnCancel}>Cancel</button>
+              <button onClick={confirmGearPlace} style={S.btnConfirm}>Place</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUOTE EXPORT MODAL */}
+      {showQuoteModal && (
+        <div style={S.modalOverlay}>
+          <div style={{ ...S.modalBox, width: 380 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF5910" }}>📋 Quote Request</h3>
+              <button onClick={() => setShowQuoteModal(false)} style={{ background: "none", border: "none", color: "#5a6070", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: "#5a6070", marginBottom: 12 }}>
+              Job: <span style={{ color: "#e8eaed", fontWeight: 700 }}>{estimate.name}</span> · {estimate.estimateNumber}
+            </div>
+            <label style={S.modalLabel}>Send To (email)</label>
+            <input type="email" value={quoteEmail} onChange={e => setQuoteEmail(e.target.value)} placeholder="supplier@company.com" style={S.modalInput} />
+            <label style={S.modalLabel}>Subject</label>
+            <input type="text" value={quoteSubject} onChange={e => setQuoteSubject(e.target.value)} style={S.modalInput} />
+            <label style={S.modalLabel}>Include</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 4 }}>
+              {[
+                { key: "fixtures", label: `Fixture Schedule (${fixturesRef.current.filter(f => markupsRef.current.some(m => m.isFixture && m.fixtureId === f.id)).length} types)`, val: quoteIncFixtures, set: setQuoteIncFixtures },
+                { key: "gear",     label: `Gear & Switchgear (${markupsRef.current.filter(m => m.type === "gear").length} pieces)`, val: quoteIncGear, set: setQuoteIncGear },
+                { key: "flags",    label: `Flagged Items (${markupsRef.current.filter(m => m.type === "flag" && !m.resolved).length} items)`, val: quoteIncFlags, set: setQuoteIncFlags },
+              ].map(({ key, label, val, set }) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "#9aa0ab" }}>
+                  <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} style={{ accentColor: "#f0a500", width: 14, height: 14 }} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <label style={S.modalLabel}>Message (optional)</label>
+            <textarea value={quoteMessage} onChange={e => setQuoteMessage(e.target.value)} rows={3} placeholder="Please quote ASAP, bid due…" style={{ ...S.modalInput, resize: "vertical" }} />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button onClick={() => setShowQuoteModal(false)} style={S.btnCancel}>Cancel</button>
+              <button onClick={downloadQuoteCSV} style={{ ...S.hdrBtn, flex: 1, padding: 11, fontSize: 13, borderRadius: 8 }}>↓ CSV Files</button>
+              <button onClick={downloadQuoteJSON} style={{ ...S.btnConfirm, flex: 1 }}>↓ JSON</button>
+            </div>
+            {quoteEmail && (
+              <div style={{ marginTop: 8 }}>
+                <a href={`mailto:${quoteEmail}?subject=${encodeURIComponent(quoteSubject)}&body=${encodeURIComponent(quoteMessage || "Please see the attached quote request files.")}`}
+                  style={{ display: "block", textAlign: "center", background: "#2db562", border: "1px solid #2db562", borderRadius: 8, padding: "11px", fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", color: "#111", textDecoration: "none", fontFamily: "'Barlow Condensed', sans-serif", cursor: "pointer" }}>
+                  📧 Open Email Client
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
