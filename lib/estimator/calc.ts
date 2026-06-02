@@ -4,7 +4,7 @@
 // Every function takes explicit params and returns SavedAssembly | null.
 
 import {
-  getRates, applyMarkup, WIRE_PULL_LHR,
+  getRates, applyMarkup, WIRE_PULL_LHR, N4_BKR,
   type SavedAssembly, type AssemblyLine,
 } from './constants';
 
@@ -354,5 +354,199 @@ export function calcRack(p: RackParams): SavedAssembly | null {
 
   const rodSuffix = p.rodLength !== 'none' ? ` ${p.rodLength}" rod` : '';
   const label     = `${p.rackSize}" ${p.mountType} rack x${p.qty}${rodSuffix}`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─────────────────────────────────────
+// 3. calcMCHomeRun
+// ─────────────────────────────────────
+
+export interface MCHomeRunParams {
+  wireSize: '#14' | '#12' | '#10';
+  numCond:  2 | 3;
+  bkrSize:  '15A' | '20A' | '30A';
+  suppType: 'Staple' | 'Strap' | 'J-Hook';
+  feet:     number;
+  makeup:   number;   // extra footage per end: 0 | 3 | 5 | 10
+  diff:     number;
+}
+
+export function calcMCHomeRun(p: MCHomeRunParams): SavedAssembly | null {
+  const R   = getRates();
+  const acc = newAcc();
+  if (p.feet <= 0) return null;
+
+  const MC_ID: Record<string, Record<number, string>> = {
+    '#14': { 2: 'rm1', 3: 'rm5' },
+    '#12': { 2: 'w1',  3: 'w2'  },
+    '#10': { 2: 'w3',  3: 'w4'  },
+  };
+  const mcId = MC_ID[p.wireSize]?.[p.numCond];
+  if (!mcId) return null;
+
+  const totalFt = p.feet + p.makeup * 2;
+
+  addItem(acc, mcId, totalFt, `${p.wireSize}/${p.numCond} MC (${totalFt}ft)`);
+  addItem(acc, 'mc1', 2, 'MC connector x2');
+  addItem(acc, 'b1',  1, '4" square deep box');
+  addItem(acc, 'bs1', 1, 'C23 bracket');
+  addItem(acc, 'mr1', 1, 'SG mud ring');
+  addItem(acc, 'bs2', 2, 'CJ6 x2');
+  addItem(acc, 'wc1', p.numCond + 1, 'wire nuts');
+  addItem(acc, 'gr1', 1, 'ground screw');
+
+  const suppQty = Math.ceil(p.feet / 4) + 2;
+  if      (p.suppType === 'Staple') addItem(acc, 'm2',  suppQty, `staples (${suppQty})`);
+  else if (p.suppType === 'Strap')  addItem(acc, 'mc4', suppQty, `MC straps (${suppQty})`);
+  else if (p.suppType === 'J-Hook') addItem(acc, 'lv2', Math.ceil(suppQty / 3), 'J-hooks');
+
+  const BKR_KEY: Record<string, string> =
+    { '15A': '1p15', '20A': '1p20', '30A': '1p30' };
+  const bkrLab = (N4_BKR[BKR_KEY[p.bkrSize]] ?? 0.34) * p.diff * R.labor;
+  addManual(acc, `${p.bkrSize} breaker termination labor`, 1, 'EA', 0, bkrLab);
+
+  const pullLhr = WIRE_PULL_LHR[p.wireSize] ?? 0.012;
+  addManual(acc, `MC pull labor (${p.feet}ft)`,
+    p.feet, 'FT', 0, pullLhr * p.feet * p.diff * R.labor);
+
+  addManual(acc, 'Box termination & makeup labor', 1, 'EA', 0,
+    0.45 * p.diff * R.labor);
+
+  const label = `${p.wireSize}/${p.numCond} MC — ${p.feet}ft — ${p.bkrSize}`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─────────────────────────────────────
+// 4. calcThreeWay
+// ─────────────────────────────────────
+
+export interface ThreeWayParams {
+  swType:     'standard' | 'dimming' | 'volt010';
+  travelerFt: number;
+  lumFt:      number;   // luminaire cable footage (volt010 only, else 0)
+  diff:       number;
+}
+
+export function calcThreeWay(p: ThreeWayParams): SavedAssembly | null {
+  const R   = getRates();
+  const acc = newAcc();
+  if (p.travelerFt <= 0) return null;
+
+  // ── FEED-SIDE BOX ────────────────────────────────────────────────
+  addItem(acc, 'w1',  20, '#12/2 MC whip — feed side (20ft)');
+  addItem(acc, 'mc1', 2,  'MC connector x2');
+  addItem(acc, 'b1',  1,  '4" square deep box');
+  addItem(acc, 'bs1', 1,  'C23 bracket');
+  addItem(acc, 'mr1', 1,  'SG mud ring');
+  addItem(acc, 'bs2', 2,  'CJ6 x2');
+  addItem(acc, 'wc1', 4,  'wire nuts x4');
+  addItem(acc, 'gr1', 1,  'ground screw');
+
+  const feedSwId =
+    p.swType === 'volt010' ? 'd14' :
+    p.swType === 'dimming' ? 'd9'  : 'd7';
+  addItem(acc, feedSwId, 1, 'feed-side switch/dimmer');
+  addItem(acc, 'dp2',    1, 'switch plate');
+
+  // ── TRAVELER RUN ─────────────────────────────────────────────────
+  addItem(acc, 'w2',  p.travelerFt, `#12/3 MC traveler (${p.travelerFt}ft)`);
+  addItem(acc, 'mc1', 2, 'MC connector x2 (traveler ends)');
+
+  // ── LOAD-SIDE BOX ────────────────────────────────────────────────
+  addItem(acc, 'w1',  20, '#12/2 MC whip — load side (20ft)');
+  addItem(acc, 'mc1', 2,  'MC connector x2');
+  addItem(acc, 'b1',  1,  '4" square deep box');
+  addItem(acc, 'bs1', 1,  'C23 bracket');
+  addItem(acc, 'mr1', 1,  'SG mud ring');
+  addItem(acc, 'bs2', 2,  'CJ6 x2');
+  addItem(acc, 'wc1', 4,  'wire nuts x4');
+  addItem(acc, 'gr1', 1,  'ground screw');
+  addItem(acc, 'd7',  1,  'load-side 3-way switch');
+  addItem(acc, 'dp2', 1,  'switch plate');
+
+  // ── 0-10V LUMINAIRE CABLE ────────────────────────────────────────
+  if (p.swType === 'volt010' && p.lumFt > 0) {
+    addItem(acc, 'lvc1', p.lumFt, `0-10V luminaire cable (${p.lumFt}ft)`);
+    addItem(acc, 'lvc3', Math.ceil(p.lumFt / 4), 'LV staples');
+  }
+
+  // ── LABOR ────────────────────────────────────────────────────────
+  addManual(acc, '3-way switch box labor (2 boxes × 0.90hr)',
+    2, 'EA', 0, 0.90 * 2 * p.diff * R.labor);
+
+  const travLhr = WIRE_PULL_LHR['#12'] ?? 0.012;
+  addManual(acc, `Traveler pull labor (${p.travelerFt}ft)`,
+    p.travelerFt, 'FT', 0, travLhr * p.travelerFt * p.diff * R.labor);
+
+  const label = `3-Way ${p.swType} — ${p.travelerFt}ft traveler`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─────────────────────────────────────
+// 5. calcData
+// ─────────────────────────────────────
+
+export interface DataParams {
+  ports:      1 | 2 | 3 | 4;
+  emtDrop:    boolean;
+  support:    'J-Hook Small' | 'J-Hook Large' | 'Zip Tie';
+  feet:       number;
+  makeup:     number;   // 0 | 3 | 5 | 10 | 12 | 18 | 24
+  patchPanel: 'none' | 'small' | 'medium' | 'large';
+  diff:       number;
+}
+
+export function calcData(p: DataParams): SavedAssembly | null {
+  const R   = getRates();
+  const acc = newAcc();
+  if (p.feet <= 0) return null;
+
+  // Cat6 cable — round up to nearest 10ft
+  const cableFt = Math.ceil((p.feet * p.ports + p.makeup * p.ports) / 10) * 10;
+  addItem(acc, 'w14', cableFt, `Cat6 (${cableFt}ft)`);
+
+  // Keystones: 2 per port (wall end + patch panel end)
+  addItem(acc, 'dp7', p.ports * 2, `Cat6 keystone x${p.ports * 2}`);
+
+  // Wall plate
+  if (p.ports <= 2) {
+    addItem(acc, 'dp8',  1, '2-port keystone plate');
+  } else {
+    addItem(acc, 'dp10', Math.ceil(p.ports / 4), 'keystone plate');
+  }
+
+  // Cable support every 4ft + 2 at ends
+  const suppQty = Math.ceil(p.feet / 4) + 2;
+  if      (p.support === 'J-Hook Small') addItem(acc, 'lv2', suppQty, `J-hook sm (${suppQty})`);
+  else if (p.support === 'J-Hook Large') addItem(acc, 'lv3', suppQty, `J-hook lg (${suppQty})`);
+  // Zip Tie = consumable, no line item
+
+  // Box hardware
+  if (p.emtDrop) {
+    addItem(acc, 'e1',       1, '1/2" EMT 10ft (stub)');
+    addItem(acc, 'ef1',      2, '1/2" EMT connector x2');
+    addItem(acc, 'sp_emt12', 2, '1/2" strap x2');
+    addItem(acc, 'mr1',      1, 'SG mud ring');
+    addManual(acc, 'EMT stub field bend labor', 1, 'EA', 0,
+      0.10 * p.diff * R.labor);
+  } else {
+    addItem(acc, 'bs2', 3, 'CJ6 x3 (flush mount)');
+    addItem(acc, 'mr1', 1, 'SG mud ring');
+  }
+
+  // Patch panel
+  if (p.patchPanel !== 'none') {
+    const PP_ID: Record<string, string> =
+      { small: 'pp1', medium: 'pp2', large: 'pp3' };
+    addItem(acc, PP_ID[p.patchPanel], 1, 'patch panel');
+  }
+
+  // Labor: 0.15 hrs/port termination + 0.30 base
+  addManual(acc, `Cat6 termination labor (${p.ports} ports × 0.15hr)`,
+    p.ports, 'EA', 0, 0.15 * p.ports * p.diff * R.labor);
+  addManual(acc, 'Data location base labor', 1, 'EA', 0,
+    0.30 * p.diff * R.labor);
+
+  const label = `${p.ports}-port Cat6 — ${p.feet}ft — ${p.support}`;
   return toAsm(acc, label, p as unknown as Record<string, unknown>);
 }
