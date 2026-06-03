@@ -21,6 +21,7 @@ import { SettingsTab }          from '@/components/estimator/SettingsTab';
 import { BOMReferenceTab }      from '@/components/estimator/BOMReferenceTab';
 import { FixtureBuilderTab }    from '@/components/estimator/FixtureBuilderTab';
 import { GearBuilderTab }       from '@/components/estimator/GearBuilderTab';
+import { TakeoffTab }           from '@/components/estimator/TakeoffTab';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
@@ -86,7 +87,9 @@ export function EstimatorShell() {
 
       {/* Pane */}
       <div className="flex-1 bg-gray-50 px-4 py-4">
-        {tab === 'assemblies' ? (
+        {tab === 'takeoff' ? (
+          <TakeoffTab />
+        ) : tab === 'assemblies' ? (
           <div className="max-w-5xl">
             <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-sm text-blue-800 mb-4">
               Assemblies auto-explode to full material + labor. Home runs always separate.

@@ -159,7 +159,7 @@ export interface SubLine {
 }
 
 // ─────────────────────────────────────
-// Takeoff line (Takeoff tab)
+// Takeoff tab types
 // ─────────────────────────────────────
 
 export interface TakeoffLine {
@@ -168,6 +168,15 @@ export interface TakeoffLine {
   name:     string;
   qty:      number;
   note:     string;
+}
+
+export interface TakeoffCounts {
+  [itemId: string]: number;
+}
+
+export interface TakeoffArea {
+  areaName: string;
+  counts:   TakeoffCounts;
 }
 
 // ─────────────────────────────────────
@@ -186,7 +195,10 @@ export interface EstimatorState {
   settings: RateConfig;
 
   // ── Takeoff tab ───────────────────────────────────────────────
-  takeoff: TakeoffLine[];
+  takeoff:       TakeoffLine[];
+  takeoffCounts: TakeoffCounts;
+  takeoffSource: string;
+  takeoffAreas:  TakeoffArea[];
 
   // ── Saved assembly arrays (one per builder) ───────────────────
   savedRuns:      SavedAssembly[];
@@ -340,7 +352,10 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     tab:       'takeoff',
     jobInfo:   { ...DEFAULT_JOB_INFO },
     settings:  { ...DEFAULTS },
-    takeoff:   [],
+    takeoff:       [],
+    takeoffCounts: {},
+    takeoffSource: '',
+    takeoffAreas:  [],
     savedRuns:      [], savedRacks:     [], savedMCHR:      [],
     savedThreeWay:  [], savedData:      [], savedFA:        [],
     savedCans:      [], savedGear:      [], savedCustomDev: [],
