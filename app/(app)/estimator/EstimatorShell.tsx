@@ -27,7 +27,7 @@ const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
   { id: 'assemblies',  label: 'Assembly Library' },
   { id: 'fixtures',    label: 'Fixture Builder'  },
-  { id: 'items',       label: 'Bid Items'        },
+  { id: 'items',       label: 'Audit Trail'      },
   { id: 'gear',        label: 'Gear Builder'     },
   { id: 'permits',     label: 'Permits & Subs'   },
   { id: 'bom',         label: 'BOM Reference'    },
@@ -39,6 +39,7 @@ export function EstimatorShell() {
   const { state, setTab } = useEstimatorContext();
   const tab = state.tab;
   const [jobsOpen, setJobsOpen] = useState(false);
+  const showTools = !['summary', 'settings'].includes(state.tab);
 
   return (
     <div className="-mx-4 -my-6 flex flex-col min-h-screen">
@@ -54,12 +55,30 @@ export function EstimatorShell() {
         </div>
         <div className="flex items-center justify-between mt-1">
           <span className="text-sm text-blue-100 truncate mr-2">{state.jobName}</span>
-          <button
-            onClick={() => setJobsOpen(true)}
-            className="shrink-0 text-xs border border-blue-300/60 text-blue-100 px-2 py-0.5 rounded hover:bg-blue-700 transition-colors"
-          >
-            Jobs
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {showTools && (
+              <>
+                <button
+                  onClick={() => window.open('/pdf-takeoff.html', '_blank')}
+                  className="px-3 py-1.5 text-sm font-semibold rounded border-2 border-white text-white hover:bg-white hover:text-[#1a3a5c] transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  ↗ Takeoff
+                </button>
+                <button
+                  onClick={() => window.open('/counter.html', '_blank')}
+                  className="px-3 py-1.5 text-sm font-semibold rounded border-2 border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  ↗ Counter
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setJobsOpen(true)}
+              className="text-xs border border-blue-300/60 text-blue-100 px-2 py-0.5 rounded hover:bg-blue-700 transition-colors"
+            >
+              Jobs
+            </button>
+          </div>
         </div>
       </div>
 
