@@ -301,6 +301,22 @@ export async function getActiveUsers() {
   });
 }
 
+// ── getActiveJobs — for ScheduleModal job picker ──────────────────────────────
+
+export async function getActiveJobs() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+  return prisma.job.findMany({
+    where: {
+      archived: false,
+      status:   { in: ["ACTIVE", "ON_HOLD"] },
+      jobType:  { notIn: ["ESTIMATE", "SYSTEM"] },
+    },
+    select:  { id: true, jobName: true, jobNumber: true },
+    orderBy: { jobName: "asc" },
+  });
+}
+
 // ── getSchedulesForCalendar ───────────────────────────────────────────────────
 
 export async function getSchedulesForCalendar(month: number, year: number) {

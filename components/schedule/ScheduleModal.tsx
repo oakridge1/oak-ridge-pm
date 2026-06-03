@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { X, Trash2, Users } from "lucide-react";
 import {
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  getActiveUsers,
+  getActiveJobs,
 } from "@/app/(app)/schedule/actions";
 
 type User = { id: string; name: string | null; role: string };
+type Job  = { id: string; jobName: string; jobNumber: string };
 
 interface ExistingSchedule {
   id:        string;
@@ -20,39 +23,64 @@ interface ExistingSchedule {
 }
 
 interface ScheduleModalProps {
-  jobId:    string;
-  jobName:  string;
-  /** Active users — fetched once by the parent so the modal doesn't re-fetch on every open */
-  users:    User[];
-  /** Pre-fill date when creating from a day click */
-  date?:    string;
+  /** Required when editing; omit when creating from WeekBanner to show a job picker. */
+  jobId?:    string;
+  jobName?:  string;
+  /** Pass from parent to avoid a refetch; omit to fetch internally. */
+  users?:    User[];
+  /** Pre-fill date */
+  date?:     string;
   /** Populated when editing an existing schedule */
   schedule?: ExistingSchedule;
-  onClose:  () => void;
+  onClose:   () => void;
+  /** Called after a successful save instead of onClose; if omitted, onClose is called. */
+  onSaved?:  () => void;
 }
 
 export function ScheduleModal({
-  jobId,
-  jobName,
-  users,
+  jobId:   propJobId,
+  jobName: propJobName,
+  users:   propUsers,
   date,
   schedule,
   onClose,
+  onSaved,
 }: ScheduleModalProps) {
   const isEdit = !!schedule;
 
   // Form fields
-  const [dateVal, setDate]           = useState(schedule?.date       ?? date ?? "");
-  const [startTime, setStartTime]    = useState(schedule?.startTime  ?? "");
-  const [endTime, setEndTime]        = useState(schedule?.endTime    ?? "");
-  const [notes, setNotes]            = useState(schedule?.notes      ?? "");
+  const [dateVal, setDate]            = useState(schedule?.date      ?? date ?? "");
+  const [startTime, setStartTime]     = useState(schedule?.startTime ?? "");
+  const [endTime, setEndTime]         = useState(schedule?.endTime   ?? "");
+  const [notes, setNotes]             = useState(schedule?.notes     ?? "");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(schedule?.assignees.map((a) => a.id) ?? [])
   );
 
+  // Job picker — only used when no jobId was provided (creating from WeekBanner)
+  const needsJobPicker = !propJobId && !isEdit;
+  const [jobs, setJobs]               = useState<Job[]>([]);
+  const [pickedJobId, setPickedJobId] = useState("");
+  const [pickedJobName, setPickedJobName] = useState("");
+
+  // Users — use passed list or fetch internally
+  const [users, setUsers] = useState<User[]>(propUsers ?? []);
+
   const [error, setError]          = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete]    = useTransition();
+
+  // Fetch jobs for the picker when needed
+  useEffect(() => {
+    if (!needsJobPicker) return;
+    getActiveJobs().then(setJobs).catch(console.error);
+  }, [needsJobPicker]);
+
+  // Fetch users when not provided by the parent
+  useEffect(() => {
+    if (propUsers) return;
+    getActiveUsers().then(setUsers).catch(console.error);
+  }, [propUsers]);
 
   function toggleUser(id: string) {
     setSelectedIds((prev) => {
@@ -62,9 +90,13 @@ export function ScheduleModal({
     });
   }
 
+  const effectiveJobId   = propJobId   ?? pickedJobId;
+  const effectiveJobName = propJobName ?? pickedJobName;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!dateVal) { setError("Date is required."); return; }
+    if (!dateVal)         { setError("Date is required.");        return; }
+    if (!effectiveJobId)  { setError("Please select a job.");     return; }
     setError(null);
 
     startTransition(async () => {
@@ -79,7 +111,7 @@ export function ScheduleModal({
           });
         } else {
           await createSchedule({
-            jobId,
+            jobId:     effectiveJobId,
             date:      dateVal,
             startTime: startTime || "",
             endTime:   endTime   || "",
@@ -87,7 +119,12 @@ export function ScheduleModal({
             userIds:   [...selectedIds],
           });
         }
-        onClose();
+        // onSaved takes priority; fall back to onClose
+        if (onSaved) {
+          onSaved();
+        } else {
+          onClose();
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to save schedule.");
       }
@@ -123,7 +160,9 @@ export function ScheduleModal({
             <h2 className="text-base font-semibold text-gray-900">
               {isEdit ? "Edit Schedule" : "Schedule Crew"}
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">{jobName}</p>
+            {effectiveJobName && (
+              <p className="text-xs text-gray-400 mt-0.5">{effectiveJobName}</p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -139,6 +178,32 @@ export function ScheduleModal({
             <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
               {error}
             </p>
+          )}
+
+          {/* Job picker — shown when no jobId was pre-set */}
+          {needsJobPicker && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                Job <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={pickedJobId}
+                onChange={(e) => {
+                  const selected = jobs.find((j) => j.id === e.target.value);
+                  setPickedJobId(selected?.id ?? "");
+                  setPickedJobName(selected ? `${selected.jobNumber} — ${selected.jobName}` : "");
+                }}
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              >
+                <option value="">Select a job…</option>
+                {jobs.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.jobNumber} — {j.jobName}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* Date */}
@@ -203,7 +268,7 @@ export function ScheduleModal({
             </div>
 
             {users.length === 0 ? (
-              <p className="text-xs text-gray-400">No users found.</p>
+              <p className="text-xs text-gray-400">Loading…</p>
             ) : (
               <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto">
                 {users.map((u) => {

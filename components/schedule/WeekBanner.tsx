@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getMySchedule } from "@/app/(app)/schedule/actions";
 import { formatHHMM } from "@/lib/dateUtils";
 import { ArriveDepart } from "./ArriveDepart";
+import { ScheduleModal } from "./ScheduleModal";
 
 type ScheduleItem = Awaited<ReturnType<typeof getMySchedule>>[number];
 
@@ -46,6 +47,8 @@ export function WeekBanner() {
   const [schedules, setSchedules]     = useState<ScheduleItem[]>([]);
   const [loading, setLoading]         = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [showModal, setShowModal]     = useState(false);
+  const [modalDate, setModalDate]     = useState<string>("");
 
   // Set client-side dates once on mount
   useEffect(() => {
@@ -178,7 +181,18 @@ export function WeekBanner() {
             {loading ? (
               <p className="px-4 py-3 text-xs text-white/50">Loading…</p>
             ) : selected.length === 0 ? (
-              <p className="px-4 py-3 text-xs text-white/50">No shifts scheduled for this day.</p>
+              <div className="flex flex-col items-center gap-3 py-4 px-4">
+                <p className="text-white/60 text-sm">No shifts scheduled for this day.</p>
+                <button
+                  onClick={() => {
+                    setModalDate(selectedDay ?? "");
+                    setShowModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-white/30 text-white hover:bg-white/10 transition-colors"
+                >
+                  + Schedule Crew
+                </button>
+              </div>
             ) : (
               <div className="divide-y divide-white/10">
                 {selected.map((s) => (
@@ -201,11 +215,37 @@ export function WeekBanner() {
                     />
                   </div>
                 ))}
+                <div className="px-4 py-2">
+                  <button
+                    onClick={() => {
+                      setModalDate(selectedDay ?? "");
+                      setShowModal(true);
+                    }}
+                    className="mt-2 text-xs text-white/60 hover:text-white underline transition-colors"
+                  >
+                    + Add another shift
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {showModal && modalDate && (
+        <ScheduleModal
+          date={modalDate}
+          onClose={() => setShowModal(false)}
+          onSaved={() => {
+            setShowModal(false);
+            if (weekStart) {
+              getMySchedule(toYMD(weekStart))
+                .then(setSchedules)
+                .catch(console.error);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
