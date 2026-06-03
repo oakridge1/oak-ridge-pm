@@ -15,6 +15,10 @@ import { TMBuilder }             from '@/components/estimator/TMBuilder';
 import { BidItemsTab }          from '@/components/estimator/BidItemsTab';
 import { PermitsSubsTab }       from '@/components/estimator/PermitsSubsTab';
 import { BidSummaryTab }        from '@/components/estimator/BidSummaryTab';
+import { SettingsTab }          from '@/components/estimator/SettingsTab';
+import { BOMReferenceTab }      from '@/components/estimator/BOMReferenceTab';
+import { FixtureBuilderTab }    from '@/components/estimator/FixtureBuilderTab';
+import { GearBuilderTab }       from '@/components/estimator/GearBuilderTab';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
@@ -93,10 +97,18 @@ export function EstimatorShell() {
           </div>
         ) : tab === 'items' ? (
           <BidItemsTab />
+        ) : tab === 'fixtures' ? (
+          <FixtureBuilderTab />
+        ) : tab === 'gear' ? (
+          <GearBuilderTab />
         ) : tab === 'permits' ? (
           <PermitsSubsTab />
+        ) : tab === 'bom' ? (
+          <BOMReferenceTab />
         ) : tab === 'summary' ? (
           <BidSummaryTab />
+        ) : tab === 'settings' ? (
+          <SettingsTab />
         ) : (
           <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
             {TABS.find(t => t.id === tab)?.label ?? tab} — coming soon
