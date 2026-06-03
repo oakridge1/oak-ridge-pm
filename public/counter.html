@@ -595,6 +595,12 @@ body {
   <div id="bottom-actions">
     <button class="bottom-btn new-area" onclick="openAreas()">⊕ NEW AREA</button>
     <button class="bottom-btn export" onclick="exportJSON()">↓ EXPORT JSON</button>
+    <button id="sync-btn" onclick="syncToEstimator()"
+      style="background:#1a3a5c;color:#fff;border:none;
+      padding:8px 16px;border-radius:6px;font-weight:bold;
+      cursor:pointer;font-size:13px;">
+      ⇄ SYNC
+    </button>
   </div>
 </div>
 
@@ -1377,6 +1383,36 @@ function exportJSON() {
   a.download = fname + '_takeoff_' + out.exportDate + '.json';
   a.click();
   showToast('Exported!');
+}
+
+function syncToEstimator() {
+  var totals = computeTotals();
+  var payload = {
+    source: 'counter',
+    exportDate: new Date().toISOString().slice(0, 10),
+    jobName: state.jobName || '',
+    totals: totals,
+    areas: state.areas.map(function(a) {
+      var cleaned = {};
+      Object.keys(a.counts).forEach(function(k) {
+        if (a.counts[k] > 0) cleaned[k] = a.counts[k];
+      });
+      return { areaName: a.name, counts: cleaned };
+    }),
+    timestamp: Date.now(),
+  };
+  localStorage.setItem('ore_estimator_sync', JSON.stringify(payload));
+
+  // Visual feedback
+  var btn = document.getElementById('sync-btn');
+  if (btn) {
+    btn.textContent = '✓ SYNCED';
+    btn.style.background = '#27ae60';
+    setTimeout(function() {
+      btn.textContent = '⇄ SYNC';
+      btn.style.background = '';
+    }, 2500);
+  }
 }
 
 function importJSON(event) {

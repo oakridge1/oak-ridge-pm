@@ -1,7 +1,7 @@
 'use client';
 
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ITEM_LABELS, ITEM_CATEGORY, FOOTAGE_ITEMS,
   CATEGORY_LABELS, CAT_ORDER,
@@ -14,6 +14,32 @@ export function TakeoffTab() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [editingId,   setEditingId]   = useState<string | null>(null);
+  const [syncPayload, setSyncPayload] = useState<{
+    source: string;
+    jobName: string;
+    totals: Record<string, number>;
+    timestamp: number;
+    areas: Array<{ areaName: string; counts: Record<string, number> }>;
+  } | null>(null);
+
+  useEffect(() => {
+    function checkSync() {
+      try {
+        const raw = localStorage.getItem('ore_estimator_sync');
+        if (!raw) return;
+        const payload = JSON.parse(raw);
+        if (!payload.timestamp) return;
+        const lastSync = parseInt(
+          localStorage.getItem('ore_estimator_sync_last') ?? '0'
+        );
+        if (payload.timestamp <= lastSync) return;
+        setSyncPayload(payload);
+      } catch {}
+    }
+    checkSync();
+    const interval = setInterval(checkSync, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const counts  = state.takeoffCounts;
   const hasData = Object.keys(counts).length > 0;
@@ -86,6 +112,49 @@ export function TakeoffTab() {
 
   return (
     <div className="space-y-4">
+
+      {/* ── SYNC BANNER ───────────────────────────────────────────────────── */}
+      {syncPayload && (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-300 rounded-lg px-4 py-3">
+          <span className="text-green-600 text-lg">⇄</span>
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-green-800">
+              New counts available from{' '}
+              {syncPayload.source === 'pdf-takeoff' ? 'PDF Takeoff tool' : 'Counter tool'}
+              {syncPayload.jobName ? ` — ${syncPayload.jobName}` : ''}
+            </div>
+            <div className="text-xs text-green-600">
+              {Object.keys(syncPayload.totals).length} items ready to import
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setState(s => ({
+                ...s,
+                takeoffCounts: syncPayload.totals,
+                takeoffAreas:  syncPayload.areas ?? [],
+                takeoffSource: `${syncPayload.source === 'pdf-takeoff' ? 'PDF Takeoff' : 'Counter'} — ${syncPayload.jobName || syncPayload.source}`,
+                jobName: (s.jobName === 'New Job' || s.jobName === '')
+                  ? (syncPayload.jobName || s.jobName) : s.jobName,
+              }));
+              localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
+              setSyncPayload(null);
+            }}
+            className="px-3 py-1.5 text-sm font-semibold rounded bg-green-600 text-white hover:bg-green-700 whitespace-nowrap"
+          >
+            Import Now
+          </button>
+          <button
+            onClick={() => {
+              localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
+              setSyncPayload(null);
+            }}
+            className="text-green-500 hover:text-green-700 text-sm px-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ── HEADER BAR ────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between bg-[#eef4ff] border border-[#c0d4f0] rounded-lg px-4 py-3">

@@ -535,10 +535,99 @@ var WTYPES=['THHN','XHHW','THWN','USE-2','Custom'];
 // STATE
 // ═══════════════════════════════════════
 var drawings={},currentDwgId=null,pendingPdf=null;
-var assemblies=[
-  {id:'a0',name:'20A Receptacle',key:'recept_20a',cat:'Devices',color:'#e03a3a',symId:'duplex_recept',visible:true,count:0},
-  {id:'a1',name:'2x4 LED Fixture',key:'fixture_2x4',cat:'Fixtures',color:'#3a8fe8',symId:'fluor_fixture',visible:true,count:0},
-  {id:'a2',name:'Single Pole Switch',key:'switch_sp',cat:'Devices',color:'#2db562',symId:'sp_switch',visible:true,count:0},
+var assemblies = [
+  // ── DEVICES ──────────────────────────────────────────
+  {id:'a0',  name:'20A Receptacle',         key:'recept_20a',      cat:'Devices',   color:'#e03a3a', symId:'duplex_recept', visible:true, count:0},
+  {id:'a1',  name:'15A TR Receptacle',      key:'recept_15a_tr',   cat:'Devices',   color:'#e03a3a', symId:'duplex_recept', visible:true, count:0},
+  {id:'a2',  name:'20A GFCI',               key:'gfci_20a',        cat:'Devices',   color:'#e8a020', symId:'gfci_recept',   visible:true, count:0},
+  {id:'a3',  name:'15A TR GFCI',            key:'gfci_15a_tr',     cat:'Devices',   color:'#e8a020', symId:'gfci_recept',   visible:true, count:0},
+  {id:'a4',  name:'30A Receptacle',         key:'recept_30a',      cat:'Devices',   color:'#c0392b', symId:'240v_recept',   visible:true, count:0},
+  {id:'a5',  name:'50A Receptacle',         key:'recept_50a',      cat:'Devices',   color:'#c0392b', symId:'240v_recept',   visible:true, count:0},
+  {id:'a6',  name:'240V Receptacle',        key:'recept_240v',     cat:'Devices',   color:'#c0392b', symId:'240v_recept',   visible:true, count:0},
+  {id:'a7',  name:'Twist-Lock Receptacle',  key:'recept_twist',    cat:'Devices',   color:'#c0392b', symId:'240v_recept',   visible:true, count:0},
+  {id:'a8',  name:'USB Receptacle',         key:'usb_recept',      cat:'Devices',   color:'#e03a3a', symId:'duplex_recept', visible:true, count:0},
+  {id:'a9',  name:'Single Pole Switch',     key:'switch_sp',       cat:'Devices',   color:'#2db562', symId:'sp_switch',     visible:true, count:0},
+  {id:'a10', name:'3-Way Switch',           key:'switch_3way',     cat:'Devices',   color:'#2db562', symId:'3way_switch',   visible:true, count:0},
+  {id:'a11', name:'4-Way Switch',           key:'switch_4way',     cat:'Devices',   color:'#2db562', symId:'3way_switch',   visible:true, count:0},
+  {id:'a12', name:'Dimmer',                 key:'dimmer',          cat:'Devices',   color:'#2db562', symId:'dimmer_sw',     visible:true, count:0},
+  {id:'a13', name:'0-10V Dimmer (Lutron)',  key:'dimmer_010v',     cat:'Devices',   color:'#2db562', symId:'dimmer_sw',     visible:true, count:0},
+  {id:'a14', name:'Occ Sensor Ceiling',     key:'occ_sensor_ceil', cat:'Devices',   color:'#8e44ad', symId:'ceil_fixture',  visible:true, count:0},
+  {id:'a15', name:'Occ Sensor Wall PIR',    key:'occ_sensor_pir',  cat:'Devices',   color:'#8e44ad', symId:'sp_switch',     visible:true, count:0},
+  {id:'a16', name:'Photocell',              key:'photocell',       cat:'Devices',   color:'#8e44ad', symId:'wp_recept',     visible:true, count:0},
+  {id:'a17', name:'WP In-Use Cover',        key:'wp_cover',        cat:'Devices',   color:'#e03a3a', symId:'wp_recept',     visible:true, count:0},
+  {id:'a18', name:'Floor Box',              key:'floor_box',       cat:'Devices',   color:'#7f8c8d', symId:'junction_box',  visible:true, count:0},
+  // ── FIXTURES ─────────────────────────────────────────
+  {id:'b0',  name:'2x4 LED Lay-In',         key:'fixture_2x4',         cat:'Fixtures',  color:'#3a8fe8', symId:'fluor_fixture', visible:true, count:0},
+  {id:'b1',  name:'2x2 LED Lay-In',         key:'fixture_2x2',         cat:'Fixtures',  color:'#3a8fe8', symId:'fluor_fixture', visible:true, count:0},
+  {id:'b2',  name:'4ft LED Strip',          key:'fixture_strip',       cat:'Fixtures',  color:'#3a8fe8', symId:'fluor_fixture', visible:true, count:0},
+  {id:'b3',  name:'8ft LED Strip',          key:'fixture_strip_8',     cat:'Fixtures',  color:'#3a8fe8', symId:'fluor_fixture', visible:true, count:0},
+  {id:'b4',  name:'4ft Vapor Tight',        key:'fixture_wrap_4',      cat:'Fixtures',  color:'#3a8fe8', symId:'fluor_fixture', visible:true, count:0},
+  {id:'b5',  name:'8ft Vapor Tight',        key:'fixture_wrap_8',      cat:'Fixtures',  color:'#3a8fe8', symId:'fluor_fixture', visible:true, count:0},
+  {id:'b6',  name:'Recessed Can - New',     key:'fixture_rec_new',     cat:'Fixtures',  color:'#1a8fe8', symId:'recessed',      visible:true, count:0},
+  {id:'b7',  name:'Recessed Can - Remodel', key:'fixture_rec_rem',     cat:'Fixtures',  color:'#1a8fe8', symId:'recessed',      visible:true, count:0},
+  {id:'b8',  name:'Recessed Can - Retrofit',key:'fixture_rec_retro',   cat:'Fixtures',  color:'#1a8fe8', symId:'recessed',      visible:true, count:0},
+  {id:'b9',  name:'Wall Mount Indoor',      key:'fixture_wall',        cat:'Fixtures',  color:'#5dade2', symId:'wall_fixture',  visible:true, count:0},
+  {id:'b10', name:'Wall Mount Outdoor',     key:'fixture_wall_out',    cat:'Fixtures',  color:'#5dade2', symId:'wall_fixture',  visible:true, count:0},
+  {id:'b11', name:'Canopy / Soffit',        key:'fixture_canopy',      cat:'Fixtures',  color:'#5dade2', symId:'wall_fixture',  visible:true, count:0},
+  {id:'b12', name:'High Bay LED (UFO)',      key:'fixture_highbay',     cat:'Fixtures',  color:'#f39c12', symId:'high_bay',      visible:true, count:0},
+  {id:'b13', name:'Linear High Bay',        key:'fixture_highbay_lin', cat:'Fixtures',  color:'#f39c12', symId:'high_bay',      visible:true, count:0},
+  {id:'b14', name:'Low Bay LED',            key:'fixture_lowbay',      cat:'Fixtures',  color:'#f39c12', symId:'high_bay',      visible:true, count:0},
+  {id:'b15', name:'Pendant / Hanging',      key:'fixture_pendant',     cat:'Fixtures',  color:'#5dade2', symId:'ceil_fixture',  visible:true, count:0},
+  {id:'b16', name:'Track Head',             key:'fixture_track_head',  cat:'Fixtures',  color:'#3a8fe8', symId:'ceil_fixture',  visible:true, count:0},
+  {id:'b17', name:'LED Wall Pack',          key:'fixture_wallpack',    cat:'Fixtures',  color:'#5dade2', symId:'wall_fixture',  visible:true, count:0},
+  {id:'b18', name:'Exit / EBU Combo',       key:'fixture_exit_ebu',    cat:'Fixtures',  color:'#e74c3c', symId:'exit_light',    visible:true, count:0},
+  {id:'b19', name:'Exit Sign Only',         key:'fixture_exit_only',   cat:'Fixtures',  color:'#e74c3c', symId:'exit_light',    visible:true, count:0},
+  {id:'b20', name:'Emergency Light Only',   key:'fixture_emrg',        cat:'Fixtures',  color:'#e74c3c', symId:'exit_light',    visible:true, count:0},
+  {id:'b21', name:'Ceiling Fan 36"',        key:'fixture_fan36',       cat:'Fixtures',  color:'#1abc9c', symId:'ceil_fan',      visible:true, count:0},
+  {id:'b22', name:'Ceiling Fan 48"',        key:'fixture_fan48',       cat:'Fixtures',  color:'#1abc9c', symId:'ceil_fan',      visible:true, count:0},
+  {id:'b23', name:'Ceiling Fan 55"',        key:'fixture_fan55',       cat:'Fixtures',  color:'#1abc9c', symId:'ceil_fan',      visible:true, count:0},
+  {id:'b24', name:'Ceiling Fan 60"',        key:'fixture_fan60',       cat:'Fixtures',  color:'#1abc9c', symId:'ceil_fan',      visible:true, count:0},
+  {id:'b25', name:'Chain-Hung Ind. 48"',    key:'fixture_chain48',     cat:'Fixtures',  color:'#f39c12', symId:'high_bay',      visible:true, count:0},
+  {id:'b26', name:'Chain-Hung Ind. 96"',    key:'fixture_chain96',     cat:'Fixtures',  color:'#f39c12', symId:'high_bay',      visible:true, count:0},
+  // ── DATA / LOW VOLTAGE ───────────────────────────────
+  {id:'c0',  name:'1-Port Data',            key:'data_1port',      cat:'Data/LV',   color:'#16a085', symId:'data_port',     visible:true, count:0},
+  {id:'c1',  name:'2-Port Data',            key:'data_2port',      cat:'Data/LV',   color:'#16a085', symId:'data_port',     visible:true, count:0},
+  {id:'c2',  name:'3-Port Data',            key:'data_3port',      cat:'Data/LV',   color:'#16a085', symId:'data_port',     visible:true, count:0},
+  {id:'c3',  name:'4-Port Data',            key:'data_4port',      cat:'Data/LV',   color:'#16a085', symId:'data_port',     visible:true, count:0},
+  {id:'c4',  name:'Security Camera Indoor', key:'camera_indoor',   cat:'Data/LV',   color:'#27ae60', symId:'ceil_fixture',  visible:true, count:0},
+  {id:'c5',  name:'Security Camera Outdoor',key:'camera_outdoor',  cat:'Data/LV',   color:'#27ae60', symId:'wall_fixture',  visible:true, count:0},
+  {id:'c6',  name:'Access Control Reader',  key:'access_reader',   cat:'Data/LV',   color:'#27ae60', symId:'junction_box',  visible:true, count:0},
+  {id:'c7',  name:'Intercom Station',       key:'intercom',        cat:'Data/LV',   color:'#27ae60', symId:'telephone',     visible:true, count:0},
+  {id:'c8',  name:'TV/AV Outlet',           key:'av_outlet',       cat:'Data/LV',   color:'#16a085', symId:'data_port',     visible:true, count:0},
+  {id:'c9',  name:'Speaker Rough-In',       key:'speaker',         cat:'Data/LV',   color:'#16a085', symId:'ceil_fixture',  visible:true, count:0},
+  {id:'c10', name:'Doorbell / Call Button', key:'doorbell',        cat:'Data/LV',   color:'#27ae60', symId:'junction_box',  visible:true, count:0},
+  // ── FIRE ALARM ───────────────────────────────────────
+  {id:'d0',  name:'Smoke Detector',         key:'fa_smoke',        cat:'Fire Alarm', color:'#e74c3c', symId:'smoke_det',    visible:true, count:0},
+  {id:'d1',  name:'Heat Detector',          key:'fa_heat',         cat:'Fire Alarm', color:'#e74c3c', symId:'smoke_det',    visible:true, count:0},
+  {id:'d2',  name:'Smoke/CO Combo',         key:'fa_smoke_co',     cat:'Fire Alarm', color:'#e74c3c', symId:'smoke_det',    visible:true, count:0},
+  {id:'d3',  name:'Pull Station',           key:'fa_pull',         cat:'Fire Alarm', color:'#e74c3c', symId:'junction_box', visible:true, count:0},
+  {id:'d4',  name:'Horn/Strobe',            key:'fa_horn_strobe',  cat:'Fire Alarm', color:'#e67e22', symId:'exit_light',   visible:true, count:0},
+  {id:'d5',  name:'Strobe Only',            key:'fa_strobe',       cat:'Fire Alarm', color:'#e67e22', symId:'exit_light',   visible:true, count:0},
+  {id:'d6',  name:'LF Sounder',             key:'fa_lf_sounder',   cat:'Fire Alarm', color:'#e67e22', symId:'exit_light',   visible:true, count:0},
+  {id:'d7',  name:'Beacon',                 key:'fa_beacon',       cat:'Fire Alarm', color:'#e67e22', symId:'ceil_fixture', visible:true, count:0},
+  {id:'d8',  name:'Control Module',         key:'fa_ctrl_mod',     cat:'Fire Alarm', color:'#8e44ad', symId:'junction_box', visible:true, count:0},
+  {id:'d9',  name:'Monitor Module',         key:'fa_monitor_mod',  cat:'Fire Alarm', color:'#8e44ad', symId:'junction_box', visible:true, count:0},
+  {id:'d10', name:'Duct Smoke Detector',    key:'fa_duct_smoke',   cat:'Fire Alarm', color:'#e74c3c', symId:'smoke_det',    visible:true, count:0},
+  {id:'d11', name:'Beam Detector',          key:'fa_beam',         cat:'Fire Alarm', color:'#e74c3c', symId:'smoke_det',    visible:true, count:0},
+  {id:'d12', name:'FA Relay',               key:'fa_relay',        cat:'Fire Alarm', color:'#8e44ad', symId:'junction_box', visible:true, count:0},
+  {id:'d13', name:'FA Annunciator',         key:'fa_annun',        cat:'Fire Alarm', color:'#8e44ad', symId:'panel_box',    visible:true, count:0},
+  // ── GEAR ─────────────────────────────────────────────
+  {id:'e0',  name:'Commercial Panel',       key:'panel_comm',      cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  {id:'e1',  name:'Lighting Panel',         key:'panel_ltg',       cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  {id:'e2',  name:'Load Center 100A',       key:'lc_100a',         cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  {id:'e3',  name:'Load Center 200A',       key:'lc_200a',         cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  {id:'e4',  name:'Transformer',            key:'xfmr',            cat:'Gear',      color:'#7f8c8d', symId:'xfmr',          visible:true, count:0},
+  {id:'e5',  name:'Meter Socket',           key:'meter_socket',    cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  {id:'e6',  name:'Disconnect',             key:'disconnect',      cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  {id:'e7',  name:'ATS',                    key:'gear_ats',        cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  {id:'e8',  name:'VFD',                    key:'gear_vfd',        cat:'Gear',      color:'#2c3e50', symId:'panel_box',     visible:true, count:0},
+  // ── BOXES & ROUGH ─────────────────────────────────────
+  {id:'f0',  name:'Pull Can Small',         key:'can_sm',          cat:'Boxes',     color:'#7f8c8d', symId:'junction_box',  visible:true, count:0},
+  {id:'f1',  name:'Pull Can Medium',        key:'can_md',          cat:'Boxes',     color:'#7f8c8d', symId:'junction_box',  visible:true, count:0},
+  {id:'f2',  name:'Pull Can Large',         key:'can_lg',          cat:'Boxes',     color:'#7f8c8d', symId:'junction_box',  visible:true, count:0},
+  {id:'f3',  name:'Junction Box',           key:'box_jbox',        cat:'Boxes',     color:'#7f8c8d', symId:'junction_box',  visible:true, count:0},
+  {id:'f4',  name:'2-Gang Box',             key:'box_2gang',       cat:'Boxes',     color:'#7f8c8d', symId:'junction_box',  visible:true, count:0},
+  {id:'f5',  name:'3-Gang Box',             key:'box_3gang',       cat:'Boxes',     color:'#7f8c8d', symId:'junction_box',  visible:true, count:0},
 ];
 var runTypes=[];
 var pdfDoc=null,curPage=1,totalPages=0,zoomLv=1.0,baseScale=1.5;
@@ -1255,7 +1344,57 @@ function buildPDFFromImages(imgs,pages){
 // ═══════════════════════════════════════
 // SYNC + JSON EXPORT
 // ═══════════════════════════════════════
-function syncToCounter(){var JK='ore_jobs_v1';try{var jobs=JSON.parse(localStorage.getItem(JK))||{};var keys=Object.keys(jobs);if(!keys.length){alert('No counter job found. Open the counter tool first.');return;}var jk=keys[keys.length-1];var job=jobs[jk];var area=job.areas[job.currentAreaIdx||0];if(!area){alert('No area found.');return;}assemblies.forEach(function(a){if(a.count>0)area.counts[a.key]=(area.counts[a.key]||0)+a.count;});runTypes.forEach(function(rt){var s=getRtStats(rt);if(!s.ft)return;var cat=rt.category;var key;if(cat==='emt')key='conduit_emt_'+rt.size.replace(/[^0-9a-z]/gi,'_').toLowerCase();else if(cat==='pvc')key='conduit_pvc_'+rt.size.replace(/[^0-9a-z]/gi,'_').toLowerCase();else if(cat==='mc'||cat==='nm')key='mc_'+rt.mcType.toLowerCase().replace(/[^a-z0-9]/g,'_');else key='run_custom_'+rt.id;area.counts[key]=(area.counts[key]||0)+Math.round(s.ft);});jobs[jk]=job;localStorage.setItem(JK,JSON.stringify(jobs));showToast('Synced to counter!');}catch(e){alert('Sync error: '+e.message);}}
+function syncToCounter() {
+  // Build totals from assembly counts
+  var totals = {};
+  assemblies.forEach(function(a) {
+    if (a.count > 0) totals[a.key] = (totals[a.key] || 0) + a.count;
+  });
+
+  // Add run footage from runTypes
+  if (typeof runTypes !== 'undefined') {
+    runTypes.forEach(function(rt) {
+      var stats = getRtStats(rt);
+      if (!stats || !stats.ft) return;
+      var key = null;
+      var cat = (rt.category || '').toLowerCase();
+      var size = (rt.size || '').replace(/[^0-9a-z]/gi, '_').toLowerCase();
+      if (cat === 'emt')        key = 'emt_' + size;
+      else if (cat === 'pvc')   key = 'pvc_' + size;
+      else if (cat === 'rigid') key = 'rgd_' + size;
+      else if (cat === 'imc')   key = 'imc_' + size;
+      else if (cat === 'mc' || cat === 'nm') {
+        var mcKey = (rt.mcType || '').toLowerCase().replace(/[^a-z0-9]/g, '_');
+        key = 'mc_' + mcKey;
+      }
+      if (key) totals[key] = (totals[key] || 0) + Math.round(stats.ft);
+    });
+  }
+
+  // Write to localStorage bridge key
+  var payload = {
+    source: 'pdf-takeoff',
+    exportDate: new Date().toISOString().slice(0, 10),
+    jobName: (typeof drawings !== 'undefined' && Object.keys(drawings).length)
+      ? drawings[Object.keys(drawings)[0]].name : '',
+    totals: totals,
+    areas: [{ areaName: 'PDF Takeoff', counts: totals }],
+    timestamp: Date.now(),
+  };
+  localStorage.setItem('ore_estimator_sync', JSON.stringify(payload));
+
+  // Show feedback
+  var btn = document.querySelector('[onclick="syncToCounter()"]');
+  if (btn) {
+    var orig = btn.innerHTML;
+    btn.innerHTML = '✓ SYNCED';
+    btn.style.background = '#27ae60';
+    setTimeout(function() {
+      btn.innerHTML = orig;
+      btn.style.background = '';
+    }, 2500);
+  }
+}
 
 function exportJSON(){var d=buildAudit();var runDetail={};runTypes.forEach(function(rt){var segs=[];Object.keys(drawings).forEach(function(id){drawings[id].markups.forEach(function(m){if(m.type==='run'&&m.rtId===rt.id)segs.push({drawing:drawings[id].name,page:m.page,footage:m.footage});});});if(!segs.length)return;var totalFt=segs.reduce(function(s,x){return s+x.footage;},0);runDetail[fmtRt(rt)]={category:rt.category,size:rt.size,mcType:rt.mcType,conductors:rt.conductors,material:rt.material,support:rt.support,makeup:rt.makeup,difficulty:rt.difficulty,totalFootage:Math.round(totalFt),segmentCount:segs.length,avgFootage:Math.round(totalFt/segs.length),segments:segs};});var out={exportDate:new Date().toISOString().slice(0,10),drawings:Object.keys(drawings).map(function(id){return drawings[id].name;}),assemblyCounts:d.ac,conduitRuns:runDetail,wireFootage:d.wf,mcFootage:d.mf};var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pdf_takeoff_'+out.exportDate+'.json';a.click();showToast('Exported!');}
 
