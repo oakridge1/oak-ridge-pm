@@ -70,6 +70,8 @@ function AssemblyRow({
 
   const fmtH = (dollars: number) => (dollars / laborRate).toFixed(2) + 'h';
 
+  const hasMissingPrice = item.lines.some(l => l.mat > 0 && l.mat < 0.10);
+
   function handleAddLine() {
     const mat = parseFloat(addMat) || 0;
     const hrs = parseFloat(addHrs) || 0;
@@ -111,6 +113,12 @@ function AssemblyRow({
             </span>
           )}
         </span>
+
+        {hasMissingPrice && (
+          <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-yellow-100 text-yellow-700 border border-yellow-300 font-semibold whitespace-nowrap">
+            ⚠ Price needed
+          </span>
+        )}
 
         {/* Mat */}
         <span className="font-mono text-xs text-gray-400 shrink-0 hidden sm:block">
@@ -167,8 +175,10 @@ function AssemblyRow({
                   );
                 }
 
+                const isMissingPrice = line.mat > 0 && line.mat < 0.10;
+
                 return (
-                  <tr key={li} className="border-b border-gray-100 hover:bg-blue-50">
+                  <tr key={li} className={`border-b border-gray-100 hover:bg-blue-50${isMissingPrice ? ' bg-yellow-50 border-l-2 border-yellow-400' : ''}`}>
                     {/* Name — inline editable */}
                     <td className="py-0.5 pr-2">
                       <input
@@ -189,19 +199,40 @@ function AssemblyRow({
                     </td>
                     {/* Mat $ — inline editable */}
                     <td className="py-0.5 w-24">
-                      <input
-                        key={`m-${li}-${line.mat}`}
-                        type="number"
-                        step="0.01"
-                        defaultValue={line.mat.toFixed(2)}
-                        onBlur={e =>
-                          updateAssemblyLine(
-                            groupKey, idx, li, 'mat',
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        className={`${CELL} text-right font-mono`}
-                      />
+                      {isMissingPrice ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            key={`m-${li}-${line.mat}`}
+                            type="number"
+                            step="0.01"
+                            defaultValue={line.mat.toFixed(2)}
+                            onBlur={e =>
+                              updateAssemblyLine(
+                                groupKey, idx, li, 'mat',
+                                parseFloat(e.target.value) || 0,
+                              )
+                            }
+                            className={`${CELL} text-right font-mono border-yellow-400 bg-yellow-50`}
+                          />
+                          <span className="text-yellow-500 text-xs whitespace-nowrap" title="Enter quoted price">
+                            ⚠ quote
+                          </span>
+                        </div>
+                      ) : (
+                        <input
+                          key={`m-${li}-${line.mat}`}
+                          type="number"
+                          step="0.01"
+                          defaultValue={line.mat.toFixed(2)}
+                          onBlur={e =>
+                            updateAssemblyLine(
+                              groupKey, idx, li, 'mat',
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          className={`${CELL} text-right font-mono`}
+                        />
+                      )}
                     </td>
                     {/* Hrs — inline editable (displayed as hours, saved as dollars) */}
                     <td className="py-0.5 w-16">
@@ -304,6 +335,9 @@ export function BidItemsTab() {
   const allItems = GROUPS.flatMap(g => (state[g.key] as SavedAssembly[]) ?? []);
   const totalMat = allItems.reduce((s, i) => s + i.mat, 0);
   const totalLab = allItems.reduce((s, i) => s + i.lab, 0);
+  const missingPriceCount = allItems.filter(item =>
+    item.lines.some(l => l.mat > 0 && l.mat < 0.10)
+  ).length;
 
   // ── Empty state ──────────────────────────────────────────────────────────────
   if (allItems.length === 0) {
@@ -330,12 +364,24 @@ export function BidItemsTab() {
     <div className="max-w-5xl">
 
       {/* Summary bar */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-blue-800 mb-4 flex flex-wrap gap-x-6 gap-y-1">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-blue-800 mb-3 flex flex-wrap gap-x-6 gap-y-1">
         <span><strong>Items:</strong> {allItems.length}</span>
         <span><strong>Mat:</strong> {fmt$(totalMat)}</span>
         <span><strong>Labor:</strong> {fmtH(totalLab)}</span>
         <span><strong>Combined:</strong> {fmt$(totalMat + totalLab)}</span>
       </div>
+
+      {missingPriceCount > 0 && (
+        <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-300 rounded-lg px-4 py-2 text-sm text-yellow-800 mb-4">
+          <span className="text-lg">⚠</span>
+          <span>
+            <strong>{missingPriceCount} assembl{missingPriceCount !== 1 ? 'ies' : 'y'}</strong>
+            {' '}contain per-quote placeholders.
+            Expand the highlighted rows to enter quoted prices.
+            These affect your grand total.
+          </span>
+        </div>
+      )}
 
       {/* Groups */}
       {GROUPS.map(({ key, label }) => {
