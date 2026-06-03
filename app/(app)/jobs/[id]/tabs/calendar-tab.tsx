@@ -12,6 +12,7 @@ import {
 import { addCalendarEvent, deleteCalendarEvent } from "./calendar-tab-actions";
 import { submitCalendarRequest, reviewCalendarRequest } from "./calendar-request-actions";
 import type { Role, CalendarEventType, CalendarRequestStatus, InspectionType, InspectionResult } from "@/app/generated/prisma/client";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 type CalEvent = {
   id: string;
@@ -150,11 +151,11 @@ function buildAllEvents(
   month: number,
   inspections: JobInspection[] = []
 ): DisplayEvent[] {
-  const normalized = calendarEvents.map((e) => ({ ...e, date: new Date(e.date), recurrenceEndDate: e.recurrenceEndDate ? new Date(e.recurrenceEndDate) : null }));
+  const normalized = calendarEvents.map((e) => ({ ...e, date: parseLocalDate(e.date), recurrenceEndDate: e.recurrenceEndDate ? parseLocalDate(e.recurrenceEndDate) : null }));
   const events: DisplayEvent[] = normalized.flatMap((e) => expandEvent(e, year, month));
 
   if (completionDate) {
-    const cd = new Date(completionDate);
+    const cd = parseLocalDate(completionDate);
     if (cd.getFullYear() === year && cd.getMonth() === month) {
       events.push({ id: "__completion", type: "COMPLETION", title: "Project Completion",
         date: cd, note: null, user: null, isAuto: true, sourceId: "__completion" });
@@ -162,7 +163,7 @@ function buildAllEvents(
   }
 
   tasks.filter((t) => t.dueDate && t.status !== "COMPLETED").forEach((t) => {
-    const dd = new Date(t.dueDate!);
+    const dd = parseLocalDate(t.dueDate!);
     if (dd.getFullYear() === year && dd.getMonth() === month) {
       events.push({ id: `__task_${t.id}`, type: "TASK_DUE", title: t.title,
         date: dd, note: null, user: null, isAuto: true, sourceId: `__task_${t.id}` });
@@ -170,7 +171,7 @@ function buildAllEvents(
   });
 
   inspections.filter((i) => i.dateScheduled).forEach((i) => {
-    const d = new Date(i.dateScheduled!);
+    const d = parseLocalDate(i.dateScheduled!);
     if (d.getFullYear() === year && d.getMonth() === month) {
       const colorClass = i.result === "FAIL" ? "bg-red-500"
                        : i.result === "PASS" ? "bg-green-500"
@@ -461,7 +462,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {new Date(req.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                      {parseLocalDate(req.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
                       {req.timeOfDay && <span className="text-gray-500 ml-1">· {req.timeOfDay}</span>}
                     </p>
                     <p className="text-sm text-gray-700 mt-0.5">{req.description}</p>

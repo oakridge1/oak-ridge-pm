@@ -19,6 +19,7 @@ import {
   type DuplicateLaborEntry,
 } from "./labor-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 type LaborEntry = {
   id: string;
@@ -42,7 +43,7 @@ interface LaborTabProps {
 }
 
 function fmtDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("en-US", {
+  return parseLocalDate(d).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",

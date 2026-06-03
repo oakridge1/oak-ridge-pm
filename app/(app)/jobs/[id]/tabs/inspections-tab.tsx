@@ -18,6 +18,7 @@ import {
   deleteInspection,
 } from "./inspections-tab-actions";
 import type { Role, InspectionType, InspectionResult } from "@/app/generated/prisma/client";
+import { formatLocalDate, toDateInput } from "@/lib/dateUtils";
 
 const INSPECTION_TYPES: { value: InspectionType; label: string }[] = [
   { value: "UNDERGROUND", label: "Underground" },
@@ -33,12 +34,7 @@ function typeLabel(t: InspectionType) {
 }
 
 function fmt(d: Date | string | null | undefined) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatLocalDate(d, { month: "short", day: "numeric", year: "numeric" });
 }
 
 type Inspection = {
@@ -259,9 +255,7 @@ function EditInspectionForm({
   const [error, setError] = useState<string | null>(null);
 
   function toInputDate(d: Date | string | null | undefined) {
-    if (!d) return "";
-    const date = new Date(d);
-    return date.toISOString().slice(0, 10);
+    return toDateInput(d);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

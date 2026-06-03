@@ -29,6 +29,7 @@ import {
   deleteChangeOrder,
 } from "./notes-tasks-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 type Task = {
   id: string;
@@ -106,7 +107,7 @@ const fmt$ = (n: number) =>
 
 function fmtDate(d: Date | string | null | undefined) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return parseLocalDate(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 // ── Task components ───────────────────────────────────────────────────────────
@@ -195,7 +196,7 @@ function TaskRow({
           {task.dueDate && !isDone && (
             <span className="flex items-center gap-1 text-xs text-gray-400">
               <Clock className="w-3 h-3" />
-              Due {new Date(task.dueDate).toLocaleDateString()}
+              Due {parseLocalDate(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
           {isDone && task.completedBy && (

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Calendar } from "lucide-react";
 import { MasterCalendar } from "./master-calendar";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 export default async function CalendarPage() {
   const session = await auth();
@@ -73,7 +74,7 @@ export default async function CalendarPage() {
           id: `start-${job.id}`,
           type: "MILESTONE" as const,
           title: `Start: ${job.jobName}`,
-          date: job.contractStartDate,
+          date: parseLocalDate(job.contractStartDate),
           note: null,
           jobId: job.id,
           recurrence: "NONE",
@@ -87,7 +88,7 @@ export default async function CalendarPage() {
           id: `completion-${job.id}`,
           type: "COMPLETION" as const,
           title: `Complete: ${job.jobName}`,
-          date: job.completionDate,
+          date: parseLocalDate(job.completionDate),
           note: null,
           jobId: job.id,
           recurrence: "NONE",
@@ -105,7 +106,7 @@ export default async function CalendarPage() {
         id: `task-${t.id}`,
         type: "TASK_DUE" as const,
         title: t.job ? `${t.title} (${t.job.jobNumber})` : t.title,
-        date: t.dueDate!,
+        date: parseLocalDate(t.dueDate!),
         note: null,
         jobId: t.jobId,
         recurrence: "NONE",
@@ -120,7 +121,7 @@ export default async function CalendarPage() {
         id: `insp-${i.id}`,
         type: "CUSTOM" as const,
         title: `${INSP_LABELS[i.type] ?? i.type} Inspection${i.result ? ` (${i.result})` : ""}${i.job ? ` — ${i.job.jobNumber}` : ""}`,
-        date: i.dateScheduled!,
+        date: parseLocalDate(i.dateScheduled!),
         note: null,
         jobId: i.jobId,
         recurrence: "NONE",
