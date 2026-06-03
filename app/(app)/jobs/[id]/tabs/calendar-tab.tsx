@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import { addCalendarEvent, deleteCalendarEvent } from "./calendar-tab-actions";
 import { submitCalendarRequest, reviewCalendarRequest } from "./calendar-request-actions";
+import { getSchedulesForCalendar, getActiveUsers } from "@/app/(app)/schedule/actions";
+import { ScheduleModal } from "@/components/schedule/ScheduleModal";
+import { formatHHMM } from "@/lib/dateUtils";
 import type { Role, CalendarEventType, CalendarRequestStatus, InspectionType, InspectionResult } from "@/app/generated/prisma/client";
 import { parseLocalDate } from "@/lib/dateUtils";
 
@@ -55,9 +58,20 @@ type CalendarRequest = {
   createdAt: Date;
 };
 
+type CalSchedule = {
+  id:        string;
+  date:      string;
+  startTime: string | null;
+  endTime:   string | null;
+  notes:     string | null;
+  job:       { id: string; name: string; number: string };
+  assignees: { id: string; name: string }[];
+};
+
 interface CalendarTabProps {
   job: {
     id: string;
+    jobName: string;
     jobNumber: string;
     foremanId?: string | null;
     completionDate: Date | null;
@@ -206,6 +220,38 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
   const [recurrenceType, setRecurrenceType] = useState("NONE");
   const [viewMode, setViewMode] = useState<"job" | "company">("job");
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+
+  // ── Schedule state ──────────────────────────────────────────────────────────
+  const [schedulesByDate, setSchedulesByDate] = useState<Record<string, CalSchedule[]>>({});
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleToEdit, setScheduleToEdit] = useState<CalSchedule | null>(null);
+  const [activeUsers, setActiveUsers] = useState<{ id: string; name: string | null; role: string }[]>([]);
+
+  const canManageSchedule = role === "ADMIN" || role === "OFFICE";
+
+  function buildScheduleMap(all: Awaited<ReturnType<typeof getSchedulesForCalendar>>) {
+    const map: Record<string, CalSchedule[]> = {};
+    for (const s of all) {
+      if (s.job.id !== job.id) continue;
+      if (!map[s.date]) map[s.date] = [];
+      map[s.date].push(s as CalSchedule);
+    }
+    return map;
+  }
+
+  useEffect(() => {
+    getSchedulesForCalendar(month + 1, year)
+      .then((all) => setSchedulesByDate(buildScheduleMap(all)))
+      .catch(console.error);
+  }, [month, year, job.id]);
+
+  // Fetch active users once for the ScheduleModal user picker
+  useEffect(() => {
+    if (!canManageSchedule) return;
+    getActiveUsers()
+      .then(setActiveUsers)
+      .catch(console.error);
+  }, [canManageSchedule]);
 
   const isTeammate = role === "TEAMMATE";
   const isForemanOnJob = role === "FOREMAN" && job.foremanId === currentUserId;
@@ -366,7 +412,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                 {day}
               </span>
               <div className="flex flex-col gap-0.5">
-                {dayEvents.slice(0, 3).map((ev) => (
+                {dayEvents.slice(0, 2).map((ev) => (
                   <span
                     key={ev.id}
                     className={`block w-full text-[10px] text-white px-1 py-0.5 rounded truncate ${
@@ -376,9 +422,19 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                     {ev.title}
                   </span>
                 ))}
-                {dayEvents.length > 3 && (
+                {(schedulesByDate[`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`] ?? []).slice(0, 1).map((s) => (
+                  <span
+                    key={s.id}
+                    className="block w-full text-[10px] text-white px-1 py-0.5 rounded truncate bg-teal-500"
+                  >
+                    {s.assignees.length > 0
+                      ? `${s.assignees.length} crew`
+                      : "Scheduled"}
+                  </span>
+                ))}
+                {dayEvents.length > 2 && (
                   <span className="text-[10px] text-gray-400">
-                    +{dayEvents.length - 3} more
+                    +{dayEvents.length - 2} more
                   </span>
                 )}
               </div>
@@ -405,6 +461,57 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
               <X className="w-4 h-4" />
             </button>
           </div>
+          {/* ── Schedules for this day ────────────────────────────────────── */}
+          {(() => {
+            const dateStr = selectedDay
+              ? `${selectedDay.getFullYear()}-${String(selectedDay.getMonth() + 1).padStart(2, "0")}-${String(selectedDay.getDate()).padStart(2, "0")}`
+              : "";
+            const daySchedules = schedulesByDate[dateStr] ?? [];
+            if (!canManageSchedule && daySchedules.length === 0) return null;
+            return (
+              <div className="mb-3">
+                {daySchedules.map((s) => (
+                  <div key={s.id} className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-teal-500" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          Crew scheduled
+                          {s.startTime ? ` · ${formatHHMM(s.startTime)}` : ""}
+                          {s.endTime   ? ` – ${formatHHMM(s.endTime)}`   : ""}
+                        </p>
+                        {s.assignees.length > 0 && (
+                          <p className="text-xs text-gray-500">
+                            {s.assignees.map((a) => a.name).join(", ")}
+                          </p>
+                        )}
+                        {s.notes && (
+                          <p className="text-xs text-gray-400 italic">{s.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                    {canManageSchedule && (
+                      <button
+                        onClick={() => { setScheduleToEdit(s); setShowScheduleModal(true); }}
+                        className="text-xs text-[#002D72] hover:underline shrink-0"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {canManageSchedule && (
+                  <button
+                    onClick={() => { setScheduleToEdit(null); setShowScheduleModal(true); }}
+                    className="text-xs font-medium text-teal-600 hover:text-teal-700 transition-colors"
+                  >
+                    + Schedule Crew
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
           {selectedDayEvents.length === 0 ? (
             <p className="text-sm text-gray-400">No events on this day.</p>
           ) : (
@@ -713,8 +820,34 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
               </span>
             </div>
           ))}
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-teal-500" />
+            <span className="text-xs text-gray-600">Crew Scheduled</span>
+          </div>
         </div>
       </div>
+
+      {/* Schedule modal */}
+      {showScheduleModal && (
+        <ScheduleModal
+          jobId={job.id}
+          jobName={job.jobName}
+          users={activeUsers}
+          date={
+            selectedDay
+              ? `${selectedDay.getFullYear()}-${String(selectedDay.getMonth() + 1).padStart(2, "0")}-${String(selectedDay.getDate()).padStart(2, "0")}`
+              : undefined
+          }
+          schedule={scheduleToEdit ?? undefined}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setScheduleToEdit(null);
+            getSchedulesForCalendar(month + 1, year)
+              .then((all) => setSchedulesByDate(buildScheduleMap(all)))
+              .catch(console.error);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { ShopExpenseButton } from "./shop-expense-button";
 import PlSummaryWidget from "./pl-summary-widget";
 import Link from "next/link";
 import { Calculator, ChevronRight } from "lucide-react";
+import { WeekBanner } from "@/components/schedule/WeekBanner";
 import type { JobStatus } from "@/app/generated/prisma/client";
 
 const statusOrder: JobStatus[] = ["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"];
@@ -74,6 +75,8 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <WeekBanner />
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#002D72]">Jobs</h1>

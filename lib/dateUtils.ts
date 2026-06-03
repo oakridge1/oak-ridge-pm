@@ -39,3 +39,22 @@ export function toDateInput(d: Date | string | null | undefined): string {
   const str = typeof d === "string" ? d : d.toISOString();
   return str.slice(0, 10);
 }
+
+/**
+ * Formats a "HH:MM" 24-hour string as 12-hour time (e.g. "08:30" → "8:30 AM").
+ */
+export function formatHHMM(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
+/**
+ * Formats an ISO timestamp string as 12-hour time (e.g. "2026-06-03T14:30:00Z" → "2:30 PM").
+ */
+export function formatTime12(iso: string): string {
+  const d = new Date(iso);
+  const h = d.getHours();
+  const m = d.getMinutes();
+  return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+}

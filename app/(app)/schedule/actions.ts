@@ -5,15 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { notifyScheduleChange } from "@/lib/notifications";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatTime(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
-  const hour = h % 12 || 12;
-  return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
-}
+import { formatHHMM } from "@/lib/dateUtils";
 
 async function requireManageCalendar() {
   const session = await auth();
@@ -60,8 +52,8 @@ export async function createSchedule(data: {
 
   const changeDesc =
     `Scheduled for ${data.date}` +
-    (data.startTime ? ` at ${formatTime(data.startTime)}` : "") +
-    (data.endTime   ? ` – ${formatTime(data.endTime)}`   : "");
+    (data.startTime ? ` at ${formatHHMM(data.startTime)}` : "") +
+    (data.endTime   ? ` – ${formatHHMM(data.endTime)}`   : "");
 
   await notifyScheduleChange({
     jobId:      data.jobId,
@@ -178,7 +170,7 @@ export async function clockIn(scheduleId: string) {
   });
 
   revalidatePath("/dashboard");
-  return { success: true, arrivedAt };
+  return { success: true, arrivedAt: arrivedAt.toISOString() };
 }
 
 // ── clockOut (Depart) ─────────────────────────────────────────────────────────
@@ -284,8 +276,29 @@ export async function getMySchedule(weekStart: string) {
       number:  a.schedule.job.jobNumber,
       address: a.schedule.job.address,
     },
-    clockEntry: a.schedule.clockEntries[0] ?? null,
+    clockEntry: (() => {
+      const ce = a.schedule.clockEntries[0];
+      if (!ce) return null;
+      return {
+        arrivedAt:    ce.arrivedAt?.toISOString() ?? null,
+        departedAt:   ce.departedAt?.toISOString() ?? null,
+        hoursWorked:  ce.hoursWorked,
+        lunchDeducted: ce.lunchDeducted,
+      };
+    })(),
   }));
+}
+
+// ── getActiveUsers — for ScheduleModal user picker ───────────────────────────
+
+export async function getActiveUsers() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+  return prisma.user.findMany({
+    where:   { active: true },
+    select:  { id: true, name: true, role: true },
+    orderBy: { name: "asc" },
+  });
 }
 
 // ── getSchedulesForCalendar ───────────────────────────────────────────────────
