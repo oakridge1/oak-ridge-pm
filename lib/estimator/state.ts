@@ -1,5 +1,7 @@
 import { DEFAULTS, type RateConfig } from './constants';
 import type { SavedAssembly } from './constants';
+import type { CounterState } from './counterState';
+import { createCounterState } from './counterState';
 import type {
   ConduitRunParams, RackParams, MCHomeRunParams,
   ThreeWayParams, DataParams, FireAlarmParams,
@@ -200,6 +202,9 @@ export interface EstimatorState {
   takeoffSource: string;
   takeoffAreas:  TakeoffArea[];
 
+  // ── Counter tool ──────────────────────────────────────────────
+  counter: CounterState;
+
   // ── Saved assembly arrays (one per builder) ───────────────────
   savedRuns:      SavedAssembly[];
   savedRacks:     SavedAssembly[];
@@ -356,6 +361,7 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     takeoffCounts: {},
     takeoffSource: '',
     takeoffAreas:  [],
+    counter:       createCounterState(),
     savedRuns:      [], savedRacks:     [], savedMCHR:      [],
     savedThreeWay:  [], savedData:      [], savedFA:        [],
     savedCans:      [], savedGear:      [], savedCustomDev: [],

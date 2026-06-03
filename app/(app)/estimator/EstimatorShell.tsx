@@ -22,6 +22,7 @@ import { BOMReferenceTab }      from '@/components/estimator/BOMReferenceTab';
 import { FixtureBuilderTab }    from '@/components/estimator/FixtureBuilderTab';
 import { GearBuilderTab }       from '@/components/estimator/GearBuilderTab';
 import { TakeoffTab }           from '@/components/estimator/TakeoffTab';
+import { CounterTool }         from '@/components/estimator/CounterTool';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
@@ -38,7 +39,8 @@ const TABS = [
 export function EstimatorShell() {
   const { state, setTab } = useEstimatorContext();
   const tab = state.tab;
-  const [jobsOpen, setJobsOpen] = useState(false);
+  const [jobsOpen,     setJobsOpen]     = useState(false);
+  const [counterOpen,  setCounterOpen]  = useState(false);
   const showTools = !['summary', 'settings'].includes(state.tab);
 
   return (
@@ -65,7 +67,7 @@ export function EstimatorShell() {
                   ↗ Takeoff
                 </button>
                 <button
-                  onClick={() => window.open('/counter.html', '_blank')}
+                  onClick={() => setCounterOpen(true)}
                   className="px-3 py-1.5 text-sm font-semibold rounded border-2 border-orange-400 text-orange-400 hover:bg-orange-400 hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap"
                 >
                   ↗ Counter
@@ -103,6 +105,30 @@ export function EstimatorShell() {
 
       {/* Jobs modal */}
       <JobsModal open={jobsOpen} onClose={() => setJobsOpen(false)} />
+
+      {/* Counter tool slide-over */}
+      {counterOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="flex-1 bg-black/50"
+            onClick={() => setCounterOpen(false)}
+          />
+          <div className="w-full max-w-sm bg-gray-100 flex flex-col h-full shadow-2xl">
+            <div className="bg-[#1a3a5c] text-white px-4 py-2 flex justify-between items-center">
+              <span className="font-bold text-sm">TAKEOFF COUNTER</span>
+              <button
+                onClick={() => setCounterOpen(false)}
+                className="text-white/70 hover:text-white text-lg"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <CounterTool />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pane */}
       <div className="flex-1 bg-gray-50 px-4 py-4">
