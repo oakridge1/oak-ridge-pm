@@ -79,20 +79,26 @@ export function GearBuilderTab() {
   const R = getRates();
 
   // ── Derived flags ──────────────────────────────────────────────────────
-  const isDisc    = gearState.gearType.startsWith('disc_');
-  const isFusedD  = gearState.gearType === 'disc_f';
-  const isXfmr    = gearState.gearType.startsWith('xfmr');
+  const isDisc   = gearState.gearType.startsWith('disc_');
+  const isFusedD = gearState.gearType === 'disc_f';
+  const isXfmr   = gearState.gearType.startsWith('xfmr');
+  const isPanel  = gearState.gearType === 'panel' || gearState.gearType === 'panel_lighting';
+
+  // Subtype options for current gear type
+  const subtypeEntries = Object.entries(GEAR_DEF[gearState.gearType] ?? {});
 
   // ── Live preview ───────────────────────────────────────────────────────
   const preview = useMemo(() => {
-    const gearType = gearState.gearType as keyof typeof GEAR_DEF;
-    if (!GEAR_DEF[gearType]) return null;
+    if (!GEAR_DEF[gearState.gearType]?.[gearState.gearSubtype]) return null;
     const p: GearParams = {
-      gearType,
-      qty:    gearState.qty,
-      nema3r: gearState.nema3r,
-      fused:  gearState.fuseInstall,    // proper mapping: fuseInstall → fused
-      diff:   gearState.diff,
+      gearType:    gearState.gearType,
+      gearSubtype: gearState.gearSubtype,
+      qty:         gearState.qty,
+      nema3r:      gearState.nema3r,
+      fused:       gearState.fuseInstall,
+      mcb:         gearState.mcb,
+      mountMat:    gearState.mountMat,
+      diff:        gearState.diff,
     };
     return calcGear(p);
   }, [gearState]);
@@ -118,7 +124,11 @@ export function GearBuilderTab() {
             <label className="block text-xs text-gray-500 mb-1">Gear Type</label>
             <select
               value={gearState.gearType}
-              onChange={e => updateGearState({ gearType: e.target.value })}
+              onChange={e => {
+                const newType = e.target.value;
+                const firstSubtype = Object.keys(GEAR_DEF[newType] ?? {})[0] ?? 'small';
+                updateGearState({ gearType: newType, gearSubtype: firstSubtype, mcb: false });
+              }}
               className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-full"
             >
               {GEAR_GROUPS.map(({ grp, types }) => (
@@ -130,6 +140,45 @@ export function GearBuilderTab() {
               ))}
             </select>
           </div>
+
+          {/* Gear subtype */}
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">Size / Rating</label>
+            <select
+              value={gearState.gearSubtype}
+              onChange={e => updateGearState({ gearSubtype: e.target.value })}
+              className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-full"
+            >
+              {subtypeEntries.map(([key, def]) => (
+                <option key={key} value={key}>{def.lbl}{def.note ? ` — ${def.note}` : ''}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* MCB toggle (panels only) */}
+          {isPanel && (
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-gray-500 mb-1">Main Breaker</label>
+              <div className="flex gap-1 mb-1">
+                {([{ label: 'MLO', value: false }, { label: 'MCB', value: true }] as const).map(opt => (
+                  <button
+                    key={String(opt.value)}
+                    onClick={() => updateGearState({ mcb: opt.value })}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded border transition-colors ${
+                      gearState.mcb === opt.value
+                        ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >{opt.label}</button>
+                ))}
+              </div>
+              <div className="text-xs text-gray-400">
+                {gearState.mcb
+                  ? 'MCB: +0.50 hrs for main breaker termination'
+                  : 'MLO: Main Lugs Only'}
+              </div>
+            </div>
+          )}
 
           {/* KVA (xfmr only) */}
           {isXfmr && (
@@ -162,7 +211,7 @@ export function GearBuilderTab() {
             <label className="block text-xs text-gray-500 mb-1">Mount Materials</label>
             <select
               value={gearState.mountMat}
-              onChange={e => updateGearState({ mountMat: parseInt(e.target.value, 10) })}
+              onChange={e => updateGearState({ mountMat: parseFloat(e.target.value) || 0 })}
               className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-full"
             >
               {MOUNT_MAT_OPTIONS.map(o => (

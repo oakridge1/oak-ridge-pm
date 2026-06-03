@@ -56,6 +56,7 @@ export interface GearState {
   diff:        number;
   nema3r:      boolean;
   fuseInstall: boolean;
+  mcb:         boolean;
 }
 
 export interface FloorBoxState {
@@ -315,7 +316,7 @@ export const DEFAULT_FA: FireAlarmState = {
 export const DEFAULT_GEAR: GearState = {
   gearType: 'panel', gearSubtype: 'small', mountMat: 75,
   kva: '', desc: '', qty: 1, diff: 1.0,
-  nema3r: false, fuseInstall: false,
+  nema3r: false, fuseInstall: false, mcb: false,
 };
 
 export const DEFAULT_FLOOR_BOX: FloorBoxState = {

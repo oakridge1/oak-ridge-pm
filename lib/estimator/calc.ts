@@ -613,65 +613,220 @@ export function calcFireAlarm(p: FireAlarmParams): SavedAssembly | null {
 // ─── GEAR_DEF + calcGear ──────────────────────────────────────────────────────
 
 export interface GearDef {
-  lhrEa: number;
-  mount?: string;   // BOM id for mounting hardware, if any
+  lbl: string;
+  lhr: number;
+  note: string;
+  mcbAdder?: number;
 }
 
-export const GEAR_DEF: Record<string, GearDef> = {
-  panel:       { lhrEa: 2.00 },
-  panel_lighting: { lhrEa: 1.50 },
-  xfmr:        { lhrEa: 3.00 },
-  xfmr_1p:     { lhrEa: 2.00 },
-  xfmr_iso:    { lhrEa: 3.00 },
-  xfmr_bb:     { lhrEa: 4.00 },
-  disc_nf:     { lhrEa: 0.75 },
-  disc_f:      { lhrEa: 0.75 },
-  disc_ac:     { lhrEa: 1.00 },
-  disc_motor:  { lhrEa: 1.00 },
-  meter:       { lhrEa: 2.00 },
-  meter_bank:  { lhrEa: 4.00 },
-  meter_main:  { lhrEa: 3.00 },
-  ct_cab:      { lhrEa: 1.50 },
-  mdp:         { lhrEa: 6.00 },
-  swgr:        { lhrEa: 8.00 },
-  mcc:         { lhrEa: 8.00 },
-  ats:         { lhrEa: 4.00 },
-  bypass:      { lhrEa: 4.00 },
-  vfd:         { lhrEa: 3.00 },
-  soft:        { lhrEa: 2.00 },
-  ctrl:        { lhrEa: 1.50 },
+export const GEAR_DEF: Record<string, Record<string, GearDef>> = {
+
+  // ── COMMERCIAL PANELS ───────────────────────────────────────
+  panel: {
+    small:  { lbl:'Commercial Panel — Small (up to 200A)',   lhr:3.5,  note:'Up to 200A MLO/MCB' },
+    medium: { lbl:'Commercial Panel — Medium (up to 400A)',  lhr:5.0,  note:'Up to 400A MLO/MCB' },
+    large:  { lbl:'Commercial Panel — Large (up to 600A)',   lhr:7.0,  note:'Up to 600A MLO/MCB' },
+    xl:     { lbl:'Commercial Panel — XL (up to 800A)',      lhr:10.0, note:'Up to 800A MLO/MCB' },
+  },
+  panel_lighting: {
+    small:  { lbl:'Lighting Panel 120/277V — Small (up to 200A)', lhr:3.5,  note:'Up to 200A MLO/MCB' },
+    medium: { lbl:'Lighting Panel 120/277V — Medium (up to 400A)',lhr:5.0,  note:'Up to 400A MLO/MCB' },
+    large:  { lbl:'Lighting Panel 120/277V — Large (up to 600A)', lhr:7.0,  note:'Up to 600A MLO/MCB' },
+    xl:     { lbl:'Lighting Panel 120/277V — XL (up to 800A)',    lhr:10.0, note:'Up to 800A MLO/MCB' },
+  },
+
+  // ── TRANSFORMERS ────────────────────────────────────────────
+  xfmr: {
+    small:  { lbl:'Transformer Dry 3Ph — Small (1–15 KVA)',    lhr:2.5,  note:'' },
+    medium: { lbl:'Transformer Dry 3Ph — Medium (25–75 KVA)',  lhr:4.0,  note:'' },
+    large:  { lbl:'Transformer Dry 3Ph — Large (100–500 KVA)', lhr:8.0,  note:'' },
+    xlarge: { lbl:'Transformer Dry 3Ph — XL (750–2000 KVA)',   lhr:14.0, note:'' },
+  },
+  xfmr_1p: {
+    small:  { lbl:'Transformer 1Ph — Small (1–15 KVA)',    lhr:2.5,  note:'' },
+    medium: { lbl:'Transformer 1Ph — Medium (25–75 KVA)',  lhr:4.0,  note:'' },
+    large:  { lbl:'Transformer 1Ph — Large (100–500 KVA)', lhr:8.0,  note:'' },
+    xlarge: { lbl:'Transformer 1Ph — XL (750+ KVA)',       lhr:14.0, note:'' },
+  },
+  xfmr_iso: {
+    small:  { lbl:'Isolation Transformer — Small (1–15 KVA)',    lhr:3.1,  note:'+25% labor' },
+    medium: { lbl:'Isolation Transformer — Medium (25–75 KVA)',  lhr:5.0,  note:'+25% labor' },
+    large:  { lbl:'Isolation Transformer — Large (100–500 KVA)', lhr:10.0, note:'+25% labor' },
+    xlarge: { lbl:'Isolation Transformer — XL (750+ KVA)',       lhr:17.5, note:'+25% labor' },
+  },
+  xfmr_bb: {
+    small:  { lbl:'Buck-Boost — Small',  lhr:2.5,  note:'' },
+    medium: { lbl:'Buck-Boost — Medium', lhr:4.0,  note:'' },
+    large:  { lbl:'Buck-Boost — Large',  lhr:8.0,  note:'' },
+    xlarge: { lbl:'Buck-Boost — XL',     lhr:14.0, note:'' },
+  },
+
+  // ── DISCONNECTS ─────────────────────────────────────────────
+  disc_nf: {
+    a30:  { lbl:'Non-Fusible Disconnect 30A',  lhr:2.20, note:'3P' },
+    a60:  { lbl:'Non-Fusible Disconnect 60A',  lhr:3.30, note:'3P' },
+    a100: { lbl:'Non-Fusible Disconnect 100A', lhr:4.40, note:'3P' },
+    a200: { lbl:'Non-Fusible Disconnect 200A', lhr:6.00, note:'3P' },
+    a400: { lbl:'Non-Fusible Disconnect 400A', lhr:9.00, note:'3P' },
+    a600: { lbl:'Non-Fusible Disconnect 600A', lhr:12.0, note:'3P' },
+  },
+  disc_f: {
+    a30:  { lbl:'Fusible Disconnect 30A',  lhr:2.50, note:'Class R' },
+    a60:  { lbl:'Fusible Disconnect 60A',  lhr:3.60, note:'Class R' },
+    a100: { lbl:'Fusible Disconnect 100A', lhr:4.80, note:'Class J' },
+    a200: { lbl:'Fusible Disconnect 200A', lhr:6.50, note:'Class L' },
+    a400: { lbl:'Fusible Disconnect 400A', lhr:9.50, note:'Class L' },
+    a600: { lbl:'Fusible Disconnect 600A', lhr:13.0, note:'Class L' },
+  },
+  disc_ac: {
+    a30:  { lbl:'A/C Disconnect 30A',  lhr:2.20, note:'HVAC' },
+    a60:  { lbl:'A/C Disconnect 60A',  lhr:3.30, note:'HVAC' },
+    a100: { lbl:'A/C Disconnect 100A', lhr:4.40, note:'HVAC' },
+  },
+  disc_motor: {
+    a30:  { lbl:'Motor Disconnect 30A',  lhr:2.20, note:'NEC 430' },
+    a60:  { lbl:'Motor Disconnect 60A',  lhr:3.30, note:'NEC 430' },
+    a100: { lbl:'Motor Disconnect 100A', lhr:4.40, note:'NEC 430' },
+  },
+
+  // ── METERS ──────────────────────────────────────────────────
+  meter: {
+    a100: { lbl:'Meter Socket 100A',  lhr:3.00, note:'Single' },
+    a200: { lbl:'Meter Socket 200A',  lhr:3.25, note:'Single' },
+    a300: { lbl:'Meter Socket 300A',  lhr:4.00, note:'Single' },
+    a320: { lbl:'Meter Socket 320A',  lhr:4.25, note:'Single' },
+    a400: { lbl:'Meter Socket 400A',  lhr:5.50, note:'Single' },
+  },
+  meter_bank: {
+    pos2:  { lbl:'Meter Bank 2-Position',        lhr:5.50,  note:'' },
+    pos3:  { lbl:'Meter Bank 3-Position',        lhr:7.50,  note:'' },
+    pos4:  { lbl:'Meter Bank 4-Position',        lhr:9.50,  note:'' },
+    pos5:  { lbl:'Meter Bank 5-Position',        lhr:11.50, note:'' },
+    pos6:  { lbl:'Meter Bank 6-Position',        lhr:13.50, note:'' },
+    stack: { lbl:'Meter Bank Stack (per stack)', lhr:6.75,  note:'' },
+  },
+  meter_main: {
+    a100: { lbl:'Meter-Main Combo 100A', lhr:4.50, note:'Service entrance' },
+    a200: { lbl:'Meter-Main Combo 200A', lhr:5.50, note:'Service entrance' },
+    a400: { lbl:'Meter-Main Combo 400A', lhr:7.00, note:'Service entrance' },
+  },
+  ct_cab: {
+    std: { lbl:'CT Cabinet / Metering', lhr:3.00, note:'Commercial metering' },
+  },
+
+  // ── SPECIALTY GEAR ───────────────────────────────────────────
+  mdp: {
+    small:  { lbl:'MDP — Small (2–4 breakers)',    lhr:8.0,  note:'Service entrance' },
+    medium: { lbl:'MDP — Medium (6–12 breakers)',  lhr:14.0, note:'Service entrance' },
+    large:  { lbl:'MDP — Large (14–24 breakers)',  lhr:20.0, note:'Service entrance' },
+    xl:     { lbl:'MDP — XL (30+ breakers)',       lhr:28.0, note:'Service entrance' },
+  },
+  swgr: {
+    small:  { lbl:'Switchgear — Small',  lhr:12.0, note:'Draw-out breakers' },
+    medium: { lbl:'Switchgear — Medium', lhr:20.0, note:'Draw-out breakers' },
+    large:  { lbl:'Switchgear — Large',  lhr:30.0, note:'Draw-out breakers' },
+    xl:     { lbl:'Switchgear — XL',     lhr:40.0, note:'Draw-out breakers' },
+  },
+  mcc: {
+    small:  { lbl:'MCC — Small (2–4 starters)',   lhr:10.0, note:'Motor starters' },
+    medium: { lbl:'MCC — Medium (6–12 starters)', lhr:16.0, note:'Motor starters' },
+    large:  { lbl:'MCC — Large (14–24 starters)', lhr:24.0, note:'Motor starters' },
+    xl:     { lbl:'MCC — XL (30+ starters)',      lhr:32.0, note:'Motor starters' },
+  },
+  ats: {
+    small:  { lbl:'ATS — Small (up to 100A)',  lhr:6.0,  note:'Generator transfer' },
+    medium: { lbl:'ATS — Medium (up to 400A)', lhr:10.0, note:'Generator transfer' },
+    large:  { lbl:'ATS — Large (up to 800A)',  lhr:14.0, note:'Generator transfer' },
+    xl:     { lbl:'ATS — XL (1000A+)',         lhr:18.0, note:'Generator transfer' },
+  },
+  bypass: {
+    small:  { lbl:'Bypass Isolation — Small',  lhr:4.0,  note:'ATS maintenance' },
+    medium: { lbl:'Bypass Isolation — Medium', lhr:7.0,  note:'ATS maintenance' },
+    large:  { lbl:'Bypass Isolation — Large',  lhr:10.0, note:'ATS maintenance' },
+    xl:     { lbl:'Bypass Isolation — XL',     lhr:14.0, note:'ATS maintenance' },
+  },
+  vfd: {
+    small:  { lbl:'VFD — Small (up to 10HP)',   lhr:3.0,  note:'Motor speed control' },
+    medium: { lbl:'VFD — Medium (up to 50HP)',  lhr:5.0,  note:'Motor speed control' },
+    large:  { lbl:'VFD — Large (up to 200HP)',  lhr:8.0,  note:'Motor speed control' },
+    xl:     { lbl:'VFD — XL (200HP+)',          lhr:12.0, note:'Motor speed control' },
+  },
+  soft: {
+    small:  { lbl:'Soft Starter — Small',  lhr:2.5, note:'Motor starting' },
+    medium: { lbl:'Soft Starter — Medium', lhr:4.0, note:'Motor starting' },
+    large:  { lbl:'Soft Starter — Large',  lhr:6.0, note:'Motor starting' },
+    xl:     { lbl:'Soft Starter — XL',     lhr:8.0, note:'Motor starting' },
+  },
+  ctrl: {
+    small:  { lbl:'Control Panel — Small',  lhr:3.0,  note:'Custom control' },
+    medium: { lbl:'Control Panel — Medium', lhr:6.0,  note:'Custom control' },
+    large:  { lbl:'Control Panel — Large',  lhr:10.0, note:'Custom control' },
+    xl:     { lbl:'Control Panel — XL',     lhr:16.0, note:'Custom control' },
+  },
 };
 
 export interface GearParams {
-  gearType: keyof typeof GEAR_DEF;
-  qty: number;
-  nema3r: boolean;
-  fused: boolean;
-  diff: number;
+  gearType:    string;
+  gearSubtype: string;
+  qty:         number;
+  nema3r:      boolean;
+  fused:       boolean;
+  mcb:         boolean;
+  mountMat:    number;
+  diff:        number;
 }
 
 export function calcGear(p: GearParams): SavedAssembly | null {
   if (p.qty <= 0) return null;
-  const R = getRates();
+  const R   = getRates();
   const acc = newAcc();
-  const def = GEAR_DEF[p.gearType] as GearDef | undefined;
+
+  const subtypes = GEAR_DEF[p.gearType];
+  if (!subtypes) return null;
+  const def = subtypes[p.gearSubtype];
   if (!def) return null;
 
-  // Mount hardware
-  if (def.mount) addItem(acc, def.mount, p.qty);
-
   // Gear itself — PER QUOTE
-  addManual(acc, `${p.gearType} (per quote)`, p.qty, 'EA', 0.01 * p.qty, 0);
+  addManual(acc, `${def.lbl} (per quote)`, p.qty, 'EA', 0.01 * p.qty, 0);
 
   // Install labor
-  let lhrEa = def.lhrEa;
+  let lhrEa = def.lhr;
   if (p.nema3r) lhrEa += 0.50;
   if (p.fused)  lhrEa += 0.25;
 
-  addManual(acc, `${p.gearType} install labor (${p.qty} × ${lhrEa}hr)`, p.qty, 'EA', 0,
+  addManual(acc,
+    `${def.lbl} install (${p.qty} × ${lhrEa}hr × diff ${p.diff})`,
+    p.qty, 'EA', 0,
     lhrEa * p.qty * p.diff * R.labor);
 
-  const label = `Gear — ${p.gearType} — ${p.qty}ea${p.nema3r ? ' NEMA3R' : ''}${p.fused ? ' fused' : ''}`;
+  // MCB adder for panels with main breaker
+  const isPanelType = ['panel', 'panel_lighting'].includes(p.gearType);
+  if (isPanelType && p.mcb) {
+    addManual(acc,
+      'MCB (main circuit breaker) termination adder (0.50hr)',
+      p.qty, 'EA', 0,
+      0.50 * p.qty * p.diff * R.labor);
+  }
+
+  // Mount materials (parse from string defensively)
+  const mountMatAmt = typeof p.mountMat === 'string'
+    ? parseFloat(p.mountMat as string) || 0
+    : (p.mountMat ?? 0);
+  if (mountMatAmt > 0) {
+    addManual(acc,
+      `Mounting materials allowance ($${mountMatAmt})`,
+      p.qty, 'EA',
+      applyMarkup(mountMatAmt * p.qty, 'bulk'), 0);
+  }
+
+  const label = [
+    def.lbl,
+    `${p.qty}ea`,
+    p.mcb    ? 'MCB'    : 'MLO',
+    p.nema3r ? 'NEMA3R' : '',
+    p.fused  ? 'fused'  : '',
+  ].filter(Boolean).join(' — ');
+
   return toAsm(acc, label, p as unknown as Record<string, unknown>);
 }
 

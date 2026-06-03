@@ -11,6 +11,17 @@ import { BOM } from '@/lib/estimator/bom';
 const fmt$ = (n: number) =>
   '$' + n.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
+// ── Customer type ─────────────────────────────────────────────────────────────
+
+interface SavedCustomer {
+  id:          string;
+  company:     string;
+  contactName: string;
+  phone:       string;
+  email:       string;
+  type:        'GC' | 'Owner' | 'Other';
+}
+
 // ── Rate field definitions ─────────────────────────────────────────────────────
 
 interface RateField {
@@ -53,6 +64,64 @@ export function SettingsTab() {
   } = useEstimatorContext();
 
   const [bomSearch, setBomSearch] = useState('');
+
+  // ── Customer library state ──────────────────────────────────────────────
+  const [customers, setCustomers] = useState<SavedCustomer[]>(() => {
+    try { return JSON.parse(localStorage.getItem('ore_customers') ?? '[]'); }
+    catch { return []; }
+  });
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerSearch,    setCustomerSearch]    = useState('');
+  const [editingCustomer,   setEditingCustomer]   = useState<SavedCustomer | null>(null);
+
+  // ── Customer helpers ────────────────────────────────────────────────────
+  function saveCustomers(list: SavedCustomer[]) {
+    setCustomers(list);
+    localStorage.setItem('ore_customers', JSON.stringify(list));
+  }
+
+  function saveCustomer(c: SavedCustomer) {
+    const idx = customers.findIndex(x => x.id === c.id);
+    if (idx >= 0) {
+      const updated = [...customers];
+      updated[idx] = c;
+      saveCustomers(updated);
+    } else {
+      saveCustomers([...customers, c]);
+    }
+    setEditingCustomer(null);
+  }
+
+  function deleteCustomer(id: string) {
+    if (!window.confirm('Delete this customer?')) return;
+    saveCustomers(customers.filter(c => c.id !== id));
+  }
+
+  function applyCustomer(c: SavedCustomer) {
+    if (c.type === 'GC') {
+      setState(s => ({
+        ...s,
+        jobInfo: {
+          ...s.jobInfo,
+          gcCompany:     c.company,
+          gcContactName: c.contactName,
+          gcPhone:       c.phone,
+          gcEmail:       c.email,
+        },
+      }));
+    } else if (c.type === 'Owner') {
+      setState(s => ({
+        ...s,
+        jobInfo: {
+          ...s.jobInfo,
+          ownerName:  c.company,
+          ownerPhone: c.phone,
+          ownerEmail: c.email,
+        },
+      }));
+    }
+    setShowCustomerModal(false);
+  }
 
   // ── BOM price editor filter ─────────────────────────────────────────────
   const allFiltered = BOM.filter(item => {
@@ -212,6 +281,20 @@ export function SettingsTab() {
             />
           </div>
         </div>
+        <button
+          onClick={() => {
+            setEditingCustomer({
+              id: crypto.randomUUID(),
+              company:     state.jobInfo.gcCompany     || '',
+              contactName: state.jobInfo.gcContactName || '',
+              phone:       state.jobInfo.gcPhone       || '',
+              email:       state.jobInfo.gcEmail       || '',
+              type: 'GC',
+            });
+            setShowCustomerModal(true);
+          }}
+          className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mt-1"
+        >⭐ Save GC as customer</button>
 
         {/* Owner */}
         <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-4 mb-2">Owner</p>
@@ -250,6 +333,20 @@ export function SettingsTab() {
             />
           </div>
         </div>
+        <button
+          onClick={() => {
+            setEditingCustomer({
+              id: crypto.randomUUID(),
+              company:     state.jobInfo.ownerName  || '',
+              contactName: '',
+              phone:       state.jobInfo.ownerPhone || '',
+              email:       state.jobInfo.ownerEmail || '',
+              type: 'Owner',
+            });
+            setShowCustomerModal(true);
+          }}
+          className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mt-1"
+        >⭐ Save Owner as customer</button>
 
         {/* Schedule & Permits */}
         <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-4 mb-2">Schedule &amp; Permits</p>
@@ -332,6 +429,62 @@ export function SettingsTab() {
           placeholder="Describe the scope of work..."
           className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
         />
+      </div>
+
+      {/* ── CUSTOMERS ────────────────────────────────────────────────────────── */}
+      <div className={CLS.sectionCard}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className={CLS.sectionTitle} style={{ marginBottom: 0, borderBottom: 'none' }}>Customers</h3>
+          <button
+            onClick={() => {
+              setEditingCustomer({ id: crypto.randomUUID(), company: '', contactName: '', phone: '', email: '', type: 'GC' });
+              setShowCustomerModal(true);
+            }}
+            className="px-3 py-1 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]"
+          >+ New Customer</button>
+        </div>
+        <div className={CLS.sectionTitle} />
+
+        <input
+          type="text"
+          placeholder="Search customers..."
+          value={customerSearch}
+          onChange={e => setCustomerSearch(e.target.value)}
+          className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm mb-3"
+        />
+
+        {customers.length === 0 ? (
+          <div className="text-center py-6 text-gray-400 text-sm">
+            No saved customers yet. Add your first one above.
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {customers
+              .filter(c =>
+                !customerSearch ||
+                c.company.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                c.contactName.toLowerCase().includes(customerSearch.toLowerCase())
+              )
+              .map(c => (
+                <div key={c.id} className="flex items-center gap-2 py-2 px-3 rounded hover:bg-gray-50 border border-transparent hover:border-gray-200">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-800 truncate">{c.company}</div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {c.contactName}{c.phone ? ` · ${c.phone}` : ''}
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap ${
+                    c.type === 'GC'    ? 'bg-blue-100 text-blue-700'
+                    : c.type === 'Owner' ? 'bg-green-100 text-green-700'
+                    : 'bg-gray-100 text-gray-600'
+                  }`}>{c.type}</span>
+                  <button onClick={() => applyCustomer(c)} className="text-xs px-2 py-1 rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] whitespace-nowrap">Apply</button>
+                  <button onClick={() => { setEditingCustomer(c); setShowCustomerModal(true); }} className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100 whitespace-nowrap">Edit</button>
+                  <button onClick={() => deleteCustomer(c.id)} className="text-xs px-2 py-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 whitespace-nowrap">✕</button>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
 
       {/* ── RATE SETTINGS ────────────────────────────────────────────────────── */}
@@ -462,6 +615,102 @@ export function SettingsTab() {
           {totalFiltered > BOM_PAGE && ` — refine search to see more`}
         </p>
       </div>
+
+      {/* ── CUSTOMER EDIT MODAL ───────────────────────────────────────────────── */}
+      {showCustomerModal && editingCustomer && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowCustomerModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-[#1a3a5c]">
+                {customers.some(c => c.id === editingCustomer.id) ? 'Edit Customer' : 'New Customer'}
+              </h3>
+              <button
+                onClick={() => setShowCustomerModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >✕</button>
+            </div>
+
+            {/* Type toggle */}
+            <div className="flex gap-1 mb-4">
+              {(['GC', 'Owner', 'Other'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setEditingCustomer({ ...editingCustomer, type: t })}
+                  className={`flex-1 py-1.5 text-sm font-semibold rounded transition-colors ${
+                    editingCustomer.type === t
+                      ? 'bg-[#1a3a5c] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >{t}</button>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  {editingCustomer.type === 'Owner' ? 'Owner / Company Name' : 'Company'}
+                </label>
+                <input
+                  type="text"
+                  value={editingCustomer.company}
+                  onChange={e => setEditingCustomer({ ...editingCustomer, company: e.target.value })}
+                  placeholder="Company or name"
+                  className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Contact Name</label>
+                <input
+                  type="text"
+                  value={editingCustomer.contactName}
+                  onChange={e => setEditingCustomer({ ...editingCustomer, contactName: e.target.value })}
+                  placeholder="First Last"
+                  className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={editingCustomer.phone}
+                  onChange={e => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                  placeholder="(865) 555-0100"
+                  className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editingCustomer.email}
+                  onChange={e => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                  placeholder="contact@example.com"
+                  className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setShowCustomerModal(false)}
+                className="flex-1 py-2 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-100"
+              >Cancel</button>
+              <button
+                onClick={() => saveCustomer(editingCustomer)}
+                disabled={!editingCustomer.company.trim()}
+                className="flex-1 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] disabled:opacity-40"
+              >Save Customer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
