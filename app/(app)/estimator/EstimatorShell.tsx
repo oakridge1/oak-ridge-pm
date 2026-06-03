@@ -12,6 +12,7 @@ import { LVBuilder }             from '@/components/estimator/LVBuilder';
 import { HighAmpReceptBuilder }  from '@/components/estimator/HighAmpReceptBuilder';
 import { FloorBoxBuilder }       from '@/components/estimator/FloorBoxBuilder';
 import { TMBuilder }             from '@/components/estimator/TMBuilder';
+import { BidItemsTab }          from '@/components/estimator/BidItemsTab';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
@@ -88,6 +89,8 @@ export function EstimatorShell() {
             <FloorBoxBuilder />
             <TMBuilder />
           </div>
+        ) : tab === 'items' ? (
+          <BidItemsTab />
         ) : (
           <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
             {TABS.find(t => t.id === tab)?.label ?? tab} — coming soon
