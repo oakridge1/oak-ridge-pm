@@ -109,6 +109,40 @@ export interface CustomDevState {
 }
 
 // ─────────────────────────────────────
+// Job info (for Convert to PM)
+// ─────────────────────────────────────
+
+export interface JobInfo {
+  address:           string;
+  city:              string;
+  state:             string;
+  zip:               string;
+  gcCompany:         string;
+  gcContactName:     string;
+  gcPhone:           string;
+  gcEmail:           string;
+  ownerName:         string;
+  ownerPhone:        string;
+  ownerEmail:        string;
+  scopeOfWork:       string;
+  contractStartDate: string;
+  completionDate:    string;
+  permitNumber:      string;
+  inspectionContact: string;
+  inspectionPhone:   string;
+  contractValue:     number;
+}
+
+export const DEFAULT_JOB_INFO: JobInfo = {
+  address: '', city: '', state: '', zip: '',
+  gcCompany: '', gcContactName: '', gcPhone: '', gcEmail: '',
+  ownerName: '', ownerPhone: '', ownerEmail: '',
+  scopeOfWork: '', contractStartDate: '', completionDate: '',
+  permitNumber: '', inspectionContact: '', inspectionPhone: '',
+  contractValue: 0,
+};
+
+// ─────────────────────────────────────
 // Permit & sub line items
 // ─────────────────────────────────────
 
@@ -146,6 +180,7 @@ export interface EstimatorState {
   jobName:   string;
   jobNumber: string;
   tab:       string;
+  jobInfo:   JobInfo;
 
   // ── Settings (live rate overrides) ────────────────────────────
   settings: RateConfig;
@@ -303,6 +338,7 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     jobName:   'New Job',
     jobNumber: '',
     tab:       'takeoff',
+    jobInfo:   { ...DEFAULT_JOB_INFO },
     settings:  { ...DEFAULTS },
     takeoff:   [],
     savedRuns:      [], savedRacks:     [], savedMCHR:      [],

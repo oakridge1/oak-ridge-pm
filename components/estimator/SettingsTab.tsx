@@ -85,27 +85,253 @@ export function SettingsTab() {
       <div className={CLS.sectionCard}>
         <div className={CLS.sectionTitle}>Job Information</div>
 
-        <div className={CLS.fieldRow}>
-          <span className={CLS.label}>Job Name</span>
-          <input
-            type="text"
-            value={state.jobName}
-            onChange={e => setState(s => ({ ...s, jobName: e.target.value }))}
-            className={CLS.inputText}
-            placeholder="e.g. Main Street Office"
-          />
+        {/* Basic Info */}
+        <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-0 mb-2">Basic Info</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Job Name *</label>
+            <input
+              key={state.jobId + '-jobName'}
+              type="text"
+              defaultValue={state.jobName}
+              onBlur={e => setState(s => ({ ...s, jobName: e.target.value }))}
+              placeholder="e.g. Main Street Office"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Job Number *</label>
+            <input
+              key={state.jobId + '-jobNumber'}
+              type="text"
+              defaultValue={state.jobNumber}
+              onBlur={e => setState(s => ({ ...s, jobNumber: e.target.value }))}
+              placeholder="e.g. 2024-042"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
         </div>
 
-        <div className={CLS.fieldRow}>
-          <span className={CLS.label}>Job Number</span>
-          <input
-            type="text"
-            value={state.jobNumber}
-            onChange={e => setState(s => ({ ...s, jobNumber: e.target.value }))}
-            className={CLS.inputText}
-            placeholder="e.g. 2024-042"
-          />
+        {/* Site Address */}
+        <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-4 mb-2">Site Address</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">Street Address</label>
+            <input
+              key={state.jobId + '-address'}
+              type="text"
+              defaultValue={state.jobInfo.address}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, address: e.target.value } }))}
+              placeholder="123 Main St"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">City</label>
+            <input
+              key={state.jobId + '-city'}
+              type="text"
+              defaultValue={state.jobInfo.city}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, city: e.target.value } }))}
+              placeholder="Oak Ridge"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">State</label>
+              <input
+                key={state.jobId + '-state'}
+                type="text"
+                defaultValue={state.jobInfo.state}
+                onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, state: e.target.value } }))}
+                placeholder="TN"
+                maxLength={2}
+                className="border border-gray-300 rounded px-3 py-2 text-sm w-full uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">ZIP</label>
+              <input
+                key={state.jobId + '-zip'}
+                type="text"
+                defaultValue={state.jobInfo.zip}
+                onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, zip: e.target.value } }))}
+                placeholder="37830"
+                className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+              />
+            </div>
+          </div>
         </div>
+
+        {/* General Contractor */}
+        <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-4 mb-2">General Contractor</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">GC Company</label>
+            <input
+              key={state.jobId + '-gcCompany'}
+              type="text"
+              defaultValue={state.jobInfo.gcCompany}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, gcCompany: e.target.value } }))}
+              placeholder="ABC Construction"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">GC Contact</label>
+            <input
+              key={state.jobId + '-gcContactName'}
+              type="text"
+              defaultValue={state.jobInfo.gcContactName}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, gcContactName: e.target.value } }))}
+              placeholder="John Smith"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">GC Phone</label>
+            <input
+              key={state.jobId + '-gcPhone'}
+              type="text"
+              defaultValue={state.jobInfo.gcPhone}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, gcPhone: e.target.value } }))}
+              placeholder="(865) 555-0100"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">GC Email</label>
+            <input
+              key={state.jobId + '-gcEmail'}
+              type="email"
+              defaultValue={state.jobInfo.gcEmail}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, gcEmail: e.target.value } }))}
+              placeholder="jsmith@abcconstruction.com"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+        </div>
+
+        {/* Owner */}
+        <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-4 mb-2">Owner</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">Owner Name</label>
+            <input
+              key={state.jobId + '-ownerName'}
+              type="text"
+              defaultValue={state.jobInfo.ownerName}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, ownerName: e.target.value } }))}
+              placeholder="Property Owner LLC"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Owner Phone</label>
+            <input
+              key={state.jobId + '-ownerPhone'}
+              type="text"
+              defaultValue={state.jobInfo.ownerPhone}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, ownerPhone: e.target.value } }))}
+              placeholder="(865) 555-0200"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Owner Email</label>
+            <input
+              key={state.jobId + '-ownerEmail'}
+              type="email"
+              defaultValue={state.jobInfo.ownerEmail}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, ownerEmail: e.target.value } }))}
+              placeholder="owner@example.com"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+        </div>
+
+        {/* Schedule & Permits */}
+        <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-4 mb-2">Schedule &amp; Permits</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Contract Start</label>
+            <input
+              key={state.jobId + '-contractStartDate'}
+              type="date"
+              defaultValue={state.jobInfo.contractStartDate}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, contractStartDate: e.target.value } }))}
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Completion Date</label>
+            <input
+              key={state.jobId + '-completionDate'}
+              type="date"
+              defaultValue={state.jobInfo.completionDate}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, completionDate: e.target.value } }))}
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Permit Number</label>
+            <input
+              key={state.jobId + '-permitNumber'}
+              type="text"
+              defaultValue={state.jobInfo.permitNumber}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, permitNumber: e.target.value } }))}
+              placeholder="ELEC-2024-001"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Inspection Contact</label>
+            <input
+              key={state.jobId + '-inspectionContact'}
+              type="text"
+              defaultValue={state.jobInfo.inspectionContact}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, inspectionContact: e.target.value } }))}
+              placeholder="Inspector Name"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Inspection Phone</label>
+            <input
+              key={state.jobId + '-inspectionPhone'}
+              type="text"
+              defaultValue={state.jobInfo.inspectionPhone}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, inspectionPhone: e.target.value } }))}
+              placeholder="(865) 555-0300"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Contract Value ($)</label>
+            <input
+              key={state.jobId + '-contractValue'}
+              type="number"
+              min={0}
+              step="0.01"
+              defaultValue={state.jobInfo.contractValue || ''}
+              onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, contractValue: parseFloat(e.target.value) || 0 } }))}
+              placeholder="0.00"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-full font-mono"
+            />
+          </div>
+        </div>
+
+        {/* Scope of Work */}
+        <p className="text-xs font-bold tracking-widest uppercase text-gray-500 mt-4 mb-2">Scope of Work</p>
+        <textarea
+          key={state.jobId + '-scopeOfWork'}
+          rows={4}
+          defaultValue={state.jobInfo.scopeOfWork}
+          onBlur={e => setState(s => ({ ...s, jobInfo: { ...s.jobInfo, scopeOfWork: e.target.value } }))}
+          placeholder="Describe the scope of work..."
+          className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+        />
       </div>
 
       {/* ── RATE SETTINGS ────────────────────────────────────────────────────── */}

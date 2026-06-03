@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { getRates } from '@/lib/estimator/constants';
+import { createJob } from '@/app/(app)/actions';
 
 // ── Format helpers ─────────────────────────────────────────────────────────────
 
@@ -43,6 +46,11 @@ const BREAKDOWN_LABELS: Record<string, string> = {
 export function BidSummaryTab() {
   const { state, setState, calcBid, exportJob } = useEstimatorContext();
   const R = getRates();
+  const router = useRouter();
+
+  const [converting,     setConverting]     = useState(false);
+  const [convertError,   setConvertError]   = useState<string | null>(null);
+  const [convertSuccess, setConvertSuccess] = useState(false);
 
   // ── Conditions ────────────────────────────────────────────────────────────
   const setCondMult = (v: number) =>
@@ -85,6 +93,47 @@ export function BidSummaryTab() {
   const laborBaseHrs = state.jobCondMult !== 1.0
     ? (laborBase / state.jobCondMult) / R.labor
     : totalHrs;
+
+  // ── Convert to PM project ─────────────────────────────────────────────────
+  async function handleConvert() {
+    if (!state.jobName.trim() || !state.jobNumber.trim()) {
+      setConvertError('Job Name and Job Number are required in Settings before converting.');
+      return;
+    }
+    const ok = window.confirm(
+      `Convert "${state.jobName}" to a PM project?\n\n` +
+      `This will create a new job in the project manager ` +
+      `with the estimate financials pre-filled.\n\n` +
+      `Job #: ${state.jobNumber}\n` +
+      `Grand Total: ${grandTotal.toFixed(2)}\n` +
+      `Total Hours: ${totalHrs.toFixed(1)}`
+    );
+    if (!ok) return;
+    setConverting(true);
+    setConvertError(null);
+    try {
+      const fd = new FormData();
+      fd.append('jobNumber',        state.jobNumber);
+      fd.append('jobName',          state.jobName);
+      fd.append('jobType',          'BID');
+      fd.append('status',           'ACTIVE');
+      fd.append('contractValue',    grandTotal.toFixed(2));
+      fd.append('materialBudget',   result.matTotal.toFixed(2));
+      fd.append('laborBudgetHours', totalHrs.toFixed(1));
+      fd.append('blendedLaborRate', state.settings.labor.toFixed(2));
+      const response = await createJob(fd);
+      if ('jobId' in response && response.jobId) {
+        setConvertSuccess(true);
+        setTimeout(() => router.push(`/jobs/${response.jobId}`), 1500);
+      } else if ('error' in response) {
+        setConvertError((response as { error?: string }).error ?? 'Failed to create project.');
+      }
+    } catch {
+      setConvertError('An unexpected error occurred.');
+    } finally {
+      setConverting(false);
+    }
+  }
 
   // ── Copy to clipboard ─────────────────────────────────────────────────────
   function copyToClipboard() {
@@ -399,7 +448,17 @@ export function BidSummaryTab() {
         >
           ↓ Export JSON
         </button>
+        <button
+          onClick={handleConvert}
+          disabled={converting || convertSuccess}
+          className="px-4 py-2 text-sm font-semibold rounded bg-green-700 text-white hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+        >
+          {converting ? '⏳ Creating…' : convertSuccess ? '✓ Project created! Redirecting…' : '🏗 Convert to Project'}
+        </button>
       </div>
+      {convertError && (
+        <p className="text-red-600 text-xs mt-2">{convertError}</p>
+      )}
     </div>
   );
 }
