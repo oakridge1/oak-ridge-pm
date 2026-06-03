@@ -420,7 +420,7 @@ function InspectionCard({
     </span>
   );
 
-  const canEdit = role === "ADMIN" || role === "OFFICE";
+  const canEdit = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
 
   return (
     <div className={`border-2 rounded-xl overflow-hidden ${resultColor}`}>
@@ -548,7 +548,7 @@ function InspectionCard({
 
 export function InspectionsTab({ job, role }: InspectionsTabProps) {
   const [showForm, setShowForm] = useState(false);
-  const canAdd = role === "ADMIN" || role === "OFFICE";
+  const canAdd = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
 
   return (
     <div className="p-4 space-y-4">

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { addCalendarEvent, deleteCalendarEvent } from "./calendar-tab-actions";
 import { submitCalendarRequest, reviewCalendarRequest } from "./calendar-request-actions";
-import type { Role, CalendarEventType, CalendarRequestStatus } from "@/app/generated/prisma/client";
+import type { Role, CalendarEventType, CalendarRequestStatus, InspectionType, InspectionResult } from "@/app/generated/prisma/client";
 
 type CalEvent = {
   id: string;
@@ -29,6 +29,14 @@ type Task = {
   title: string;
   dueDate: Date | null;
   status: string;
+};
+
+type JobInspection = {
+  id: string;
+  dateScheduled: Date | null;
+  type: InspectionType;
+  result: InspectionResult | null;
+  notes: string | null;
 };
 
 type AllJobEvent = CalEvent & {
@@ -55,26 +63,38 @@ interface CalendarTabProps {
     calendarEvents: CalEvent[];
     calendarRequests?: CalendarRequest[];
     tasks: Task[];
+    inspections?: JobInspection[];
   };
   role: Role;
   currentUserId: string;
   allCalendarEvents?: AllJobEvent[];
 }
 
-const EVENT_TYPE_COLORS: Record<CalendarEventType, string> = {
-  MILESTONE: "bg-purple-500",
-  TASK_DUE: "bg-orange-400",
-  COMPLETION: "bg-blue-500",
-  DAY_OFF: "bg-red-400",
-  CUSTOM: "bg-gray-500",
+const EVENT_TYPE_COLORS: Record<string, string> = {
+  MILESTONE:   "bg-purple-500",
+  TASK_DUE:    "bg-orange-400",
+  COMPLETION:  "bg-blue-500",
+  DAY_OFF:     "bg-red-400",
+  CUSTOM:      "bg-gray-500",
+  INSPECTION:  "bg-amber-500",
 };
 
-const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
-  MILESTONE: "Milestone",
-  TASK_DUE: "Task Due",
-  COMPLETION: "Completion",
-  DAY_OFF: "Day Off",
-  CUSTOM: "Custom",
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  MILESTONE:   "Milestone",
+  TASK_DUE:    "Task Due",
+  COMPLETION:  "Completion",
+  DAY_OFF:     "Day Off",
+  CUSTOM:      "Custom",
+  INSPECTION:  "Inspection",
+};
+
+const INSP_TYPE_LABELS: Record<string, string> = {
+  UNDERGROUND: "Underground",
+  ROUGH_IN:    "Rough-In",
+  SERVICE:     "Service",
+  FIRE_ALARM:  "Fire Alarm",
+  SPECIAL:     "Special",
+  FINAL:       "Final",
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -92,9 +112,9 @@ function isSameDay(a: Date, b: Date) {
 }
 
 type DisplayEvent = {
-  id: string; type: CalendarEventType; title: string; date: Date;
+  id: string; type: CalendarEventType | 'INSPECTION'; title: string; date: Date;
   note: string | null; user: { name: string | null } | null;
-  isAuto: boolean; sourceId: string;
+  isAuto: boolean; sourceId: string; colorClass?: string;
 };
 
 function expandEvent(ev: CalEvent & { date: Date }, year: number, month: number): DisplayEvent[] {
@@ -127,7 +147,8 @@ function buildAllEvents(
   tasks: Task[],
   completionDate: Date | null,
   year: number,
-  month: number
+  month: number,
+  inspections: JobInspection[] = []
 ): DisplayEvent[] {
   const normalized = calendarEvents.map((e) => ({ ...e, date: new Date(e.date), recurrenceEndDate: e.recurrenceEndDate ? new Date(e.recurrenceEndDate) : null }));
   const events: DisplayEvent[] = normalized.flatMap((e) => expandEvent(e, year, month));
@@ -145,6 +166,26 @@ function buildAllEvents(
     if (dd.getFullYear() === year && dd.getMonth() === month) {
       events.push({ id: `__task_${t.id}`, type: "TASK_DUE", title: t.title,
         date: dd, note: null, user: null, isAuto: true, sourceId: `__task_${t.id}` });
+    }
+  });
+
+  inspections.filter((i) => i.dateScheduled).forEach((i) => {
+    const d = new Date(i.dateScheduled!);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const colorClass = i.result === "FAIL" ? "bg-red-500"
+                       : i.result === "PASS" ? "bg-green-500"
+                       : "bg-amber-500";
+      events.push({
+        id: `__insp_${i.id}`,
+        type: "INSPECTION",
+        title: `Inspection: ${INSP_TYPE_LABELS[i.type] ?? i.type}`,
+        date: d,
+        note: i.notes ?? null,
+        user: null,
+        isAuto: true,
+        sourceId: `__insp_${i.id}`,
+        colorClass,
+      });
     }
   });
 
@@ -179,8 +220,9 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
   const activeEvents = viewMode === "company" ? companyCalEvents : job.calendarEvents;
   const activeTasks = viewMode === "company" ? [] : job.tasks;
   const activeCompletionDate = viewMode === "company" ? null : job.completionDate;
+  const activeInspections = viewMode === "company" ? [] : (job.inspections ?? []);
 
-  const allEvents = buildAllEvents(activeEvents, activeTasks, activeCompletionDate, year, month);
+  const allEvents = buildAllEvents(activeEvents, activeTasks, activeCompletionDate, year, month, activeInspections);
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11); }
@@ -327,7 +369,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                   <span
                     key={ev.id}
                     className={`block w-full text-[10px] text-white px-1 py-0.5 rounded truncate ${
-                      EVENT_TYPE_COLORS[ev.type]
+                      ev.colorClass ?? EVENT_TYPE_COLORS[ev.type] ?? "bg-gray-400"
                     }`}
                   >
                     {ev.title}
@@ -372,7 +414,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                   className="flex items-start gap-2"
                 >
                   <span
-                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${EVENT_TYPE_COLORS[ev.type]}`}
+                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${ev.colorClass ?? EVENT_TYPE_COLORS[ev.type] ?? "bg-gray-400"}`}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
@@ -660,7 +702,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
           Legend
         </p>
         <div className="flex flex-wrap gap-3">
-          {(Object.keys(EVENT_TYPE_COLORS) as CalendarEventType[]).map((type) => (
+          {(Object.keys(EVENT_TYPE_COLORS) as string[]).map((type) => (
             <div key={type} className="flex items-center gap-1.5">
               <span
                 className={`w-3 h-3 rounded-full ${EVENT_TYPE_COLORS[type]}`}

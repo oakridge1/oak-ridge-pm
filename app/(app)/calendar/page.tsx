@@ -8,7 +8,7 @@ export default async function CalendarPage() {
   const session = await auth();
   if (!session?.user?.active) redirect("/login");
 
-  const [events, jobs] = await Promise.all([
+  const [events, jobs, tasks, inspections] = await Promise.all([
     prisma.calendarEvent.findMany({
       orderBy: { date: "asc" },
       include: {
@@ -29,10 +29,108 @@ export default async function CalendarPage() {
         jobName: true,
         jobNumber: true,
         calendarColor: true,
+        completionDate: true,
+        contractStartDate: true,
       },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.task.findMany({
+      where: { dueDate: { not: null }, status: { not: "COMPLETED" } },
+      select: {
+        id: true,
+        title: true,
+        dueDate: true,
+        jobId: true,
+        job: { select: { jobName: true, jobNumber: true, calendarColor: true } },
+      },
+    }),
+    prisma.inspection.findMany({
+      where: { dateScheduled: { not: null }, job: { status: { in: ["ACTIVE", "ON_HOLD"] } } },
+      select: {
+        id: true,
+        dateScheduled: true,
+        type: true,
+        result: true,
+        jobId: true,
+        job: { select: { jobName: true, jobNumber: true, calendarColor: true } },
+      },
+    }),
   ]);
+
+  // Inspection type labels for readable titles
+  const INSP_LABELS: Record<string, string> = {
+    UNDERGROUND: "Underground", ROUGH_IN: "Rough-In", SERVICE: "Service",
+    FIRE_ALARM: "Fire Alarm", SPECIAL: "Special", FINAL: "Final",
+  };
+
+  // Build synthetic CalendarEvent-compatible objects for dates, tasks, and inspections
+  const syntheticEvents = [
+    // Job contract start and completion milestones
+    ...jobs.flatMap((job) => {
+      const ev = [];
+      if (job.contractStartDate) {
+        ev.push({
+          id: `start-${job.id}`,
+          type: "MILESTONE" as const,
+          title: `Start: ${job.jobName}`,
+          date: job.contractStartDate,
+          note: null,
+          jobId: job.id,
+          recurrence: "NONE",
+          recurrenceEndDate: null,
+          user: { name: null },
+          job: { jobName: job.jobName, jobNumber: job.jobNumber, calendarColor: job.calendarColor },
+        });
+      }
+      if (job.completionDate) {
+        ev.push({
+          id: `completion-${job.id}`,
+          type: "COMPLETION" as const,
+          title: `Complete: ${job.jobName}`,
+          date: job.completionDate,
+          note: null,
+          jobId: job.id,
+          recurrence: "NONE",
+          recurrenceEndDate: null,
+          user: { name: null },
+          job: { jobName: job.jobName, jobNumber: job.jobNumber, calendarColor: job.calendarColor },
+        });
+      }
+      return ev;
+    }),
+    // Task due dates
+    ...tasks
+      .filter((t) => t.dueDate != null)
+      .map((t) => ({
+        id: `task-${t.id}`,
+        type: "TASK_DUE" as const,
+        title: t.job ? `${t.title} (${t.job.jobNumber})` : t.title,
+        date: t.dueDate!,
+        note: null,
+        jobId: t.jobId,
+        recurrence: "NONE",
+        recurrenceEndDate: null,
+        user: { name: null },
+        job: t.job,
+      })),
+    // Scheduled inspections
+    ...inspections
+      .filter((i) => i.dateScheduled != null)
+      .map((i) => ({
+        id: `insp-${i.id}`,
+        type: "CUSTOM" as const,
+        title: `${INSP_LABELS[i.type] ?? i.type} Inspection${i.result ? ` (${i.result})` : ""}${i.job ? ` — ${i.job.jobNumber}` : ""}`,
+        date: i.dateScheduled!,
+        note: null,
+        jobId: i.jobId,
+        recurrence: "NONE",
+        recurrenceEndDate: null,
+        user: { name: null },
+        job: i.job,
+      })),
+  ];
+
+  const allEvents = [...events, ...syntheticEvents];
 
   return (
     <div>
