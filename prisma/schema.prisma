@@ -158,6 +158,9 @@ model User {
   payrollRecords           PayrollRecord[]
   ownerDraws               OwnerDraw[]
   contractorPayments       ContractorPayment[]
+  schedulesCreated         Schedule[]             @relation("ScheduleCreatedBy")
+  scheduleAssignments      ScheduleAssignment[]
+  clockEntries             ClockEntry[]
 }
 
 model Account {
@@ -272,6 +275,7 @@ model Job {
   scheduleOfValues      ScheduleOfValues?
   costCodes             CostCode[]
   receipts              Receipt[]
+  schedules             Schedule[]
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -581,6 +585,52 @@ model CalendarRequest {
   job         Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
   requestedBy User  @relation("CalendarRequestSubmitter", fields: [requestedById], references: [id])
   reviewedBy  User? @relation("CalendarRequestReviewer", fields: [reviewedById], references: [id])
+}
+
+// ── Scheduling ───────────────────────────────────────────────────────────────
+
+model Schedule {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id])
+  date        DateTime @db.Date
+  startTime   String?  // "08:00" — stored as HH:MM string
+  endTime     String?  // "17:00"
+  notes       String?
+  createdById String
+  createdBy   User     @relation("ScheduleCreatedBy", fields: [createdById], references: [id])
+  assignments ScheduleAssignment[]
+  clockEntries ClockEntry[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ScheduleAssignment {
+  id         String   @id @default(cuid())
+  scheduleId String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([scheduleId, userId])
+}
+
+model ClockEntry {
+  id            String    @id @default(cuid())
+  scheduleId    String
+  schedule      Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  arrivedAt     DateTime?
+  departedAt    DateTime?
+  lunchDeducted Boolean   @default(false)
+  hoursWorked   Float?    // computed on depart
+  laborEntryId  String?   // linked to auto-created labor entry
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([scheduleId, userId])
 }
 
 // ── Company Settings (singleton) ─────────────────────────────────────────────
