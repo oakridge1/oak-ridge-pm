@@ -449,6 +449,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidde
 </div>
 
 <script>
+console.log('PDF.js loaded:', typeof pdfjsLib !== 'undefined');
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // ═══════════════════════════════════════
@@ -573,7 +574,7 @@ function rebuildDwgSel(){var s=document.getElementById('dwg-select');s.innerHTML
 // ═══════════════════════════════════════
 // PDF RENDER
 // ═══════════════════════════════════════
-function renderPage_fromBuf(buf,n){pdfjsLib.getDocument({data:buf}).promise.then(function(doc){pdfDoc=doc;totalPages=doc.numPages;curPage=n;updatePageNav();renderPage(n);}).catch(function(e){alert('PDF error: '+e.message);});}
+function renderPage_fromBuf(buf,n){console.log('PDF buffer size:',buf.byteLength);pdfjsLib.getDocument({data:buf}).promise.then(function(doc){pdfDoc=doc;totalPages=doc.numPages;curPage=n;updatePageNav();renderPage(n);}).catch(function(e){console.error('PDF.js error:',e);alert('PDF load failed: '+e.message+'\nCheck browser console for details.');});}
 function renderPage(n){if(!pdfDoc)return;pdfDoc.getPage(n).then(function(pg){var vp=pg.getViewport({scale:baseScale*zoomLv});var pc=document.getElementById('pdf-cv');var mc=document.getElementById('mk-cv');pc.width=vp.width;pc.height=vp.height;mc.width=vp.width;mc.height=vp.height;pg.render({canvasContext:pc.getContext('2d'),viewport:vp}).promise.then(function(){redrawMarkup();});});}
 function changePage(d){if(!pdfDoc)return;var np=curPage+d;if(np<1||np>totalPages)return;curPage=np;updatePageNav();renderPage(np);}
 function updatePageNav(){document.getElementById('pinfo').textContent=curPage+'/'+totalPages;document.getElementById('btn-prev').disabled=curPage<=1;document.getElementById('btn-next').disabled=curPage>=totalPages;}
