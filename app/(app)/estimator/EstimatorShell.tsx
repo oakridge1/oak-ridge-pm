@@ -1,8 +1,17 @@
 'use client';
 
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
-import { ConduitRunBuilder } from '@/components/estimator/ConduitRunBuilder';
-import { StrutRackBuilder } from '@/components/estimator/StrutRackBuilder';
+import { ConduitRunBuilder }     from '@/components/estimator/ConduitRunBuilder';
+import { StrutRackBuilder }      from '@/components/estimator/StrutRackBuilder';
+import { MCHomeRunBuilder }      from '@/components/estimator/MCHomeRunBuilder';
+import { ThreeWayBuilder }       from '@/components/estimator/ThreeWayBuilder';
+import { DataBuilder }           from '@/components/estimator/DataBuilder';
+import { FireAlarmBuilder }      from '@/components/estimator/FireAlarmBuilder';
+import { PullCanBuilder }        from '@/components/estimator/PullCanBuilder';
+import { LVBuilder }             from '@/components/estimator/LVBuilder';
+import { HighAmpReceptBuilder }  from '@/components/estimator/HighAmpReceptBuilder';
+import { FloorBoxBuilder }       from '@/components/estimator/FloorBoxBuilder';
+import { TMBuilder }             from '@/components/estimator/TMBuilder';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
@@ -69,6 +78,15 @@ export function EstimatorShell() {
             </div>
             <ConduitRunBuilder />
             <StrutRackBuilder />
+            <MCHomeRunBuilder />
+            <ThreeWayBuilder />
+            <DataBuilder />
+            <FireAlarmBuilder />
+            <PullCanBuilder />
+            <LVBuilder />
+            <HighAmpReceptBuilder />
+            <FloorBoxBuilder />
+            <TMBuilder />
           </div>
         ) : (
           <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
