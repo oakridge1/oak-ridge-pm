@@ -150,7 +150,7 @@ export default async function CalendarPage() {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
         <MasterCalendar
-          events={events}
+          events={allEvents}
           jobs={jobs}
           role={session.user.role}
         />
