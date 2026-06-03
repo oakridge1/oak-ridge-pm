@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, Settings, Zap, Calculator } from "lucide-react";
+import { LogOut, Settings, Zap, Calculator, ClipboardList } from "lucide-react";
 import type { Role } from "@/app/generated/prisma/client";
 
 interface HeaderProps {
@@ -63,6 +63,19 @@ export function Header({ userName, userRole, userImage, canEstimate }: HeaderPro
             >
               <Calculator className="w-4 h-4" />
               <span className="hidden sm:inline">Estimating</span>
+            </Link>
+          )}
+          {canEstimate && (
+            <Link
+              href="/estimator"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                pathname.startsWith("/estimator")
+                  ? "bg-white/20 text-white"
+                  : "text-blue-200 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              <span className="hidden sm:inline">Estimator</span>
             </Link>
           )}
           {isAdmin && (
