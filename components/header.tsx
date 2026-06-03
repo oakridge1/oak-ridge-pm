@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, Settings, Zap, Calculator, ClipboardList } from "lucide-react";
+import { LogOut, Settings, Zap, Calculator, ClipboardList, User } from "lucide-react";
 import type { Role } from "@/app/generated/prisma/client";
 
 interface HeaderProps {
@@ -91,6 +91,19 @@ export function Header({ userName, userRole, userImage, canEstimate }: HeaderPro
               <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
+
+          <Link
+            href="/profile"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              pathname === "/profile"
+                ? "bg-white/20 text-white"
+                : "text-blue-200 hover:bg-white/10 hover:text-white"
+            }`}
+            title="My Profile"
+          >
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">Profile</span>
+          </Link>
 
           {/* User avatar */}
           {userImage ? (

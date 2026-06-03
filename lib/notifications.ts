@@ -68,36 +68,25 @@ async function send(to: string | string[], subject: string, text: string, html: 
   }
 }
 
-// ── Per-user notification preference check (Fix 2) ───────────────────────────
+// ── Notification recipient helpers ────────────────────────────────────────────
 
-async function adminWantsNotification(userId: string, type: string): Promise<boolean> {
-  const pref = await prisma.notificationPreference.findUnique({ where: { userId } });
-  if (!pref) return true; // no record = all on by default
-  const prefs = pref.preferences as Record<string, boolean>;
-  return prefs[type] !== false; // undefined = true (default on)
-}
-
-async function getAdminOfficeEmails(): Promise<string[]> {
+// Returns all active users' emails filtered by the named preference.
+// Default is ON — users with no stored preference receive the notification.
+// Applies to ALL roles so FOREMAN and TEAMMATE can subscribe to any type.
+async function getFilteredEmails(type: string): Promise<string[]> {
   const users = await prisma.user.findMany({
-    where: { active: true, role: { in: ["ADMIN", "OFFICE"] } },
-    select: { email: true },
+    where: { active: true },
+    include: { notificationPreferences: true },
   });
-  return users.map((u) => u.email);
-}
-
-// Returns emails of admin/office users who want a specific notification type
-async function getFilteredAdminOfficeEmails(type: string): Promise<string[]> {
-  const users = await prisma.user.findMany({
-    where: { active: true, role: { in: ["ADMIN", "OFFICE"] } },
-    select: { id: true, email: true },
-  });
-  const filtered: string[] = [];
-  for (const u of users) {
-    if (await adminWantsNotification(u.id, type)) {
-      filtered.push(u.email);
-    }
-  }
-  return filtered;
+  return users
+    .filter((u) => {
+      const prefs = u.notificationPreferences?.preferences as
+        Record<string, boolean> | null;
+      if (!prefs || prefs[type] === undefined) return true; // default ON
+      return prefs[type] === true;
+    })
+    .map((u) => u.email)
+    .filter(Boolean) as string[];
 }
 
 function jobUrl(jobId: string) {
@@ -188,7 +177,7 @@ export async function notifyTaskCompleted(params: {
 }) {
   const { taskTitle, jobName, jobId, completedBy } = params;
   const url = jobUrl(jobId);
-  const emails = await getFilteredAdminOfficeEmails("task_completed");
+  const emails = await getFilteredEmails("task_completed");
   if (emails.length === 0) return;
   await send(
     emails,
@@ -217,7 +206,7 @@ export async function notifyCoSubmitted(params: {
 }) {
   const { jobName, jobId, coNumber, description, submittedBy } = params;
   const url = jobUrl(jobId);
-  const emails = await getFilteredAdminOfficeEmails("co_submitted");
+  const emails = await getFilteredEmails("co_submitted");
   if (emails.length === 0) return;
   const label = coNumber != null ? `CO #${coNumber}` : "Change Order";
   await send(
@@ -286,7 +275,7 @@ export async function notifyNewNote(params: {
   const { jobName, jobId, content, postedBy, posterRole } = params;
   if (posterRole !== "TEAMMATE" && posterRole !== "FOREMAN") return;
   const url = jobUrl(jobId);
-  const emails = await getFilteredAdminOfficeEmails("note_posted");
+  const emails = await getFilteredEmails("note_posted");
   if (emails.length === 0) return;
   const preview = content.length > 200 ? content.slice(0, 200) + "…" : content;
   await send(
@@ -316,7 +305,7 @@ export async function notifyInspectionFailed(params: {
 }) {
   const { jobName, jobId, inspectionType, inspectorName, correctionNotes, loggedBy } = params;
   const url = jobUrl(jobId);
-  const emails = await getFilteredAdminOfficeEmails("inspection_failed");
+  const emails = await getFilteredEmails("inspection_failed");
   if (emails.length === 0) return;
   const typeLabel = inspectionType
     .replace(/_/g, " ")
@@ -396,8 +385,8 @@ export async function notifyCalendarRequestSubmitted(params: {
 }) {
   const { jobName, jobId, date, description, reason, submittedBy, foremanEmail } = params;
   const url = jobUrl(jobId);
-  const adminEmails = await getFilteredAdminOfficeEmails("calendar_reminder");
-  const recipients = [...new Set([...(foremanEmail ? [foremanEmail] : []), ...adminEmails])];
+  const filteredEmails = await getFilteredEmails("calendar_reminder");
+  const recipients = [...new Set([...(foremanEmail ? [foremanEmail] : []), ...filteredEmails])];
   if (recipients.length === 0) return;
   const reasonHtml = reason
     ? `<p style="margin:4px 0 0;font-size:13px;color:#666"><em>Reason: ${reason}</em></p>`
@@ -458,6 +447,34 @@ export async function notifyPaymentRecorded(params: {
         ${detailLines ? `<br/><span style="font-size:13px;color:#666">${detailLines}</span>` : ""}
         ${receiptLine}
         <p style="margin:6px 0 0;font-size:12px;color:#999">Recorded by: ${recordedBy}</p>
+      </div>
+      ${btn(url, "View Job →")}
+    `)
+  );
+}
+
+// ── Schedule change ───────────────────────────────────────────────────────────
+
+export async function notifyScheduleChange(params: {
+  jobId: string;
+  jobName: string;
+  changeDesc: string;
+  changedBy: string;
+}) {
+  const { jobId, jobName, changeDesc, changedBy } = params;
+  const url = jobUrl(jobId);
+  const emails = await getFilteredEmails("schedule_change");
+  if (emails.length === 0) return;
+  await send(
+    emails,
+    `Schedule Update — ${jobName}`,
+    `${jobName} has a schedule update:\n\n${changeDesc}\n\nChanged by: ${changedBy}\n\n${url}`,
+    wrap(`
+      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">📅 Schedule Update</h2>
+      <p style="margin:0 0 16px"><strong>${jobName}</strong> has a schedule update.</p>
+      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+        <p style="margin:0;font-size:14px">${changeDesc}</p>
+        <p style="margin:6px 0 0;font-size:13px;color:#666">Changed by: ${changedBy}</p>
       </div>
       ${btn(url, "View Job →")}
     `)
