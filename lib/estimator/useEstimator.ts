@@ -74,7 +74,7 @@ export interface EstimatorActions {
       'savedRuns' | 'savedRacks' | 'savedMCHR' | 'savedThreeWay' |
       'savedData' | 'savedFA'   | 'savedCans'  | 'savedGear'     |
       'savedCustomDev' | 'savedTM' | 'savedLV' | 'savedCustomAsm' |
-      'savedHAR' | 'savedFloorBox' | 'asms'>,
+      'savedHAR' | 'savedFloorBox' | 'asms'    | 'savedPanels'>,
     index: number
   ) => void;
 
@@ -375,7 +375,7 @@ export function useEstimator(): EstimatorActions {
       threeWays:      state.savedThreeWay,
       dataDrops:      state.savedData,
       fireAlarm:      state.savedFA,
-      gear:           state.savedGear,
+      gear:           [...state.savedGear, ...state.savedPanels],
       floorBoxes:     state.savedFloorBox,
       highAmpRecepts: state.savedHAR,
       misc: [

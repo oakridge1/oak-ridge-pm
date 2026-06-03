@@ -12,7 +12,7 @@ type AsmKey = keyof Pick<EstimatorState,
   | 'savedRuns' | 'savedRacks' | 'savedMCHR'      | 'savedThreeWay'
   | 'savedData' | 'savedFA'   | 'savedCans'        | 'savedGear'
   | 'savedCustomDev' | 'savedTM' | 'savedLV'       | 'savedCustomAsm'
-  | 'savedHAR' | 'savedFloorBox' | 'asms'>;
+  | 'savedHAR' | 'savedFloorBox' | 'asms'          | 'savedPanels'>;
 
 // ── Group definitions (in display order) ──────────────────────────────────────
 
@@ -24,6 +24,7 @@ const GROUPS: Array<{ key: AsmKey; label: string }> = [
   { key: 'savedData',      label: 'Data Locations'              },
   { key: 'savedFA',        label: 'Fire Alarm'                  },
   { key: 'savedCans',      label: 'Pull/Splice Cans'            },
+  { key: 'savedPanels',    label: 'Panel Load Centers'          },
   { key: 'savedGear',      label: 'Commercial Gear'             },
   { key: 'savedCustomDev', label: 'Custom Devices'              },
   { key: 'savedTM',        label: 'Time & Materials'            },

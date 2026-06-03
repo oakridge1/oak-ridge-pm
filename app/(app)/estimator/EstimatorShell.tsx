@@ -20,6 +20,7 @@ import { BidSummaryTab }        from '@/components/estimator/BidSummaryTab';
 import { SettingsTab }          from '@/components/estimator/SettingsTab';
 import { BOMReferenceTab }      from '@/components/estimator/BOMReferenceTab';
 import { FixtureBuilderTab }    from '@/components/estimator/FixtureBuilderTab';
+import { PanelBuilderTab }      from '@/components/estimator/PanelBuilderTab';
 import { GearBuilderTab }       from '@/components/estimator/GearBuilderTab';
 import { TakeoffTab }           from '@/components/estimator/TakeoffTab';
 import { CounterTool }         from '@/components/estimator/CounterTool';
@@ -28,6 +29,7 @@ const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
   { id: 'assemblies',  label: 'Assembly Library' },
   { id: 'fixtures',    label: 'Fixture Builder'  },
+  { id: 'panel',       label: 'Panel Builder'    },
   { id: 'items',       label: 'Audit Trail'      },
   { id: 'gear',        label: 'Gear Builder'     },
   { id: 'permits',     label: 'Permits & Subs'   },
@@ -156,6 +158,8 @@ export function EstimatorShell() {
           <BidItemsTab />
         ) : tab === 'fixtures' ? (
           <FixtureBuilderTab />
+        ) : tab === 'panel' ? (
+          <PanelBuilderTab />
         ) : tab === 'gear' ? (
           <GearBuilderTab />
         ) : tab === 'permits' ? (
