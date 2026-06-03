@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
+import { JobsModal } from '@/components/estimator/JobsModal';
 import { ConduitRunBuilder }     from '@/components/estimator/ConduitRunBuilder';
 import { StrutRackBuilder }      from '@/components/estimator/StrutRackBuilder';
 import { MCHomeRunBuilder }      from '@/components/estimator/MCHomeRunBuilder';
@@ -35,6 +37,7 @@ const TABS = [
 export function EstimatorShell() {
   const { state, setTab } = useEstimatorContext();
   const tab = state.tab;
+  const [jobsOpen, setJobsOpen] = useState(false);
 
   return (
     <div className="-mx-4 -my-6 flex flex-col min-h-screen">
@@ -50,7 +53,10 @@ export function EstimatorShell() {
         </div>
         <div className="flex items-center justify-between mt-1">
           <span className="text-sm text-blue-100 truncate mr-2">{state.jobName}</span>
-          <button className="shrink-0 text-xs border border-blue-300/60 text-blue-100 px-2 py-0.5 rounded hover:bg-blue-700 transition-colors">
+          <button
+            onClick={() => setJobsOpen(true)}
+            className="shrink-0 text-xs border border-blue-300/60 text-blue-100 px-2 py-0.5 rounded hover:bg-blue-700 transition-colors"
+          >
             Jobs
           </button>
         </div>
@@ -74,6 +80,9 @@ export function EstimatorShell() {
           ))}
         </div>
       </div>
+
+      {/* Jobs modal */}
+      <JobsModal open={jobsOpen} onClose={() => setJobsOpen(false)} />
 
       {/* Pane */}
       <div className="flex-1 bg-gray-50 px-4 py-4">
