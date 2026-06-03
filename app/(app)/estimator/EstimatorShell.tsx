@@ -22,6 +22,7 @@ import { BOMReferenceTab }      from '@/components/estimator/BOMReferenceTab';
 import { FixtureBuilderTab }    from '@/components/estimator/FixtureBuilderTab';
 import { PanelBuilderTab }      from '@/components/estimator/PanelBuilderTab';
 import { GearBuilderTab }       from '@/components/estimator/GearBuilderTab';
+import { ProposalTab }          from '@/components/estimator/ProposalTab';
 import { TakeoffTab }           from '@/components/estimator/TakeoffTab';
 import { CounterTool }         from '@/components/estimator/CounterTool';
 
@@ -35,6 +36,7 @@ const TABS = [
   { id: 'permits',     label: 'Permits & Subs'   },
   { id: 'bom',         label: 'BOM Reference'    },
   { id: 'summary',     label: 'Bid Summary'      },
+  { id: 'proposal',    label: 'Proposal'         },
   { id: 'settings',    label: 'Settings'         },
 ];
 
@@ -168,6 +170,8 @@ export function EstimatorShell() {
           <BOMReferenceTab />
         ) : tab === 'summary' ? (
           <BidSummaryTab />
+        ) : tab === 'proposal' ? (
+          <ProposalTab />
         ) : tab === 'settings' ? (
           <SettingsTab />
         ) : (

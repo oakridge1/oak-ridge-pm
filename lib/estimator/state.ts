@@ -4,6 +4,8 @@ import type { CounterState } from './counterState';
 import { createCounterState } from './counterState';
 import type { PanelBuilderState } from './panelBuilder';
 import { createPanelState } from './panelBuilder';
+import type { ProposalState } from './proposalState';
+import { createProposalState } from './proposalState';
 import type {
   ConduitRunParams, RackParams, MCHomeRunParams,
   ThreeWayParams, DataParams, FireAlarmParams,
@@ -211,6 +213,9 @@ export interface EstimatorState {
   panelState:  PanelBuilderState;
   savedPanels: SavedAssembly[];
 
+  // ── Proposal builder ──────────────────────────────────────────
+  proposal: ProposalState;
+
   // ── Saved assembly arrays (one per builder) ───────────────────
   savedRuns:      SavedAssembly[];
   savedRacks:     SavedAssembly[];
@@ -370,6 +375,7 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     counter:       createCounterState(),
     panelState:    createPanelState(),
     savedPanels:   [],
+    proposal:      createProposalState(overrides?.jobName, overrides?.jobNumber, overrides?.jobInfo?.gcCompany, overrides?.jobInfo?.gcContactName),
     savedRuns:      [], savedRacks:     [], savedMCHR:      [],
     savedThreeWay:  [], savedData:      [], savedFA:        [],
     savedCans:      [], savedGear:      [], savedCustomDev: [],
