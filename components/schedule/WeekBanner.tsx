@@ -13,7 +13,7 @@ const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
 function getMondayOf(d: Date): Date {
-  const day  = d.getDay(); // 0=Sun
+  const day  = d.getDay(); // 0 = Sun
   const diff = day === 0 ? -6 : 1 - day;
   const mon  = new Date(d);
   mon.setDate(d.getDate() + diff);
@@ -21,8 +21,12 @@ function getMondayOf(d: Date): Date {
   return mon;
 }
 
+/** Returns "YYYY-MM-DD" using LOCAL date parts to avoid UTC-offset shift. */
 function toYMD(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function weekLabel(mon: Date, sun: Date): string {
@@ -34,74 +38,107 @@ function weekLabel(mon: Date, sun: Date): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function WeekBanner() {
-  const today = new Date();
+  console.log("WeekBanner rendering");
 
-  const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(today));
-  const [schedules, setSchedules]  = useState<ScheduleItem[]>([]);
-  const [loading, setLoading]      = useState(true);
-  const [selectedDay, setSelectedDay] = useState<string | null>(() => toYMD(today));
+  // Initialise dates client-side only to avoid SSR/hydration mismatch.
+  const [todayStr, setTodayStr]       = useState<string>("");
+  const [weekStart, setWeekStart]     = useState<Date | null>(null);
+  const [schedules, setSchedules]     = useState<ScheduleItem[]>([]);
+  const [loading, setLoading]         = useState(false);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  // Reload when week changes
+  // Set client-side dates once on mount
   useEffect(() => {
+    const today = new Date();
+    const mon   = getMondayOf(today);
+    setTodayStr(toYMD(today));
+    setWeekStart(mon);
+    setSelectedDay(toYMD(today));
+  }, []);
+
+  // Reload schedules whenever the week changes
+  useEffect(() => {
+    if (!weekStart) return;
     setLoading(true);
     getMySchedule(toYMD(weekStart))
-      .then((data) => { setSchedules(data); setLoading(false); })
-      .catch(()    => setLoading(false));
+      .then((data) => {
+        setSchedules(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("WeekBanner load error:", err);
+        setSchedules([]);
+        setLoading(false);
+      });
   }, [weekStart]);
 
-  // Build Mon-Sun array for this week
+  // Build Mon–Sun array (use a stable placeholder until weekStart is set)
+  const baseDate = weekStart ?? new Date();
   const days: Date[] = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() + i);
     return d;
   });
   const sunday = days[6];
-
-  const todayStr = toYMD(today);
 
   function schedulesOn(dateStr: string) {
     return schedules.filter((s) => s.date === dateStr);
   }
 
   function prevWeek() {
-    setWeekStart((w) => { const d = new Date(w); d.setDate(d.getDate() - 7); return d; });
+    setWeekStart((w) => {
+      const base = w ?? new Date();
+      const d = new Date(base);
+      d.setDate(d.getDate() - 7);
+      return d;
+    });
   }
   function nextWeek() {
-    setWeekStart((w) => { const d = new Date(w); d.setDate(d.getDate() + 7); return d; });
+    setWeekStart((w) => {
+      const base = w ?? new Date();
+      const d = new Date(base);
+      d.setDate(d.getDate() + 7);
+      return d;
+    });
   }
 
   const selected = selectedDay ? schedulesOn(selectedDay) : [];
 
   return (
     <div className="mb-6">
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-[#1a3a5c] rounded-2xl shadow-sm overflow-hidden">
 
-        {/* ── Header: week label + navigation ─────────────────────────────── */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+        {/* ── Header ───────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={prevWeek}
-            className="p-1 rounded hover:bg-gray-100 transition-colors"
+            className="p-1 rounded hover:bg-white/10 transition-colors"
             aria-label="Previous week"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-500" />
+            <ChevronLeft className="w-4 h-4 text-white/70" />
           </button>
-          <span className="text-xs font-semibold text-gray-600">
-            {weekLabel(days[0], sunday)}
-          </span>
+          <div className="text-center">
+            <p className="text-[10px] font-semibold text-white/50 uppercase tracking-widest">
+              This Week
+            </p>
+            <p className="text-xs font-semibold text-white mt-0.5">
+              {weekLabel(days[0], sunday)}
+            </p>
+          </div>
           <button
             onClick={nextWeek}
-            className="p-1 rounded hover:bg-gray-100 transition-colors"
+            className="p-1 rounded hover:bg-white/10 transition-colors"
             aria-label="Next week"
           >
-            <ChevronRight className="w-4 h-4 text-gray-500" />
+            <ChevronRight className="w-4 h-4 text-white/70" />
           </button>
         </div>
 
         {/* ── Day strip ────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 border-t border-white/10">
           {days.map((day, i) => {
             const dateStr    = toYMD(day);
-            const isToday    = dateStr === todayStr;
+            const isToday    = todayStr !== "" && dateStr === todayStr;
             const isSelected = dateStr === selectedDay;
             const hasSched   = schedulesOn(dateStr).length > 0;
 
@@ -110,26 +147,25 @@ export function WeekBanner() {
                 key={dateStr}
                 onClick={() => setSelectedDay(isSelected ? null : dateStr)}
                 className={`flex flex-col items-center py-3 px-1 transition-colors ${
-                  isSelected ? "bg-blue-50" : "hover:bg-gray-50"
-                } ${i < 6 ? "border-r border-gray-100" : ""}`}
+                  isSelected ? "bg-white/15" : "hover:bg-white/10"
+                } ${i < 6 ? "border-r border-white/10" : ""}`}
               >
-                <span className="text-[10px] font-medium text-gray-400 mb-1">
+                <span className="text-[10px] font-medium text-white/50 mb-1">
                   {DAY_SHORT[i]}
                 </span>
                 <span
                   className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
                     isToday
-                      ? "bg-[#002D72] text-white"
+                      ? "bg-white text-[#1a3a5c]"
                       : isSelected
-                      ? "text-[#002D72]"
-                      : "text-gray-800"
+                      ? "text-white ring-1 ring-white/50"
+                      : "text-white/90"
                   }`}
                 >
                   {day.getDate()}
                 </span>
-                {/* Schedule dot */}
                 {hasSched && (
-                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#002D72]" />
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#FF5910]" />
                 )}
               </button>
             );
@@ -138,26 +174,26 @@ export function WeekBanner() {
 
         {/* ── Selected-day panel ───────────────────────────────────────────── */}
         {selectedDay && (
-          <div className="border-t border-gray-100">
+          <div className="border-t border-white/10 bg-white/5">
             {loading ? (
-              <p className="px-4 py-3 text-xs text-gray-400">Loading…</p>
+              <p className="px-4 py-3 text-xs text-white/50">Loading…</p>
             ) : selected.length === 0 ? (
-              <p className="px-4 py-3 text-xs text-gray-400">No shifts scheduled for this day.</p>
+              <p className="px-4 py-3 text-xs text-white/50">No shifts scheduled for this day.</p>
             ) : (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-white/10">
                 {selected.map((s) => (
                   <div key={s.scheduleId} className="px-4 py-3">
-                    <p className="text-sm font-semibold text-gray-900">{s.job.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-semibold text-white">{s.job.name}</p>
+                    <p className="text-xs text-white/60">
                       {s.job.number}
                       {s.startTime ? ` · ${formatHHMM(s.startTime)}` : ""}
                       {s.endTime   ? ` – ${formatHHMM(s.endTime)}`   : ""}
                     </p>
                     {s.job.address && (
-                      <p className="text-xs text-gray-400 mt-0.5">{s.job.address}</p>
+                      <p className="text-xs text-white/50 mt-0.5">{s.job.address}</p>
                     )}
                     {s.notes && (
-                      <p className="text-xs text-gray-500 italic mt-0.5">{s.notes}</p>
+                      <p className="text-xs text-white/50 italic mt-0.5">{s.notes}</p>
                     )}
                     <ArriveDepart
                       scheduleId={s.scheduleId}
