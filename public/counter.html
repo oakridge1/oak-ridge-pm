@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en" style="--header-h: 92px;"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Oak Ridge Electrical — Takeoff Counter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="Oak%20Ridge%20Electrical%20%E2%80%94%20Takeoff%20Counter_files/css2.css" rel="stylesheet">
+<style>
+:root {
+  --bg: #111214;
+  --surface: #1a1c20;
+  --surface2: #22252b;
+  --border: #2e3138;
+  --accent: #f0a500;
+  --accent2: #e05a00;
+  --text: #e8eaed;
+  --text2: #9aa0ab;
+  --text3: #5a6070;
+  --danger: #e03a3a;
+  --green: #2db562;
+  --tab-active: #f0a500;
+  --count-font: 'JetBrains Mono', monospace;
+  --ui-font: 'Barlow Condensed', sans-serif;
+  --radius: 8px;
+  --tap-min: 64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui-font);
+  font-size: 16px;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+/* ===== HEADER ===== */
+#header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 10px 14px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#header-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#logo {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+#logo span { color: var(--text3); font-weight: 400; }
+#job-name {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 7px 10px;
+  outline: none;
+  min-width: 0;
+}
+#job-name:focus { border-color: var(--accent); }
+#job-name::placeholder { color: var(--text3); }
+#header-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#area-label-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#area-icon { color: var(--text3); font-size: 13px; font-weight: 700; letter-spacing: 0.1em; }
+#area-name {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 6px 10px;
+  outline: none;
+  letter-spacing: 0.04em;
+}
+#area-name:focus { border-color: var(--accent); }
+#area-name::placeholder { color: var(--text3); }
+.hdr-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 7px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: uppercase;
+  transition: all 0.12s;
+}
+.hdr-btn:active { transform: scale(0.96); }
+.hdr-btn.primary { background: var(--accent); border-color: var(--accent); color: #111; }
+.hdr-btn.danger { border-color: var(--danger); color: var(--danger); }
+
+/* ===== TABS ===== */
+#tab-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 6px;
+  gap: 2px;
+  position: sticky;
+  top: var(--header-h, 0);
+  z-index: 90;
+}
+#tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text3);
+  font-family: var(--ui-font);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: uppercase;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-btn:active { opacity: 0.7; }
+
+/* ===== MAIN SCROLL ===== */
+#main {
+  padding: 10px 10px 130px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* ===== SECTION ===== */
+.section { display: none; }
+.section.active { display: block; }
+.section-header {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--text3);
+  text-transform: uppercase;
+  padding: 14px 4px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+/* ===== ITEM CARD ===== */
+.item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  margin-bottom: 6px;
+  min-height: var(--tap-min);
+  transition: border-color 0.1s;
+  user-select: none;
+}
+.item-card.has-count {
+  border-color: #3a3f20;
+  background: #1a1e12;
+}
+.item-name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  line-height: 1.2;
+  padding: 12px 0;
+  min-width: 0;
+}
+.item-name small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text3);
+  letter-spacing: 0.05em;
+}
+.count-display {
+  font-family: var(--count-font);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 52px;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+.count-display.zero { color: var(--text3); }
+.btn-minus, .btn-plus {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: var(--count-font);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.08s;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+}
+.btn-plus {
+  width: 52px;
+  height: 52px;
+  font-size: 26px;
+  color: var(--accent);
+  border-color: #3a3520;
+  background: #1e1d10;
+}
+.btn-plus:active { background: var(--accent); color: #111; transform: scale(0.92); }
+.btn-minus {
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+}
+.btn-minus:active { background: var(--danger); color: #fff; border-color: var(--danger); transform: scale(0.92); }
+.btn-reset {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 12px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+}
+.btn-reset:active { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* ===== FOOTAGE INPUT CARD ===== */
+.footage-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  margin-bottom: 6px;
+  min-height: var(--tap-min);
+}
+.footage-card.has-count { border-color: #3a3f20; background: #1a1e12; }
+.footage-input {
+  font-family: var(--count-font);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 110px;
+  padding: 8px 10px;
+  text-align: right;
+  outline: none;
+  flex-shrink: 0;
+}
+.footage-input:focus { border-color: var(--accent); }
+.footage-input.zero { color: var(--text3); }
+.footage-unit {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Custom fixture text */
+.custom-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--ui-font);
+  font-size: 14px;
+  padding: 6px 8px;
+  width: 100%;
+  margin-top: 4px;
+  outline: none;
+}
+.custom-input:focus { border-color: var(--accent); }
+
+/* ===== BOTTOM BAR ===== */
+#bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  padding: 10px 14px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#summary-line {
+  font-size: 12px;
+  color: var(--text3);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+}
+#summary-line span { color: var(--accent); font-family: var(--count-font); }
+#bottom-actions {
+  display: flex;
+  gap: 8px;
+}
+.bottom-btn {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 14px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  text-align: center;
+  transition: all 0.1s;
+  -webkit-user-select: none;
+}
+.bottom-btn:active { transform: scale(0.97); opacity: 0.85; }
+.bottom-btn.new-area { border-color: #2a3a2a; color: var(--green); }
+.bottom-btn.export { background: var(--accent); border-color: var(--accent); color: #111; }
+
+/* ===== JOB MANAGER PANEL ===== */
+#jobs-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  align-items: flex-end;
+}
+#jobs-overlay.open { display: flex; }
+#jobs-panel {
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  border-radius: 14px 14px 0 0;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 16px;
+}
+#jobs-panel h2 {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.job-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.job-item:active { border-color: var(--accent); }
+.job-item-name { flex: 1; font-size: 16px; font-weight: 700; }
+.job-item-meta { font-size: 12px; color: var(--text3); font-family: var(--count-font); }
+.job-item-del {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--danger);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.panel-close {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text2);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 13px;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* ===== AREAS PANEL ===== */
+#areas-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  align-items: flex-end;
+}
+#areas-overlay.open { display: flex; }
+#areas-panel {
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  border-radius: 14px 14px 0 0;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 16px;
+}
+#areas-panel h2 {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+#areas-panel p {
+  font-size: 13px;
+  color: var(--text3);
+  margin-bottom: 14px;
+}
+.area-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.area-item.current { border-color: var(--accent); }
+.area-item:active { opacity: 0.8; }
+.area-item-name { flex: 1; font-size: 16px; font-weight: 700; }
+.area-item-count { font-size: 12px; color: var(--text3); font-family: var(--count-font); }
+.area-item-del {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--danger);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.new-area-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.new-area-input-row input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 12px;
+  outline: none;
+}
+.new-area-input-row input:focus { border-color: var(--accent); }
+.new-area-input-row button {
+  background: var(--green);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-family: var(--ui-font);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0 18px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed;
+  bottom: 130px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--green);
+  color: #fff;
+  font-family: var(--ui-font);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border-radius: 100px;
+  z-index: 300;
+  opacity: 0;
+  transition: all 0.2s;
+  white-space: nowrap;
+  pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== IMPORT ===== */
+#import-file { display: none; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-top">
+    <div id="logo">OAK RIDGE <span>/ TAKEOFF</span></div>
+    <input id="job-name" type="text" placeholder="Job name…" autocomplete="off" spellcheck="false">
+    <button class="hdr-btn" onclick="openJobs()">JOBS</button>
+  </div>
+  <div id="header-bottom">
+    <span id="area-icon">AREA:</span>
+    <div id="area-label-wrap">
+      <input id="area-name" type="text" placeholder="1st Floor, Site, Basement…" autocomplete="off" spellcheck="false" value="1st Floor">
+    </div>
+    <button class="hdr-btn danger" onclick="openAreas()">AREAS</button>
+    <label class="hdr-btn" for="import-file">LOAD</label>
+    <input type="file" id="import-file" accept=".json" onchange="importJSON(event)">
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div id="tab-bar"><button class="tab-btn active">Devices</button><button class="tab-btn">Fixtures</button><button class="tab-btn">Data</button><button class="tab-btn">Conduit</button><button class="tab-btn">Panels</button><button class="tab-btn">Fire Alarm</button><button class="tab-btn">Boxes/Rough</button></div>
+
+<!-- MAIN CONTENT -->
+<div id="main"><div class="section active" id="sec-devices"><div class="section-header">Devices</div><div class="item-card" id="card-recept_20a"><div class="item-name">20A Receptacle</div><button class="btn-reset" aria-label="Reset recept_20a" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove recept_20a">−</button><div class="count-display zero" id="count-recept_20a">0</div><button class="btn-plus" aria-label="Add recept_20a">+</button></div><div class="item-card" id="card-recept_15a_tr"><div class="item-name">15A TR Receptacle</div><button class="btn-reset" aria-label="Reset recept_15a_tr" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove recept_15a_tr">−</button><div class="count-display zero" id="count-recept_15a_tr">0</div><button class="btn-plus" aria-label="Add recept_15a_tr">+</button></div><div class="item-card" id="card-gfci_20a"><div class="item-name">20A GFCI</div><button class="btn-reset" aria-label="Reset gfci_20a" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove gfci_20a">−</button><div class="count-display zero" id="count-gfci_20a">0</div><button class="btn-plus" aria-label="Add gfci_20a">+</button></div><div class="item-card" id="card-gfci_15a_tr"><div class="item-name">15A TR GFCI</div><button class="btn-reset" aria-label="Reset gfci_15a_tr" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove gfci_15a_tr">−</button><div class="count-display zero" id="count-gfci_15a_tr">0</div><button class="btn-plus" aria-label="Add gfci_15a_tr">+</button></div><div class="item-card" id="card-switch_sp"><div class="item-name">Single Pole Switch</div><button class="btn-reset" aria-label="Reset switch_sp" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove switch_sp">−</button><div class="count-display zero" id="count-switch_sp">0</div><button class="btn-plus" aria-label="Add switch_sp">+</button></div><div class="footage-card" id="card-switch_3way"><div class="item-name">3-Way Switch<small>Footage = traveler wire</small></div><input type="number" class="footage-input zero" id="inp-switch_3way" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">traveler ft</span></div><div class="item-card" id="card-dimmer"><div class="item-name">Dimmer</div><button class="btn-reset" aria-label="Reset dimmer" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove dimmer">−</button><div class="count-display zero" id="count-dimmer">0</div><button class="btn-plus" aria-label="Add dimmer">+</button></div><div class="item-card" id="card-dimmer_010v"><div class="item-name">0-10V Dimmer<small>Lutron DVSTV</small></div><button class="btn-reset" aria-label="Reset dimmer_010v" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove dimmer_010v">−</button><div class="count-display zero" id="count-dimmer_010v">0</div><button class="btn-plus" aria-label="Add dimmer_010v">+</button></div><div class="item-card" id="card-occ_sensor"><div class="item-name">Occupancy Sensor</div><button class="btn-reset" aria-label="Reset occ_sensor" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove occ_sensor">−</button><div class="count-display zero" id="count-occ_sensor">0</div><button class="btn-plus" aria-label="Add occ_sensor">+</button></div><div class="item-card" id="card-wp_cover"><div class="item-name">WP In-Use Cover</div><button class="btn-reset" aria-label="Reset wp_cover" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove wp_cover">−</button><div class="count-display zero" id="count-wp_cover">0</div><button class="btn-plus" aria-label="Add wp_cover">+</button></div></div><div class="section" id="sec-fixtures"><div class="section-header">Fixtures</div><div class="item-card" id="card-fixture_2x4"><div class="item-name">2×4 LED Lay-In<small>T-Bar</small></div><button class="btn-reset" aria-label="Reset fixture_2x4" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_2x4">−</button><div class="count-display zero" id="count-fixture_2x4">0</div><button class="btn-plus" aria-label="Add fixture_2x4">+</button></div><div class="item-card" id="card-fixture_2x2"><div class="item-name">2×2 LED Lay-In<small>T-Bar</small></div><button class="btn-reset" aria-label="Reset fixture_2x2" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_2x2">−</button><div class="count-display zero" id="count-fixture_2x2">0</div><button class="btn-plus" aria-label="Add fixture_2x2">+</button></div><div class="item-card" id="card-fixture_strip"><div class="item-name">4ft Strip Light</div><button class="btn-reset" aria-label="Reset fixture_strip" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_strip">−</button><div class="count-display zero" id="count-fixture_strip">0</div><button class="btn-plus" aria-label="Add fixture_strip">+</button></div><div class="item-card" id="card-fixture_wallpack"><div class="item-name">Wall Pack</div><button class="btn-reset" aria-label="Reset fixture_wallpack" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_wallpack">−</button><div class="count-display zero" id="count-fixture_wallpack">0</div><button class="btn-plus" aria-label="Add fixture_wallpack">+</button></div><div class="item-card" id="card-fixture_exit_ebu"><div class="item-name">Exit / Emergency<small>EBU</small></div><button class="btn-reset" aria-label="Reset fixture_exit_ebu" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_exit_ebu">−</button><div class="count-display zero" id="count-fixture_exit_ebu">0</div><button class="btn-plus" aria-label="Add fixture_exit_ebu">+</button></div><div class="item-card" id="card-fixture_highbay"><div class="item-name">High Bay</div><button class="btn-reset" aria-label="Reset fixture_highbay" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_highbay">−</button><div class="count-display zero" id="count-fixture_highbay">0</div><button class="btn-plus" aria-label="Add fixture_highbay">+</button></div><div class="item-card" id="card-fixture_ceilfan"><div class="item-name">Ceiling Fan</div><button class="btn-reset" aria-label="Reset fixture_ceilfan" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_ceilfan">−</button><div class="count-display zero" id="count-fixture_ceilfan">0</div><button class="btn-plus" aria-label="Add fixture_ceilfan">+</button></div><div class="item-card" id="card-fixture_custom"><div class="item-name">Custom Fixture<input type="text" class="custom-input" placeholder="Description…"></div><button class="btn-reset" aria-label="Reset fixture_custom" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fixture_custom">−</button><div class="count-display zero" id="count-fixture_custom">0</div><button class="btn-plus" aria-label="Add fixture_custom">+</button></div></div><div class="section" id="sec-data"><div class="section-header">Data</div><div class="item-card" id="card-data_1port"><div class="item-name">1-Port Data Location</div><button class="btn-reset" aria-label="Reset data_1port" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove data_1port">−</button><div class="count-display zero" id="count-data_1port">0</div><button class="btn-plus" aria-label="Add data_1port">+</button></div><div class="item-card" id="card-data_2port"><div class="item-name">2-Port Data Location</div><button class="btn-reset" aria-label="Reset data_2port" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove data_2port">−</button><div class="count-display zero" id="count-data_2port">0</div><button class="btn-plus" aria-label="Add data_2port">+</button></div><div class="item-card" id="card-data_3port"><div class="item-name">3-Port Data Location</div><button class="btn-reset" aria-label="Reset data_3port" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove data_3port">−</button><div class="count-display zero" id="count-data_3port">0</div><button class="btn-plus" aria-label="Add data_3port">+</button></div><div class="item-card" id="card-data_4port"><div class="item-name">4-Port Data Location</div><button class="btn-reset" aria-label="Reset data_4port" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove data_4port">−</button><div class="count-display zero" id="count-data_4port">0</div><button class="btn-plus" aria-label="Add data_4port">+</button></div></div><div class="section" id="sec-conduit"><div class="section-header">Conduit</div><div class="footage-card" id="card-conduit_emt_12"><div class="item-name">1/2" EMT</div><input type="number" class="footage-input zero" id="inp-conduit_emt_12" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_emt_34"><div class="item-name">3/4" EMT</div><input type="number" class="footage-input zero" id="inp-conduit_emt_34" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_emt_1"><div class="item-name">1" EMT</div><input type="number" class="footage-input zero" id="inp-conduit_emt_1" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_emt_114"><div class="item-name">1-1/4" EMT</div><input type="number" class="footage-input zero" id="inp-conduit_emt_114" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_emt_112"><div class="item-name">1-1/2" EMT</div><input type="number" class="footage-input zero" id="inp-conduit_emt_112" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_emt_2"><div class="item-name">2" EMT</div><input type="number" class="footage-input zero" id="inp-conduit_emt_2" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_pvc_12"><div class="item-name">1/2" Sch40 PVC</div><input type="number" class="footage-input zero" id="inp-conduit_pvc_12" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_pvc_34"><div class="item-name">3/4" Sch40 PVC</div><input type="number" class="footage-input zero" id="inp-conduit_pvc_34" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_pvc_1"><div class="item-name">1" Sch40 PVC</div><input type="number" class="footage-input zero" id="inp-conduit_pvc_1" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_pvc_2"><div class="item-name">2" Sch40 PVC</div><input type="number" class="footage-input zero" id="inp-conduit_pvc_2" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_pvc_3"><div class="item-name">3" Sch40 PVC</div><input type="number" class="footage-input zero" id="inp-conduit_pvc_3" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_pvc_4"><div class="item-name">4" Sch40 PVC</div><input type="number" class="footage-input zero" id="inp-conduit_pvc_4" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-conduit_rigid"><div class="item-name">Rigid (all sizes)</div><input type="number" class="footage-input zero" id="inp-conduit_rigid" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div></div><div class="section" id="sec-panels"><div class="section-header">Panels</div><div class="item-card" id="card-panel_comm_sm"><div class="item-name">Commercial Panel Small<small>Up to 225A</small></div><button class="btn-reset" aria-label="Reset panel_comm_sm" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove panel_comm_sm">−</button><div class="count-display zero" id="count-panel_comm_sm">0</div><button class="btn-plus" aria-label="Add panel_comm_sm">+</button></div><div class="item-card" id="card-panel_comm_md"><div class="item-name">Commercial Panel Medium<small>400A–800A</small></div><button class="btn-reset" aria-label="Reset panel_comm_md" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove panel_comm_md">−</button><div class="count-display zero" id="count-panel_comm_md">0</div><button class="btn-plus" aria-label="Add panel_comm_md">+</button></div><div class="item-card" id="card-panel_comm_lg"><div class="item-name">Commercial Panel Large<small>1000A+</small></div><button class="btn-reset" aria-label="Reset panel_comm_lg" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove panel_comm_lg">−</button><div class="count-display zero" id="count-panel_comm_lg">0</div><button class="btn-plus" aria-label="Add panel_comm_lg">+</button></div><div class="item-card" id="card-xfmr_sm"><div class="item-name">Transformer Small<small>1–15 KVA</small></div><button class="btn-reset" aria-label="Reset xfmr_sm" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove xfmr_sm">−</button><div class="count-display zero" id="count-xfmr_sm">0</div><button class="btn-plus" aria-label="Add xfmr_sm">+</button></div><div class="item-card" id="card-xfmr_md"><div class="item-name">Transformer Medium<small>25–75 KVA</small></div><button class="btn-reset" aria-label="Reset xfmr_md" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove xfmr_md">−</button><div class="count-display zero" id="count-xfmr_md">0</div><button class="btn-plus" aria-label="Add xfmr_md">+</button></div><div class="item-card" id="card-xfmr_lg"><div class="item-name">Transformer Large<small>100–500 KVA</small></div><button class="btn-reset" aria-label="Reset xfmr_lg" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove xfmr_lg">−</button><div class="count-display zero" id="count-xfmr_lg">0</div><button class="btn-plus" aria-label="Add xfmr_lg">+</button></div><div class="item-card" id="card-lc_100a"><div class="item-name">Res Load Center 100A</div><button class="btn-reset" aria-label="Reset lc_100a" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove lc_100a">−</button><div class="count-display zero" id="count-lc_100a">0</div><button class="btn-plus" aria-label="Add lc_100a">+</button></div><div class="item-card" id="card-lc_200a"><div class="item-name">Res Load Center 200A</div><button class="btn-reset" aria-label="Reset lc_200a" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove lc_200a">−</button><div class="count-display zero" id="count-lc_200a">0</div><button class="btn-plus" aria-label="Add lc_200a">+</button></div></div><div class="section" id="sec-fa"><div class="section-header">Fire Alarm</div><div class="item-card" id="card-fa_smoke"><div class="item-name">Smoke Detector</div><button class="btn-reset" aria-label="Reset fa_smoke" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_smoke">−</button><div class="count-display zero" id="count-fa_smoke">0</div><button class="btn-plus" aria-label="Add fa_smoke">+</button></div><div class="item-card" id="card-fa_heat"><div class="item-name">Heat Detector</div><button class="btn-reset" aria-label="Reset fa_heat" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_heat">−</button><div class="count-display zero" id="count-fa_heat">0</div><button class="btn-plus" aria-label="Add fa_heat">+</button></div><div class="item-card" id="card-fa_smoke_co"><div class="item-name">Smoke/CO Combo</div><button class="btn-reset" aria-label="Reset fa_smoke_co" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_smoke_co">−</button><div class="count-display zero" id="count-fa_smoke_co">0</div><button class="btn-plus" aria-label="Add fa_smoke_co">+</button></div><div class="item-card" id="card-fa_pull"><div class="item-name">Pull Station</div><button class="btn-reset" aria-label="Reset fa_pull" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_pull">−</button><div class="count-display zero" id="count-fa_pull">0</div><button class="btn-plus" aria-label="Add fa_pull">+</button></div><div class="item-card" id="card-fa_horn_strobe"><div class="item-name">Horn/Strobe</div><button class="btn-reset" aria-label="Reset fa_horn_strobe" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_horn_strobe">−</button><div class="count-display zero" id="count-fa_horn_strobe">0</div><button class="btn-plus" aria-label="Add fa_horn_strobe">+</button></div><div class="item-card" id="card-fa_strobe"><div class="item-name">Strobe</div><button class="btn-reset" aria-label="Reset fa_strobe" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_strobe">−</button><div class="count-display zero" id="count-fa_strobe">0</div><button class="btn-plus" aria-label="Add fa_strobe">+</button></div><div class="item-card" id="card-fa_lf_sounder"><div class="item-name">LF Sounder</div><button class="btn-reset" aria-label="Reset fa_lf_sounder" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_lf_sounder">−</button><div class="count-display zero" id="count-fa_lf_sounder">0</div><button class="btn-plus" aria-label="Add fa_lf_sounder">+</button></div><div class="item-card" id="card-fa_beacon"><div class="item-name">Beacon</div><button class="btn-reset" aria-label="Reset fa_beacon" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_beacon">−</button><div class="count-display zero" id="count-fa_beacon">0</div><button class="btn-plus" aria-label="Add fa_beacon">+</button></div><div class="item-card" id="card-fa_ctrl_mod"><div class="item-name">Control Module</div><button class="btn-reset" aria-label="Reset fa_ctrl_mod" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_ctrl_mod">−</button><div class="count-display zero" id="count-fa_ctrl_mod">0</div><button class="btn-plus" aria-label="Add fa_ctrl_mod">+</button></div><div class="item-card" id="card-fa_duct_smoke"><div class="item-name">Duct Smoke</div><button class="btn-reset" aria-label="Reset fa_duct_smoke" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_duct_smoke">−</button><div class="count-display zero" id="count-fa_duct_smoke">0</div><button class="btn-plus" aria-label="Add fa_duct_smoke">+</button></div><div class="item-card" id="card-fa_panel_sm"><div class="item-name">FA Panel Small</div><button class="btn-reset" aria-label="Reset fa_panel_sm" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_panel_sm">−</button><div class="count-display zero" id="count-fa_panel_sm">0</div><button class="btn-plus" aria-label="Add fa_panel_sm">+</button></div><div class="item-card" id="card-fa_panel_md"><div class="item-name">FA Panel Medium</div><button class="btn-reset" aria-label="Reset fa_panel_md" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_panel_md">−</button><div class="count-display zero" id="count-fa_panel_md">0</div><button class="btn-plus" aria-label="Add fa_panel_md">+</button></div><div class="item-card" id="card-fa_panel_lg"><div class="item-name">FA Panel Large</div><button class="btn-reset" aria-label="Reset fa_panel_lg" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_panel_lg">−</button><div class="count-display zero" id="count-fa_panel_lg">0</div><button class="btn-plus" aria-label="Add fa_panel_lg">+</button></div><div class="item-card" id="card-fa_radio"><div class="item-name">Radio Box</div><button class="btn-reset" aria-label="Reset fa_radio" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_radio">−</button><div class="count-display zero" id="count-fa_radio">0</div><button class="btn-plus" aria-label="Add fa_radio">+</button></div><div class="item-card" id="card-fa_annun"><div class="item-name">Annunciator</div><button class="btn-reset" aria-label="Reset fa_annun" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove fa_annun">−</button><div class="count-display zero" id="count-fa_annun">0</div><button class="btn-plus" aria-label="Add fa_annun">+</button></div></div><div class="section" id="sec-rough"><div class="section-header">Boxes/Rough</div><div class="item-card" id="card-box_4sq_deep"><div class="item-name">4" Square Deep Box<small>Standalone</small></div><button class="btn-reset" aria-label="Reset box_4sq_deep" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove box_4sq_deep">−</button><div class="count-display zero" id="count-box_4sq_deep">0</div><button class="btn-plus" aria-label="Add box_4sq_deep">+</button></div><div class="item-card" id="card-can_sm"><div class="item-name">Pull Can Small</div><button class="btn-reset" aria-label="Reset can_sm" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove can_sm">−</button><div class="count-display zero" id="count-can_sm">0</div><button class="btn-plus" aria-label="Add can_sm">+</button></div><div class="item-card" id="card-can_md"><div class="item-name">Pull Can Medium</div><button class="btn-reset" aria-label="Reset can_md" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove can_md">−</button><div class="count-display zero" id="count-can_md">0</div><button class="btn-plus" aria-label="Add can_md">+</button></div><div class="item-card" id="card-can_lg"><div class="item-name">Pull Can Large</div><button class="btn-reset" aria-label="Reset can_lg" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove can_lg">−</button><div class="count-display zero" id="count-can_lg">0</div><button class="btn-plus" aria-label="Add can_lg">+</button></div><div class="item-card" id="card-can_xl"><div class="item-name">Pull Can XL</div><button class="btn-reset" aria-label="Reset can_xl" title="Reset to zero">✕</button><button class="btn-minus" aria-label="Remove can_xl">−</button><div class="count-display zero" id="count-can_xl">0</div><button class="btn-plus" aria-label="Add can_xl">+</button></div><div class="footage-card" id="card-mc_homerun_12"><div class="item-name">MC Home Run #12</div><input type="number" class="footage-input zero" id="inp-mc_homerun_12" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-mc_homerun_10"><div class="item-name">MC Home Run #10</div><input type="number" class="footage-input zero" id="inp-mc_homerun_10" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div><div class="footage-card" id="card-mc_homerun_8"><div class="item-name">MC Home Run #8</div><input type="number" class="footage-input zero" id="inp-mc_homerun_8" placeholder="0" min="0" inputmode="numeric"><span class="footage-unit">ft</span></div></div></div>
+
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <div id="summary-line">Total items counted: <span id="total-count">0</span></div>
+  <div id="bottom-actions">
+    <button class="bottom-btn new-area" onclick="openAreas()">⊕ NEW AREA</button>
+    <button class="bottom-btn export" onclick="exportJSON()">↓ EXPORT JSON</button>
+  </div>
+</div>
+
+<!-- JOBS OVERLAY -->
+<div id="jobs-overlay" onclick="closeJobs(event)">
+  <div id="jobs-panel">
+    <h2>Saved Jobs</h2>
+    <div id="jobs-list"></div>
+    <button class="panel-close" onclick="closeJobs()">✕ Close</button>
+  </div>
+</div>
+
+<!-- AREAS OVERLAY -->
+<div id="areas-overlay" onclick="closeAreas(event)">
+  <div id="areas-panel">
+    <h2>Areas</h2>
+    <p>Counts are saved per area. Switch areas or add a new one.</p>
+    <div class="new-area-input-row">
+      <input id="new-area-inp" type="text" placeholder="New area name…" autocomplete="off">
+      <button onclick="addArea()">ADD</button>
+    </div>
+    <div id="areas-list"></div>
+    <button class="panel-close" style="border-color:var(--danger);color:var(--danger);margin-bottom:8px;" onclick="clearCurrentArea()">🗑 CLEAR ALL COUNTS IN THIS AREA</button>
+    <button class="panel-close" onclick="closeAreas()">✕ Close</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+//  ITEM DEFINITIONS
+// ============================================================
+var CATEGORIES = [
+  {
+    id: 'devices', label: 'Devices',
+    items: [
+      { id: 'recept_20a',       label: '20A Receptacle',         type: 'count' },
+      { id: 'recept_15a_tr',    label: '15A TR Receptacle',      type: 'count' },
+      { id: 'gfci_20a',         label: '20A GFCI',               type: 'count' },
+      { id: 'gfci_15a_tr',      label: '15A TR GFCI',            type: 'count' },
+      { id: 'recept_30a',       label: '30A Receptacle',         type: 'count' },
+      { id: 'recept_50a',       label: '50A Receptacle',         type: 'count' },
+      { id: 'recept_240v',      label: '240V Receptacle',        type: 'count' },
+      { id: 'recept_twist',     label: 'Twist-Lock Receptacle',  type: 'count' },
+      { id: 'usb_recept',       label: 'USB Receptacle',         type: 'count' },
+      { id: 'switch_sp',        label: 'Single Pole Switch',     type: 'count' },
+      { id: 'switch_3way',      label: '3-Way Switch',           type: 'footage', unit: 'traveler ft', note: 'Footage = traveler wire' },
+      { id: 'switch_4way',      label: '4-Way Switch',           type: 'count' },
+      { id: 'dimmer',           label: 'Dimmer',                 type: 'count' },
+      { id: 'dimmer_010v',      label: '0-10V Dimmer (Lutron)',  type: 'count' },
+      { id: 'occ_sensor_ceil',  label: 'Occ Sensor Ceiling',     type: 'count' },
+      { id: 'occ_sensor_pir',   label: 'Occ Sensor Wall PIR',    type: 'count' },
+      { id: 'photocell',        label: 'Photocell / Dusk-Dawn',  type: 'count' },
+      { id: 'wp_cover',         label: 'WP In-Use Cover',        type: 'count' },
+      { id: 'floor_box',        label: 'Floor Box',              type: 'count' },
+    ]
+  },
+  {
+    id: 'fixtures', label: 'Fixtures',
+    items: [
+      { id: 'fixture_2x4',        label: '2×4 LED Lay-In',          type: 'count', note: 'T-Bar' },
+      { id: 'fixture_2x2',        label: '2×2 LED Lay-In',          type: 'count', note: 'T-Bar' },
+      { id: 'fixture_strip',      label: '4ft LED Strip',            type: 'count' },
+      { id: 'fixture_strip_8',    label: '8ft LED Strip',            type: 'count' },
+      { id: 'fixture_wrap_4',     label: '4ft Vapor Tight / Wrap',   type: 'count' },
+      { id: 'fixture_wrap_8',     label: '8ft Vapor Tight / Wrap',   type: 'count' },
+      { id: 'fixture_rec_new',    label: 'Recessed Can - New Const', type: 'count' },
+      { id: 'fixture_rec_rem',    label: 'Recessed Can - Remodel',   type: 'count' },
+      { id: 'fixture_rec_retro',  label: 'Recessed Can - LED Retro', type: 'count' },
+      { id: 'fixture_wall',       label: 'Wall Mount Indoor Sconce', type: 'count' },
+      { id: 'fixture_wall_out',   label: 'Wall Mount Outdoor',       type: 'count' },
+      { id: 'fixture_canopy',     label: 'Canopy / Soffit Light',    type: 'count' },
+      { id: 'fixture_highbay',    label: 'High Bay LED Round (UFO)', type: 'count' },
+      { id: 'fixture_highbay_lin',label: 'Linear High Bay LED',      type: 'count' },
+      { id: 'fixture_lowbay',     label: 'Low Bay LED',              type: 'count' },
+      { id: 'fixture_pendant',    label: 'Pendant / Hanging',        type: 'count' },
+      { id: 'fixture_track_rail', label: 'Track Rail',               type: 'footage', unit: 'ft' },
+      { id: 'fixture_track_head', label: 'Track Head',               type: 'count' },
+      { id: 'fixture_wallpack',   label: 'LED Wall Pack',            type: 'count' },
+      { id: 'fixture_exit_ebu',   label: 'Exit / EBU Combo',         type: 'count' },
+      { id: 'fixture_exit_only',  label: 'Exit Sign Only',           type: 'count' },
+      { id: 'fixture_emrg',       label: 'Emergency Light Only',     type: 'count' },
+      { id: 'fixture_fan36',      label: 'Ceiling Fan 36"',          type: 'count' },
+      { id: 'fixture_fan48',      label: 'Ceiling Fan 48"',          type: 'count' },
+      { id: 'fixture_fan55',      label: 'Ceiling Fan 55"',          type: 'count' },
+      { id: 'fixture_fan60',      label: 'Ceiling Fan 60"',          type: 'count' },
+      { id: 'fixture_chain48',    label: 'Chain-Hung Industrial 48"',type: 'count' },
+      { id: 'fixture_chain96',    label: 'Chain-Hung Industrial 96"',type: 'count' },
+    ]
+  },
+  {
+    id: 'data_lv', label: 'Data / LV',
+    items: [
+      { id: 'data_1port',      label: '1-Port Data Location',  type: 'count' },
+      { id: 'data_2port',      label: '2-Port Data Location',  type: 'count' },
+      { id: 'data_3port',      label: '3-Port Data Location',  type: 'count' },
+      { id: 'data_4port',      label: '4-Port Data Location',  type: 'count' },
+      { id: 'camera_indoor',   label: 'Security Camera Indoor',type: 'count' },
+      { id: 'camera_outdoor',  label: 'Security Camera Outdoor',type: 'count' },
+      { id: 'access_reader',   label: 'Access Control Reader', type: 'count' },
+      { id: 'intercom',        label: 'Intercom Station',      type: 'count' },
+      { id: 'av_outlet',       label: 'TV/AV Outlet',          type: 'count' },
+      { id: 'speaker',         label: 'Speaker Rough-In',      type: 'count' },
+      { id: 'doorbell',        label: 'Doorbell / Call Button',type: 'count' },
+    ]
+  },
+  {
+    id: 'fa', label: 'Fire Alarm',
+    items: [
+      { id: 'fa_smoke',       label: 'Smoke Detector',     type: 'count' },
+      { id: 'fa_heat',        label: 'Heat Detector',      type: 'count' },
+      { id: 'fa_smoke_co',    label: 'Smoke/CO Combo',     type: 'count' },
+      { id: 'fa_pull',        label: 'Pull Station',       type: 'count' },
+      { id: 'fa_horn_strobe', label: 'Horn/Strobe',        type: 'count' },
+      { id: 'fa_strobe',      label: 'Strobe Only',        type: 'count' },
+      { id: 'fa_lf_sounder',  label: 'LF Sounder',         type: 'count' },
+      { id: 'fa_beacon',      label: 'Beacon',             type: 'count' },
+      { id: 'fa_ctrl_mod',    label: 'Control Module',     type: 'count' },
+      { id: 'fa_monitor_mod', label: 'Monitor Module',     type: 'count' },
+      { id: 'fa_duct_smoke',  label: 'Duct Smoke Detector',type: 'count' },
+      { id: 'fa_beam',        label: 'Beam Detector',      type: 'count' },
+      { id: 'fa_relay',       label: 'FA Relay',           type: 'count' },
+      { id: 'fa_panel_sm',    label: 'FA Panel Small',     type: 'count' },
+      { id: 'fa_panel_md',    label: 'FA Panel Medium',    type: 'count' },
+      { id: 'fa_panel_lg',    label: 'FA Panel Large',     type: 'count' },
+      { id: 'fa_annun',       label: 'FA Annunciator',     type: 'count' },
+      { id: 'fa_radio',       label: 'Radio Communicator', type: 'count' },
+    ]
+  },
+  {
+    id: 'gear', label: 'Gear',
+    items: [
+      { id: 'panel_comm',    label: 'Commercial Panel',       type: 'count', note: 'MLO or MB — type in estimator' },
+      { id: 'panel_ltg',     label: 'Lighting Panel 120/277V',type: 'count' },
+      { id: 'lc_100a',       label: 'Res Load Center 100A',   type: 'count' },
+      { id: 'lc_200a',       label: 'Res Load Center 200A',   type: 'count' },
+      { id: 'xfmr',          label: 'Transformer',            type: 'count', note: 'Type/size in estimator' },
+      { id: 'meter_socket',  label: 'Meter Socket',           type: 'count', note: 'Size in estimator' },
+      { id: 'meter_bank',    label: 'Meter Bank',             type: 'count', note: 'Positions in estimator' },
+      { id: 'meter_main',    label: 'Meter-Main Combo',       type: 'count' },
+      { id: 'ct_cab',        label: 'CT Cabinet',             type: 'count' },
+      { id: 'disconnect',    label: 'Disconnect (NF/Fused)',  type: 'count', note: 'Amps/type in estimator' },
+      { id: 'disc_ac',       label: 'A/C Unit Disconnect',    type: 'count' },
+      { id: 'disc_motor',    label: 'Motor Disconnect',       type: 'count' },
+      { id: 'gear_mdp',      label: 'MDP',                    type: 'count' },
+      { id: 'gear_swgr',     label: 'Switchgear',             type: 'count' },
+      { id: 'gear_mcc',      label: 'MCC',                    type: 'count' },
+      { id: 'gear_ats',      label: 'ATS',                    type: 'count' },
+      { id: 'gear_bypass',   label: 'Bypass Isolation Switch',type: 'count' },
+      { id: 'gear_vfd',      label: 'VFD',                    type: 'count' },
+      { id: 'gear_soft',     label: 'Soft Starter',           type: 'count' },
+      { id: 'gear_ctrl',     label: 'Relay / Control Panel',  type: 'count' },
+    ]
+  },
+  {
+    id: 'rough', label: 'Boxes / Rough',
+    items: [
+      { id: 'box_4sq_deep', label: '4" Square Deep Box',   type: 'count', note: 'Standalone' },
+      { id: 'box_2gang',    label: '2-Gang Box',           type: 'count' },
+      { id: 'box_3gang',    label: '3-Gang Box',           type: 'count' },
+      { id: 'box_wp',       label: 'WP Box',               type: 'count' },
+      { id: 'box_jbox',     label: 'Junction Box',         type: 'count' },
+      { id: 'can_sm',       label: 'Pull Can Small',       type: 'count' },
+      { id: 'can_md',       label: 'Pull Can Medium',      type: 'count' },
+      { id: 'can_lg',       label: 'Pull Can Large',       type: 'count' },
+      { id: 'can_xl',       label: 'Pull Can XL',          type: 'count' },
+    ]
+  },
+  {
+    id: 'conduit', label: 'Conduit',
+    items: [
+      { id: 'emt_12',   label: '1/2" EMT',     type: 'footage', unit: 'ft' },
+      { id: 'emt_34',   label: '3/4" EMT',     type: 'footage', unit: 'ft' },
+      { id: 'emt_1',    label: '1" EMT',       type: 'footage', unit: 'ft' },
+      { id: 'emt_114',  label: '1-1/4" EMT',  type: 'footage', unit: 'ft' },
+      { id: 'emt_112',  label: '1-1/2" EMT',  type: 'footage', unit: 'ft' },
+      { id: 'emt_2',    label: '2" EMT',       type: 'footage', unit: 'ft' },
+      { id: 'emt_212',  label: '2-1/2" EMT',  type: 'footage', unit: 'ft' },
+      { id: 'emt_3',    label: '3" EMT',       type: 'footage', unit: 'ft' },
+      { id: 'emt_312',  label: '3-1/2" EMT',  type: 'footage', unit: 'ft' },
+      { id: 'emt_4',    label: '4" EMT',       type: 'footage', unit: 'ft' },
+      { id: 'pvc_12',   label: '1/2" PVC 40', type: 'footage', unit: 'ft' },
+      { id: 'pvc_34',   label: '3/4" PVC 40', type: 'footage', unit: 'ft' },
+      { id: 'pvc_1',    label: '1" PVC 40',   type: 'footage', unit: 'ft' },
+      { id: 'pvc_112',  label: '1-1/2" PVC',  type: 'footage', unit: 'ft' },
+      { id: 'pvc_2',    label: '2" PVC 40',   type: 'footage', unit: 'ft' },
+      { id: 'pvc_3',    label: '3" PVC 40',   type: 'footage', unit: 'ft' },
+      { id: 'pvc_4',    label: '4" PVC 40',   type: 'footage', unit: 'ft' },
+      { id: 'rgd_12',   label: '1/2" Rigid',  type: 'footage', unit: 'ft' },
+      { id: 'rgd_34',   label: '3/4" Rigid',  type: 'footage', unit: 'ft' },
+      { id: 'rgd_1',    label: '1" Rigid',    type: 'footage', unit: 'ft' },
+      { id: 'rgd_2',    label: '2" Rigid',    type: 'footage', unit: 'ft' },
+      { id: 'rgd_3',    label: '3" Rigid',    type: 'footage', unit: 'ft' },
+      { id: 'rgd_4',    label: '4" Rigid',    type: 'footage', unit: 'ft' },
+      { id: 'imc_12',   label: '1/2" IMC',    type: 'footage', unit: 'ft' },
+      { id: 'imc_34',   label: '3/4" IMC',    type: 'footage', unit: 'ft' },
+      { id: 'imc_1',    label: '1" IMC',      type: 'footage', unit: 'ft' },
+      { id: 'imc_2',    label: '2" IMC',      type: 'footage', unit: 'ft' },
+      { id: 'flex_12',  label: '1/2" Flex',   type: 'footage', unit: 'ft' },
+      { id: 'flex_34',  label: '3/4" Flex',   type: 'footage', unit: 'ft' },
+      { id: 'lt_12',    label: '1/2" LT',     type: 'footage', unit: 'ft' },
+      { id: 'lt_34',    label: '3/4" LT',     type: 'footage', unit: 'ft' },
+      { id: 'nmb_142',  label: '14/2 NM-B',   type: 'footage', unit: 'ft' },
+      { id: 'nmb_143',  label: '14/3 NM-B',   type: 'footage', unit: 'ft' },
+      { id: 'nmb_122',  label: '12/2 NM-B',   type: 'footage', unit: 'ft' },
+      { id: 'nmb_123',  label: '12/3 NM-B',   type: 'footage', unit: 'ft' },
+      { id: 'nmb_102',  label: '10/2 NM-B',   type: 'footage', unit: 'ft' },
+      { id: 'nmb_103',  label: '10/3 NM-B',   type: 'footage', unit: 'ft' },
+    ]
+  },
+  {
+    id: 'mc', label: 'MC Cable',
+    items: [
+      { id: 'mc_142', label: '14/2 MC',  type: 'footage', unit: 'ft' },
+      { id: 'mc_122', label: '12/2 MC',  type: 'footage', unit: 'ft' },
+      { id: 'mc_123', label: '12/3 MC',  type: 'footage', unit: 'ft' },
+      { id: 'mc_102', label: '10/2 MC',  type: 'footage', unit: 'ft' },
+      { id: 'mc_103', label: '10/3 MC',  type: 'footage', unit: 'ft' },
+      { id: 'mc_83',  label: '8/3 MC',   type: 'footage', unit: 'ft' },
+      { id: 'mc_63',  label: '6/3 MC',   type: 'footage', unit: 'ft' },
+      { id: 'mc_43',  label: '4/3 MC',   type: 'footage', unit: 'ft' },
+      { id: 'mc_23',  label: '2/3 MC',   type: 'footage', unit: 'ft' },
+      { id: 'mc_10',  label: '1/0 MC',   type: 'footage', unit: 'ft' },
+    ]
+  },
+  {
+    id: 'racks', label: 'Racks',
+    items: [
+      { id: 'rack_12w',  label: 'Strut Rack 12" Wall',     type: 'count' },
+      { id: 'rack_18w',  label: 'Strut Rack 18" Wall',     type: 'count' },
+      { id: 'rack_24w',  label: 'Strut Rack 24" Wall',     type: 'count' },
+      { id: 'rack_48w',  label: 'Strut Rack 48" Wall',     type: 'count' },
+      { id: 'rack_60w',  label: 'Strut Rack 60" Wall',     type: 'count' },
+      { id: 'rack_12h',  label: 'Strut Rack 12" Hang',     type: 'count' },
+      { id: 'rack_18h',  label: 'Strut Rack 18" Hang',     type: 'count' },
+      { id: 'rack_24h',  label: 'Strut Rack 24" Hang',     type: 'count' },
+      { id: 'rack_48h',  label: 'Strut Rack 48" Hang',     type: 'count' },
+      { id: 'rack_60h',  label: 'Strut Rack 60" Hang',     type: 'count' },
+      { id: 'ct_12',     label: 'Cable Tray 12" (lin ft)', type: 'footage', unit: 'ft' },
+      { id: 'ct_18',     label: 'Cable Tray 18" (lin ft)', type: 'footage', unit: 'ft' },
+      { id: 'ct_24',     label: 'Cable Tray 24" (lin ft)', type: 'footage', unit: 'ft' },
+    ]
+  },
+];
+
+// ============================================================
+//  STATE
+// ============================================================
+var state = {
+  jobName: '',
+  currentAreaIdx: 0,
+  areas: [{ name: '1st Floor', counts: {}, customLabels: {} }]
+};
+
+var currentTab = CATEGORIES[0].id;
+
+function currentArea() { return state.areas[state.currentAreaIdx]; }
+
+// ============================================================
+//  PERSIST
+// ============================================================
+var STORAGE_KEY = 'ore_takeoff_v1';
+var JOBS_KEY = 'ore_jobs_v1';
+
+function save() {
+  try {
+    var jobs = loadAllJobs();
+    var jobId = state.jobName || '__default__';
+    jobs[jobId] = JSON.parse(JSON.stringify(state));
+    localStorage.setItem(JOBS_KEY, JSON.stringify(jobs));
+  } catch(e) {}
+}
+
+function loadAllJobs() {
+  try { return JSON.parse(localStorage.getItem(JOBS_KEY)) || {}; } catch(e) { return {}; }
+}
+
+function loadJob(name) {
+  var jobs = loadAllJobs();
+  var key = name || '__default__';
+  if (jobs[key]) {
+    state = jobs[key];
+    // ensure counts/customLabels exist
+    state.areas.forEach(function(a) {
+      if (!a.counts) a.counts = {};
+      if (!a.customLabels) a.customLabels = {};
+    });
+    renderAll();
+  }
+}
+
+function autoLoad() {
+  var jobs = loadAllJobs();
+  var keys = Object.keys(jobs);
+  if (keys.length > 0) {
+    var last = keys[keys.length - 1];
+    loadJob(last === '__default__' ? '' : last);
+  }
+}
+
+// ============================================================
+//  BUILD UI
+// ============================================================
+function buildUI() {
+  buildTabs();
+  buildSections();
+}
+
+function buildTabs() {
+  var bar = document.getElementById('tab-bar');
+  bar.innerHTML = '';
+  CATEGORIES.forEach(function(cat) {
+    var btn = document.createElement('button');
+    btn.className = 'tab-btn' + (cat.id === currentTab ? ' active' : '');
+    btn.textContent = cat.label;
+    btn.onclick = function() { switchTab(cat.id); };
+    bar.appendChild(btn);
+  });
+}
+
+function buildSections() {
+  var main = document.getElementById('main');
+  main.innerHTML = '';
+  CATEGORIES.forEach(function(cat) {
+    var sec = document.createElement('div');
+    sec.className = 'section' + (cat.id === currentTab ? ' active' : '');
+    sec.id = 'sec-' + cat.id;
+
+    var hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.textContent = cat.label;
+    sec.appendChild(hdr);
+
+    cat.items.forEach(function(item) {
+      sec.appendChild(buildCard(item));
+    });
+    main.appendChild(sec);
+  });
+}
+
+function buildCard(item) {
+  var area = currentArea();
+  var val = area.counts[item.id] || 0;
+
+  if (item.type === 'footage') {
+    var card = document.createElement('div');
+    card.className = 'footage-card' + (val > 0 ? ' has-count' : '');
+    card.id = 'card-' + item.id;
+
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'item-name';
+    nameDiv.innerHTML = item.label + (item.note ? '<small>' + item.note + '</small>' : '');
+
+    var inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'footage-input' + (val === 0 ? ' zero' : '');
+    inp.id = 'inp-' + item.id;
+    inp.value = val || '';
+    inp.placeholder = '0';
+    inp.min = '0';
+    inp.inputMode = 'numeric';
+    inp.onblur = (function(id, el, cardEl) {
+      return function() {
+        var v = parseInt(el.value) || 0;
+        el.value = v || '';
+        el.className = 'footage-input' + (v === 0 ? ' zero' : '');
+        cardEl.className = 'footage-card' + (v > 0 ? ' has-count' : '');
+        setCount(id, v);
+      };
+    })(item.id, inp, card);
+
+    var unit = document.createElement('span');
+    unit.className = 'footage-unit';
+    unit.textContent = item.unit || 'ft';
+
+    card.appendChild(nameDiv);
+    card.appendChild(inp);
+    card.appendChild(unit);
+    return card;
+
+  } else if (item.type === 'custom') {
+    var card = document.createElement('div');
+    card.className = 'item-card' + (val > 0 ? ' has-count' : '');
+    card.id = 'card-' + item.id;
+
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'item-name';
+    var label = area.customLabels[item.id] || '';
+    nameDiv.innerHTML = item.label;
+
+    var customInp = document.createElement('input');
+    customInp.type = 'text';
+    customInp.className = 'custom-input';
+    customInp.placeholder = 'Description…';
+    customInp.value = label;
+    customInp.onblur = (function(id) {
+      return function() {
+        currentArea().customLabels[id] = this.value;
+        save();
+      };
+    })(item.id);
+    nameDiv.appendChild(customInp);
+
+    var btnMinus = makeMinusBtn(item.id);
+    var countEl = makeCountEl(val);
+    countEl.id = 'count-' + item.id;
+    var btnPlus = makePlusBtn(item.id);
+    var btnReset = makeResetBtn(item.id, item.label);
+
+    card.appendChild(nameDiv);
+    card.appendChild(btnReset);
+    card.appendChild(btnMinus);
+    card.appendChild(countEl);
+    card.appendChild(btnPlus);
+    return card;
+
+  } else {
+    var card = document.createElement('div');
+    card.className = 'item-card' + (val > 0 ? ' has-count' : '');
+    card.id = 'card-' + item.id;
+
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'item-name';
+    nameDiv.innerHTML = item.label + (item.note ? '<small>' + item.note + '</small>' : '');
+
+    var btnMinus = makeMinusBtn(item.id);
+    var countEl = makeCountEl(val);
+    countEl.id = 'count-' + item.id;
+    var btnPlus = makePlusBtn(item.id);
+    var btnReset = makeResetBtn(item.id, item.label);
+
+    card.appendChild(nameDiv);
+    card.appendChild(btnReset);
+    card.appendChild(btnMinus);
+    card.appendChild(countEl);
+    card.appendChild(btnPlus);
+    return card;
+  }
+}
+
+function makePlusBtn(id) {
+  var btn = document.createElement('button');
+  btn.className = 'btn-plus';
+  btn.textContent = '+';
+  btn.setAttribute('aria-label', 'Add ' + id);
+  btn.onclick = function() { increment(id, 1); };
+  return btn;
+}
+
+function makeMinusBtn(id) {
+  var btn = document.createElement('button');
+  btn.className = 'btn-minus';
+  btn.textContent = '−';
+  btn.setAttribute('aria-label', 'Remove ' + id);
+  btn.onclick = function() { increment(id, -1); };
+  return btn;
+}
+
+function makeCountEl(val) {
+  var el = document.createElement('div');
+  el.className = 'count-display' + (val === 0 ? ' zero' : '');
+  el.textContent = val;
+  return el;
+}
+
+function makeResetBtn(id, label) {
+  var btn = document.createElement('button');
+  btn.className = 'btn-reset';
+  btn.textContent = '✕';
+  btn.setAttribute('aria-label', 'Reset ' + id);
+  btn.title = 'Reset to zero';
+  btn.onclick = function() {
+    if (confirm('Reset "' + label + '" to zero?')) {
+      setCount(id, 0);
+      updateCountDisplay(id, 0);
+      updateSummary();
+    }
+  };
+  return btn;
+}
+
+// ============================================================
+//  COUNTING
+// ============================================================
+function increment(id, delta) {
+  var area = currentArea();
+  var cur = area.counts[id] || 0;
+  var next = Math.max(0, cur + delta);
+  area.counts[id] = next;
+  updateCountDisplay(id, next);
+  updateSummary();
+  save();
+}
+
+function setCount(id, val) {
+  var area = currentArea();
+  area.counts[id] = val;
+  updateSummary();
+  save();
+}
+
+function updateCountDisplay(id, val) {
+  var el = document.getElementById('count-' + id);
+  if (el) {
+    el.textContent = val;
+    el.className = 'count-display' + (val === 0 ? ' zero' : '');
+  }
+  var card = document.getElementById('card-' + id);
+  if (card) {
+    if (val > 0) card.classList.add('has-count');
+    else card.classList.remove('has-count');
+  }
+}
+
+function updateSummary() {
+  var total = 0;
+  var area = currentArea();
+  CATEGORIES.forEach(function(cat) {
+    cat.items.forEach(function(item) {
+      var v = area.counts[item.id] || 0;
+      if (v > 0) total += (item.type === 'count' || item.type === 'custom') ? v : 1;
+    });
+  });
+  var el = document.getElementById('total-count');
+  if (el) el.textContent = total;
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.tab-btn').forEach(function(b) {
+    b.className = 'tab-btn' + (b.textContent === CATEGORIES.find(function(c){ return c.id === id; }).label ? ' active' : '');
+  });
+  document.querySelectorAll('.section').forEach(function(s) {
+    s.className = 'section' + (s.id === 'sec-' + id ? ' active' : '');
+  });
+}
+
+// ============================================================
+//  JOB NAME / AREA NAME SYNC
+// ============================================================
+document.getElementById('job-name').onblur = function() {
+  state.jobName = this.value;
+  save();
+};
+document.getElementById('area-name').onblur = function() {
+  currentArea().name = this.value;
+  save();
+};
+
+// ============================================================
+//  AREAS PANEL
+// ============================================================
+function openAreas() {
+  renderAreasList();
+  document.getElementById('areas-overlay').classList.add('open');
+}
+function closeAreas(e) {
+  if (!e || e.target === document.getElementById('areas-overlay')) {
+    document.getElementById('areas-overlay').classList.remove('open');
+  }
+}
+function renderAreasList() {
+  var list = document.getElementById('areas-list');
+  list.innerHTML = '';
+  state.areas.forEach(function(area, idx) {
+    var row = document.createElement('div');
+    var isCurrent = idx === state.currentAreaIdx;
+    row.className = 'area-item' + (isCurrent ? ' current' : '');
+
+    var nameEl = document.createElement('div');
+    nameEl.className = 'area-item-name';
+    nameEl.textContent = area.name || 'Area ' + (idx+1);
+    if (isCurrent) nameEl.textContent += ' ✓';
+
+    var countEl = document.createElement('div');
+    countEl.className = 'area-item-count';
+    var n = Object.values(area.counts || {}).filter(function(v){ return v > 0; }).length;
+    countEl.textContent = n + ' items';
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'area-item-del';
+    delBtn.textContent = '✕';
+    delBtn.onclick = (function(i) {
+      return function(ev) {
+        ev.stopPropagation();
+        if (state.areas.length === 1) { showToast('Need at least one area'); return; }
+        if (confirm('Delete area "' + (state.areas[i].name || 'Area') + '"?')) {
+          state.areas.splice(i, 1);
+          if (state.currentAreaIdx >= state.areas.length) state.currentAreaIdx = state.areas.length - 1;
+          save(); renderAreasList(); renderAll();
+        }
+      };
+    })(idx);
+
+    row.appendChild(nameEl);
+    row.appendChild(countEl);
+    row.appendChild(delBtn);
+    row.onclick = (function(i) {
+      return function() { switchArea(i); closeAreas(); };
+    })(idx);
+    list.appendChild(row);
+  });
+}
+
+function addArea() {
+  var inp = document.getElementById('new-area-inp');
+  var name = inp.value.trim() || ('Area ' + (state.areas.length + 1));
+  state.areas.push({ name: name, counts: {}, customLabels: {} });
+  state.currentAreaIdx = state.areas.length - 1;
+  inp.value = '';
+  save();
+  renderAreasList();
+  renderAll();
+  closeAreas();
+}
+
+function switchArea(idx) {
+  state.currentAreaIdx = idx;
+  renderAll();
+  save();
+}
+
+function clearCurrentArea() {
+  var name = currentArea().name || 'this area';
+  if (!confirm('Clear ALL counts in "' + name + '"? This cannot be undone.')) return;
+  currentArea().counts = {};
+  currentArea().customLabels = {};
+  save();
+  renderAll();
+  closeAreas();
+  showToast('Cleared: ' + name);
+}
+
+// ============================================================
+//  JOBS PANEL
+// ============================================================
+function openJobs() {
+  renderJobsList();
+  document.getElementById('jobs-overlay').classList.add('open');
+}
+function closeJobs(e) {
+  if (!e || e.target === document.getElementById('jobs-overlay')) {
+    document.getElementById('jobs-overlay').classList.remove('open');
+  }
+}
+function renderJobsList() {
+  var jobs = loadAllJobs();
+  var list = document.getElementById('jobs-list');
+  list.innerHTML = '';
+  var keys = Object.keys(jobs);
+
+  if (keys.length === 0) {
+    list.innerHTML = '<p style="color:var(--text3);font-size:14px;padding:8px 0;">No saved jobs yet.</p>';
+  } else {
+    keys.forEach(function(k) {
+      var j = jobs[k];
+      var isActive = (k === (state.jobName || '__default__'));
+      var row = document.createElement('div');
+      row.className = 'job-item';
+      if (isActive) row.style.borderColor = 'var(--accent)';
+
+      var nameEl = document.createElement('div');
+      nameEl.className = 'job-item-name';
+      nameEl.textContent = (k === '__default__' ? '(Untitled)' : k) + (isActive ? ' ✓' : '');
+      if (isActive) nameEl.style.color = 'var(--accent)';
+
+      var meta = document.createElement('div');
+      meta.className = 'job-item-meta';
+      meta.textContent = (j.areas || []).length + ' area(s)';
+
+      var del = document.createElement('button');
+      del.className = 'job-item-del';
+      del.textContent = '✕';
+      del.onclick = (function(key) {
+        return function(ev) {
+          ev.stopPropagation();
+          var displayName = key === '__default__' ? 'Untitled' : key;
+          if (!confirm('Delete job "' + displayName + '"? This cannot be undone.')) return;
+          var all = loadAllJobs();
+          delete all[key];
+          localStorage.setItem(JOBS_KEY, JSON.stringify(all));
+          // If we deleted the active job, start fresh
+          if (key === (state.jobName || '__default__')) {
+            state = { jobName: '', currentAreaIdx: 0, areas: [{ name: '1st Floor', counts: {}, customLabels: {} }] };
+            renderAll();
+          }
+          renderJobsList();
+          showToast('Deleted: ' + displayName);
+        };
+      })(k);
+
+      row.appendChild(nameEl);
+      row.appendChild(meta);
+      row.appendChild(del);
+      row.onclick = (function(key) {
+        return function() { loadJob(key === '__default__' ? '' : key); closeJobs(); };
+      })(k);
+      list.appendChild(row);
+    });
+  }
+
+  // New job button — always visible at bottom
+  var divider = document.createElement('div');
+  divider.style.cssText = 'border-top:1px solid var(--border);margin:10px 0 8px;';
+  list.appendChild(divider);
+
+  var newBtn = document.createElement('div');
+  newBtn.className = 'job-item';
+  newBtn.style.borderColor = 'var(--green)';
+  newBtn.innerHTML = '<div class="job-item-name" style="color:var(--green);font-size:17px;">+ NEW BLANK JOB</div>';
+  newBtn.onclick = function() {
+    var nm = prompt('Enter job name:', '');
+    if (nm === null) return; // user hit cancel
+    nm = nm.trim();
+    if (!nm) { alert('Please enter a job name.'); return; }
+    // Check if name already exists
+    var existing = loadAllJobs();
+    if (existing[nm]) {
+      if (!confirm('A job named "' + nm + '" already exists. Overwrite it?')) return;
+    }
+    state = { jobName: nm, currentAreaIdx: 0, areas: [{ name: '1st Floor', counts: {}, customLabels: {} }] };
+    save();
+    closeJobs();
+    renderAll();
+    showToast('Started: ' + nm);
+  };
+  list.appendChild(newBtn);
+}
+
+// ============================================================
+//  RENDER ALL
+// ============================================================
+function renderAll() {
+  document.getElementById('job-name').value = state.jobName || '';
+  document.getElementById('area-name').value = currentArea().name || '';
+  buildSections();
+  updateSummary();
+  // reset header height CSS var
+  setTimeout(function() {
+    var h = document.getElementById('header').offsetHeight;
+    document.documentElement.style.setProperty('--header-h', h + 'px');
+  }, 50);
+}
+
+// ============================================================
+//  EXPORT / IMPORT
+// ============================================================
+function computeTotals() {
+  var totals = {};
+  state.areas.forEach(function(area) {
+    Object.keys(area.counts || {}).forEach(function(k) {
+      totals[k] = (totals[k] || 0) + (area.counts[k] || 0);
+    });
+  });
+  return totals;
+}
+
+function exportJSON() {
+  var out = {
+    jobName: state.jobName || 'Untitled',
+    exportDate: new Date().toISOString().slice(0,10),
+    areas: state.areas.map(function(a) {
+      var cleaned = {};
+      Object.keys(a.counts).forEach(function(k) {
+        if (a.counts[k] > 0) cleaned[k] = a.counts[k];
+      });
+      return { areaName: a.name || 'Area', counts: cleaned };
+    }),
+    totals: computeTotals()
+  };
+  var blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  var fname = (state.jobName || 'takeoff').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  a.download = fname + '_takeoff_' + out.exportDate + '.json';
+  a.click();
+  showToast('Exported!');
+}
+
+function importJSON(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      // Support both takeoff format and raw state format
+      if (data.areas && Array.isArray(data.areas)) {
+        state.jobName = data.jobName || '';
+        state.areas = data.areas.map(function(a) {
+          return {
+            name: a.areaName || a.name || 'Area',
+            counts: a.counts || {},
+            customLabels: a.customLabels || {}
+          };
+        });
+        state.currentAreaIdx = 0;
+        save();
+        renderAll();
+        showToast('Loaded!');
+      }
+    } catch(err) {
+      alert('Invalid JSON file.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+//  TOAST
+// ============================================================
+var toastTimer;
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.classList.remove('show'); }, 1800);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', function() {
+  buildUI();
+  autoLoad();
+  renderAll();
+
+  // enter key on new area input
+  document.getElementById('new-area-inp').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') addArea();
+  });
+  document.getElementById('job-name').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') this.blur();
+  });
+  document.getElementById('area-name').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') this.blur();
+  });
+});
+</script>
+
+
+</body></html>

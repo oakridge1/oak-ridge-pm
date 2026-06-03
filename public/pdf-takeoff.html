@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oak Ridge Electrical — PDF Takeoff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="pdf-takeoff_files/css2.css" rel="stylesheet">
+<script src="pdf-takeoff_files/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#111214;--surface:#1a1c20;--surface2:#22252b;
+  --border:#2e3138;--accent:#f0a500;--text:#e8eaed;--text2:#9aa0ab;
+  --text3:#5a6070;--danger:#e03a3a;--green:#2db562;
+  --radius:8px;--ui:'Barlow Condensed',sans-serif;--mono:'JetBrains Mono',monospace;
+  --tw:310px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidden;height:100dvh;display:flex;flex-direction:column;}
+#hdr{height:52px;background:var(--surface);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:6px;padding:0 10px;flex-shrink:0;z-index:50;}
+#logo{font-size:13px;font-weight:900;letter-spacing:.12em;color:var(--accent);white-space:nowrap;}
+#logo span{color:var(--text3);font-weight:400;}
+.sep{width:1px;height:24px;background:var(--border);flex-shrink:0;}
+#sp{flex:1;}
+.hb{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.06em;padding:5px 8px;cursor:pointer;white-space:nowrap;text-transform:uppercase;transition:all .1s;flex-shrink:0;}
+.hb:hover{border-color:var(--text3);color:var(--text);}.hb:active{transform:scale(.95);}
+.hb.g{background:var(--green);border-color:var(--green);color:#fff;}
+.hb.a{background:var(--accent);border-color:var(--accent);color:#111;}
+#pnav{display:flex;align-items:center;gap:4px;}
+#pnav button{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text2);font-family:var(--mono);font-size:14px;width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+#pnav button:disabled{opacity:.3;cursor:default;}
+#pinfo{font-family:var(--mono);font-size:11px;min-width:42px;text-align:center;color:var(--text2);}
+#dwg-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:5px 10px;flex-shrink:0;}
+#dwg-select{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--ui);font-size:13px;font-weight:700;padding:5px 8px;outline:none;min-width:0;}
+#dwg-select:focus{border-color:var(--accent);}
+.dbt{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.06em;padding:5px 8px;cursor:pointer;white-space:nowrap;text-transform:uppercase;flex-shrink:0;}
+.dbt:hover{border-color:var(--text3);color:var(--text);}
+.dbt.gr{background:var(--green);border-color:var(--green);color:#fff;}
+.dbt.da{border-color:var(--danger);color:var(--danger);}
+#body{display:flex;flex:1;overflow:hidden;}
+#tb{width:var(--tw);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .2s;}
+#tb.collapsed{width:0;}
+#tbi{width:var(--tw);overflow-y:auto;overflow-x:hidden;flex:1;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+#tbi::-webkit-scrollbar{width:4px;}#tbi::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.tbs{border-bottom:1px solid var(--border);padding:10px 12px;}
+.tbl{font-size:10px;font-weight:900;letter-spacing:.15em;color:var(--text3);text-transform:uppercase;margin-bottom:8px;}
+.ts,.ti{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--ui);font-size:14px;font-weight:600;padding:7px 8px;outline:none;margin-bottom:6px;}
+.ts:focus,.ti:focus{border-color:var(--accent);}
+#mbts{display:flex;gap:4px;}
+.mbt{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text3);font-family:var(--ui);font-size:12px;font-weight:700;letter-spacing:.05em;padding:8px 4px;cursor:pointer;text-align:center;text-transform:uppercase;transition:all .1s;}
+.mbt.active{background:var(--accent);border-color:var(--accent);color:#111;}
+#scale-status{font-size:11px;color:var(--green);font-family:var(--mono);min-height:16px;}
+.mbtn{width:100%;background:var(--surface2);border:1px dashed var(--border);border-radius:6px;color:var(--text2);font-family:var(--ui);font-size:12px;font-weight:700;letter-spacing:.05em;padding:8px;cursor:pointer;text-align:center;text-transform:uppercase;transition:all .1s;margin-top:2px;}
+.mbtn.active{border-color:var(--accent);color:var(--accent);background:rgba(240,165,0,.07);}
+.lrow-i{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;cursor:pointer;transition:all .1s;margin-bottom:4px;}
+.lrow-i.active{border-color:var(--accent);background:rgba(240,165,0,.08);}
+.sw18{width:24px;height:24px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.rtbar{width:26px;height:6px;border-radius:3px;flex-shrink:0;}
+.rn{flex:1;font-size:12px;font-weight:700;line-height:1.2;overflow:hidden;}
+.rn small{display:block;font-size:10px;font-weight:400;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rst{font-family:var(--mono);font-size:11px;color:var(--accent);white-space:nowrap;text-align:right;line-height:1.4;}
+.red{background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
+.red:hover{color:var(--text);}
+.addb{width:100%;background:none;border:1px dashed var(--border);border-radius:6px;color:var(--text3);font-family:var(--ui);font-size:12px;font-weight:700;letter-spacing:.06em;padding:8px;cursor:pointer;text-transform:uppercase;margin-top:4px;transition:all .1s;}
+.addb:hover{border-color:var(--text2);color:var(--text2);}
+.frow{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+.frow label{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.06em;flex-shrink:0;min-width:68px;}
+.frow input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 8px;outline:none;}
+.frow input:focus{border-color:var(--accent);}
+.frow span{font-size:11px;color:var(--text3);flex-shrink:0;}
+#layers-list{display:flex;flex-direction:column;gap:3px;}
+.llr{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:5px;}
+.llr:hover{background:var(--surface2);}
+.lv{background:none;border:1px solid var(--border);border-radius:4px;width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.lv.off{opacity:.35;}
+.lsw{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+.ln{flex:1;font-size:11px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lc{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;}
+#audit-panel{border-top:1px solid var(--border);flex-shrink:0;}
+#audit-hdr{display:flex;align-items:center;padding:8px 12px;cursor:pointer;background:var(--surface2);}
+#audit-hdr span{flex:1;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);}
+#audit-body{display:none;max-height:200px;overflow-y:auto;padding:8px 12px;}
+#audit-body.open{display:block;}
+.asl{font-size:9px;font-weight:900;letter-spacing:.15em;color:var(--text3);text-transform:uppercase;margin:8px 0 4px;}
+.arow{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px solid rgba(46,49,56,.5);}
+.akey{font-size:12px;font-weight:600;color:var(--text2);}
+.aval{font-family:var(--mono);font-size:11px;color:var(--accent);}
+#audit-print{width:100%;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.06em;padding:7px;cursor:pointer;text-transform:uppercase;margin-top:8px;transition:all .1s;}
+#audit-print:hover{border-color:var(--accent);color:var(--accent);}
+#cv-wrap{flex:1;overflow:auto;background:#0a0b0c;position:relative;cursor:crosshair;}
+#cv-wrap.pan{cursor:grab;}#cv-wrap.pan:active{cursor:grabbing;}
+#cv-wrap::-webkit-scrollbar{width:6px;height:6px;}
+#cv-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+#cv-con{position:relative;display:inline-block;}
+#pdf-cv{display:block;}
+#mk-cv{position:absolute;top:0;left:0;pointer-events:none;}
+#cal-ov{display:none;position:absolute;top:0;left:0;right:0;bottom:0;z-index:30;cursor:crosshair;}
+#cal-ov.active{display:block;}
+#cal-svg{position:absolute;pointer-events:none;top:0;left:0;width:100%;height:100%;}
+#no-pdf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;pointer-events:none;}
+#no-pdf h2{font-size:22px;font-weight:900;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;}
+#no-pdf p{font-size:14px;color:var(--text3);text-align:center;max-width:280px;line-height:1.5;}
+.npb{pointer-events:all;background:var(--accent);border:none;border-radius:var(--radius);color:#111;font-family:var(--ui);font-size:16px;font-weight:900;letter-spacing:.08em;padding:14px 28px;cursor:pointer;text-transform:uppercase;}
+#zoom-bar{position:absolute;bottom:16px;right:16px;display:flex;flex-direction:column;gap:4px;z-index:40;}
+.zb{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:18px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.zb:hover{border-color:var(--accent);color:var(--accent);}
+#zoom-lv{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;}
+#tbt{position:absolute;top:50%;left:var(--tw);transform:translateY(-50%);background:var(--surface);border:1px solid var(--border);border-left:none;border-radius:0 6px 6px 0;color:var(--text3);cursor:pointer;font-size:14px;padding:8px 5px;z-index:45;transition:left .2s;}
+#tbt.c{left:0;}
+#sbar{height:28px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:16px;flex-shrink:0;}
+.si{font-size:11px;font-family:var(--mono);color:var(--text3);}
+.si span{color:var(--accent);}
+#shint{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.04em;margin-left:auto;}
+#rtt{position:fixed;background:var(--surface);border:1px solid var(--accent);border-radius:6px;padding:5px 10px;font-family:var(--mono);font-size:12px;color:var(--accent);pointer-events:none;z-index:100;display:none;box-shadow:0 4px 12px rgba(0,0,0,.5);white-space:nowrap;}
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;align-items:center;justify-content:center;padding:16px;}
+.mo.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:12px;padding:20px;width:400px;max-width:100%;max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:16px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+.ml{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:4px;margin-top:10px;}
+.mi,.ms{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--ui);font-size:15px;font-weight:600;padding:9px 10px;outline:none;}
+.mi:focus,.ms:focus{border-color:var(--accent);}
+.mr{display:flex;gap:8px;}.mr .mi,.mr .ms{flex:1;}
+.mdv{border:none;border-top:1px solid var(--border);margin:14px 0 4px;}
+.mh{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4;}
+.wr{display:flex;gap:5px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 8px;margin-bottom:5px;}
+.wr select,.wr input{background:transparent;border:none;color:var(--text);font-family:var(--ui);font-size:13px;font-weight:600;outline:none;padding:0;}
+.wr select{flex:1;}.wr input[type=number]{width:38px;text-align:center;font-family:var(--mono);}
+.wl{font-size:10px;color:var(--text3);font-weight:700;flex-shrink:0;}
+.wd{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:0 3px;flex-shrink:0;}
+.wd:hover{color:var(--danger);}
+.awb{width:100%;background:none;border:1px dashed var(--border);border-radius:6px;color:var(--text3);font-family:var(--ui);font-size:12px;font-weight:700;padding:7px;cursor:pointer;text-transform:uppercase;margin-top:2px;transition:all .1s;letter-spacing:.06em;}
+.awb:hover{border-color:var(--text2);color:var(--text2);}
+/* Assembly search picker */
+.asm-search-wrap{position:relative;margin-bottom:6px;}
+.asm-search-inp{width:100%;background:var(--surface2);border:1px solid var(--accent);border-radius:6px;color:var(--text);font-family:var(--ui);font-size:14px;font-weight:600;padding:8px 10px;outline:none;}
+.asm-search-inp::placeholder{color:var(--text3);}
+.asm-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;z-index:50;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.asm-dropdown.open{display:block;}
+.asm-opt-cat{font-size:9px;font-weight:900;letter-spacing:.15em;color:var(--text3);text-transform:uppercase;padding:6px 10px 3px;background:var(--surface2);}
+.asm-opt{padding:7px 10px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:background .08s;}
+.asm-opt:hover{background:var(--surface2);color:var(--text);}
+.asm-opt.custom-entry{color:var(--accent);font-style:italic;}
+/* Color grid */
+.cg{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:6px;}
+.cs{width:100%;aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:transform .1s;}
+.cs.sel{border-color:#fff;transform:scale(1.15);}
+/* Symbol picker — electrical symbols */
+.sym-tabs{display:flex;gap:4px;margin-bottom:8px;margin-top:6px;}
+.sym-tab{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text3);font-family:var(--ui);font-size:11px;font-weight:700;padding:5px 4px;cursor:pointer;text-align:center;text-transform:uppercase;transition:all .1s;}
+.sym-tab.active{background:var(--accent);border-color:var(--accent);color:#111;}
+.sym-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:4px;}
+.sym-btn{aspect-ratio:1;background:var(--surface2);border:2px solid var(--border);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;padding:3px;}
+.sym-btn:hover{border-color:var(--text2);}
+.sym-btn.sel{border-color:var(--accent);background:rgba(240,165,0,.1);}
+.sym-btn svg{width:100%;height:100%;}
+/* Modal actions */
+.ma{display:flex;gap:8px;margin-top:16px;}
+.ma button{flex:1;border-radius:var(--radius);font-family:var(--ui);font-size:14px;font-weight:700;letter-spacing:.06em;padding:11px;cursor:pointer;text-transform:uppercase;border:1px solid var(--border);}
+.bc{background:var(--accent);border-color:var(--accent);color:#111;}
+.bx{background:var(--surface2);color:var(--text2);}
+/* Drawing name prompt */
+#dwg-prompt{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;align-items:center;justify-content:center;}
+#dwg-prompt.open{display:flex;}
+#dpb{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:12px;padding:20px;width:340px;max-width:95vw;}
+#dpb h3{font-size:16px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+#dpb input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--ui);font-size:15px;font-weight:600;padding:10px;outline:none;margin-bottom:12px;}
+#dpb input:focus{border-color:var(--accent);}
+/* Page picker modal */
+#pg-picker-list{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px;max-height:260px;overflow-y:auto;}
+.pgck{display:flex;align-items:center;justify-content:center;background:var(--surface2);border:2px solid var(--border);border-radius:6px;height:38px;font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;color:var(--text2);transition:all .1s;user-select:none;}
+.pgck.on{border-color:var(--accent);background:rgba(240,165,0,.12);color:var(--accent);}
+#pg-progress{margin-top:12px;font-size:12px;color:var(--text3);font-family:var(--mono);min-height:18px;text-align:center;}
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div id="logo">OAK RIDGE <span>/ PDF TAKEOFF</span></div>
+  <div class="sep"></div><div id="sp"></div>
+  <div id="pnav">
+    <button id="btn-prev" onclick="changePage(-1)" disabled="disabled">‹</button>
+    <span id="pinfo">—/—</span>
+    <button id="btn-next" onclick="changePage(1)" disabled="disabled">›</button>
+  </div>
+  <div class="sep"></div>
+  <label class="hb" for="pdf-inp">📄 PDF</label>
+  <input type="file" id="pdf-inp" accept=".pdf,.PDF,application/pdf" style="display:none" onchange="loadPDF(event)">
+  <button class="hb g" onclick="syncToCounter()">↑ SYNC</button>
+  <button class="hb" onclick="showReport()">🖨 REPORT</button>
+  <button class="hb a" onclick="openPagePicker()">📷 SAVE DWG</button>
+  <button class="hb" onclick="exportJSON()">↓ JSON</button>
+</div>
+<div id="dwg-bar">
+  <select id="dwg-select" onchange="switchDrawing(this.value)">
+    <option value="" selected="selected">— No drawing loaded —</option>
+  </select>
+  <button class="dbt gr" onclick="document.getElementById('pdf-inp').click()">+ LOAD NEW</button>
+  <button class="dbt da" onclick="clearCurrentDrawing()">🗑 CLEAR</button>
+</div>
+<div id="body">
+  <div id="tb">
+    <div id="tbi">
+      <div class="tbs">
+        <div class="tbl">Mode</div>
+        <div id="mbts">
+          <button class="mbt active" data-mode="count" onclick="setMode('count')">COUNT</button>
+          <button class="mbt" data-mode="run" onclick="setMode('run')">RUN</button>
+          <button class="mbt" data-mode="pan" onclick="setMode('pan')">PAN</button>
+        </div>
+      </div>
+      <div class="tbs">
+        <div class="tbl">Drawing Scale</div>
+        <select class="ts" id="scale-preset" onchange="applyScalePreset()">
+          <option value="" selected="selected">— Pick preset —</option>
+          <option value="120">1" = 10'</option><option value="240">1" = 20'</option>
+          <option value="480">1" = 40'</option><option value="48">1" = 4'</option>
+          <option value="96">1" = 8'</option><option value="16">1/8" = 1'</option>
+          <option value="32">1/4" = 1'</option><option value="64">1/2" = 1'</option>
+          <option value="288">1" = 24'</option><option value="576">1" = 48'</option>
+        </select>
+        <button class="mbtn" id="measure-btn" onclick="startMeasure()">📏 MEASURE KNOWN DISTANCE</button>
+        <div id="scale-status" style="margin-top:4px;">No scale set</div>
+      </div>
+      <div class="tbs" id="asm-section">
+        <div class="tbl">Assemblies — Count Mode</div>
+        <div id="asm-list"><div class="lrow-i active"><canvas width="24" height="24" class="sw18" style="flex-shrink: 0;"></canvas><div class="rn">20A Receptacle</div><div class="rst">0</div><button class="red">e</button></div><div class="lrow-i"><canvas width="24" height="24" class="sw18" style="flex-shrink: 0;"></canvas><div class="rn">2x4 LED Fixture</div><div class="rst">0</div><button class="red">e</button></div><div class="lrow-i"><canvas width="24" height="24" class="sw18" style="flex-shrink: 0;"></canvas><div class="rn">Single Pole Switch</div><div class="rst">0</div><button class="red">e</button></div></div>
+        <button class="addb" onclick="openAsmModal(-1)">+ ADD ASSEMBLY</button>
+      </div>
+      <div class="tbs" id="run-section" style="display:none;">
+        <div class="tbl">Run Types — Conduit / MC</div>
+        <div id="rt-list"></div>
+        <button class="addb" onclick="openRunModal(-1)">+ ADD RUN TYPE</button>
+        <hr class="mdv" style="margin-top:10px;">
+        <div class="tbl" style="margin-top:6px;">Wall Drops (active run)</div>
+        <div class="frow"><label>DROP START</label><input type="number" id="drop-s" value="0" min="0"><span>ft</span></div>
+        <div class="frow"><label>DROP END</label><input type="number" id="drop-e" value="0" min="0"><span>ft</span></div>
+      </div>
+      <div class="tbs">
+        <div class="tbl">Layers</div>
+        <div id="layers-list"><div class="llr"><button class="lv">👁</button><div class="lsw" style="background: rgb(224, 58, 58);"></div><div class="ln">20A Receptacle</div><div class="lc">0 ct</div></div><div class="llr"><button class="lv">👁</button><div class="lsw" style="background: rgb(58, 143, 232);"></div><div class="ln">2x4 LED Fixture</div><div class="lc">0 ct</div></div><div class="llr"><button class="lv">👁</button><div class="lsw" style="background: rgb(45, 181, 98);"></div><div class="ln">Single Pole Switch</div><div class="lc">0 ct</div></div></div>
+      </div>
+    </div>
+    <div id="audit-panel">
+      <div id="audit-hdr" onclick="toggleAudit()">
+        <span>Audit Trail</span><span id="audit-icon">▲</span>
+      </div>
+      <div id="audit-body" class="open">
+        <div id="audit-content"><div style="font-size:12px;color:var(--text3);padding:4px 0;">No data yet.</div></div>
+        <button id="audit-print" onclick="showReport()">🖨 OPEN REPORT</button>
+      </div>
+    </div>
+  </div>
+  <button id="tbt" onclick="toggleTB()">‹</button>
+  <div id="cv-wrap">
+    <div id="cv-con">
+      <canvas id="pdf-cv"></canvas>
+      <canvas id="mk-cv" style="pointer-events: auto;"></canvas>
+      <div id="cal-ov"><svg id="cal-svg"></svg></div>
+    </div>
+    <div id="no-pdf">
+      <h2>No Drawing Loaded</h2>
+      <p>Load a PDF blueprint. Each PDF is saved as a named drawing—switch between them without losing marks.</p>
+      <label class="npb" for="pdf-inp">📄 LOAD PDF</label>
+    </div>
+    <div id="zoom-bar">
+      <button class="zb" onclick="zoom(.15)">+</button>
+      <div id="zoom-lv">100%</div>
+      <button class="zb" onclick="zoom(-.15)">−</button>
+      <button class="zb" onclick="zoomFit()">⊝</button>
+    </div>
+  </div>
+</div>
+<div id="sbar">
+  <div class="si">SCALE: <span id="st-scale">Not set</span></div>
+  <div class="si">MODE: <span id="st-mode">COUNT</span></div>
+  <div class="si">ACTIVE: <span id="st-active">20A Receptacle</span></div>
+  <div class="si" id="st-rw" style="display:none;">RUN: <span id="st-run">0 ft</span></div>
+  <div id="shint">Click to place | Right-click = undo last</div>
+</div>
+<div id="rtt" style="display: none;"></div>
+
+<!-- DRAWING NAME PROMPT -->
+<div id="dwg-prompt">
+  <div id="dpb">
+    <h3>Name This Drawing</h3>
+    <input type="text" id="dwg-name-inp" placeholder="e.g. E1.0 — First Floor Power">
+    <div class="ma">
+      <button class="bx" onclick="cancelDwgPrompt()">Cancel</button>
+      <button class="bc" onclick="confirmDwgLoad()">Load Drawing</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSEMBLY MODAL -->
+<div class="mo" id="asm-modal">
+  <div class="modal">
+    <h3 id="asm-title">Add Assembly</h3>
+    <label class="ml">Search Standard Items or Type Custom</label>
+    <div class="asm-search-wrap">
+      <input class="asm-search-inp" type="text" id="asm-search" placeholder="Search: smoke, receptacle, fixture..." autocomplete="off">
+      <div class="asm-dropdown" id="asm-dropdown"></div>
+    </div>
+    <label class="ml">Name</label>
+    <input class="mi" type="text" id="asm-name" placeholder="e.g. FA Horn/Strobe">
+    <div class="mr">
+      <div style="flex:1;">
+        <label class="ml">Category</label>
+        <select class="ms" id="asm-cat">
+          <option value="Devices" selected="selected">Devices</option>
+          <option value="Fixtures">Fixtures</option>
+          <option value="Data">Data / Low Voltage</option>
+          <option value="Conduit">Conduit</option>
+          <option value="Panels">Panels &amp; Gear</option>
+          <option value="Fire Alarm">Fire Alarm</option>
+          <option value="Boxes &amp; Rough">Boxes &amp; Rough</option>
+          <option value="Low Voltage / Misc">Low Voltage / Misc</option>
+          <option value="Custom">Custom</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label class="ml">Export Key</label>
+        <input class="mi" type="text" id="asm-key" placeholder="e.g. fa_horn_strobe">
+      </div>
+    </div>
+    <label class="ml">Color</label>
+    <div class="cg" id="asm-cgrid"><div class="cs sel" style="background: rgb(224, 58, 58);"></div><div class="cs" style="background: rgb(240, 165, 0);"></div><div class="cs" style="background: rgb(45, 181, 98);"></div><div class="cs" style="background: rgb(58, 143, 232);"></div><div class="cs" style="background: rgb(176, 58, 224);"></div><div class="cs" style="background: rgb(224, 119, 58);"></div><div class="cs" style="background: rgb(58, 221, 224);"></div><div class="cs" style="background: rgb(224, 58, 153);"></div><div class="cs" style="background: rgb(200, 224, 48);"></div><div class="cs" style="background: rgb(192, 96, 58);"></div><div class="cs" style="background: rgb(90, 143, 240);"></div><div class="cs" style="background: rgb(240, 80, 80);"></div></div>
+    <label class="ml">Symbol</label>
+    <div class="sym-tabs">
+      <button class="sym-tab active" onclick="switchSymTab('elec',this)">Electrical</button>
+      <button class="sym-tab" onclick="switchSymTab('basic',this)">Basic</button>
+    </div>
+    <div class="sym-grid" id="sym-grid-elec"><button class="sym-btn" title="Duplex Receptacle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Single Receptacle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="GFCI Receptacle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="WP Receptacle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Fourplex Receptacle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="240V Receptacle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Single Pole Switch"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="3-Way Switch"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Dimmer Switch"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Wall Light Fixture"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Ceiling Fixture"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Recessed Light"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Fluorescent Fixture"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Ceiling Fan"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="WP Fixture"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Smoke Detector"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Exit / Emergency"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Panel / Switchbox"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Junction Box"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Data Port"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Telephone Jack"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Electric Motor"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Transformer"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="High Bay"><canvas width="44" height="44"></canvas></button></div>
+    <div class="sym-grid" id="sym-grid-basic" style="display:none;"><button class="sym-btn sel" title="Dot"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Circle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Square"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Triangle"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Star"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Diamond"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Cross"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="X"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Hexagon"><canvas width="44" height="44"></canvas></button><button class="sym-btn" title="Arrow Up"><canvas width="44" height="44"></canvas></button></div>
+    <div class="ma">
+      <button class="bx" onclick="closeModal('asm-modal')">Cancel</button>
+      <button class="bc" onclick="saveAsm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- RUN TYPE MODAL -->
+<div class="mo" id="run-modal">
+  <div class="modal">
+    <h3 id="run-title">Add Run Type</h3>
+    <label class="ml">Category</label>
+    <select class="ms" id="rt-cat" onchange="onRtCat()">
+      <option value="emt" selected="selected">EMT Conduit</option><option value="pvc">Sch40 PVC</option>
+      <option value="rigid">Rigid Conduit</option><option value="mc">MC Cable</option>
+      <option value="nm">NM-B (Romex)</option><option value="custom">Custom</option>
+    </select>
+    <div id="rt-sz-w"><label class="ml">Conduit Size</label>
+      <select class="ms" id="rt-size">
+        <option>1/2"</option><option>3/4"</option><option selected="selected">1"</option>
+        <option>1-1/4"</option><option>1-1/2"</option><option>2"</option>
+        <option>2-1/2"</option><option>3"</option><option>3-1/2"</option><option>4"</option>
+      </select></div>
+    <div id="rt-mc-w" style="display:none;"><label class="ml">Cable Type</label>
+      <select class="ms" id="rt-mc">
+        <optgroup label="MC Cable">
+          <option selected="selected">MC 12/2</option><option>MC 12/3</option><option>MC 10/2</option><option>MC 10/3</option>
+          <option>MC 8/3</option><option>MC 6/3</option><option>MC 4/3</option><option>MC 2/3</option><option>MC 1/0</option>
+        </optgroup>
+        <optgroup label="NM-B">
+          <option>NM-B 14/2</option><option>NM-B 14/3</option><option>NM-B 12/2</option>
+          <option>NM-B 12/3</option><option>NM-B 10/2</option><option>NM-B 10/3</option>
+        </optgroup>
+      </select></div>
+    <div id="rt-cu-w" style="display:none;"><label class="ml">Description</label>
+      <input class="mi" type="text" id="rt-cust" placeholder="e.g. 2/0 THHN home run"></div>
+    <div id="rt-wire-w">
+      <hr class="mdv">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span class="ml" style="margin:0;">Wire Fill <span style="color:var(--text3);font-weight:400;">(optional)</span></span>
+        <button class="awb" style="width:auto;padding:4px 10px;margin:0;" onclick="addWireRow()">+ CONDUCTOR</button>
+      </div>
+      <div id="wire-rows"></div>
+      <div class="mh">Wire footage = run footage x conductor count.</div>
+    </div>
+    <hr class="mdv">
+    <div class="tbl" style="margin-top:2px;">Estimator Fields</div>
+    <div class="mr">
+      <div style="flex:1;"><label class="ml">Material</label>
+        <select class="ms" id="rt-mat"><option value="Cu" selected="selected">Cu</option><option value="Al">Al</option></select></div>
+      <div style="flex:1;"><label class="ml">Support Type</label>
+        <select class="ms" id="rt-sup">
+          <option selected="selected">Strut Clip</option><option>Beam Clamp</option><option>Trapeze</option>
+          <option>Bridle Ring</option><option>J-Hook</option><option>None</option>
+        </select></div>
+    </div>
+    <div class="mr">
+      <div style="flex:1;"><label class="ml">Makeup / End</label>
+        <select class="ms" id="rt-mkup">
+          <option selected="selected">6ft / end</option><option>3ft / end</option><option>4ft / end</option>
+          <option>8ft / end</option><option>10ft / end</option><option>0ft / end</option>
+        </select></div>
+      <div style="flex:1;"><label class="ml">Difficulty</label>
+        <select class="ms" id="rt-diff">
+          <option value="Normal" selected="selected">Normal</option><option value="Difficult">Difficult</option><option value="V.Difficult">V.Difficult</option>
+        </select></div>
+    </div>
+    <label class="ml">Line Color</label>
+    <div class="cg" id="rt-cgrid"><div class="cs" style="background: rgb(224, 58, 58);"></div><div class="cs" style="background: rgb(240, 165, 0);"></div><div class="cs" style="background: rgb(45, 181, 98);"></div><div class="cs sel" style="background: rgb(58, 143, 232);"></div><div class="cs" style="background: rgb(176, 58, 224);"></div><div class="cs" style="background: rgb(224, 119, 58);"></div><div class="cs" style="background: rgb(58, 221, 224);"></div><div class="cs" style="background: rgb(224, 58, 153);"></div><div class="cs" style="background: rgb(200, 224, 48);"></div><div class="cs" style="background: rgb(192, 96, 58);"></div><div class="cs" style="background: rgb(90, 143, 240);"></div><div class="cs" style="background: rgb(240, 80, 80);"></div></div>
+    <label class="ml">Nickname (optional)</label>
+    <input class="mi" type="text" id="rt-lbl" placeholder="e.g. Home Runs to Panel A">
+    <div class="ma"><button class="bx" onclick="closeModal('run-modal')">Cancel</button><button class="bc" onclick="saveRunType()">Save</button></div>
+  </div>
+</div>
+
+<!-- MEASURE MODAL -->
+<div class="mo" id="meas-modal">
+  <div class="modal">
+    <h3>Set Scale — Known Distance</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Two points marked. Enter the real-world distance between them.</p>
+    <label class="ml">Real Distance (feet)</label>
+    <input class="mi" type="number" id="meas-dist" placeholder="e.g. 3 for a doorway" min="0.1" step="0.5">
+    <div class="ma"><button class="bx" onclick="cancelMeasure()">Cancel</button><button class="bc" onclick="confirmMeasure()">Set Scale</button></div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="mo" id="report-modal">
+  <div class="modal">
+    <h3>Save / Print Report</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.5;">Choose how to save your takeoff report.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="bc" style="border-radius:var(--radius);font-family:var(--ui);font-size:14px;font-weight:700;letter-spacing:.06em;padding:12px;cursor:pointer;text-transform:uppercase;border:none;" onclick="doReportPrint()">🖨 Print / Save as PDF</button>
+      <button style="background:var(--blue,#3a8fe8);border:none;border-radius:var(--radius);color:#fff;font-family:var(--ui);font-size:14px;font-weight:700;letter-spacing:.06em;padding:12px;cursor:pointer;text-transform:uppercase;" onclick="doReportDownload()">↓ Download as HTML File</button>
+    </div>
+    <div class="ma"><button class="bx" onclick="closeModal('report-modal')">Cancel</button></div>
+  </div>
+</div>
+
+<!-- PAGE PICKER MODAL -->
+<div class="mo" id="pg-modal">
+  <div class="modal">
+    <h3>Save Marked Drawing</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:4px;line-height:1.5;">Select pages to include. Markup will be burned into the PDF and downloaded.</p>
+    <p style="font-size:11px;color:var(--danger);margin-bottom:8px;">PDF must be loaded in the tool to export.</p>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button class="addb" style="margin:0;flex:1;" onclick="pgPickAll(true)">Select All</button>
+      <button class="addb" style="margin:0;flex:1;" onclick="pgPickAll(false)">Clear All</button>
+    </div>
+    <div id="pg-picker-list"></div>
+    <div id="pg-progress"></div>
+    <div class="ma">
+      <button class="bx" onclick="closeModal('pg-modal')">Cancel</button>
+      <button class="bc" id="pg-export-btn" onclick="exportMarkedPDF()">↓ Export PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ═══════════════════════════════════════
+// ELECTRICAL SYMBOL DEFINITIONS
+// Each symbol: { id, label, draw(ctx,x,y,size,color) }
+// ═══════════════════════════════════════
+var ELEC_SYMS = [
+  {id:'duplex_recept', label:'Duplex Receptacle',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.45,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.45,y);c.lineTo(x-s*.7,y);c.moveTo(x-s*.55,y-s*.15);c.lineTo(x-s*.55,y+s*.15);c.stroke();c.beginPath();c.moveTo(x,y-s*.35);c.lineTo(x,y+s*.35);c.stroke();c.restore();}},
+  {id:'single_recept', label:'Single Receptacle',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.45,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.45,y);c.lineTo(x-s*.7,y);c.moveTo(x-s*.55,y-s*.15);c.lineTo(x-s*.55,y+s*.15);c.stroke();c.restore();}},
+  {id:'gfci_recept', label:'GFCI Receptacle',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.45,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.45,y);c.lineTo(x-s*.7,y);c.moveTo(x-s*.55,y-s*.15);c.lineTo(x-s*.55,y+s*.15);c.stroke();c.beginPath();c.moveTo(x,y-s*.35);c.lineTo(x,y+s*.35);c.stroke();c.fillStyle=col;c.font='bold '+Math.round(s*.3)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('GF',x+s*.2,y+s*.55);c.restore();}},
+  {id:'wp_recept', label:'WP Receptacle',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.45,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.45,y);c.lineTo(x-s*.7,y);c.moveTo(x-s*.55,y-s*.15);c.lineTo(x-s*.55,y+s*.15);c.stroke();c.beginPath();c.moveTo(x,y-s*.35);c.lineTo(x,y+s*.35);c.stroke();c.fillStyle=col;c.font='bold '+Math.round(s*.28)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('WP',x+s*.22,y+s*.55);c.restore();}},
+  {id:'fourplex', label:'Fourplex Receptacle',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.45,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.45,y);c.lineTo(x-s*.7,y);c.moveTo(x-s*.55,y-s*.15);c.lineTo(x-s*.55,y+s*.15);c.stroke();c.beginPath();c.moveTo(x,y-s*.35);c.lineTo(x,y+s*.35);c.moveTo(x-s*.3,y);c.lineTo(x+s*.3,y);c.stroke();c.restore();}},
+  {id:'240v_recept', label:'240V Receptacle',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.45,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.5,y-s*.08);c.lineTo(x-s*.72,y-s*.08);c.moveTo(x-s*.5,y+s*.08);c.lineTo(x-s*.72,y+s*.08);c.moveTo(x-s*.5,y);c.lineTo(x-s*.72,y);c.stroke();c.restore();}},
+  {id:'sp_switch', label:'Single Pole Switch',
+   draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.font='bold '+Math.round(s*.7)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('S',x,y);c.restore();}},
+  {id:'3way_switch', label:'3-Way Switch',
+   draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.font='bold '+Math.round(s*.6)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('S',x-s*.1,y);c.font='bold '+Math.round(s*.35)+'px Arial';c.fillText('3',x+s*.35,y+s*.3);c.restore();}},
+  {id:'dimmer_sw', label:'Dimmer Switch',
+   draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.font='bold '+Math.round(s*.6)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('S',x-s*.1,y);c.font='bold '+Math.round(s*.3)+'px Arial';c.fillText('D',x+s*.35,y+s*.3);c.restore();}},
+  {id:'wall_fixture', label:'Wall Light Fixture',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.42,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.42,y);c.lineTo(x-s*.65,y);c.stroke();c.restore();}},
+  {id:'ceil_fixture', label:'Ceiling Fixture',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.42,0,Math.PI*2);c.stroke();c.beginPath();c.arc(x,y,s*.12,0,Math.PI*2);c.stroke();c.restore();}},
+  {id:'recessed', label:'Recessed Light',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.44,0,Math.PI*2);c.stroke();c.fillStyle=col;c.font='bold '+Math.round(s*.42)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('R',x,y);c.restore();}},
+  {id:'fluor_fixture', label:'Fluorescent Fixture',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.fillStyle='none';c.lineWidth=2;c.strokeRect(x-s*.5,y-s*.22,s,s*.44);c.beginPath();c.arc(x-s*.22,y,s*.18,0,Math.PI*2);c.stroke();c.beginPath();c.arc(x+s*.22,y,s*.18,0,Math.PI*2);c.stroke();c.restore();}},
+  {id:'ceil_fan', label:'Ceiling Fan',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.4,0,Math.PI*2);c.stroke();for(var i=0;i<3;i++){var a=i*Math.PI*2/3;c.beginPath();c.moveTo(x+Math.cos(a)*s*.18,y+Math.sin(a)*s*.18);c.quadraticCurveTo(x+Math.cos(a+.4)*s*.55,y+Math.sin(a+.4)*s*.55,x+Math.cos(a+.7)*s*.42,y+Math.sin(a+.7)*s*.42);c.stroke();}c.fillStyle=col;c.font='bold '+Math.round(s*.22)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('CF',x,y+s*.6);c.restore();}},
+  {id:'wp_fixture', label:'WP Fixture',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.42,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(x-s*.42,y);c.lineTo(x-s*.65,y);c.stroke();c.fillStyle=col;c.font='bold '+Math.round(s*.28)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('WP',x,y+s*.65);c.restore();}},
+  {id:'smoke_det', label:'Smoke Detector',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.44,0,Math.PI*2);c.stroke();c.fillStyle=col;c.font='bold '+Math.round(s*.38)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('SD',x,y);c.restore();}},
+  {id:'exit_light', label:'Exit / Emergency',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.strokeRect(x-s*.46,y-s*.28,s*.92,s*.56);c.fillStyle=col;c.font='bold '+Math.round(s*.28)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('EXIT',x,y);c.restore();}},
+  {id:'panel_box', label:'Panel / Switchbox',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.fillStyle=col;c.fillRect(x-s*.42,y-s*.22,s*.84,s*.44);c.restore();}},
+  {id:'junction_box', label:'Junction Box',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.strokeRect(x-s*.38,y-s*.38,s*.76,s*.76);c.beginPath();c.moveTo(x-s*.38,y-s*.38);c.lineTo(x+s*.38,y+s*.38);c.moveTo(x+s*.38,y-s*.38);c.lineTo(x-s*.38,y+s*.38);c.stroke();c.restore();}},
+  {id:'data_port', label:'Data Port',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.strokeRect(x-s*.38,y-s*.28,s*.76,s*.56);c.fillStyle=col;c.font='bold '+Math.round(s*.32)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('D',x,y);c.restore();}},
+  {id:'telephone', label:'Telephone Jack',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.moveTo(x-s*.1,y-s*.45);c.lineTo(x+s*.35,y);c.lineTo(x-s*.1,y+s*.45);c.closePath();c.stroke();c.beginPath();c.moveTo(x-s*.4,y-s*.35);c.lineTo(x-s*.4,y+s*.35);c.lineWidth=3;c.stroke();c.restore();}},
+  {id:'motor', label:'Electric Motor',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.44,0,Math.PI*2);c.stroke();c.fillStyle=col;c.font='bold '+Math.round(s*.32)+'px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('M',x,y);c.restore();}},
+  {id:'xfmr', label:'Transformer',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x-s*.18,y,s*.32,0,Math.PI*2);c.stroke();c.beginPath();c.arc(x+s*.18,y,s*.32,0,Math.PI*2);c.stroke();c.restore();}},
+  {id:'high_bay', label:'High Bay',
+   draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.44,0,Math.PI*2);c.stroke();for(var i=0;i<8;i++){var a=i*Math.PI/4;c.beginPath();c.moveTo(x+Math.cos(a)*s*.44,y+Math.sin(a)*s*.44);c.lineTo(x+Math.cos(a)*s*.62,y+Math.sin(a)*s*.62);c.stroke();}c.restore();}},
+];
+
+var BASIC_SYMS = [
+  {id:'dot',label:'Dot',draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.beginPath();c.arc(x,y,s*.38,0,Math.PI*2);c.fill();c.restore();}},
+  {id:'circle',label:'Circle',draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();c.arc(x,y,s*.42,0,Math.PI*2);c.stroke();c.restore();}},
+  {id:'square',label:'Square',draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.fillRect(x-s*.35,y-s*.35,s*.7,s*.7);c.restore();}},
+  {id:'triangle',label:'Triangle',draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.beginPath();c.moveTo(x,y-s*.42);c.lineTo(x+s*.42,y+s*.3);c.lineTo(x-s*.42,y+s*.3);c.closePath();c.fill();c.restore();}},
+  {id:'star',label:'Star',draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.beginPath();for(var i=0;i<5;i++){var a=i*Math.PI*2/5-Math.PI/2;var b=a+Math.PI/5;c.lineTo(x+Math.cos(a)*s*.44,y+Math.sin(a)*s*.44);c.lineTo(x+Math.cos(b)*s*.2,y+Math.sin(b)*s*.2);}c.closePath();c.fill();c.restore();}},
+  {id:'diamond',label:'Diamond',draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.beginPath();c.moveTo(x,y-s*.44);c.lineTo(x+s*.32,y);c.lineTo(x,y+s*.44);c.lineTo(x-s*.32,y);c.closePath();c.fill();c.restore();}},
+  {id:'cross',label:'Cross',draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=3;c.lineCap='round';c.beginPath();c.moveTo(x-s*.4,y);c.lineTo(x+s*.4,y);c.moveTo(x,y-s*.4);c.lineTo(x,y+s*.4);c.stroke();c.restore();}},
+  {id:'x_mark',label:'X',draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=3;c.lineCap='round';c.beginPath();c.moveTo(x-s*.35,y-s*.35);c.lineTo(x+s*.35,y+s*.35);c.moveTo(x+s*.35,y-s*.35);c.lineTo(x-s*.35,y+s*.35);c.stroke();c.restore();}},
+  {id:'hexagon',label:'Hexagon',draw:function(c,x,y,s,col){c.save();c.strokeStyle=col;c.lineWidth=2;c.beginPath();for(var i=0;i<6;i++){var a=i*Math.PI/3;if(i===0)c.moveTo(x+s*.44*Math.cos(a),y+s*.44*Math.sin(a));else c.lineTo(x+s*.44*Math.cos(a),y+s*.44*Math.sin(a));}c.closePath();c.stroke();c.restore();}},
+  {id:'arrow_up',label:'Arrow Up',draw:function(c,x,y,s,col){c.save();c.fillStyle=col;c.beginPath();c.moveTo(x,y-s*.44);c.lineTo(x+s*.32,y+s*.1);c.lineTo(x+s*.14,y+s*.1);c.lineTo(x+s*.14,y+s*.44);c.lineTo(x-s*.14,y+s*.44);c.lineTo(x-s*.14,y+s*.1);c.lineTo(x-s*.32,y+s*.1);c.closePath();c.fill();c.restore();}},
+];
+
+var ALL_SYMS = {};
+ELEC_SYMS.forEach(function(s){ALL_SYMS[s.id]=s;});
+BASIC_SYMS.forEach(function(s){ALL_SYMS[s.id]=s;});
+
+// Default symbol ID
+var DEFAULT_SYM = 'dot';
+
+var COLORS=['#e03a3a','#f0a500','#2db562','#3a8fe8','#b03ae0','#e0773a','#3adde0','#e03a99','#c8e030','#c0603a','#5a8ff0','#f05050'];
+var WSIZES=['#14','#12','#10','#8','#6','#4','#3','#2','#1','1/0','2/0','3/0','4/0','250','300','350','400','500','Custom'];
+var WTYPES=['THHN','XHHW','THWN','USE-2','Custom'];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+var drawings={},currentDwgId=null,pendingPdf=null;
+var assemblies=[
+  {id:'a0',name:'20A Receptacle',key:'recept_20a',cat:'Devices',color:'#e03a3a',symId:'duplex_recept',visible:true,count:0},
+  {id:'a1',name:'2x4 LED Fixture',key:'fixture_2x4',cat:'Fixtures',color:'#3a8fe8',symId:'fluor_fixture',visible:true,count:0},
+  {id:'a2',name:'Single Pole Switch',key:'switch_sp',cat:'Devices',color:'#2db562',symId:'sp_switch',visible:true,count:0},
+];
+var runTypes=[];
+var pdfDoc=null,curPage=1,totalPages=0,zoomLv=1.0,baseScale=1.5;
+var mode='count',activeAsmIdx=0,activeRtIdx=0;
+var drawingRun=false,runPts=[],freehand=false,fhPts=[],panState=null;
+var calState=null,measuring=false,calPxDist=0;
+var selAC=COLORS[0],selSymId=DEFAULT_SYM,selRC=COLORS[3];
+var editAi=-1,editRi=-1;
+var SK='ore_pdf_v4';
+var pgSelected={};
+var _reportHTML='';
+
+// ═══════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════
+function save(){try{var p={assemblies:assemblies,runTypes:runTypes,drawings:{},currentDwgId:currentDwgId};Object.keys(drawings).forEach(function(id){p.drawings[id]={name:drawings[id].name,markups:drawings[id].markups,pxPerFoot:drawings[id].pxPerFoot};});localStorage.setItem(SK,JSON.stringify(p));}catch(e){}}
+function loadSaved(){try{var d=JSON.parse(localStorage.getItem(SK));if(!d)return;if(d.assemblies&&d.assemblies.length)assemblies=d.assemblies;if(d.runTypes&&d.runTypes.length)runTypes=d.runTypes;if(d.drawings)drawings=d.drawings;if(d.currentDwgId&&drawings[d.currentDwgId])currentDwgId=d.currentDwgId;recomputeCounts();rebuildDwgSel();renderAll();if(currentDwgId)updateScaleStatus();}catch(e){}}
+
+function curDwg(){return currentDwgId?drawings[currentDwgId]:null;}
+function curMs(){var d=curDwg();return d?d.markups:[];}
+function curPpf(){var d=curDwg();return d?d.pxPerFoot:null;}
+
+// ═══════════════════════════════════════
+// DRAWING MANAGEMENT
+// ═══════════════════════════════════════
+function loadPDF(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){pendingPdf=ev.target.result;document.getElementById('dwg-name-inp').value=f.name.replace(/\.pdf$/i,'');document.getElementById('dwg-prompt').classList.add('open');setTimeout(function(){document.getElementById('dwg-name-inp').focus();document.getElementById('dwg-name-inp').select();},100);};r.readAsArrayBuffer(f);e.target.value='';}
+function cancelDwgPrompt(){pendingPdf=null;document.getElementById('dwg-prompt').classList.remove('open');}
+function confirmDwgLoad(){var nm=document.getElementById('dwg-name-inp').value.trim();if(!nm){alert('Enter a drawing name.');return;}document.getElementById('dwg-prompt').classList.remove('open');var id='dwg_'+Date.now();drawings[id]={name:nm,markups:[],pxPerFoot:null};currentDwgId=id;rebuildDwgSel();document.getElementById('no-pdf').style.display='none';renderPage_fromBuf(pendingPdf,1);updateScaleStatus();save();pendingPdf=null;showToast('Loaded: '+nm);}
+function switchDrawing(id){if(!id){currentDwgId=null;return;}currentDwgId=id;updateScaleStatus();renderAll();redrawMarkup();showToast('Switched to: '+drawings[id].name);save();}
+function clearCurrentDrawing(){if(!currentDwgId){alert('No drawing selected.');return;}var nm=drawings[currentDwgId].name;if(!confirm('Clear ALL markup from "'+nm+'"?'))return;drawings[currentDwgId].markups=[];drawings[currentDwgId].pxPerFoot=null;recomputeCounts();renderAll();redrawMarkup();save();showToast('Cleared: '+nm);}
+function rebuildDwgSel(){var s=document.getElementById('dwg-select');s.innerHTML='<option value="">&#8212; No drawing selected &#8212;</option>';Object.keys(drawings).forEach(function(id){var o=document.createElement('option');o.value=id;o.textContent=drawings[id].name;if(id===currentDwgId)o.selected=true;s.appendChild(o);});}
+
+// ═══════════════════════════════════════
+// PDF RENDER
+// ═══════════════════════════════════════
+function renderPage_fromBuf(buf,n){pdfjsLib.getDocument({data:buf}).promise.then(function(doc){pdfDoc=doc;totalPages=doc.numPages;curPage=n;updatePageNav();renderPage(n);}).catch(function(e){alert('PDF error: '+e.message);});}
+function renderPage(n){if(!pdfDoc)return;pdfDoc.getPage(n).then(function(pg){var vp=pg.getViewport({scale:baseScale*zoomLv});var pc=document.getElementById('pdf-cv');var mc=document.getElementById('mk-cv');pc.width=vp.width;pc.height=vp.height;mc.width=vp.width;mc.height=vp.height;pg.render({canvasContext:pc.getContext('2d'),viewport:vp}).promise.then(function(){redrawMarkup();});});}
+function changePage(d){if(!pdfDoc)return;var np=curPage+d;if(np<1||np>totalPages)return;curPage=np;updatePageNav();renderPage(np);}
+function updatePageNav(){document.getElementById('pinfo').textContent=curPage+'/'+totalPages;document.getElementById('btn-prev').disabled=curPage<=1;document.getElementById('btn-next').disabled=curPage>=totalPages;}
+
+// ═══════════════════════════════════════
+// ZOOM
+// ═══════════════════════════════════════
+function zoom(d){zoomLv=Math.max(.2,Math.min(5,zoomLv+d));document.getElementById('zoom-lv').textContent=Math.round(zoomLv*100)+'%';if(pdfDoc)renderPage(curPage);}
+function zoomFit(){var w=document.getElementById('cv-wrap');var pc=document.getElementById('pdf-cv');if(!pc.width)return;var fit=Math.min(w.clientWidth/(pc.width/zoomLv),w.clientHeight/(pc.height/zoomLv))*.95;zoomLv=fit;document.getElementById('zoom-lv').textContent=Math.round(zoomLv*100)+'%';if(pdfDoc)renderPage(curPage);}
+
+// ═══════════════════════════════════════
+// MODE
+// ═══════════════════════════════════════
+function setMode(m){mode=m;document.querySelectorAll('.mbt').forEach(function(b){b.classList.toggle('active',b.dataset.mode===m);});document.getElementById('cv-wrap').classList.toggle('pan',m==='pan');document.getElementById('asm-section').style.display=m==='count'?'':'none';document.getElementById('run-section').style.display=m==='run'?'':'none';document.getElementById('st-mode').textContent=m.toUpperCase();document.getElementById('st-rw').style.display=m==='run'?'':'none';if(m!=='run'){drawingRun=false;runPts=[];freehand=false;redrawMarkup();}updateHint();}
+function updateHint(){var h=mode==='count'?'Click to place | Right-click = undo last':mode==='run'?'Click corners | Dbl-click/Enter = finish | Shift+drag = freehand | Esc = cancel':'Click and drag to pan';document.getElementById('shint').textContent=h;}
+var tbOpen=true;
+function toggleTB(){tbOpen=!tbOpen;document.getElementById('tb').classList.toggle('collapsed',!tbOpen);var b=document.getElementById('tbt');b.innerHTML=tbOpen?'&#8249;':'&#8250;';b.classList.toggle('c',!tbOpen);b.style.left=tbOpen?'var(--tw)':'0';}
+var auditOpen=true;
+function toggleAudit(){auditOpen=!auditOpen;document.getElementById('audit-body').classList.toggle('open',auditOpen);document.getElementById('audit-icon').innerHTML=auditOpen?'&#9650;':'&#9660;';}
+
+// ═══════════════════════════════════════
+// SCALE
+// ═══════════════════════════════════════
+function applyScalePreset(){var v=parseFloat(document.getElementById('scale-preset').value);if(!v||!currentDwgId)return;var ppi=96*baseScale*zoomLv;drawings[currentDwgId].pxPerFoot=ppi/v;updateScaleStatus();save();}
+function updateScaleStatus(){var ppf=curPpf();if(!ppf){document.getElementById('scale-status').textContent='No scale set';document.getElementById('st-scale').textContent='Not set';return;}var ppi=96*baseScale*zoomLv;var fpi=ppi/ppf;var l='1" = '+Math.round(fpi*10)/10+"'";document.getElementById('scale-status').textContent='&#10003; '+l;document.getElementById('st-scale').textContent=l;}
+function startMeasure(){if(!currentDwgId){alert('Load a drawing first.');return;}measuring=true;calState=null;document.getElementById('measure-btn').classList.add('active');document.getElementById('measure-btn').textContent='Click first point...';document.getElementById('cal-ov').classList.add('active');document.getElementById('cal-svg').innerHTML='';}
+function cancelMeasure(){measuring=false;calState=null;document.getElementById('measure-btn').classList.remove('active');document.getElementById('measure-btn').innerHTML='&#128207; MEASURE KNOWN DISTANCE';document.getElementById('cal-ov').classList.remove('active');document.getElementById('cal-svg').innerHTML='';closeModal('meas-modal');}
+function confirmMeasure(){var d=parseFloat(document.getElementById('meas-dist').value);if(!d||d<=0){alert('Enter a valid distance.');return;}drawings[currentDwgId].pxPerFoot=calPxDist/d;updateScaleStatus();save();cancelMeasure();}
+document.getElementById('cal-ov').addEventListener('click',function(e){var r=document.getElementById('pdf-cv').getBoundingClientRect();var x=e.clientX-r.left,y=e.clientY-r.top;if(!calState){calState={x:x,y:y};document.getElementById('measure-btn').textContent='Click second point...';document.getElementById('cal-svg').innerHTML='<circle cx="'+x+'" cy="'+y+'" r="6" fill="#f0a500" stroke="#fff" stroke-width="1.5"/>';}else{calPxDist=Math.hypot(x-calState.x,y-calState.y);document.getElementById('cal-svg').innerHTML='<line x1="'+calState.x+'" y1="'+calState.y+'" x2="'+x+'" y2="'+y+'" stroke="#f0a500" stroke-width="2" stroke-dasharray="5,3"/><circle cx="'+calState.x+'" cy="'+calState.y+'" r="5" fill="#f0a500" stroke="#fff" stroke-width="1.5"/><circle cx="'+x+'" cy="'+y+'" r="5" fill="#f0a500" stroke="#fff" stroke-width="1.5"/>';measuring=false;document.getElementById('cal-ov').classList.remove('active');document.getElementById('meas-dist').value='';document.getElementById('meas-modal').classList.add('open');setTimeout(function(){document.getElementById('meas-dist').focus();},100);}});
+
+// ═══════════════════════════════════════
+// CANVAS EVENTS
+// ═══════════════════════════════════════
+var mkcv=document.getElementById('mk-cv');
+mkcv.style.pointerEvents='auto';
+mkcv.addEventListener('click',function(e){if(measuring)return;if(mode==='pan')return;if(mode==='count'){hCount(e);return;}if(mode==='run'){hRunClick(e);return;}});
+mkcv.addEventListener('dblclick',function(e){if(mode==='run'&&drawingRun&&runPts.length>=2){finishRun();e.preventDefault();}});
+mkcv.addEventListener('contextmenu',function(e){e.preventDefault();if(mode==='count'){undoLast();return;}if(mode==='run'&&drawingRun){if(runPts.length<=1){drawingRun=false;runPts=[];}else runPts.pop();redrawMarkup();}});
+mkcv.addEventListener('mousemove',function(e){if(mode==='run'&&drawingRun){redrawMarkup(cvPos(e));var ft=calcLen(runPts);document.getElementById('st-run').textContent=ft+' ft';showRtt(e,ft);}else{document.getElementById('rtt').style.display='none';}if(freehand){var pt=cvPos(e),last=fhPts[fhPts.length-1];if(Math.hypot(pt.x-last.x,pt.y-last.y)>8){fhPts.push(pt);runPts=fhPts;redrawMarkup(pt);}}if(panState){var w=document.getElementById('cv-wrap');w.scrollLeft=panState.sl-(e.clientX-panState.x);w.scrollTop=panState.st-(e.clientY-panState.y);}});
+mkcv.addEventListener('mouseleave',function(){document.getElementById('rtt').style.display='none';});
+mkcv.addEventListener('mousedown',function(e){if(mode==='run'&&e.shiftKey){freehand=true;drawingRun=true;fhPts=[cvPos(e)];runPts=fhPts;}if(mode==='pan')panState={x:e.clientX,y:e.clientY,sl:document.getElementById('cv-wrap').scrollLeft,st:document.getElementById('cv-wrap').scrollTop};});
+mkcv.addEventListener('mouseup',function(e){if(freehand&&fhPts.length>=2){freehand=false;runPts=fhPts;finishRun();}freehand=false;panState=null;});
+function cvPos(e){var r=mkcv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function showRtt(e,ft){var t=document.getElementById('rtt');t.style.display='block';t.style.left=(e.clientX+14)+'px';t.style.top=(e.clientY-8)+'px';t.textContent=ft+' ft';}
+
+// ═══════════════════════════════════════
+// COUNT MODE
+// ═══════════════════════════════════════
+function hCount(e){if(!currentDwgId){alert('Load a drawing first.');return;}var a=assemblies[activeAsmIdx];if(!a)return;var p=cvPos(e);curMs().push({type:'point',asmId:a.id,page:curPage,x:p.x,y:p.y,color:a.color,symId:a.symId||DEFAULT_SYM});a.count=(a.count||0)+1;renderAll();redrawMarkup();save();flash(p.x,p.y,a.color);}
+function undoLast(){if(!currentDwgId)return;var a=assemblies[activeAsmIdx];if(!a)return;var ms=curMs();for(var i=ms.length-1;i>=0;i--){if(ms[i].type==='point'&&ms[i].page===curPage&&ms[i].asmId===a.id){ms.splice(i,1);recomputeCounts();renderAll();redrawMarkup();save();return;}}}
+
+// ═══════════════════════════════════════
+// RUN MODE
+// ═══════════════════════════════════════
+function hRunClick(e){if(!currentDwgId){alert('Load a drawing first.');return;}var p=cvPos(e);if(!drawingRun){drawingRun=true;runPts=[p];return;}var last=runPts[runPts.length-1];if(Math.hypot(p.x-last.x,p.y-last.y)<5)return;runPts.push(p);}
+function finishRun(){if(runPts.length<2){drawingRun=false;runPts=[];return;}var rt=runTypes[activeRtIdx];if(!rt){alert('No run type selected. Add one first.');drawingRun=false;runPts=[];return;}var footage=calcLen(runPts);var ds=parseFloat(document.getElementById('drop-s').value)||0;var de=parseFloat(document.getElementById('drop-e').value)||0;var total=footage+ds+de;curMs().push({type:'run',rtId:rt.id,page:curPage,pts:runPts.slice(),color:rt.color,footage:total,dropStart:ds,dropEnd:de});drawingRun=false;runPts=[];fhPts=[];document.getElementById('rtt').style.display='none';document.getElementById('st-run').textContent='0 ft';redrawMarkup();renderAll();save();showToast(fmtRt(rt)+' - '+total+"'");}
+function calcLen(pts){var ppf=curPpf();if(!ppf||pts.length<2)return 0;var t=0;for(var i=1;i<pts.length;i++)t+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);return Math.round((t/ppf)*10)/10;}
+
+// ═══════════════════════════════════════
+// DRAW MARKUP (main canvas)
+// ═══════════════════════════════════════
+function redrawMarkup(cursor){var cv=document.getElementById('mk-cv');var ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);var ms=curMs();ms.forEach(function(m){if(m.page!==curPage)return;if(m.type==='point'){var a=assemblies.find(function(x){return x.id===m.asmId;});if(a&&!a.visible)return;drawMarker(ctx,m.x,m.y,m.symId||m.symbol||DEFAULT_SYM,m.color,24);}else if(m.type==='run'){var rt=runTypes.find(function(x){return x.id===m.rtId;});if(rt&&rt.visible===false)return;drawRun(ctx,m.pts,m.color,m.footage,m.dropStart,m.dropEnd);}});if(drawingRun&&runPts.length>0){var rt=runTypes[activeRtIdx];var c=rt?rt.color:'#f0a500';ctx.save();ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.setLineDash([6,3]);ctx.beginPath();ctx.moveTo(runPts[0].x,runPts[0].y);for(var i=1;i<runPts.length;i++)ctx.lineTo(runPts[i].x,runPts[i].y);if(cursor)ctx.lineTo(cursor.x,cursor.y);ctx.stroke();ctx.setLineDash([]);runPts.forEach(function(p){ctx.fillStyle=c;ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill();});ctx.restore();}}
+
+// Draw a marker using symbol system
+function drawMarker(ctx,x,y,symId,color,size){
+  ctx.save();
+  // background halo
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.beginPath();ctx.arc(x,y,size*.7,0,Math.PI*2);ctx.fill();
+  ctx.shadowColor=color;ctx.shadowBlur=8;
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(x,y,size*.7,0,Math.PI*2);ctx.stroke();
+  ctx.shadowBlur=0;
+  // draw symbol
+  var sym=ALL_SYMS[symId]||ALL_SYMS[DEFAULT_SYM];
+  sym.draw(ctx,x,y,size,color);
+  ctx.restore();
+}
+
+function drawRun(ctx,pts,color,footage,ds,de){if(!pts||pts.length<2)return;ctx.save();ctx.strokeStyle=color;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowColor=color;ctx.shadowBlur=4;ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.stroke();ctx.shadowBlur=0;[pts[0],pts[pts.length-1]].forEach(function(p){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.stroke();});if(ds>0)drawDrop(ctx,pts[0],color,ds);if(de>0)drawDrop(ctx,pts[pts.length-1],color,de);if(footage>0){var mi=Math.floor((pts.length-1)/2);var nx=pts[mi+1>=pts.length?mi:mi+1];var mx=(pts[mi].x+nx.x)/2,my=(pts[mi].y+nx.y)/2;ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(mx-26,my-10,52,18);ctx.fillStyle=color;ctx.font='bold 11px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(footage+"'",mx,my);}ctx.restore();}
+function drawDrop(ctx,pt,color,ft){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(pt.x,pt.y);ctx.lineTo(pt.x,pt.y+18);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=color;ctx.font='bold 9px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('v'+ft+"'",pt.x,pt.y+20);ctx.restore();}
+function flash(x,y,color){var cv=document.getElementById('mk-cv'),ctx=cv.getContext('2d'),step=0;(function fr(){if(step>=5){redrawMarkup();return;}ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.globalAlpha=1-step/5;ctx.beginPath();ctx.arc(x,y,22+step*5,0,Math.PI*2);ctx.stroke();ctx.restore();step++;requestAnimationFrame(fr);})();}
+
+// ═══════════════════════════════════════
+// STANDARD ITEM LIBRARY
+// ═══════════════════════════════════════
+var STD_ITEMS = [
+  // ── DEVICES ──────────────────────────────────────────────────────────────
+  {name:'20A Receptacle',          key:'recept_20a',     cat:'Devices', symId:'duplex_recept'},
+  {name:'15A TR Receptacle',       key:'recept_15a_tr',  cat:'Devices', symId:'duplex_recept'},
+  {name:'20A GFCI',                key:'gfci_20a',       cat:'Devices', symId:'gfci_recept'},
+  {name:'15A TR GFCI',             key:'gfci_15a_tr',    cat:'Devices', symId:'gfci_recept'},
+  {name:'30A Receptacle',          key:'recept_30a',     cat:'Devices', symId:'duplex_recept'},
+  {name:'50A Receptacle',          key:'recept_50a',     cat:'Devices', symId:'duplex_recept'},
+  {name:'240V Receptacle',         key:'recept_240v',    cat:'Devices', symId:'duplex_recept'},
+  {name:'Twist-Lock Receptacle',   key:'recept_twist',   cat:'Devices', symId:'duplex_recept'},
+  {name:'USB Receptacle',          key:'usb_recept',     cat:'Devices', symId:'duplex_recept'},
+  {name:'Single Pole Switch',      key:'switch_sp',      cat:'Devices', symId:'sp_switch'},
+  {name:'3-Way Switch',            key:'switch_3way',    cat:'Devices', symId:'3way_switch'},
+  {name:'4-Way Switch',            key:'switch_4way',    cat:'Devices', symId:'3way_switch'},
+  {name:'Dimmer',                  key:'dimmer',         cat:'Devices', symId:'dimmer_sw'},
+  {name:'0-10V Dimmer (Lutron)',   key:'dimmer_010v',    cat:'Devices', symId:'dimmer_sw'},
+  {name:'Occupancy Sensor Ceiling',key:'occ_sensor_ceil',cat:'Devices', symId:'ceil_fixture'},
+  {name:'Occupancy Sensor Wall PIR',key:'occ_sensor_pir',cat:'Devices', symId:'sp_switch'},
+  {name:'Photocell / Dusk-to-Dawn',key:'photocell',      cat:'Devices', symId:'wp_recept'},
+  {name:'WP In-Use Cover',         key:'wp_cover',       cat:'Devices', symId:'wp_recept'},
+  {name:'Floor Box',               key:'floor_box',      cat:'Devices', symId:'junction_box'},
+  // ── FIXTURES ─────────────────────────────────────────────────────────────
+  {name:'2x4 LED Lay-In (T-Bar)',  key:'fixture_2x4',         cat:'Fixtures', symId:'fluor_fixture'},
+  {name:'2x2 LED Lay-In (T-Bar)',  key:'fixture_2x2',         cat:'Fixtures', symId:'fluor_fixture'},
+  {name:'4ft LED Strip',           key:'fixture_strip',       cat:'Fixtures', symId:'fluor_fixture'},
+  {name:'8ft LED Strip',           key:'fixture_strip_8',     cat:'Fixtures', symId:'fluor_fixture'},
+  {name:'4ft Vapor Tight / Wrap',  key:'fixture_wrap_4',      cat:'Fixtures', symId:'fluor_fixture'},
+  {name:'8ft Vapor Tight / Wrap',  key:'fixture_wrap_8',      cat:'Fixtures', symId:'fluor_fixture'},
+  {name:'Recessed Can - New Const',key:'fixture_rec_new',     cat:'Fixtures', symId:'recessed'},
+  {name:'Recessed Can - Remodel',  key:'fixture_rec_rem',     cat:'Fixtures', symId:'recessed'},
+  {name:'Recessed Can - LED Retro',key:'fixture_rec_retro',   cat:'Fixtures', symId:'recessed'},
+  {name:'Wall Mount Indoor Sconce',key:'fixture_wall',        cat:'Fixtures', symId:'wall_fixture'},
+  {name:'Wall Mount Outdoor',      key:'fixture_wall_outdoor',cat:'Fixtures', symId:'wall_fixture'},
+  {name:'Canopy / Soffit Light',   key:'fixture_canopy',      cat:'Fixtures', symId:'wall_fixture'},
+  {name:'High Bay LED Round (UFO)',key:'fixture_highbay',     cat:'Fixtures', symId:'high_bay'},
+  {name:'Linear High Bay LED',     key:'fixture_highbay_lin', cat:'Fixtures', symId:'high_bay'},
+  {name:'Low Bay LED',             key:'fixture_lowbay',      cat:'Fixtures', symId:'high_bay'},
+  {name:'Pendant / Hanging',       key:'fixture_pendant',     cat:'Fixtures', symId:'wall_fixture'},
+  {name:'Track Rail (linear ft)',  key:'fixture_track_rail',  cat:'Fixtures', symId:'fluor_fixture', footage:1},
+  {name:'Track Head',              key:'fixture_track_head',  cat:'Fixtures', symId:'fluor_fixture'},
+  {name:'LED Wall Pack',           key:'fixture_wallpack',    cat:'Fixtures', symId:'wall_fixture'},
+  {name:'Exit / EBU Combo',        key:'fixture_exit_ebu',    cat:'Fixtures', symId:'exit_light'},
+  {name:'Exit Sign Only',          key:'fixture_exit_only',   cat:'Fixtures', symId:'exit_light'},
+  {name:'Emergency Light Only',    key:'fixture_emrg',        cat:'Fixtures', symId:'exit_light'},
+  {name:'Ceiling Fan 36"',         key:'fixture_fan36',       cat:'Fixtures', symId:'ceil_fan'},
+  {name:'Ceiling Fan 48"',         key:'fixture_fan48',       cat:'Fixtures', symId:'ceil_fan'},
+  {name:'Ceiling Fan 55"',         key:'fixture_fan55',       cat:'Fixtures', symId:'ceil_fan'},
+  {name:'Ceiling Fan 60"',         key:'fixture_fan60',       cat:'Fixtures', symId:'ceil_fan'},
+  {name:'Chain-Hung Industrial 48"',key:'fixture_chain48',    cat:'Fixtures', symId:'high_bay'},
+  {name:'Chain-Hung Industrial 96"',key:'fixture_chain96',    cat:'Fixtures', symId:'high_bay'},
+  // ── DATA / LOW VOLTAGE ───────────────────────────────────────────────────
+  {name:'1-Port Data Location',    key:'data_1port',     cat:'Data / LV', symId:'data_port'},
+  {name:'2-Port Data Location',    key:'data_2port',     cat:'Data / LV', symId:'data_port'},
+  {name:'3-Port Data Location',    key:'data_3port',     cat:'Data / LV', symId:'data_port'},
+  {name:'4-Port Data Location',    key:'data_4port',     cat:'Data / LV', symId:'data_port'},
+  {name:'Security Camera Indoor',  key:'camera_indoor',  cat:'Data / LV', symId:'ceil_fixture'},
+  {name:'Security Camera Outdoor', key:'camera_outdoor', cat:'Data / LV', symId:'ceil_fixture'},
+  {name:'Access Control Reader',   key:'access_reader',  cat:'Data / LV', symId:'junction_box'},
+  {name:'Intercom Station',        key:'intercom',       cat:'Data / LV', symId:'telephone'},
+  {name:'TV/AV Outlet',            key:'av_outlet',      cat:'Data / LV', symId:'data_port'},
+  {name:'Speaker Rough-In',        key:'speaker',        cat:'Data / LV', symId:'ceil_fixture'},
+  {name:'Doorbell / Call Button',  key:'doorbell',       cat:'Data / LV', symId:'junction_box'},
+  // ── FIRE ALARM ───────────────────────────────────────────────────────────
+  {name:'Smoke Detector',          key:'fa_smoke',        cat:'Fire Alarm', symId:'smoke_det'},
+  {name:'Heat Detector',           key:'fa_heat',         cat:'Fire Alarm', symId:'smoke_det'},
+  {name:'Smoke/CO Combo',          key:'fa_smoke_co',     cat:'Fire Alarm', symId:'smoke_det'},
+  {name:'Pull Station',            key:'fa_pull',         cat:'Fire Alarm', symId:'junction_box'},
+  {name:'Horn/Strobe',             key:'fa_horn_strobe',  cat:'Fire Alarm', symId:'exit_light'},
+  {name:'Strobe Only',             key:'fa_strobe',       cat:'Fire Alarm', symId:'exit_light'},
+  {name:'LF Sounder',              key:'fa_lf_sounder',   cat:'Fire Alarm', symId:'exit_light'},
+  {name:'Beacon',                  key:'fa_beacon',       cat:'Fire Alarm', symId:'ceil_fixture'},
+  {name:'Control Module',          key:'fa_ctrl_mod',     cat:'Fire Alarm', symId:'junction_box'},
+  {name:'Monitor Module',          key:'fa_monitor_mod',  cat:'Fire Alarm', symId:'junction_box'},
+  {name:'Duct Smoke Detector',     key:'fa_duct_smoke',   cat:'Fire Alarm', symId:'smoke_det'},
+  {name:'Beam Detector',           key:'fa_beam',         cat:'Fire Alarm', symId:'smoke_det'},
+  {name:'FA Relay',                key:'fa_relay',        cat:'Fire Alarm', symId:'junction_box'},
+  {name:'FA Panel Small',          key:'fa_panel_sm',     cat:'Fire Alarm', symId:'panel_box'},
+  {name:'FA Panel Medium',         key:'fa_panel_md',     cat:'Fire Alarm', symId:'panel_box'},
+  {name:'FA Panel Large',          key:'fa_panel_lg',     cat:'Fire Alarm', symId:'panel_box'},
+  {name:'FA Annunciator',          key:'fa_annun',        cat:'Fire Alarm', symId:'panel_box'},
+  {name:'Radio Communicator Box',  key:'fa_radio',        cat:'Fire Alarm', symId:'junction_box'},
+  // ── GEAR ─────────────────────────────────────────────────────────────────
+  {name:'Commercial Panel (MLO/MB)',   key:'panel_comm_sm',   cat:'Gear', symId:'panel_box'},
+  {name:'Lighting Panel 120/277V',     key:'panel_lighting',  cat:'Gear', symId:'panel_box'},
+  {name:'Res Load Center 100A',        key:'lc_100a',         cat:'Gear', symId:'panel_box'},
+  {name:'Res Load Center 200A',        key:'lc_200a',         cat:'Gear', symId:'panel_box'},
+  {name:'Transformer',                 key:'xfmr',            cat:'Gear', symId:'xfmr'},
+  {name:'Meter Socket',                key:'meter_socket',    cat:'Gear', symId:'panel_box'},
+  {name:'Meter Bank',                  key:'meter_bank',      cat:'Gear', symId:'panel_box'},
+  {name:'Meter-Main Combo',            key:'meter_main',      cat:'Gear', symId:'panel_box'},
+  {name:'CT Cabinet',                  key:'ct_cab',          cat:'Gear', symId:'panel_box'},
+  {name:'Disconnect (NF or Fused)',    key:'disconnect',      cat:'Gear', symId:'panel_box'},
+  {name:'A/C Unit Disconnect',         key:'disc_ac',         cat:'Gear', symId:'panel_box'},
+  {name:'Motor Disconnect',            key:'disc_motor',      cat:'Gear', symId:'panel_box'},
+  {name:'MDP',                         key:'gear_mdp',        cat:'Gear', symId:'panel_box'},
+  {name:'Switchgear',                  key:'gear_swgr',       cat:'Gear', symId:'panel_box'},
+  {name:'MCC',                         key:'gear_mcc',        cat:'Gear', symId:'panel_box'},
+  {name:'ATS',                         key:'gear_ats',        cat:'Gear', symId:'panel_box'},
+  {name:'Bypass Isolation Switch',     key:'gear_bypass',     cat:'Gear', symId:'panel_box'},
+  {name:'VFD',                         key:'gear_vfd',        cat:'Gear', symId:'panel_box'},
+  {name:'Soft Starter',                key:'gear_soft',       cat:'Gear', symId:'panel_box'},
+  {name:'Relay / Control Panel',       key:'gear_ctrl',       cat:'Gear', symId:'panel_box'},
+  // ── BOXES & ROUGH-IN ─────────────────────────────────────────────────────
+  {name:'4" Square Deep Box',         key:'box_4sq_deep',    cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'2-Gang Box',                  key:'box_2gang',       cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'3-Gang Box',                  key:'box_3gang',       cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'WP Box',                      key:'box_wp',          cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'Junction Box (covered)',      key:'box_jbox',        cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'Pull Can Small',              key:'can_sm',          cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'Pull Can Medium',             key:'can_md',          cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'Pull Can Large',              key:'can_lg',          cat:'Boxes & Rough', symId:'junction_box'},
+  {name:'Pull Can XL',                 key:'can_xl',          cat:'Boxes & Rough', symId:'junction_box'},
+  // ── CONDUIT (footage by type/size) ───────────────────────────────────────
+  {name:'1/2" EMT',    key:'cond_emt_12',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3/4" EMT',    key:'cond_emt_34',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1" EMT',      key:'cond_emt_1',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1-1/4" EMT',  key:'cond_emt_114',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1-1/2" EMT',  key:'cond_emt_112',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'2" EMT',      key:'cond_emt_2',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'2-1/2" EMT',  key:'cond_emt_212',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3" EMT',      key:'cond_emt_3',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3-1/2" EMT',  key:'cond_emt_312',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'4" EMT',      key:'cond_emt_4',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1/2" PVC 40', key:'cond_pvc_12',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3/4" PVC 40', key:'cond_pvc_34',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1" PVC 40',   key:'cond_pvc_1',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1-1/2" PVC',  key:'cond_pvc_112',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'2" PVC 40',   key:'cond_pvc_2',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3" PVC 40',   key:'cond_pvc_3',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'4" PVC 40',   key:'cond_pvc_4',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1/2" Rigid',  key:'cond_rgd_12',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3/4" Rigid',  key:'cond_rgd_34',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1" Rigid',    key:'cond_rgd_1',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'2" Rigid',    key:'cond_rgd_2',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3" Rigid',    key:'cond_rgd_3',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'4" Rigid',    key:'cond_rgd_4',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1/2" IMC',    key:'cond_imc_12',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3/4" IMC',    key:'cond_imc_34',   cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1" IMC',      key:'cond_imc_1',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'2" IMC',      key:'cond_imc_2',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1/2" Flex',   key:'cond_flex_12',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3/4" Flex',   key:'cond_flex_34',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'1/2" LT',     key:'cond_lt_12',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'3/4" LT',     key:'cond_lt_34',    cat:'Conduit', symId:'conduit', footage:1},
+  {name:'14/2 NM-B',    key:'cond_nmb_142',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'14/3 NM-B',    key:'cond_nmb_143',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'12/2 NM-B',    key:'cond_nmb_122',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'12/3 NM-B',    key:'cond_nmb_123',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'10/2 NM-B',    key:'cond_nmb_102',  cat:'Conduit', symId:'conduit', footage:1},
+  {name:'10/3 NM-B',    key:'cond_nmb_103',  cat:'Conduit', symId:'conduit', footage:1},
+  // ── MC CABLE (footage) ───────────────────────────────────────────────────
+  {name:'14/2 MC',    key:'mc_142',  cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'12/2 MC',    key:'mc_122',  cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'12/3 MC',    key:'mc_123',  cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'10/2 MC',    key:'mc_102',  cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'10/3 MC',    key:'mc_103',  cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'8/3 MC',     key:'mc_83',   cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'6/3 MC',     key:'mc_63',   cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'4/3 MC',     key:'mc_43',   cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'2/3 MC',     key:'mc_23',   cat:'MC Cable', symId:'conduit', footage:1},
+  {name:'1/0 MC',     key:'mc_10',   cat:'MC Cable', symId:'conduit', footage:1},
+  // ── RACKS / SUPPORT ──────────────────────────────────────────────────────
+  {name:'Strut Rack 12" Wall',    key:'rack_12w',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 18" Wall',    key:'rack_18w',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 24" Wall',    key:'rack_24w',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 48" Wall',    key:'rack_48w',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 60" Wall',    key:'rack_60w',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 12" Hang',    key:'rack_12h',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 18" Hang',    key:'rack_18h',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 24" Hang',    key:'rack_24h',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 48" Hang',    key:'rack_48h',   cat:'Racks', symId:'junction_box'},
+  {name:'Strut Rack 60" Hang',    key:'rack_60h',   cat:'Racks', symId:'junction_box'},
+  {name:'Cable Tray 12" (lin ft)',key:'ct_12',      cat:'Racks', symId:'conduit', footage:1},
+  {name:'Cable Tray 18" (lin ft)',key:'ct_18',      cat:'Racks', symId:'conduit', footage:1},
+  {name:'Cable Tray 24" (lin ft)',key:'ct_24',      cat:'Racks', symId:'conduit', footage:1},
+];
+
+var CAT_ORDER = ['Devices','Fixtures','Data / LV','Fire Alarm','Gear','Boxes & Rough','Conduit','MC Cable','Racks','Custom'];
+var CAT_COLORS = {
+  'Devices':'#e03a3a','Fixtures':'#3a8fe8','Data':'#2db562',
+  'Conduit':'#f0a500','Panels':'#b03ae0','Fire Alarm':'#e03a99',
+  'Boxes & Rough':'#e0773a','Low Voltage / Misc':'#3adde0','Custom':'#9aa0ab'
+};
+
+// ═══════════════════════════════════════
+// ASSEMBLY MODAL + SYMBOL PICKER
+// ═══════════════════════════════════════
+var currentSymTab='elec';
+function switchSymTab(tab,btn){currentSymTab=tab;document.querySelectorAll('.sym-tab').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');document.getElementById('sym-grid-elec').style.display=tab==='elec'?'':'none';document.getElementById('sym-grid-basic').style.display=tab==='basic'?'':'none';}
+
+function buildSymGrid(curSymId){
+  var eg=document.getElementById('sym-grid-elec');eg.innerHTML='';
+  ELEC_SYMS.forEach(function(sym){
+    var btn=document.createElement('button');btn.className='sym-btn'+(sym.id===curSymId?' sel':'');
+    btn.title=sym.label;var cv=document.createElement('canvas');cv.width=44;cv.height=44;
+    sym.draw(cv.getContext('2d'),22,22,20,selAC||'#e03a3a');btn.appendChild(cv);
+    btn.onclick=function(){document.querySelectorAll('.sym-btn').forEach(function(b){b.classList.remove('sel');});btn.classList.add('sel');selSymId=sym.id;};
+    eg.appendChild(btn);
+  });
+  var bg=document.getElementById('sym-grid-basic');bg.innerHTML='';
+  BASIC_SYMS.forEach(function(sym){
+    var btn=document.createElement('button');btn.className='sym-btn'+(sym.id===curSymId?' sel':'');
+    btn.title=sym.label;var cv=document.createElement('canvas');cv.width=44;cv.height=44;
+    sym.draw(cv.getContext('2d'),22,22,20,selAC||'#e03a3a');btn.appendChild(cv);
+    btn.onclick=function(){document.querySelectorAll('.sym-btn').forEach(function(b){b.classList.remove('sel');});btn.classList.add('sel');selSymId=sym.id;};
+    bg.appendChild(btn);
+  });
+}
+
+// Search picker
+function initAsmSearch(){
+  var inp=document.getElementById('asm-search');
+  var dd=document.getElementById('asm-dropdown');
+  inp.addEventListener('input',function(){
+    var q=inp.value.trim().toLowerCase();
+    if(!q){dd.classList.remove('open');return;}
+    var matches=STD_ITEMS.filter(function(it){return it.name.toLowerCase().indexOf(q)>=0||it.cat.toLowerCase().indexOf(q)>=0;});
+    dd.innerHTML='';
+    // group by category
+    var byCat={};
+    matches.forEach(function(it){if(!byCat[it.cat])byCat[it.cat]=[];byCat[it.cat].push(it);});
+    Object.keys(byCat).forEach(function(cat){
+      var cl=document.createElement('div');cl.className='asm-opt-cat';cl.textContent=cat;dd.appendChild(cl);
+      byCat[cat].forEach(function(it){
+        var opt=document.createElement('div');opt.className='asm-opt';opt.textContent=it.name;
+        opt.onclick=function(){fillFromStdItem(it);dd.classList.remove('open');inp.value='';};
+        dd.appendChild(opt);
+      });
+    });
+    // custom entry option
+    var cust=document.createElement('div');cust.className='asm-opt custom-entry';
+    cust.textContent='Use "'+inp.value+'" as custom item';
+    cust.onclick=function(){
+      document.getElementById('asm-name').value=inp.value;
+      document.getElementById('asm-key').value=inp.value.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+      document.getElementById('asm-cat').value='Custom';
+      dd.classList.remove('open');inp.value='';
+    };
+    dd.appendChild(cust);
+    dd.classList.add('open');
+  });
+  inp.addEventListener('keydown',function(e){if(e.key==='Escape'){dd.classList.remove('open');inp.value='';}});
+  document.addEventListener('click',function(e){if(!inp.contains(e.target)&&!dd.contains(e.target))dd.classList.remove('open');});
+}
+
+function fillFromStdItem(it){
+  document.getElementById('asm-name').value=it.name;
+  document.getElementById('asm-key').value=it.key;
+  document.getElementById('asm-cat').value=it.cat;
+  selSymId=it.symId||DEFAULT_SYM;
+  // auto-assign category color if no custom color set yet
+  var catCol=CAT_COLORS[it.cat];
+  if(catCol){selAC=catCol;buildCG('asm-cgrid',selAC,function(c){selAC=c;buildSymGrid(selSymId);});}
+  buildSymGrid(selSymId);
+}
+
+function openAsmModal(idx){
+  editAi=idx;var a=idx>=0?assemblies[idx]:null;
+  document.getElementById('asm-title').textContent=a?'Edit Assembly':'Add Assembly';
+  document.getElementById('asm-search').value='';
+  document.getElementById('asm-dropdown').classList.remove('open');
+  document.getElementById('asm-name').value=a?a.name:'';
+  document.getElementById('asm-key').value=a?a.key:'';
+  document.getElementById('asm-cat').value=a?(a.cat||'Custom'):'Devices';
+  selAC=a?a.color:COLORS[assemblies.length%COLORS.length];
+  selSymId=a?(a.symId||DEFAULT_SYM):DEFAULT_SYM;
+  buildCG('asm-cgrid',selAC,function(c){selAC=c;buildSymGrid(selSymId);});
+  buildSymGrid(selSymId);
+  document.getElementById('asm-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('asm-search').focus();},100);
+}
+function saveAsm(){
+  var nm=document.getElementById('asm-name').value.trim();
+  if(!nm){alert('Enter a name.');return;}
+  var key=document.getElementById('asm-key').value.trim()||nm.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+  var cat=document.getElementById('asm-cat').value||'Custom';
+  if(editAi>=0){
+    var a=assemblies[editAi];a.name=nm;a.key=key;a.color=selAC;a.symId=selSymId;a.cat=cat;
+    Object.keys(drawings).forEach(function(id){drawings[id].markups.forEach(function(m){if(m.asmId===a.id){m.color=selAC;m.symId=selSymId;}});});
+  }else{
+    assemblies.push({id:'a'+Date.now(),name:nm,key:key,color:selAC,symId:selSymId,cat:cat,visible:true,count:0});
+    activeAsmIdx=assemblies.length-1;
+  }
+  closeModal('asm-modal');renderAll();redrawMarkup();save();
+}
+
+// ═══════════════════════════════════════
+// RUN TYPE MODAL
+// ═══════════════════════════════════════
+function openRunModal(idx){editRi=idx;var rt=idx>=0?runTypes[idx]:null;document.getElementById('run-title').textContent=rt?'Edit Run Type':'Add Run Type';document.getElementById('rt-cat').value=rt?rt.category:'emt';document.getElementById('rt-size').value=rt?rt.size:'3/4"';document.getElementById('rt-mc').value=rt?rt.mcType:'MC 12/2';document.getElementById('rt-cust').value=rt?rt.custName:'';document.getElementById('rt-lbl').value=rt?rt.label:'';document.getElementById('rt-mat').value=rt?rt.material:'Cu';document.getElementById('rt-sup').value=rt?rt.support:'Strut Clip';document.getElementById('rt-mkup').value=rt?rt.makeup:'6ft / end';document.getElementById('rt-diff').value=rt?rt.difficulty:'Normal';selRC=rt?rt.color:COLORS[(runTypes.length+3)%COLORS.length];buildCG('rt-cgrid',selRC,function(c){selRC=c;});document.getElementById('wire-rows').innerHTML='';if(rt&&rt.conductors)rt.conductors.forEach(function(c){addWireRow(c);});onRtCat();document.getElementById('run-modal').classList.add('open');}
+function onRtCat(){var cat=document.getElementById('rt-cat').value;var isCond=cat==='emt'||cat==='pvc'||cat==='rigid';document.getElementById('rt-sz-w').style.display=isCond?'':'none';document.getElementById('rt-mc-w').style.display=(cat==='mc'||cat==='nm')?'':'none';document.getElementById('rt-cu-w').style.display=cat==='custom'?'':'none';document.getElementById('rt-wire-w').style.display=isCond?'':'none';}
+function addWireRow(ex){var wrap=document.getElementById('wire-rows');var div=document.createElement('div');div.className='wr';var cnt=document.createElement('input');cnt.type='number';cnt.min='1';cnt.max='99';cnt.value=ex?ex.count:1;var sz=document.createElement('select');WSIZES.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;sz.appendChild(o);});sz.value=ex?ex.size:'#12';var tp=document.createElement('select');WTYPES.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;tp.appendChild(o);});tp.value=ex?ex.type:'THHN';var gl=document.createElement('span');gl.className='wl';var gc=document.createElement('input');gc.type='checkbox';gc.checked=ex?!!ex.isGround:false;var gs=document.createElement('span');gs.textContent=' GND';gs.style.fontSize='10px';gs.style.color='var(--text3)';gl.appendChild(gc);gl.appendChild(gs);var del=document.createElement('button');del.className='wd';del.textContent='x';del.onclick=function(){wrap.removeChild(div);};div.appendChild(cnt);div.appendChild(sz);div.appendChild(tp);div.appendChild(gl);div.appendChild(del);wrap.appendChild(div);}
+function getWireRows(){var rows=[];document.getElementById('wire-rows').querySelectorAll('.wr').forEach(function(d){var ins=d.querySelectorAll('input,select');rows.push({count:parseInt(ins[0].value)||1,size:ins[1].value,type:ins[2].value,isGround:ins[3].checked});});return rows;}
+function saveRunType(){var cat=document.getElementById('rt-cat').value;var rt={id:editRi>=0?runTypes[editRi].id:'rt'+Date.now(),category:cat,size:document.getElementById('rt-size').value,mcType:document.getElementById('rt-mc').value,custName:document.getElementById('rt-cust').value.trim(),label:document.getElementById('rt-lbl').value.trim(),color:selRC,conductors:getWireRows(),material:document.getElementById('rt-mat').value,support:document.getElementById('rt-sup').value,makeup:document.getElementById('rt-mkup').value,difficulty:document.getElementById('rt-diff').value,visible:true};if(editRi>=0){runTypes[editRi]=rt;Object.keys(drawings).forEach(function(id){drawings[id].markups.forEach(function(m){if(m.rtId===rt.id)m.color=selRC;});});}else{runTypes.push(rt);activeRtIdx=runTypes.length-1;}closeModal('run-modal');renderAll();redrawMarkup();save();}
+
+// ═══════════════════════════════════════
+// COLOR GRID
+// ═══════════════════════════════════════
+function buildCG(id,cur,cb){var g=document.getElementById(id);g.innerHTML='';COLORS.forEach(function(c){var sw=document.createElement('div');sw.className='cs'+(c===cur?' sel':'');sw.style.background=c;sw.onclick=function(){g.querySelectorAll('.cs').forEach(function(s){s.classList.remove('sel');});sw.classList.add('sel');cb(c);};g.appendChild(sw);});}
+
+// ═══════════════════════════════════════
+// RENDER UI
+// ═══════════════════════════════════════
+function renderAll(){recomputeCounts();renderAsms();renderRts();renderLayers();renderAudit();var a=assemblies[activeAsmIdx];document.getElementById('st-active').textContent=a?a.name:'&#8212;';}
+
+function renderAsms(){var list=document.getElementById('asm-list');list.innerHTML='';assemblies.forEach(function(a,idx){var row=mk('div','lrow-i'+(idx===activeAsmIdx?' active':''));
+  // symbol preview canvas
+  var sw=document.createElement('canvas');sw.width=24;sw.height=24;sw.className='sw18';sw.style.flexShrink='0';
+  var ctx=sw.getContext('2d');
+  var sym=ALL_SYMS[a.symId||DEFAULT_SYM]||ALL_SYMS[DEFAULT_SYM];
+  sym.draw(ctx,12,12,11,a.color);
+  var nm=mk('div','rn');nm.textContent=a.name;var ct=mk('div','rst');ct.textContent=a.count||0;var ed=mk('button','red');ed.textContent='e';ed.onclick=(function(i){return function(e){e.stopPropagation();openAsmModal(i);};})(idx);row.appendChild(sw);row.appendChild(nm);row.appendChild(ct);row.appendChild(ed);row.onclick=(function(i){return function(){activeAsmIdx=i;renderAsms();document.getElementById('st-active').textContent=assemblies[i].name;};})(idx);list.appendChild(row);});}
+
+function fmtRt(rt){if(!rt)return'?';var c=rt.category;if(c==='emt')return rt.size+' EMT'+(rt.label?' - '+rt.label:'');if(c==='pvc')return rt.size+' Sch40 PVC'+(rt.label?' - '+rt.label:'');if(c==='rigid')return rt.size+' Rigid'+(rt.label?' - '+rt.label:'');if(c==='mc'||c==='nm')return rt.mcType+(rt.label?' - '+rt.label:'');return(rt.custName||'Custom')+(rt.label?' - '+rt.label:'');}
+function fmtRtSub(rt){if(!rt||!rt.conductors||!rt.conductors.length)return'';return rt.conductors.map(function(c){return c.count+'x'+c.size+' '+c.type+(c.isGround?' (GND)':'');}).join(', ')+' | '+rt.material+' | '+rt.difficulty;}
+function getRtStats(rt){var ft=0,ct=0;Object.keys(drawings).forEach(function(id){drawings[id].markups.forEach(function(m){if(m.type==='run'&&m.rtId===rt.id){ft+=m.footage||0;ct++;}});});return{ft:ft,ct:ct};}
+
+function renderRts(){var list=document.getElementById('rt-list');list.innerHTML='';runTypes.forEach(function(rt,idx){var s=getRtStats(rt);var row=mk('div','lrow-i'+(idx===activeRtIdx?' active':''));var sw=mk('div','rtbar');sw.style.background=rt.color;var nm=mk('div','rn');nm.textContent=fmtRt(rt);var sub=fmtRtSub(rt);if(sub)nm.innerHTML+='<small>'+sub+'</small>';var st=mk('div','rst');if(s.ct>0){st.innerHTML=Math.round(s.ft)+"'<br><span style='font-size:10px;color:var(--text3)'>"+s.ct+'r @ ~'+Math.round(s.ft/s.ct)+"' avg</span>";}else{st.textContent="0'";}var ed=mk('button','red');ed.textContent='e';ed.onclick=(function(i){return function(e){e.stopPropagation();openRunModal(i);};})(idx);row.appendChild(sw);row.appendChild(nm);row.appendChild(st);row.appendChild(ed);row.onclick=(function(i){return function(){activeRtIdx=i;renderRts();};})(idx);list.appendChild(row);});}
+
+function renderLayers(){var list=document.getElementById('layers-list');list.innerHTML='';assemblies.forEach(function(a,idx){var row=mk('div','llr');var vis=mk('button','lv'+(a.visible?'':' off'));vis.innerHTML=a.visible?'&#128065;':'&#9675;';vis.onclick=(function(i){return function(){assemblies[i].visible=!assemblies[i].visible;renderLayers();redrawMarkup();save();};})(idx);var sw=mk('div','lsw');sw.style.background=a.color;var nm=mk('div','ln');nm.textContent=a.name;var ct=mk('div','lc');ct.textContent=(a.count||0)+' ct';row.appendChild(vis);row.appendChild(sw);row.appendChild(nm);row.appendChild(ct);list.appendChild(row);});runTypes.forEach(function(rt,idx){var s=getRtStats(rt);if(!s.ct)return;var row=mk('div','llr');var vis=mk('button','lv'+(rt.visible===false?' off':''));vis.innerHTML=rt.visible===false?'&#9675;':'&#128065;';vis.onclick=(function(i){return function(){runTypes[i].visible=runTypes[i].visible===false?true:false;renderLayers();redrawMarkup();save();};})(idx);var sw=mk('div','lsw');sw.style.background=rt.color;var nm=mk('div','ln');nm.textContent=fmtRt(rt);var ct=mk('div','lc');ct.textContent=Math.round(s.ft)+"'/"+s.ct+'r';row.appendChild(vis);row.appendChild(sw);row.appendChild(nm);row.appendChild(ct);list.appendChild(row);});}
+
+// ═══════════════════════════════════════
+// AUDIT TRAIL — CATEGORY GROUPED
+// ═══════════════════════════════════════
+function buildAudit(){
+  // device counts grouped by category
+  var byCat={};
+  assemblies.forEach(function(a){
+    if(!a.count)return;
+    var cat=a.cat||'Custom';
+    if(!byCat[cat])byCat[cat]=[];
+    byCat[cat].push({name:a.name,count:a.count});
+  });
+  // conduit runs
+  var cf={},wf={},mf={};
+  runTypes.forEach(function(rt){
+    var s=getRtStats(rt);if(!s.ct)return;
+    var ft=Math.round(s.ft),lbl=fmtRt(rt),cat=rt.category,avg=Math.round(s.ft/s.ct);
+    if(cat==='emt'||cat==='pvc'||cat==='rigid'){
+      cf[lbl]={ft:ft,ct:s.ct,avg:avg};
+      if(rt.conductors&&rt.conductors.length){rt.conductors.forEach(function(c){var wl=c.count+'x'+c.size+' '+c.type+(c.isGround?' (GND)':'');wf[wl]=(wf[wl]||0)+ft*c.count;});}
+    }else{mf[lbl]={ft:ft,ct:s.ct};}
+  });
+  return{byCat:byCat,cf:cf,wf:wf,mf:mf};
+}
+
+function renderAudit(){
+  var d=buildAudit();var h='';
+  // Device/fixture categories in order
+  CAT_ORDER.forEach(function(cat){
+    if(!d.byCat[cat]||!d.byCat[cat].length)return;
+    var subtotal=d.byCat[cat].reduce(function(s,x){return s+x.count;},0);
+    h+='<div class="asl">'+cat+' <span style="color:var(--text3);font-weight:400;">('+subtotal+')</span></div>';
+    d.byCat[cat].forEach(function(item){
+      h+='<div class="arow"><span class="akey">'+item.name+'</span><span class="aval">'+item.count+' ea</span></div>';
+    });
+  });
+  if(Object.keys(d.cf).length){
+    h+='<div class="asl">Conduit</div>';
+    Object.keys(d.cf).forEach(function(k){var v=d.cf[k];h+='<div class="arow"><span class="akey">'+k+'</span><span class="aval">'+v.ft.toLocaleString()+"' / "+v.ct+'r ~'+v.avg+"'</span></div>";});
+  }
+  if(Object.keys(d.wf).length){
+    h+='<div class="asl">Wire (calculated)</div>';
+    Object.keys(d.wf).forEach(function(k){h+='<div class="arow"><span class="akey">'+k+'</span><span class="aval">'+d.wf[k].toLocaleString()+' ft</span></div>';});
+  }
+  if(Object.keys(d.mf).length){
+    h+='<div class="asl">MC / Cable</div>';
+    Object.keys(d.mf).forEach(function(k){var v=d.mf[k];h+='<div class="arow"><span class="akey">'+k+'</span><span class="aval">'+v.ft.toLocaleString()+"' / "+v.ct+'r</span></div>';});
+  }
+  if(!h)h='<div style="font-size:12px;color:var(--text3);padding:4px 0;">No data yet.</div>';
+  document.getElementById('audit-content').innerHTML=h;
+}
+
+// ═══════════════════════════════════════
+// REPORT — SAVE / PRINT
+// ═══════════════════════════════════════
+function buildReportHTML(){
+  var d=buildAudit();
+  var dwgNames=Object.keys(drawings).map(function(id){return drawings[id].name;}).join(' | ');
+  var date=new Date().toLocaleDateString();
+  var h='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Takeoff Report</title>';
+  h+='<style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;color:#111;font-size:13px;}';
+  h+='h1{font-size:24px;margin-bottom:2px;color:#222;}';
+  h+='.meta{color:#888;font-size:12px;margin-bottom:20px;}';
+  h+='.cat-section{margin-bottom:16px;break-inside:avoid;}';
+  h+='.cat-header{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:4px;margin-bottom:0;display:flex;justify-content:space-between;align-items:center;}';
+  h+='.cat-subtotal{font-family:monospace;font-size:12px;}';
+  h+='table{width:100%;border-collapse:collapse;margin-bottom:4px;}';
+  h+='th{text-align:left;font-size:11px;color:#888;padding:4px 8px;border-bottom:2px solid #eee;}th:last-child{text-align:right;}';
+  h+='td{padding:5px 8px;border-bottom:1px solid #eee;}';
+  h+='td.num{text-align:right;font-family:monospace;font-weight:700;}';
+  h+='.sect-head{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555;border-bottom:2px solid #ddd;padding-bottom:3px;margin:22px 0 6px;}';
+  h+='.note{font-size:11px;color:#aaa;margin-top:24px;line-height:1.6;}';
+  h+='.btn-row{display:flex;gap:10px;margin-bottom:24px;}';
+  h+='.btn{padding:10px 20px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;}';
+  h+='.btn-print{background:#f0a500;color:#111;}';
+  h+='@media print{.btn-row{display:none;}.cat-section{page-break-inside:avoid;}}';
+  h+='</style></head><body>';
+  h+='<div class="btn-row"><button class="btn btn-print" onclick="window.print()">&#128424; Print / Save as PDF</button></div>';
+  h+='<h1>Takeoff Report</h1>';
+  h+='<div class="meta">'+(dwgNames||'Unnamed')+' &nbsp;|&nbsp; '+date+'</div>';
+  var catColors={'Devices':'#c0392b','Fixtures':'#2471a3','Data':'#1e8449',
+    'Conduit':'#b7950b','Panels':'#7d3c98','Fire Alarm':'#e03a99',
+    'Boxes & Rough':'#ca6f1e','Low Voltage / Misc':'#148f77','Custom':'#555'};
+  var hasCounts=false;
+  CAT_ORDER.forEach(function(cat){
+    if(!d.byCat[cat]||!d.byCat[cat].length)return;
+    hasCounts=true;
+    var subtotal=d.byCat[cat].reduce(function(s,x){return s+x.count;},0);
+    var col=catColors[cat]||'#555';
+    h+='<div class="cat-section">';
+    h+='<div class="cat-header" style="background:'+col+'18;color:'+col+';border-left:4px solid '+col+';">';
+    h+='<span>'+cat+'</span><span class="cat-subtotal">'+subtotal+' items</span></div>';
+    h+='<table><tr><th>Item</th><th>Qty</th></tr>';
+    d.byCat[cat].forEach(function(item){h+='<tr><td>'+item.name+'</td><td class="num">'+item.count+' ea</td></tr>';});
+    h+='</table></div>';
+  });
+  if(!hasCounts&&!Object.keys(d.cf).length&&!Object.keys(d.mf).length){h+='<p style="color:#aaa;margin-top:20px;">No data counted yet.</p>';}
+  if(Object.keys(d.cf).length){
+    h+='<div class="sect-head">Conduit Runs</div>';
+    h+='<table><tr><th>Run Type</th><th>Total Footage</th><th># Runs</th><th>Avg Length</th></tr>';
+    Object.keys(d.cf).forEach(function(k){var v=d.cf[k];h+='<tr><td>'+k+'</td><td class="num">'+v.ft.toLocaleString()+' ft</td><td class="num">'+v.ct+'</td><td class="num">~'+v.avg+' ft</td></tr>';});
+    h+='</table>';
+  }
+  if(Object.keys(d.wf).length){
+    h+='<div class="sect-head">Wire Footage (run length &times; conductor count)</div>';
+    h+='<table><tr><th>Conductor</th><th>Total Footage</th></tr>';
+    Object.keys(d.wf).forEach(function(k){h+='<tr><td>'+k+'</td><td class="num">'+d.wf[k].toLocaleString()+' ft</td></tr>';});
+    h+='</table>';
+  }
+  if(Object.keys(d.mf).length){
+    h+='<div class="sect-head">MC / Cable Footage</div>';
+    h+='<table><tr><th>Type</th><th>Total Footage</th><th># Runs</th></tr>';
+    Object.keys(d.mf).forEach(function(k){var v=d.mf[k];h+='<tr><td>'+k+'</td><td class="num">'+v.ft.toLocaleString()+' ft</td><td class="num">'+v.ct+'</td></tr>';});
+    h+='</table>';
+  }
+  h+='<div class="note">Wire footage excludes makeup wire &#8212; add per your standard allowance.<br>';
+  h+='Conduit run counts reflect individual traced segments. Average length used for estimator assembly cards.</div>';
+  h+='</body></html>';
+  return h;
+}
+
+function showReport(){_reportHTML=buildReportHTML();document.getElementById('report-modal').classList.add('open');}
+function doReportPrint(){var w=window.open('','_blank');w.document.write(_reportHTML);w.document.close();}
+function doReportDownload(){
+  var date=new Date().toISOString().slice(0,10);
+  var blob=new Blob([_reportHTML],{type:'text/html'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='takeoff_report_'+date+'.html';a.click();
+  showToast('Report saved!');
+  closeModal('report-modal');
+}
+
+// ═══════════════════════════════════════
+// PAGE PICKER & MARKED PDF EXPORT
+// ═══════════════════════════════════════
+function openPagePicker(){
+  if(!pdfDoc){alert('Load a PDF first.');return;}
+  pgSelected={};
+  // pre-select pages that have markup in current drawing
+  var pagesWithMarkup={};
+  curMs().forEach(function(m){if(m.page)pagesWithMarkup[m.page]=true;});
+  var list=document.getElementById('pg-picker-list');list.innerHTML='';
+  for(var p=1;p<=totalPages;p++){
+    (function(pg){
+      pgSelected[pg]=!!pagesWithMarkup[pg];
+      var btn=document.createElement('div');
+      btn.className='pgck'+(pgSelected[pg]?' on':'');
+      btn.textContent='Pg '+pg;
+      btn.onclick=function(){pgSelected[pg]=!pgSelected[pg];btn.className='pgck'+(pgSelected[pg]?' on':'');};
+      list.appendChild(btn);
+    })(p);
+  }
+  document.getElementById('pg-progress').textContent='';
+  document.getElementById('pg-modal').classList.add('open');
+}
+
+function pgPickAll(val){pgSelected={};document.querySelectorAll('.pgck').forEach(function(btn,idx){pgSelected[idx+1]=val;btn.className='pgck'+(val?' on':'');});}
+
+function exportMarkedPDF(){
+  var pages=[];
+  for(var p in pgSelected){if(pgSelected[p])pages.push(parseInt(p));}
+  pages.sort(function(a,b){return a-b;});
+  if(!pages.length){alert('Select at least one page.');return;}
+  if(!pdfDoc){alert('PDF must be loaded in the tool to export.');return;}
+  document.getElementById('pg-export-btn').disabled=true;
+  document.getElementById('pg-progress').textContent='Rendering page 1 of '+pages.length+'...';
+
+  var imgDataUrls=[];
+  var renderScale=2.0; // higher res for export
+  var idx=0;
+
+  function renderNext(){
+    if(idx>=pages.length){buildPDFFromImages(imgDataUrls,pages);return;}
+    var pageNum=pages[idx];
+    document.getElementById('pg-progress').textContent='Rendering page '+(idx+1)+' of '+pages.length+'...';
+    pdfDoc.getPage(pageNum).then(function(pg){
+      var vp=pg.getViewport({scale:renderScale});
+      var tmpCv=document.createElement('canvas');
+      tmpCv.width=vp.width;tmpCv.height=vp.height;
+      var ctx=tmpCv.getContext('2d');
+      pg.render({canvasContext:ctx,viewport:vp}).promise.then(function(){
+        // Draw markup for this page
+        var ms=curMs();
+        ms.forEach(function(m){
+          if(m.page!==pageNum)return;
+          var scaleFactor=renderScale/baseScale; // markup was stored at baseScale coords
+          if(m.type==='point'){
+            var a=assemblies.find(function(x){return x.id===m.asmId;});
+            if(a&&!a.visible)return;
+            drawMarkerOnCtx(ctx,m.x*scaleFactor,m.y*scaleFactor,m.symId||m.symbol||DEFAULT_SYM,m.color,32);
+          }else if(m.type==='run'){
+            var rt=runTypes.find(function(x){return x.id===m.rtId;});
+            if(rt&&rt.visible===false)return;
+            var scaledPts=m.pts.map(function(pt){return{x:pt.x*scaleFactor,y:pt.y*scaleFactor};});
+            drawRunOnCtx(ctx,scaledPts,m.color,m.footage,m.dropStart,m.dropEnd,scaleFactor);
+          }
+        });
+        imgDataUrls.push({dataUrl:tmpCv.toDataURL('image/jpeg',0.92),w:vp.width,h:vp.height});
+        idx++;renderNext();
+      });
+    });
+  }
+  renderNext();
+}
+
+function drawMarkerOnCtx(ctx,x,y,symId,color,size){
+  ctx.save();
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.beginPath();ctx.arc(x,y,size*.7,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=color;ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(x,y,size*.7,0,Math.PI*2);ctx.stroke();
+  var sym=ALL_SYMS[symId]||ALL_SYMS[DEFAULT_SYM];
+  sym.draw(ctx,x,y,size,color);
+  ctx.restore();
+}
+function drawRunOnCtx(ctx,pts,color,footage,ds,de,sf){
+  if(!pts||pts.length<2)return;
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=4;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+  for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
+  ctx.stroke();
+  [pts[0],pts[pts.length-1]].forEach(function(p){
+    ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.stroke();
+  });
+  if(footage>0){var mi=Math.floor((pts.length-1)/2);var nx=pts[mi+1>=pts.length?mi:mi+1];var mx=(pts[mi].x+nx.x)/2,my=(pts[mi].y+nx.y)/2;ctx.fillStyle='rgba(0,0,0,.8)';ctx.fillRect(mx-32,my-12,64,22);ctx.fillStyle=color;ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(footage+"'",mx,my);}
+  ctx.restore();
+}
+
+function buildPDFFromImages(imgs,pages){
+  document.getElementById('pg-progress').textContent='Building PDF...';
+  // Simple multi-page PDF builder — each image becomes a page
+  // Uses jsPDF-style manual PDF construction
+  var pdfParts=['%PDF-1.4\n'];
+  var objCount=0;
+  var offsets=[];
+
+  function addObj(content){
+    objCount++;
+    offsets.push(pdfParts.join('').length);
+    pdfParts.push(objCount+' 0 obj\n'+content+'\nendobj\n');
+    return objCount;
+  }
+
+  // We'll use a canvas-to-blob approach instead — simpler and reliable
+  // Build as a sequence of images in a new window for print-to-PDF
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Marked Drawing</title>';
+  html+='<style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#fff;}';
+  html+='.pg{page-break-after:always;display:flex;justify-content:center;align-items:flex-start;}';
+  html+='.pg:last-child{page-break-after:auto;}';
+  html+='img{max-width:100%;height:auto;display:block;}';
+  html+='@media print{.btn-row{display:none;}.pg{page-break-after:always;}}';
+  html+='</style></head><body>';
+  html+='<div class="btn-row" style="padding:12px;background:#f5f5f5;display:flex;gap:8px;align-items:center;">';
+  html+='<strong style="font-family:Arial;font-size:14px;">Marked Drawing Export &mdash; '+pages.length+' page(s)</strong>';
+  html+='<button onclick="window.print()" style="margin-left:auto;padding:8px 18px;background:#f0a500;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;">&#128424; Print / Save as PDF</button>';
+  html+='</div>';
+
+  imgs.forEach(function(img,i){
+    html+='<div class="pg"><img src="'+img.dataUrl+'" style="width:100%;"></div>';
+  });
+  html+='<script>window.print();<\/script></body></html>';
+
+  var w=window.open('','_blank');
+  w.document.write(html);w.document.close();
+  document.getElementById('pg-progress').textContent='Done! Opened in new tab.';
+  document.getElementById('pg-export-btn').disabled=false;
+  setTimeout(function(){closeModal('pg-modal');},1500);
+}
+
+// ═══════════════════════════════════════
+// SYNC + JSON EXPORT
+// ═══════════════════════════════════════
+function syncToCounter(){var JK='ore_jobs_v1';try{var jobs=JSON.parse(localStorage.getItem(JK))||{};var keys=Object.keys(jobs);if(!keys.length){alert('No counter job found. Open the counter tool first.');return;}var jk=keys[keys.length-1];var job=jobs[jk];var area=job.areas[job.currentAreaIdx||0];if(!area){alert('No area found.');return;}assemblies.forEach(function(a){if(a.count>0)area.counts[a.key]=(area.counts[a.key]||0)+a.count;});runTypes.forEach(function(rt){var s=getRtStats(rt);if(!s.ft)return;var cat=rt.category;var key;if(cat==='emt')key='conduit_emt_'+rt.size.replace(/[^0-9a-z]/gi,'_').toLowerCase();else if(cat==='pvc')key='conduit_pvc_'+rt.size.replace(/[^0-9a-z]/gi,'_').toLowerCase();else if(cat==='mc'||cat==='nm')key='mc_'+rt.mcType.toLowerCase().replace(/[^a-z0-9]/g,'_');else key='run_custom_'+rt.id;area.counts[key]=(area.counts[key]||0)+Math.round(s.ft);});jobs[jk]=job;localStorage.setItem(JK,JSON.stringify(jobs));showToast('Synced to counter!');}catch(e){alert('Sync error: '+e.message);}}
+
+function exportJSON(){var d=buildAudit();var runDetail={};runTypes.forEach(function(rt){var segs=[];Object.keys(drawings).forEach(function(id){drawings[id].markups.forEach(function(m){if(m.type==='run'&&m.rtId===rt.id)segs.push({drawing:drawings[id].name,page:m.page,footage:m.footage});});});if(!segs.length)return;var totalFt=segs.reduce(function(s,x){return s+x.footage;},0);runDetail[fmtRt(rt)]={category:rt.category,size:rt.size,mcType:rt.mcType,conductors:rt.conductors,material:rt.material,support:rt.support,makeup:rt.makeup,difficulty:rt.difficulty,totalFootage:Math.round(totalFt),segmentCount:segs.length,avgFootage:Math.round(totalFt/segs.length),segments:segs};});var out={exportDate:new Date().toISOString().slice(0,10),drawings:Object.keys(drawings).map(function(id){return drawings[id].name;}),assemblyCounts:d.ac,conduitRuns:runDetail,wireFootage:d.wf,mcFootage:d.mf};var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pdf_takeoff_'+out.exportDate+'.json';a.click();showToast('Exported!');}
+
+function recomputeCounts(){assemblies.forEach(function(a){a.count=0;});Object.keys(drawings).forEach(function(id){drawings[id].markups.forEach(function(m){if(m.type==='point'){var a=assemblies.find(function(x){return x.id===m.asmId;});if(a)a.count++;}});});}
+function mk(tag,cls){var el=document.createElement(tag);if(cls)el.className=cls;return el;}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+var _tt;
+function showToast(msg){var t=document.getElementById('_t_');if(!t){t=document.createElement('div');t.id='_t_';t.style.cssText='position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--green);color:#fff;font-family:var(--ui);font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 20px;border-radius:100px;z-index:9999;opacity:0;transition:all .2s;white-space:nowrap;pointer-events:none;';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';clearTimeout(_tt);_tt=setTimeout(function(){t.style.opacity='0';t.style.transform='translateX(-50%) translateY(8px)';},2500);}
+
+document.addEventListener('keydown',function(e){if(['INPUT','SELECT','TEXTAREA'].indexOf(e.target.tagName)>=0)return;if(e.key==='c'||e.key==='C')setMode('count');if(e.key==='r'||e.key==='R')setMode('run');if(e.key==='p'||e.key==='P')setMode('pan');if(e.key==='Escape'){if(drawingRun){drawingRun=false;runPts=[];redrawMarkup();}if(measuring)cancelMeasure();}if(e.key==='Enter'&&mode==='run'&&drawingRun&&runPts.length>=2)finishRun();if(e.key==='+'||e.key==='=')zoom(.15);if(e.key==='-')zoom(-.15);var n=parseInt(e.key);if(!isNaN(n)&&n>=1){if(mode==='count'&&n<=assemblies.length){activeAsmIdx=n-1;renderAsms();}if(mode==='run'&&n<=runTypes.length){activeRtIdx=n-1;renderRts();}}});
+document.getElementById('dwg-name-inp').addEventListener('keydown',function(e){if(e.key==='Enter')confirmDwgLoad();});
+
+window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();};
+</script>
+
+
+</body></html>
