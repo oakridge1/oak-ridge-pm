@@ -55,6 +55,7 @@ type Inspection = {
 interface InspectionsTabProps {
   job: { id: string; inspections: Inspection[] };
   role: Role;
+  canAddInspections?: boolean;
 }
 
 function AddInspectionForm({
@@ -540,9 +541,9 @@ function InspectionCard({
   );
 }
 
-export function InspectionsTab({ job, role }: InspectionsTabProps) {
+export function InspectionsTab({ job, role, canAddInspections = false }: InspectionsTabProps) {
   const [showForm, setShowForm] = useState(false);
-  const canAdd = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
+  const canAdd = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN" || canAddInspections;
 
   return (
     <div className="p-4 space-y-4">

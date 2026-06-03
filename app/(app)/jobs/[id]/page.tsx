@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { JobTabs } from "./job-tabs";
+import { hasPermission } from "@/lib/permissions";
 import { FileText, BarChart2, Mail } from "lucide-react";
 
 interface PageProps {
@@ -163,6 +164,7 @@ export default async function JobPage({ params }: PageProps) {
     role === "FOREMAN" &&
     (job.foremanId === session.user.id || job.createdById === session.user.id);
   const canViewSummary = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
+  const canAddInspections = await hasPermission(session.user.id!, role, "ADD_INSPECTIONS");
   const canViewReports = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
   const reportUrl = `/jobs/${id}/report`;
   const summaryUrl = `/jobs/${id}/summary-report`;
@@ -212,6 +214,7 @@ export default async function JobPage({ params }: PageProps) {
         savedTasks={savedTasks}
         allCalendarEvents={allCalendarEvents}
         canViewSummary={canViewSummary}
+        canAddInspections={canAddInspections}
         companyRates={companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
         overheadAllocation={overheadAllocAmount}
       />

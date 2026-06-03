@@ -35,9 +35,10 @@ interface ProfileClientProps {
     role: Role;
     notificationPreferences: Record<string, boolean>;
   };
+  canEditNotifications: boolean;
 }
 
-export function ProfileClient({ user }: ProfileClientProps) {
+export function ProfileClient({ user, canEditNotifications }: ProfileClientProps) {
   // ── Personal info ──────────────────────────────────────────────────────────
   const [nameValue, setNameValue] = useState(user.name);
   const [namePending, startNameTransition] = useTransition();
@@ -155,48 +156,56 @@ export function ProfileClient({ user }: ProfileClientProps) {
           Choose which email notifications you receive.
         </p>
 
-        <div className="space-y-0">
-          {NOTIFICATION_TYPES.map(({ key, label }) => {
-            const enabled = prefs[key] !== false;
-            return (
-              <div
-                key={key}
-                className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
-              >
-                <span className="text-sm text-gray-700">{label}</span>
-                <button
-                  onClick={() => handleTogglePref(key)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-                    enabled ? "bg-[#002D72]" : "bg-gray-200"
-                  }`}
-                  aria-label={`Toggle ${label}`}
-                >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                      enabled ? "translate-x-4" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        {!canEditNotifications ? (
+          <p className="text-sm text-gray-400 italic">
+            Contact your administrator to update notification preferences.
+          </p>
+        ) : (
+          <>
+            <div className="space-y-0">
+              {NOTIFICATION_TYPES.map(({ key, label }) => {
+                const enabled = prefs[key] !== false;
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                  >
+                    <span className="text-sm text-gray-700">{label}</span>
+                    <button
+                      onClick={() => handleTogglePref(key)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                        enabled ? "bg-[#002D72]" : "bg-gray-200"
+                      }`}
+                      aria-label={`Toggle ${label}`}
+                    >
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                          enabled ? "translate-x-4" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
 
-        <div className="flex items-center gap-3 mt-4">
-          <button
-            onClick={handleSavePrefs}
-            disabled={prefsPending}
-            className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
-          >
-            {prefsPending ? "Saving…" : "Save Preferences"}
-          </button>
-          {prefsSaved && (
-            <span className="text-sm text-green-600 font-medium">Saved!</span>
-          )}
-          {prefsError && (
-            <span className="text-sm text-red-600">{prefsError}</span>
-          )}
-        </div>
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={handleSavePrefs}
+                disabled={prefsPending}
+                className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
+              >
+                {prefsPending ? "Saving…" : "Save Preferences"}
+              </button>
+              {prefsSaved && (
+                <span className="text-sm text-green-600 font-medium">Saved!</span>
+              )}
+              {prefsError && (
+                <span className="text-sm text-red-600">{prefsError}</span>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

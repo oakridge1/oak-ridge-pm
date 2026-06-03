@@ -85,6 +85,7 @@ interface JobTabsProps {
   savedTasks: { id: string; title: string; description: string | null; sortOrder: number }[];
   allCalendarEvents?: any[];
   canViewSummary?: boolean;
+  canAddInspections?: boolean;
   orderingPermissions?: { scope: string; jobId: string | null }[];
   companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
   overheadAllocation?: number;
@@ -99,6 +100,7 @@ export function JobTabs({
   savedTasks,
   allCalendarEvents = [],
   canViewSummary = false,
+  canAddInspections = false,
   orderingPermissions = [],
   companyRates = null,
   overheadAllocation = 0,
@@ -187,7 +189,7 @@ export function JobTabs({
           />
         )}
         {activeTab === "inspections" && (
-          <InspectionsTab job={job} role={role} />
+          <InspectionsTab job={job} role={role} canAddInspections={canAddInspections} />
         )}
         {activeTab === "rfi" && (
           <RfiTab

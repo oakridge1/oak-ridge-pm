@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
 import { ProfileClient } from "./ProfileClient";
 
 export default async function ProfilePage() {
@@ -13,6 +14,8 @@ export default async function ProfilePage() {
   });
 
   if (!user) redirect("/login");
+
+  const canEditNotifications = await hasPermission(user.id, user.role, "NOTIFICATION_SETTINGS");
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -32,6 +35,7 @@ export default async function ProfilePage() {
           notificationPreferences:
             (user.notificationPreferences?.preferences as Record<string, boolean>) ?? {},
         }}
+        canEditNotifications={canEditNotifications}
       />
     </div>
   );

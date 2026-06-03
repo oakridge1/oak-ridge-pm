@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { notifyPaymentRecorded } from "@/lib/notifications";
+import type { PermissionKey } from "@/lib/permissions";
 
 async function requireAdmin() {
   const session = await auth();
@@ -13,20 +14,23 @@ async function requireAdmin() {
   return session;
 }
 
-async function requireAdminOrForemanOnJob(jobId: string) {
+// ADMIN and OFFICE always pass. Foremen pass on their own job. Anyone else passes if they
+// have the named permission granted via the UserPermission table.
+async function requirePermission(jobId: string, permission: PermissionKey) {
   const session = await auth();
   if (!session?.user?.active) throw new Error("Unauthorized");
-  if (session.user.role === "ADMIN") return session;
-  if (session.user.role === "FOREMAN") {
+  const { role, id: userId } = session.user;
+  if (role === "ADMIN" || role === "OFFICE") return session;
+  if (role === "FOREMAN") {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       select: { foremanId: true, createdById: true },
     });
-    if (job && (job.foremanId === session.user.id || job.createdById === session.user.id)) {
-      return session;
-    }
+    if (job && (job.foremanId === userId || job.createdById === userId)) return session;
   }
-  throw new Error("Only ADMIN or the assigned foreman can perform this action.");
+  const perm = await prisma.userPermission.findFirst({ where: { userId, permission } });
+  if (perm) return session;
+  throw new Error("You don't have permission to perform this action.");
 }
 
 // ── Direct Costs ───────────────────────────────────────────────────────────────
@@ -177,7 +181,7 @@ export async function createInvoice(jobId: string, data: {
   invoiceKind?: string;
   force?: boolean;
 }) {
-  const session = await requireAdminOrForemanOnJob(jobId);
+  const session = await requirePermission(jobId, "CREATE_INVOICES");
 
   if (!data.date) throw new Error("Invoice date is required.");
   if (!data.amount || parseFloat(data.amount) <= 0) throw new Error("Amount must be greater than 0.");
@@ -257,7 +261,7 @@ export async function updateInvoiceStatus(
   jobId: string,
   status: "DRAFT" | "SENT" | "PARTIALLY_PAID" | "PAID"
 ) {
-  await requireAdmin();
+  await requirePermission(jobId, "UPDATE_INVOICE_STATUS");
   await prisma.invoice.update({
     where: { id: invoiceId },
     data: { status },
@@ -293,7 +297,7 @@ export async function addPayment(
   includesRetainageRelease?: boolean,
   receiptImageUrl?: string
 ) {
-  const session = await requireAdmin();
+  const session = await requirePermission(jobId, "RECORD_PAYMENTS");
   if (!date) throw new Error("Date is required.");
   if (!amount || parseFloat(amount) <= 0) throw new Error("Amount must be greater than 0.");
 
