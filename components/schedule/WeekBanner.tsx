@@ -85,7 +85,7 @@ export function WeekBanner() {
   const sunday = days[6];
 
   function schedulesOn(dateStr: string) {
-    return schedules.filter((s) => s.date === dateStr);
+    return schedules.filter((s) => s.date.slice(0, 10) === dateStr);
   }
 
   function prevWeek() {
