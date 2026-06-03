@@ -120,25 +120,21 @@ export function calcPanel(p: PanelBuilderState): SavedAssembly | null {
     mountLhr * p.diff * R.labor
   );
 
-  // Breakers — group by bomId and count
+  // Single pass: tally breaker counts and termination labor together
   const bkrCounts: Record<string, number> = {};
+  let termLab = 0;
   for (const circuit of p.circuits) {
-    bkrCounts[circuit.bomId] =
-      (bkrCounts[circuit.bomId] ?? 0) + 1;
+    bkrCounts[circuit.bomId] = (bkrCounts[circuit.bomId] ?? 0) + 1;
+    const def = BREAKER_DEFS[circuit.breakerType];
+    if (def) {
+      const baseLhr   = N4_BKR[def.lhrKey] ?? 0.34;
+      const afciAdder = (def.isAfci || def.isGfci)
+        ? (N4_BKR['afci_adder'] ?? 0.15) : 0;
+      termLab += (baseLhr + afciAdder) * p.diff * R.labor;
+    }
   }
   for (const [bomId, qty] of Object.entries(bkrCounts)) {
     addItem(bomId, qty);
-  }
-
-  // Breaker termination labor (N4_BKR per circuit)
-  let termLab = 0;
-  for (const circuit of p.circuits) {
-    const def = BREAKER_DEFS[circuit.breakerType];
-    if (!def) continue;
-    const baseLhr  = N4_BKR[def.lhrKey] ?? 0.34;
-    const afciAdder = (def.isAfci || def.isGfci)
-      ? (N4_BKR['afci_adder'] ?? 0.15) : 0;
-    termLab += (baseLhr + afciAdder) * p.diff * R.labor;
   }
   if (termLab > 0) {
     addManual(

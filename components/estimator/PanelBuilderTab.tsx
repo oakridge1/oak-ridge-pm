@@ -7,15 +7,8 @@ import {
   type CircuitSlot,
 } from '@/lib/estimator/panelBuilder';
 import { getRates } from '@/lib/estimator/constants';
+import { fmt$ } from '@/lib/estimator/format';
 import { useMemo, useState } from 'react';
-
-// ── Format helpers ─────────────────────────────────────────────────────────────
-
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 
 // ── Button group helper ────────────────────────────────────────────────────────
 
@@ -99,29 +92,25 @@ export function PanelBuilderTab() {
     });
   }
 
-  const preview = useMemo(() => calcPanel(panel), [panel]);
-
-  // Slot counter for the preview
-  const totalSlots = panel.circuits.reduce((s, c) => {
-    const def = BREAKER_DEFS[c.breakerType];
-    return s + (def?.isTandem ? 1 : def?.poles ?? 1);
-  }, 0);
   const maxSlots = panel.panelBomId === 'pg1' ? 30 : 40;
 
-  // Mount labor hours for the note
-  const mountLhr = PANEL_MOUNT_LABOR[panel.panelBomId]?.[panel.mountType] ?? 3.0;
-
-  // Breaker summary tally
-  const bkrTally = panel.circuits.reduce<Record<string, number>>((acc, c) => {
-    acc[c.breakerType] = (acc[c.breakerType] ?? 0) + 1;
-    return acc;
-  }, {});
-  const bkrSummary = Object.entries(bkrTally)
-    .map(([bt, qty]) => `${BREAKER_DEFS[bt]?.label ?? bt} ×${qty}`)
-    .join(' | ');
-
-  // Sorted circuits
-  const sortedCircuits = [...panel.circuits].sort((a, b) => a.slot - b.slot);
+  // All panel-derived values in one memo so panel.circuits is only iterated once per change
+  const { preview, totalSlots, mountLhr, bkrSummary, sortedCircuits } = useMemo(() => {
+    const preview    = calcPanel(panel);
+    const mountLhr   = PANEL_MOUNT_LABOR[panel.panelBomId]?.[panel.mountType] ?? 3.0;
+    let   totalSlots = 0;
+    const bkrTally: Record<string, number> = {};
+    const sorted     = [...panel.circuits].sort((a, b) => a.slot - b.slot);
+    for (const c of panel.circuits) {
+      const def    = BREAKER_DEFS[c.breakerType];
+      totalSlots  += def?.isTandem ? 1 : (def?.poles ?? 1);
+      bkrTally[c.breakerType] = (bkrTally[c.breakerType] ?? 0) + 1;
+    }
+    const bkrSummary = Object.entries(bkrTally)
+      .map(([bt, qty]) => `${BREAKER_DEFS[bt]?.label ?? bt} ×${qty}`)
+      .join(' | ');
+    return { preview, totalSlots, mountLhr, bkrSummary, sortedCircuits: sorted };
+  }, [panel]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -198,20 +187,32 @@ export function PanelBuilderTab() {
                 </label>
               </div>
 
-              {/* Difficulty */}
+              {/* Difficulty — inline buttons (number values, avoids parseFloat) */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">
                   Difficulty
                 </label>
-                <BtnGroup
-                  options={[
-                    { value: '1.0',  label: 'Normal'      },
-                    { value: '1.25', label: 'Difficult'   },
-                    { value: '1.55', label: 'V.Difficult' },
-                  ]}
-                  value={String(panel.diff)}
-                  onChange={v => patchPanel({ diff: parseFloat(v) })}
-                />
+                <div className="flex rounded-lg overflow-hidden border border-gray-200 w-fit">
+                  {([
+                    { value: 1.0,  label: 'Normal'      },
+                    { value: 1.25, label: 'Difficult'   },
+                    { value: 1.55, label: 'V.Difficult' },
+                  ] as const).map((opt, i) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => patchPanel({ diff: opt.value })}
+                      className={[
+                        'px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap',
+                        i > 0 ? 'border-l border-gray-200' : '',
+                        panel.diff === opt.value
+                          ? 'bg-[#1a3a5c] text-white'
+                          : 'bg-white text-gray-600 hover:bg-gray-50',
+                      ].join(' ')}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
