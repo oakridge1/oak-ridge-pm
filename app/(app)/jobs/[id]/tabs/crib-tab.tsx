@@ -1253,10 +1253,19 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
   const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orderType, setOrderType] = useState<'ORDER' | 'QUOTE' | 'COMPETITIVE_QUOTE'>('ORDER');
+  const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
 
   const jobAddress = [job.address, job.city, job.state].filter(Boolean).join(", ");
 
   const isTeammate = role === "TEAMMATE";
+
+  // Jump to step 2 immediately when a quote mode is selected (no delivery step needed)
+  useEffect(() => {
+    if (orderType !== 'ORDER') {
+      setStep(2);
+    }
+  }, [orderType]);
 
   const deliveryOptions = [
     { value: "PICKUP", label: "Pickup", icon: Store, subtitle: "Items picked up at supplier" },
@@ -1268,26 +1277,80 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
     setSending(true);
     setError(null);
     try {
-      const groups = [];
+      // Confirmation dialog for quote modes
+      if (orderType !== 'ORDER') {
+        const vendorList =
+          orderType === 'COMPETITIVE_QUOTE'
+            ? selectedVendors.join(', ')
+            : supplierName;
 
-      if (electricalRequests.length > 0) {
-        groups.push({
-          supplierName,
-          supplierEmail,
-          deliveryMethod: deliveryMethod ?? "PICKUP",
-          requestIds: electricalRequests.map(r => r.id),
-          isConsumables: false,
-        });
+        const confirmed = window.confirm(
+          `You are sending a QUOTE REQUEST — not a purchase order.\n\n` +
+          `Vendor(s): ${vendorList}\n\n` +
+          `No materials will be ordered until you review ` +
+          `and approve the quoted pricing.\n\n` +
+          `Send quote request?`
+        );
+        if (!confirmed) { setSending(false); return; }
       }
 
-      if (consumableRequests.length > 0) {
-        groups.push({
-          supplierName: "Pickup",
-          supplierEmail: null,
-          deliveryMethod: "PICKUP",
-          requestIds: consumableRequests.map(r => r.id),
-          isConsumables: true,
+      const electricalIds = electricalRequests.map(r => r.id);
+
+      type OrderGroup = {
+        supplierName: string;
+        supplierEmail: string | null;
+        deliveryMethod: string;
+        requestIds: string[];
+        isConsumables: boolean;
+        orderType: string;
+      };
+
+      let groups: OrderGroup[];
+
+      if (orderType === 'COMPETITIVE_QUOTE') {
+        groups = selectedVendors.map(vendorName => {
+          const supplier = suppliers.find(s => s.name === vendorName);
+          return {
+            supplierName: vendorName,
+            supplierEmail: supplier?.email ?? '',
+            deliveryMethod: 'QUOTE',
+            requestIds: electricalIds,
+            isConsumables: false,
+            orderType: 'COMPETITIVE_QUOTE',
+          };
         });
+        if (groups.length === 0) { setError("Please select at least one vendor."); setSending(false); return; }
+      } else if (orderType === 'QUOTE') {
+        groups = [{
+          supplierName,
+          supplierEmail,
+          deliveryMethod: 'QUOTE',
+          requestIds: electricalIds,
+          isConsumables: false,
+          orderType: 'QUOTE',
+        }];
+      } else {
+        groups = [];
+        if (electricalRequests.length > 0) {
+          groups.push({
+            supplierName,
+            supplierEmail,
+            deliveryMethod: deliveryMethod ?? 'PICKUP',
+            requestIds: electricalIds,
+            isConsumables: false,
+            orderType: 'ORDER',
+          });
+        }
+        if (consumableRequests.length > 0) {
+          groups.push({
+            supplierName: 'Pickup',
+            supplierEmail: null,
+            deliveryMethod: 'PICKUP',
+            requestIds: consumableRequests.map(r => r.id),
+            isConsumables: true,
+            orderType: 'ORDER',
+          });
+        }
       }
 
       if (groups.length === 0) { setError("No items to send."); setSending(false); return; }
@@ -1313,8 +1376,23 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
     }
   }
 
-  const submitLabel = isTeammate ? "Submit for Approval" : "Send Order";
-  const submitDesc = isTeammate
+  const submitLabel =
+    orderType === 'COMPETITIVE_QUOTE'
+      ? selectedVendors.length > 0
+        ? `Send to ${selectedVendors.length} Vendor${selectedVendors.length !== 1 ? 's' : ''}`
+        : 'Select Vendors'
+      : orderType === 'QUOTE'
+      ? 'Send Quote Request'
+      : isTeammate
+      ? 'Submit for Approval'
+      : 'Send Order';
+
+  const submitDisabled = sending || (orderType === 'COMPETITIVE_QUOTE' && selectedVendors.length === 0);
+  const submitColor = orderType === 'ORDER'
+    ? 'bg-[#FF5910] hover:bg-[#e04d0e]'
+    : 'bg-[#1a3a5c] hover:bg-[#2e5a8c]';
+
+  const submitDesc = (orderType === 'ORDER' && isTeammate)
     ? "Your order will be submitted for approval. The Foreman and Admin will be notified to review."
     : null;
 
@@ -1374,34 +1452,102 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
 
         {step === 2 && (
           <div className="p-4 space-y-4">
-            <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-[#002D72] hover:underline">
-              <ChevronLeft className="w-4 h-4" /> Back
-            </button>
+            {orderType === 'ORDER' && (
+              <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-[#002D72] hover:underline">
+                <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+            )}
 
             <div className="bg-gray-50 rounded-xl p-3 text-sm">
               <p className="font-semibold text-gray-900 mb-1">{requests.length} items · {job.jobNumber} {job.jobName}</p>
               <p className="text-gray-500 text-xs">
-                {electricalRequests.length} electrical, {consumableRequests.length} consumable · {deliveryOptions.find(o => o.value === deliveryMethod)?.label}
+                {electricalRequests.length} electrical
+                {orderType === 'ORDER' && `, ${consumableRequests.length} consumable · ${deliveryOptions.find(o => o.value === deliveryMethod)?.label}`}
               </p>
             </div>
 
-            {/* Supplier */}
-            {electricalRequests.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Electrical Supplier</h3>
-                <div className="space-y-2">
-                  <select value={supplierName} onChange={e => {
-                    setSupplierName(e.target.value);
-                    const sup = electricalSuppliers.find(s => s.name === e.target.value);
-                    setSupplierEmail(sup?.email ?? "");
-                  }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
-                    {electricalSuppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                    <option value="custom">Custom…</option>
-                  </select>
-                  <input type="email" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)}
-                    placeholder="Rep email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
-                </div>
+            {/* Order type selector */}
+            <div>
+              <label className="text-xs font-bold tracking-widest uppercase text-gray-500 block mb-2">
+                Order Type
+              </label>
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                {([
+                  { value: 'ORDER' as const,            label: 'Order' },
+                  { value: 'QUOTE' as const,            label: 'Quote Request' },
+                  { value: 'COMPETITIVE_QUOTE' as const, label: 'Competitive Quote' },
+                ]).map((t, i, arr) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setOrderType(t.value)}
+                    className={`flex-1 py-2 px-3 text-sm font-semibold transition-colors ${
+                      i < arr.length - 1 ? 'border-r border-gray-300' : ''
+                    } ${
+                      orderType === t.value
+                        ? 'bg-[#1a3a5c] text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}>
+                    {t.label}
+                  </button>
+                ))}
               </div>
+              <p className="text-xs text-gray-400 mt-1 italic">
+                {orderType === 'ORDER' && 'Purchase order — materials will be ordered'}
+                {orderType === 'QUOTE' && 'Request pricing from one vendor — not an order'}
+                {orderType === 'COMPETITIVE_QUOTE' && 'Send to multiple vendors — looking for best pricing'}
+              </p>
+            </div>
+
+            {/* Supplier — single dropdown for ORDER/QUOTE, multi-checklist for COMPETITIVE_QUOTE */}
+            {electricalRequests.length > 0 && (
+              orderType !== 'COMPETITIVE_QUOTE' ? (
+                <div>
+                  <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Electrical Supplier</h3>
+                  <div className="space-y-2">
+                    <select value={supplierName} onChange={e => {
+                      setSupplierName(e.target.value);
+                      const sup = electricalSuppliers.find(s => s.name === e.target.value);
+                      setSupplierEmail(sup?.email ?? "");
+                    }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+                      {electricalSuppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                      <option value="custom">Custom…</option>
+                    </select>
+                    <input type="email" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)}
+                      placeholder="Rep email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-bold tracking-widest uppercase text-gray-500 block mb-2">
+                    Select Vendors <span className="text-gray-400 font-normal normal-case ml-1">(choose multiple)</span>
+                  </label>
+                  <div className="border border-gray-300 rounded-lg overflow-hidden divide-y divide-gray-100">
+                    {suppliers.filter(s => !s.pickupOnly).map(s => (
+                      <label key={s.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedVendors.includes(s.name)}
+                          onChange={e => {
+                            setSelectedVendors(prev =>
+                              e.target.checked
+                                ? [...prev, s.name]
+                                : prev.filter(v => v !== s.name)
+                            );
+                          }}
+                          className="w-4 h-4 accent-[#1a3a5c]"
+                        />
+                        <span className="text-sm text-gray-800">{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {selectedVendors.length > 0 && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      {selectedVendors.length} vendor{selectedVendors.length !== 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                </div>
+              )
             )}
 
             <div>
@@ -1410,11 +1556,13 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Notes</label>
-              <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2} placeholder="Special instructions…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none" />
-            </div>
+            {orderType === 'ORDER' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Notes</label>
+                <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2} placeholder="Special instructions…"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none" />
+              </div>
+            )}
 
             {/* Order summary */}
             <div className="bg-gray-50 rounded-xl p-3">
@@ -1441,8 +1589,8 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
 
             <div className="flex gap-3 pt-2">
               <button onClick={onClose} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
-              <button onClick={handleSend} disabled={sending}
-                className="flex-1 py-2.5 bg-[#FF5910] text-white rounded-xl text-sm font-medium hover:bg-[#e04d0e] disabled:opacity-60 transition-colors">
+              <button onClick={handleSend} disabled={submitDisabled}
+                className={`flex-1 py-2.5 ${submitColor} text-white rounded-xl text-sm font-medium disabled:opacity-60 transition-colors`}>
                 {sending ? "Sending…" : submitLabel}
               </button>
             </div>

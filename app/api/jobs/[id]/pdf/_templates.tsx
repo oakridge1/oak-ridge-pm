@@ -1297,6 +1297,7 @@ export type StockOrderPdfData = {
   }>;
   notes?: string | null;
   title?: string | null;
+  orderType?: 'ORDER' | 'QUOTE' | 'COMPETITIVE_QUOTE';
 };
 
 const DARK_RED = "#8B0000";
@@ -1396,19 +1397,29 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
         </View>
 
         {/* Title */}
-        <Text style={SS.docTitle}>{data.title ?? "MATERIAL ORDER"}</Text>
+        {(!data.orderType || data.orderType === 'ORDER') ? (
+          <Text style={SS.docTitle}>{data.title ?? "MATERIAL ORDER"}</Text>
+        ) : (
+          <View style={{ backgroundColor: '#1a3a5c', padding: 16, borderRadius: 6, marginBottom: 10, alignItems: 'center' }}>
+            <Text style={{ color: 'white', fontSize: 22, fontFamily: 'Helvetica-Bold', letterSpacing: 3 }}>
+              QUOTE REQUESTED
+            </Text>
+          </View>
+        )}
 
-        {/* ── DELIVERY INSTRUCTIONS BANNER ─────────────────────────────────── */}
-        <View style={SS.deliveryBanner}>
-          <Text style={SS.deliveryBannerLabel}>⚠  DELIVERY INSTRUCTIONS</Text>
-          <Text style={SS.deliveryBannerMethod}>{data.deliveryMethod.toUpperCase()}</Text>
-          {data.deliveryAddress ? (
-            <Text style={SS.deliveryBannerAddress}>{data.deliveryAddress}</Text>
-          ) : null}
-          {data.notes ? (
-            <Text style={SS.deliveryBannerNotes}>NOTES: {data.notes.toUpperCase()}</Text>
-          ) : null}
-        </View>
+        {/* ── DELIVERY INSTRUCTIONS BANNER (orders only) ───────────────────── */}
+        {(!data.orderType || data.orderType === 'ORDER') && (
+          <View style={SS.deliveryBanner}>
+            <Text style={SS.deliveryBannerLabel}>⚠  DELIVERY INSTRUCTIONS</Text>
+            <Text style={SS.deliveryBannerMethod}>{data.deliveryMethod.toUpperCase()}</Text>
+            {data.deliveryAddress ? (
+              <Text style={SS.deliveryBannerAddress}>{data.deliveryAddress}</Text>
+            ) : null}
+            {data.notes ? (
+              <Text style={SS.deliveryBannerNotes}>NOTES: {data.notes.toUpperCase()}</Text>
+            ) : null}
+          </View>
+        )}
 
         {/* Info block */}
         <View style={SS.infoGrid}>
@@ -1439,6 +1450,18 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
         </View>
 
         <View style={SS.divider} />
+
+        {/* Pricing request note for quote modes */}
+        {data.orderType === 'QUOTE' && (
+          <Text style={{ fontSize: 9, color: '#444', marginBottom: 10, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 3, borderLeftColor: '#1a3a5c', borderLeftStyle: 'solid', paddingLeft: 8 }}>
+            Please provide your best pricing for the items listed below and respond at your earliest convenience.
+          </Text>
+        )}
+        {data.orderType === 'COMPETITIVE_QUOTE' && (
+          <Text style={{ fontSize: 9, color: '#444', marginBottom: 10, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 3, borderLeftColor: '#1a3a5c', borderLeftStyle: 'solid', paddingLeft: 8 }}>
+            Oak Ridge Electrical is soliciting material quotes from multiple vendors for this order. We are looking for the best available pricing and will award based on competitive response. Please provide your pricing at your earliest convenience.
+          </Text>
+        )}
 
         {/* Item table header */}
         <View style={SS.tableHeaderRow}>

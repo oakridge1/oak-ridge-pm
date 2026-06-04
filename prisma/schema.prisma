@@ -761,6 +761,7 @@ model StockOrder {
   deliveryMethod String?
   poNumber       String?
   deliveryNotes  String?
+  orderType      String   @default("ORDER")
   items          Json     // snapshot of items ordered
   sentAt         DateTime @default(now())
   sentById       String

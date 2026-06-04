@@ -140,8 +140,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   console.log(`[stock-order] Starting order send for job ${jobId}, ${groups.length} groups`);
 
-  // Check permission to send orders for TEAMMATE
-  if (role === "TEAMMATE") {
+  // Quote submissions bypass the approval workflow entirely
+  const isQuoteOrder = groups.some((g: { orderType?: string }) =>
+    g.orderType === 'QUOTE' || g.orderType === 'COMPETITIVE_QUOTE'
+  );
+
+  // Check permission to send orders for TEAMMATE (skipped for quotes)
+  if (!isQuoteOrder && role === "TEAMMATE") {
     const perm = await prisma.userPermission.findFirst({
       where: { userId: session.user.id, permission: "ORDERING", OR: [{ scope: "GLOBAL" }, { scope: "JOB", jobId }] },
     });
@@ -225,7 +230,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const results = [];
 
   for (const group of groups) {
-    const { supplierName, supplierEmail, requestIds, isConsumables } = group;
+    const { supplierName, supplierEmail, requestIds, isConsumables, orderType: groupOrderType = 'ORDER' } = group;
 
     console.log(`[stock-order] Group ${supplierName}: ${requestIds.length} requests, isConsumables: ${isConsumables}`);
 
@@ -247,8 +252,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const deliveryStr = fmtDelivery(deliveryMethod, jobAddress);
     const deliveryShort = fmtDeliveryShort(deliveryMethod, jobAddress);
 
+    const isGroupQuote = groupOrderType === 'QUOTE' || groupOrderType === 'COMPETITIVE_QUOTE';
+
     const subject = isConsumables
       ? `Pickup List — ${job.jobNumber} ${job.jobName} — ${today}`
+      : groupOrderType === 'COMPETITIVE_QUOTE'
+      ? `Competitive Quote Request — ${supplierName} — ${job.jobNumber} ${job.jobName} — ${today}`
+      : groupOrderType === 'QUOTE'
+      ? `Quote Request — ${supplierName} — ${job.jobNumber} ${job.jobName} — ${today}`
       : `Material Order — ${supplierName} — ${job.jobNumber} ${job.jobName} — ${today}`;
 
     const deliveryHeader = [
@@ -271,6 +282,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           "Oak Ridge Electrical LLC",
           "209 W. River Rd, Hooksett, NH 03106",
           "603-660-4651",
+        ].filter(s => s !== undefined && s !== "").join("\n")
+      : isGroupQuote
+      ? [
+          `Quote request attached. Please provide your best pricing at your earliest convenience.`,
+          `Job: ${job.jobName} (Job #${job.jobNumber})`,
+          poNumber ? `PO/Job: ${poNumber}` : "",
+          groupOrderType === 'COMPETITIVE_QUOTE'
+            ? `\nNote: Oak Ridge Electrical is soliciting competitive quotes from multiple vendors for this order.`
+            : "",
+          "",
+          "Thank you,",
+          "Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com",
         ].filter(s => s !== undefined && s !== "").join("\n")
       : [
           deliveryHeader,
@@ -303,13 +326,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       })),
       notes: deliveryNotes ?? null,
       title: isConsumables ? "PICKUP LIST" : "MATERIAL ORDER",
+      orderType: (groupOrderType ?? 'ORDER') as 'ORDER' | 'QUOTE' | 'COMPETITIVE_QUOTE',
     };
 
     // Generate PDF (for both electrical and consumables)
     let pdfBuffer: Buffer | null = null;
+    const filePrefix = groupOrderType === 'COMPETITIVE_QUOTE' ? 'CompQuote'
+      : groupOrderType === 'QUOTE' ? 'Quote'
+      : 'Order';
     const pdfFileName = isConsumables
       ? `PickupList_${job.jobNumber}_${todayShort.replace(/,?\s/g, "_")}.pdf`
-      : `${supplierName ?? "Order"}_Order_${job.jobNumber}_${todayShort.replace(/,?\s/g, "_")}.pdf`;
+      : `${supplierName ?? "Order"}_${filePrefix}_${job.jobNumber}_${todayShort.replace(/,?\s/g, "_")}.pdf`;
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -375,6 +402,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         supplierName: supplierName || "Pickup",
         supplierEmail: supplierEmail || null,
         deliveryMethod: deliveryMethod || "PICKUP",
+        orderType: groupOrderType,
         poNumber: poNumber || null,
         deliveryNotes: deliveryNotes || null,
         items: requests.map(r => ({
@@ -391,9 +419,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
 
     // Archive PDF to Document Vault
+    const docLabel = groupOrderType === 'COMPETITIVE_QUOTE' ? 'Competitive Quote'
+      : groupOrderType === 'QUOTE' ? 'Quote Request'
+      : 'Stock Order';
     const docName = isConsumables
       ? `${todayISO} — Pickup List — Stock Order`
-      : `${todayISO} — ${supplierName} — Stock Order`;
+      : `${todayISO} — ${supplierName} — ${docLabel}`;
 
     const docContent = pdfBuffer
       ? `data:application/pdf;base64,${pdfBuffer.toString("base64")}`
@@ -418,10 +449,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (docxBuffer) {
       const docxName = isConsumables
         ? `${todayISO} — Pickup List — Stock Order (Word)`
-        : `${todayISO} — ${supplierName} — Stock Order (Word)`;
+        : `${todayISO} — ${supplierName} — ${docLabel} (Word)`;
       const docxFileName = isConsumables
         ? `PickupList_${job.jobNumber}_${todayISO}.docx`
-        : `${supplierName}_Order_${job.jobNumber}_${todayISO}.docx`;
+        : `${supplierName}_${filePrefix}_${job.jobNumber}_${todayISO}.docx`;
 
       await prisma.document.create({
         data: {
