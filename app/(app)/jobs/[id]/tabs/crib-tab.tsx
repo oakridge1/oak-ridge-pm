@@ -75,8 +75,7 @@ const MC_SMALL_SIZES_14_12 = ["14/2", "14/3", "12/2", "12/3"];
 const MC_MEDIUM_SIZES = ["10/2", "10/3", "8/3"];
 const MC_LARGE_SIZES = ["6/3"];
 const MC_ALL_SIZES = [...MC_SMALL_SIZES_14_12, ...MC_MEDIUM_SIZES, ...MC_LARGE_SIZES, "Custom"];
-const MC_ROLL_SIZES_SMALL = ["250ft", "400ft"];
-const MC_ROLL_SIZES_MEDIUM = ["250ft", "400ft", "Custom footage"];
+const MC_ROLL_SIZES = ["250ft", "Custom footage"];
 
 const ALL_CATEGORIES = [
   "Wire & Cable", "Low Voltage", "Conduit — Other Types", "EMT Conduit", "EMT Fittings",
@@ -291,7 +290,7 @@ function McRomexWireForm({ vars, setVars }: { vars: Record<string, string>; setV
           <select value={vars.rollSize ?? ""} onChange={e => setVars({ ...vars, rollSize: e.target.value })}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
             <option value="">Select…</option>
-            {(isSmall ? MC_ROLL_SIZES_SMALL : MC_ROLL_SIZES_MEDIUM).map(s => <option key={s} value={s}>{s}</option>)}
+            {MC_ROLL_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {vars.rollSize === "Custom footage" && (
             <input type="text" value={vars.footage ?? ""} onChange={e => setVars({ ...vars, footage: e.target.value })}
