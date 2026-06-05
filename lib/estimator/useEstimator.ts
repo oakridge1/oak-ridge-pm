@@ -16,9 +16,9 @@ import {
 import {
   saveJob, loadJob as loadJobFn, loadCurrentJob, newJob, deleteJob,
   listJobs, exportJobJSON, importJobJSON,
-  loadPriceOverrides, savePriceOverrides,
-  type JobMeta, type PriceOverrides,
+  type JobMeta,
 } from './jobs';
+import { initBomCache } from './bom';
 import { setRates } from './constants';
 import type { SavedAssembly } from './constants';
 import {
@@ -51,11 +51,6 @@ export interface EstimatorActions {
 
   // ── Settings ────────────────────────────────────────────────────
   updateSettings: (overrides: Partial<EstimatorState['settings']>) => void;
-
-  // ── Price overrides ─────────────────────────────────────────────
-  priceOverrides:     PriceOverrides;
-  setPriceOverride:   (bomId: string, mat: number) => void;
-  clearPriceOverride: (bomId: string) => void;
 
   // ── Add assembly to bid ─────────────────────────────────────────
   addConduitRun:    () => boolean;
@@ -124,9 +119,6 @@ export function useEstimator(): EstimatorActions {
     return loaded ?? createNewState();
   });
 
-  const [priceOverrides, setPriceOverrides] =
-    useState<PriceOverrides>(() => loadPriceOverrides());
-
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -138,6 +130,8 @@ export function useEstimator(): EstimatorActions {
       if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
     };
   }, [state]);
+
+  useEffect(() => { initBomCache(); }, []);
 
   // ── Helpers ──────────────────────────────────────────────────────
 
@@ -199,24 +193,6 @@ export function useEstimator(): EstimatorActions {
     },
     [patch]
   );
-
-  // ── Price overrides ──────────────────────────────────────────────
-  const setPriceOverride = useCallback((bomId: string, mat: number) => {
-    setPriceOverrides(prev => {
-      const next = { ...prev, [bomId]: mat };
-      savePriceOverrides(next);
-      return next;
-    });
-  }, []);
-
-  const clearPriceOverride = useCallback((bomId: string) => {
-    setPriceOverrides(prev => {
-      const next = { ...prev };
-      delete next[bomId];
-      savePriceOverrides(next);
-      return next;
-    });
-  }, []);
 
   // ── Add to bid ───────────────────────────────────────────────────
   const addConduitRun = useCallback(() => {
@@ -423,7 +399,6 @@ export function useEstimator(): EstimatorActions {
     listJobs,
     exportJob, importJob,
     updateSettings,
-    priceOverrides, setPriceOverride, clearPriceOverride,
     addConduitRun, addRack, addMCHomeRun, addThreeWay,
     addDataLocation, addFireAlarm, addGear, addFloorBox,
     addHighAmpRecept,

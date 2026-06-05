@@ -155,21 +155,3 @@ export function scheduleAutoSave(
   };
 }
 
-// BOM price overrides — global across all jobs.
-const PRICE_OVERRIDES_KEY = 'oakridge_price_overrides';
-
-export type PriceOverrides = Record<string, number>;
-
-export function savePriceOverrides(overrides: PriceOverrides): void {
-  if (!isClient()) return;
-  localStorage.setItem(PRICE_OVERRIDES_KEY, JSON.stringify(overrides));
-}
-
-export function loadPriceOverrides(): PriceOverrides {
-  if (!isClient()) return {};
-  try {
-    return JSON.parse(
-      localStorage.getItem(PRICE_OVERRIDES_KEY) ?? '{}'
-    ) as PriceOverrides;
-  } catch { return {}; }
-}

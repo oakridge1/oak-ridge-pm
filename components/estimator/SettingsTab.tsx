@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { DEFAULTS } from '@/lib/estimator/constants';
 import type { RateConfig } from '@/lib/estimator/constants';
-import { BOM } from '@/lib/estimator/bom';
+import { invalidateBomCache } from '@/lib/estimator/bom';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
@@ -42,7 +42,6 @@ const RATE_FIELDS: RateField[] = [
   { key: 'profit',   label: 'Profit on Subtotal (%)',   isPercent: true,  step: '0.5',   min: 0    },
 ];
 
-const BOM_PAGE = 50;
 
 // ── Shared className constants ─────────────────────────────────────────────────
 
@@ -58,12 +57,11 @@ const CLS = {
 // ── SettingsTab ────────────────────────────────────────────────────────────────
 
 export function SettingsTab() {
-  const {
-    state, setState, updateSettings,
-    priceOverrides, setPriceOverride, clearPriceOverride,
-  } = useEstimatorContext();
+  const { state, setState, updateSettings } = useEstimatorContext();
 
-  const [bomSearch, setBomSearch] = useState('');
+  const fileInputRef              = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
 
   // ── Customer library state ──────────────────────────────────────────────
   const [customers, setCustomers] = useState<SavedCustomer[]>(() => {
@@ -123,14 +121,30 @@ export function SettingsTab() {
     setShowCustomerModal(false);
   }
 
-  // ── BOM price editor filter ─────────────────────────────────────────────
-  const allFiltered = BOM.filter(item => {
-    if (!bomSearch) return true;
-    const q = bomSearch.toLowerCase();
-    return item.id.toLowerCase().includes(q) || item.name.toLowerCase().includes(q);
-  });
-  const filteredBom = allFiltered.slice(0, BOM_PAGE);
-  const totalFiltered = allFiltered.length;
+  // ── BOM upload handler ──────────────────────────────────────────────────
+  async function handleBomUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadMsg(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res  = await fetch('/api/bom/upload', { method: 'POST', body: fd });
+      const data = await res.json() as { upserted?: number; error?: string };
+      if (!res.ok) {
+        setUploadMsg(`Error: ${data.error ?? 'Upload failed'}`);
+      } else {
+        invalidateBomCache();
+        setUploadMsg(`✓ ${data.upserted} items updated`);
+      }
+    } catch {
+      setUploadMsg('Error: network failure');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
 
   // ── Rate field helpers ──────────────────────────────────────────────────
   function getDisplayValue(field: RateField): string {
@@ -526,93 +540,47 @@ export function SettingsTab() {
         </div>
       </div>
 
-      {/* ── BOM PRICE EDITOR ─────────────────────────────────────────────────── */}
-      <div className={CLS.sectionCard + ' max-w-full'}>
-        <div className={CLS.sectionTitle}>BOM Price Editor</div>
-        <p className="text-xs text-gray-500 mb-3">
-          Override individual item prices. Changes apply immediately to all new assemblies.
+      {/* ── BOM MANAGEMENT ───────────────────────────────────────────────────── */}
+      <div className={CLS.sectionCard}>
+        <div className={CLS.sectionTitle}>BOM Management</div>
+        <p className="text-xs text-gray-500 mb-4">
+          Export the current BOM to Excel to review or edit prices, then upload the modified file to update the database.
         </p>
 
-        <input
-          type="text"
-          placeholder="Search by ID or name…"
-          value={bomSearch}
-          onChange={e => setBomSearch(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 text-sm w-full mb-3"
-        />
+        <div className="flex flex-wrap gap-3 items-center">
+          <a
+            href="/api/bom/export"
+            download
+            className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#1a3a5c] hover:text-white transition-colors"
+          >
+            ↓ Export BOM (Excel)
+          </a>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-gray-400 font-semibold border-b border-gray-200">
-                <th className="text-left pb-1.5 pr-2 w-20">ID</th>
-                <th className="text-left pb-1.5 pr-2 w-32">Category</th>
-                <th className="text-left pb-1.5 pr-2">Name</th>
-                <th className="text-center pb-1.5 w-10">Unit</th>
-                <th className="text-right pb-1.5 w-20">Base $</th>
-                <th className="text-right pb-1.5 w-36">Override $</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBom.map((item, i) => {
-                const overridden = priceOverrides[item.id] !== undefined;
-                const dispVal    = overridden
-                  ? (priceOverrides[item.id] as number)
-                  : item.mat;
-                return (
-                  <tr key={item.id} className={i % 2 === 0 ? '' : 'bg-gray-50'}>
-                    <td className="py-1 pr-2 font-mono text-gray-400 whitespace-nowrap">
-                      {item.id}
-                    </td>
-                    <td className="py-1 pr-2 text-gray-500 whitespace-nowrap">{item.cat}</td>
-                    <td className="py-1 pr-2 text-gray-800">{item.name}</td>
-                    <td className="py-1 text-center text-gray-500">{item.unit}</td>
-                    <td className="py-1 text-right font-mono text-gray-500">
-                      {fmt$(item.mat)}
-                    </td>
-                    <td className="py-1 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <input
-                          key={`${item.id}-${priceOverrides[item.id] ?? 'def'}`}
-                          type="number"
-                          step="0.0001"
-                          min={0}
-                          defaultValue={dispVal.toFixed(4)}
-                          onBlur={e => {
-                            const v = parseFloat(e.target.value);
-                            if (!isNaN(v) && Math.abs(v - item.mat) > 0.0001) {
-                              setPriceOverride(item.id, v);
-                            } else {
-                              clearPriceOverride(item.id);
-                            }
-                          }}
-                          className={`border rounded px-1.5 py-0.5 text-xs text-right font-mono w-24 focus:outline-none ${
-                            overridden
-                              ? 'bg-blue-50 border-blue-300 focus:border-blue-400'
-                              : 'border-gray-300 bg-white focus:border-blue-300'
-                          }`}
-                        />
-                        {overridden && (
-                          <button
-                            onClick={() => clearPriceOverride(item.id)}
-                            title="Clear override"
-                            className="text-blue-400 hover:text-blue-600 font-bold text-sm leading-none"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <label className={`px-4 py-2 text-sm font-semibold rounded cursor-pointer transition-colors ${
+            uploading
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]'
+          }`}>
+            {uploading ? 'Uploading…' : '↑ Upload Updated BOM'}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              disabled={uploading}
+              onChange={handleBomUpload}
+            />
+          </label>
+
+          {uploadMsg && (
+            <span className={`text-sm ${uploadMsg.startsWith('✓') ? 'text-green-600' : 'text-red-500'}`}>
+              {uploadMsg}
+            </span>
+          )}
         </div>
 
-        <p className="mt-2 text-xs text-gray-400">
-          Showing {filteredBom.length} of {totalFiltered} items
-          {totalFiltered > BOM_PAGE && ` — refine search to see more`}
+        <p className="mt-3 text-xs text-gray-400">
+          Admin only · Columns: ID, Category, Name, Unit, Base $, Labor hrs, Markup, GC (Y/blank)
         </p>
       </div>
 

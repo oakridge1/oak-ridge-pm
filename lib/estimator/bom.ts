@@ -447,8 +447,27 @@ export const BOM: BomItem[] = [
 
 const BOM_MAP = new Map<string, BomItem>(BOM.map(b => [b.id, b]));
 
+// ── DB cache — populated by initBomCache() on app mount ──────────────────────
+// Falls back to static BOM_MAP when cache is not yet populated.
+let _bomCache: Map<string, BomItem> | null = null;
+
+export async function initBomCache(): Promise<void> {
+  try {
+    const res = await fetch('/api/bom');
+    if (!res.ok) return;
+    const items = (await res.json()) as BomItem[];
+    _bomCache = new Map(items.map(item => [item.id, item]));
+  } catch {
+    // network unavailable — keep using static BOM_MAP
+  }
+}
+
+export function invalidateBomCache(): void {
+  _bomCache = null;
+}
+
 export function getBomItem(id: string): BomItem {
-  const item = BOM_MAP.get(id);
+  const item = (_bomCache ?? BOM_MAP).get(id);
   if (!item) throw new Error(`BOM item not found: "${id}"`);
   return item;
 }

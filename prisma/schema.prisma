@@ -886,6 +886,21 @@ model BomPricing {
   updatedBy String?
 }
 
+// ── BOM Items (estimator) ─────────────────────────────────────────────────────
+
+model BomItem {
+  id        String   @id          // matches static BOM id (e.g. 'b1')
+  cat       String
+  name      String
+  unit      String                // 'EA' | 'FT'
+  mat       Float
+  lhr       Float
+  mk        String                // 'bulk' | 'light' | 'none'
+  gc        Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
 // ── Employee Wages ────────────────────────────────────────────────────────────
 
 model EmployeeWage {
