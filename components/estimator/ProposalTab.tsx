@@ -76,15 +76,36 @@ const PRELOADED_SCOPE_BULLETS: Record<string, string[]> = {
     'Perform startup testing and verification of new service equipment.',
   ],
   'Fire Alarm': [
-    'Furnish and install fire alarm wiring and devices as specified.',
+    'Furnish and install fire alarm rough-in wiring and devices as specified.',
+    'Install all fire alarm devices including smoke detectors, heat detectors, pull stations, horn/strobes, and control modules.',
+    'Furnish and install fire alarm control panel (FACP) as specified.',
+    'Provide dedicated 120V power circuit for fire alarm control panel.',
+    'Class A wiring configuration where specified.',
     'Coordinate fire alarm programming and testing with the fire alarm vendor.',
-    'Conduct acceptance testing with the AHJ.',
+    'Conduct acceptance testing with the Authority Having Jurisdiction (AHJ).',
+    'All fire alarm wiring installed per NFPA 72 requirements.',
+    'Provide as-built documentation for the fire alarm system.',
   ],
   'Data / Low Voltage': [
     'Furnish and install Category 6 cabling and associated support systems.',
-    'Provide cable terminations, labeling, and testing.',
-    'Furnish and install patch panels, jacks, and faceplates as specified.',
-    'Provide test results upon project completion.',
+    'Provide cable terminations, labeling, and testing at all locations.',
+    'Furnish and install patch panels, keystone jacks, and faceplates as specified.',
+    'Provide cable test results upon project completion.',
+    'Install J-hooks, cable trays, and support systems as required.',
+    'Coordinate data system layout with owner and IT vendor.',
+  ],
+  'Security & Access Control': [
+    'Furnish and install low-voltage rough-in for security cameras as indicated.',
+    'Furnish and install low-voltage rough-in for access control readers.',
+    'Provide conduit and cable from head-end location to each device.',
+    'Final camera and reader programming by security vendor.',
+    'Coordinate device locations with security system vendor.',
+  ],
+  'Audio / Visual': [
+    'Furnish and install low-voltage rough-in for TV/AV outlets as indicated.',
+    'Furnish and install low-voltage rough-in for speaker locations.',
+    'Provide conduit and cable pathways for AV system.',
+    'Final AV equipment and programming by AV vendor.',
   ],
   'Demolition': [
     'Demolish existing electrical systems as required to accommodate new construction.',
@@ -109,6 +130,11 @@ const PRELOADED_SCOPE_BULLETS: Record<string, string[]> = {
     'Work to be performed during normal business hours unless otherwise stated.',
     'Pricing assumes use of owner-furnished scissor lift as discussed. If lift becomes unavailable, rental cost will be billed as an additional expense.',
     'Temporary power by others unless specifically noted.',
+    'Fire alarm monitoring fees by others.',
+    'Fire alarm panel programming by fire alarm vendor unless specifically noted.',
+    'Data network equipment (switches, routers, WAPs) by others.',
+    'Security camera and access control programming by security vendor.',
+    'Low-voltage device hardware (cameras, readers, speakers) per quote — pricing subject to vendor response.',
   ],
 };
 
@@ -356,6 +382,19 @@ export function ProposalTab() {
 
   const bid = useMemo(() => calcBid(), [calcBid]);
 
+  // ── Smart scope detection ───────────────────────────────────────
+  const hasFAWork   = state.savedFA.length   > 0;
+  const hasDataWork = state.savedData.length > 0;
+  const hasLVWork   = state.savedLV.length   > 0;
+
+  const hasFASection = p.scopeSections.some(s =>
+    s.title.toLowerCase().includes('fire alarm') ||
+    s.title.toLowerCase().includes(' fa'));
+  const hasDataSection = p.scopeSections.some(s =>
+    s.title.toLowerCase().includes('data') ||
+    s.title.toLowerCase().includes('low voltage') ||
+    s.title.toLowerCase().includes(' lv'));
+
   // ── Bullet library state ────────────────────────────────────────
 
   const [savedBullets, setSavedBullets] = useState<string[]>(() => {
@@ -552,6 +591,46 @@ export function ProposalTab() {
 
         {/* Scope Sections */}
         <Card title="Scope Sections">
+          {(hasFAWork && !hasFASection) && (
+            <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-3">
+              <span className="text-amber-500 text-lg">🔔</span>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-amber-800">Your estimate includes Fire Alarm work</div>
+                <div className="text-xs text-amber-600">No Fire Alarm scope section found in proposal</div>
+              </div>
+              <button
+                onClick={() => {
+                  const bullets = PRELOADED_SCOPE_BULLETS['Fire Alarm'] ?? [];
+                  patch('scopeSections', [
+                    ...p.scopeSections,
+                    { id: uid(), title: 'Fire Alarm', items: bullets },
+                  ]);
+                }}
+                className="px-3 py-1.5 text-xs font-semibold rounded bg-amber-500 text-white hover:bg-amber-600 whitespace-nowrap">
+                + Add FA Section
+              </button>
+            </div>
+          )}
+          {((hasDataWork || hasLVWork) && !hasDataSection) && (
+            <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-3">
+              <span className="text-blue-500 text-lg">🔔</span>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-blue-800">Your estimate includes Data / LV work</div>
+                <div className="text-xs text-blue-600">No Data / Low Voltage scope section found</div>
+              </div>
+              <button
+                onClick={() => {
+                  const bullets = PRELOADED_SCOPE_BULLETS['Data / Low Voltage'] ?? [];
+                  patch('scopeSections', [
+                    ...p.scopeSections,
+                    { id: uid(), title: 'Data / Low Voltage', items: bullets },
+                  ]);
+                }}
+                className="px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
+                + Add Data/LV Section
+              </button>
+            </div>
+          )}
           {p.scopeSections.map((sec, si) => (
             <div key={sec.id} className="mb-3 border border-gray-100 rounded p-2 bg-gray-50">
               {/* Section header */}

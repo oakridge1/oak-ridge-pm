@@ -51,12 +51,13 @@ export const DEFAULT_INCLUSIONS = [
 ];
 
 export const DEFAULT_EXCLUSIONS = [
-  'Fire alarm system',
   'Fire sprinkler system',
-  'New data wiring or low-voltage terminations',
-  'Equipment rentals',
+  'Equipment rentals unless specifically noted',
   'Utility company work and associated fees',
-  'Monitoring/service contracts',
+  'Fire alarm monitoring/service contracts',
+  'Data service provider work',
+  'Concrete cutting, coring, or structural modifications',
+  'Painting and finish repairs by others',
   'Work outside defined project scope unless noted',
 ];
 
