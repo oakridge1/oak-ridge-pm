@@ -276,6 +276,8 @@ model Job {
   costCodes             CostCode[]
   receipts              Receipt[]
   schedules             Schedule[]
+  lightingSchedule      LightingScheduleItem[]
+  gearSchedule          GearScheduleItem[]
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
@@ -1074,4 +1076,57 @@ model ContractorPayment {
   receiptUrl     String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+// ── Lighting Schedule ─────────────────────────────────────────────────────────
+
+model LightingScheduleItem {
+  id            String   @id @default(cuid())
+  jobId         String
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tag           String?          // fixture tag: "A", "B", "C"
+  fixtureType   String?          // "Recessed", "Surface Mount", "Pendant", etc.
+  description   String?
+  manufacturer  String?
+  catalogNumber String?
+  volts         String?
+  watts         Float?
+  lampType      String?
+  mounting      String?
+  location      String?
+  qty           Int      @default(1)
+  supplier      String?
+  supplierEmail String?
+  quotedPrice   Float?
+  quoteStatus   String?  @default("PENDING") // PENDING | QUOTED | ORDERED
+  notes         String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ── Gear Schedule ─────────────────────────────────────────────────────────────
+
+model GearScheduleItem {
+  id            String   @id @default(cuid())
+  jobId         String
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tag           String?          // panel tag: "MDP", "LP-A", "DP-1"
+  gearType      String?          // "Panel", "Disconnect", "Transfer Switch", "Transformer"
+  description   String?
+  manufacturer  String?
+  catalogNumber String?
+  volts         String?
+  amps          Int?
+  phases        Int?
+  location      String?
+  qty           Int      @default(1)
+  supplier      String?
+  supplierEmail String?
+  quotedPrice   Float?
+  quoteStatus   String?  @default("PENDING") // PENDING | QUOTED | ORDERED
+  notes         String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
