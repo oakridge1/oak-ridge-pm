@@ -652,6 +652,9 @@ model CompanySettings {
   overheadAllocMethod String   @default("equal")
   taxYearStartMonth   Int      @default(1)
   fiscalYearType      String   @default("calendar")
+  mondayReminder      Boolean  @default(false)
+  fridayReminder      Boolean  @default(false)
+  reminderMessage     String   @default("Please upload any receipts before starting today.")
   updatedAt           DateTime @updatedAt
 }
 

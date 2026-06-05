@@ -298,6 +298,18 @@ export function SettingsClient({ connection, justConnected, connectError, compan
     }).catch(() => setNotifPrefsLoaded(true));
   }, []);
 
+  // Load receipt reminder settings from DB on mount
+  useEffect(() => {
+    fetch("/api/admin/company-settings")
+      .then(r => r.json())
+      .then(data => {
+        if (data.mondayReminder  !== undefined) setMondayReminder(data.mondayReminder);
+        if (data.fridayReminder  !== undefined) setFridayReminder(data.fridayReminder);
+        if (data.reminderMessage !== undefined) setReminderMessage(data.reminderMessage);
+      })
+      .catch(console.error);
+  }, []);
+
   async function handleSaveNotifPrefs() {
     setNotifSaving(true);
     setNotifSaved(false);
@@ -821,12 +833,21 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   async function handleSaveReminderSettings() {
     setReminderSaving(true);
     setReminderSaved(false);
-    // Store locally for now (persistence via PATCH /api/admin/company-settings would require schema extension)
-    // This saves the UI state in the component; a real backend call would go here.
-    await new Promise(r => setTimeout(r, 300));
-    setReminderSaved(true);
-    setTimeout(() => setReminderSaved(false), 3000);
-    setReminderSaving(false);
+    try {
+      const res = await fetch("/api/admin/company-settings", {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mondayReminder, fridayReminder, reminderMessage }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setReminderSaved(true);
+      setTimeout(() => setReminderSaved(false), 3000);
+    } catch (err) {
+      console.error("Reminder save error:", err);
+      alert("Failed to save reminder settings.");
+    } finally {
+      setReminderSaving(false);
+    }
   }
 
   async function handleSendManualRemind() {
