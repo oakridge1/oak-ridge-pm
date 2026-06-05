@@ -36,14 +36,15 @@ export interface DataState extends DataParams {}
 // The mapping layer translates state → params before calling calc functions.
 
 export interface FireAlarmState {
-  frameType:   'wood' | 'metal' | 'pipe';
-  circuitType: 'slc' | 'nac' | 'ann';
-  deviceId:    string;
-  pricing:     string;
-  whipFt:      number;
-  homeRun:     boolean;
-  qty:         number;
-  diff:        number;
+  frameType:    'wood' | 'metal' | 'pipe';
+  circuitType:  'slc' | 'nac' | 'ann';
+  deviceId:     string;
+  pricing:      'firelite' | 'quoted';
+  whipFt:       number;
+  homeRun:      boolean;
+  qty:          number;
+  diff:         number;
+  includePower: boolean;
 }
 
 export interface GearState {
@@ -85,12 +86,12 @@ export interface PullCanState {
 }
 
 export interface LVState {
-  deviceType: 'camera' | 'reader' | 'intercom' | 'av' | 'speaker' | 'doorbell';
-  location:   'indoor' | 'outdoor';
-  feet:       number;
-  makeup:     number;
-  qty:        number;
-  diff:       number;
+  deviceType:  string;
+  outdoor:     boolean;
+  supportType: 'j-hook-sm' | 'j-hook-lg' | 'zip-tie' | 'staple';
+  runFt:       number;
+  qty:         number;
+  diff:        number;
 }
 
 export interface TMState {
@@ -338,7 +339,7 @@ export const DEFAULT_DATA: DataState = {
 export const DEFAULT_FA: FireAlarmState = {
   frameType: 'metal', circuitType: 'slc', deviceId: 'fad2',
   pricing: 'firelite', whipFt: 35, homeRun: false,
-  qty: 1, diff: 1.0,
+  qty: 1, diff: 1.0, includePower: false,
 };
 
 export const DEFAULT_GEAR: GearState = {
@@ -362,8 +363,9 @@ export const DEFAULT_CAN: PullCanState = {
 };
 
 export const DEFAULT_LV: LVState = {
-  deviceType: 'camera', location: 'indoor',
-  feet: 0, makeup: 0, qty: 1, diff: 1.0,
+  deviceType: 'camera', outdoor: false,
+  supportType: 'j-hook-sm', runFt: 0,
+  qty: 1, diff: 1.0,
 };
 
 export const DEFAULT_TM: TMState = {

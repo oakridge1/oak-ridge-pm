@@ -23,14 +23,14 @@ import { setRates } from './constants';
 import type { SavedAssembly } from './constants';
 import {
   calcConduitRun, calcRack, calcMCHomeRun, calcThreeWay,
-  calcData, calcFireAlarm, calcGear, calcFloorBox,
+  calcData, calcFireAlarm, calcLV, calcGear, calcFloorBox,
   calcHighAmpRecept, calcBid,
   type BidResult,
 } from './calc';
 
 // Suppress unused-import warning for defaults not yet used in add* functions.
 type _Unused = typeof DEFAULT_CUSTOM_ASM | typeof DEFAULT_CUSTOM_DEV |
-               typeof DEFAULT_CAN | typeof DEFAULT_LV | typeof DEFAULT_TM;
+               typeof DEFAULT_CAN | typeof DEFAULT_TM;
 
 export interface EstimatorActions {
   // ── State ───────────────────────────────────────────────────────
@@ -59,6 +59,7 @@ export interface EstimatorActions {
   addThreeWay:      () => boolean;
   addDataLocation:  () => boolean;
   addFireAlarm:     () => boolean;
+  addLVDevice:      () => boolean;
   addGear:          () => boolean;
   addFloorBox:      () => boolean;
   addHighAmpRecept: () => boolean;
@@ -244,13 +245,20 @@ export function useEstimator(): EstimatorActions {
   }, [state.dataState, pushToArray, patch]);
 
   const addFireAlarm = useCallback(() => {
-    const result = calcFireAlarm(
-      state.faState as unknown as Parameters<typeof calcFireAlarm>[0]);
+    const result = calcFireAlarm(state.faState);
     if (!result) return false;
     pushToArray('savedFA', result);
     patch({ faState: { ...DEFAULT_FA } });
     return true;
   }, [state.faState, pushToArray, patch]);
+
+  const addLVDevice = useCallback(() => {
+    const result = calcLV(state.lvState);
+    if (!result) return false;
+    pushToArray('savedLV', result);
+    patch({ lvState: { ...DEFAULT_LV } });
+    return true;
+  }, [state.lvState, pushToArray, patch]);
 
   const addGear = useCallback(() => {
     const result = calcGear(
@@ -463,7 +471,7 @@ export function useEstimator(): EstimatorActions {
     exportJob, importJob,
     updateSettings,
     addConduitRun, addRack, addMCHomeRun, addThreeWay,
-    addDataLocation, addFireAlarm, addGear, addFloorBox,
+    addDataLocation, addFireAlarm, addLVDevice, addGear, addFloorBox,
     addHighAmpRecept,
     removeAssembly,
     updateAssemblyLine, addAssemblyLine, removeAssemblyLine,

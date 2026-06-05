@@ -2,8 +2,28 @@
 
 import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
-import { calcFireAlarm, type FireAlarmParams } from '@/lib/estimator/calc';
+import { calcFireAlarm } from '@/lib/estimator/calc';
 import { getRates } from '@/lib/estimator/constants';
+
+const DEVICE_OPTIONS = [
+  { id: 'fad1',  label: 'Pull Station' },
+  { id: 'fad2',  label: 'Smoke Detector' },
+  { id: 'fad3',  label: 'Heat Detector' },
+  { id: 'fad4',  label: 'Smoke/CO Combo' },
+  { id: 'fad5',  label: 'Horn/Strobe' },
+  { id: 'fad6',  label: 'Strobe' },
+  { id: 'fad7',  label: 'LF Sounder' },
+  { id: 'fad8',  label: 'Beacon' },
+  { id: 'fad9',  label: 'Control/Monitor Module' },
+  { id: 'fad10', label: 'Duct Smoke Detector' },
+  { id: 'fad11', label: 'Annunciator' },
+  { id: 'fad12', label: 'FL FACP Small (4ch)' },
+  { id: 'fad13', label: 'FL FACP Medium (6ch)' },
+  { id: 'fad14', label: 'FL FACP Large (10ch)' },
+  { id: 'fad15', label: 'FL Radio Box' },
+];
+
+const PANEL_IDS = new Set(['fad12', 'fad13', 'fad14', 'fad15']);
 
 const DIFF_OPTIONS = [
   { label: 'Normal',      value: 1.0  },
@@ -15,17 +35,9 @@ export function FireAlarmBuilder() {
   const { state, updateFAState, addFireAlarm } = useEstimatorContext();
   const { faState } = state;
 
-  const preview = useMemo(() => {
-    const p: FireAlarmParams = {
-      mountType: faState.frameType,
-      wireType:  faState.circuitType,
-      feet:      faState.whipFt,
-      qty:       faState.qty,
-      quoted:    false,
-      diff:      faState.diff,
-    };
-    return calcFireAlarm(p);
-  }, [faState]);
+  const isPanel = PANEL_IDS.has(faState.deviceId);
+
+  const preview = useMemo(() => calcFireAlarm(faState), [faState]);
 
   const R = getRates();
 
@@ -39,42 +51,79 @@ export function FireAlarmBuilder() {
       </h2>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-end">
+
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Frame Type</label>
-            <select className={sel} value={faState.frameType}
-              onChange={e => updateFAState({ frameType: e.target.value as 'wood' | 'metal' | 'pipe' })}>
-              <option value="wood">Wood</option>
-              <option value="metal">Metal</option>
-              <option value="pipe">Pipe</option>
+            <label className="block text-xs text-gray-500 mb-1">Device</label>
+            <select className={sel} value={faState.deviceId}
+              onChange={e => updateFAState({ deviceId: e.target.value })}>
+              {DEVICE_OPTIONS.map(d => (
+                <option key={d.id} value={d.id}>{d.label}</option>
+              ))}
             </select>
           </div>
+
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Circuit Type</label>
-            <select className={sel} value={faState.circuitType}
-              onChange={e => updateFAState({ circuitType: e.target.value as 'slc' | 'nac' | 'ann' })}>
-              <option value="slc">SLC</option>
-              <option value="nac">NAC</option>
-              <option value="ann">Annunciator</option>
+            <label className="block text-xs text-gray-500 mb-1">Pricing</label>
+            <select className={sel} value={faState.pricing}
+              onChange={e => updateFAState({ pricing: e.target.value as 'firelite' | 'quoted' })}>
+              <option value="firelite">Firelite Price</option>
+              <option value="quoted">Per Quote</option>
             </select>
           </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Whip Ft</label>
-            <input type="number" min={0} placeholder="e.g. 35" className={inp}
-              value={faState.whipFt === 0 ? '' : faState.whipFt}
-              onChange={e => updateFAState({ whipFt: parseFloat(e.target.value) || 0 })} />
-          </div>
+
+          {!isPanel && (
+            <>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Frame</label>
+                <select className={sel} value={faState.frameType}
+                  onChange={e => updateFAState({ frameType: e.target.value as 'wood' | 'metal' | 'pipe' })}>
+                  <option value="wood">Wood/NM</option>
+                  <option value="metal">Metal/MC</option>
+                  <option value="pipe">Pipe/MC</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Circuit</label>
+                <select className={sel} value={faState.circuitType}
+                  onChange={e => updateFAState({ circuitType: e.target.value as 'slc' | 'nac' | 'ann' })}>
+                  <option value="slc">SLC</option>
+                  <option value="nac">NAC</option>
+                  <option value="ann">Annunciator</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Whip Ft</label>
+                <input type="number" min={0} placeholder="e.g. 35" className={inp}
+                  value={faState.whipFt === 0 ? '' : faState.whipFt}
+                  onChange={e => updateFAState({ whipFt: parseFloat(e.target.value) || 0 })} />
+              </div>
+            </>
+          )}
+
           <div>
             <label className="block text-xs text-gray-500 mb-1">Qty</label>
             <input type="number" min={1} className={inp}
               value={faState.qty}
               onChange={e => updateFAState({ qty: Math.max(1, parseInt(e.target.value) || 1) })} />
           </div>
-          <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none pb-1.5">
-            <input type="checkbox" className="rounded"
-              checked={faState.homeRun}
-              onChange={e => updateFAState({ homeRun: e.target.checked })} />
-            <span className="text-gray-700">Home run</span>
-          </label>
+
+          {!isPanel && (
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none pb-1.5">
+              <input type="checkbox" className="rounded"
+                checked={faState.homeRun}
+                onChange={e => updateFAState({ homeRun: e.target.checked })} />
+              <span className="text-gray-700">Class A (×2)</span>
+            </label>
+          )}
+
+          {isPanel && (
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none pb-1.5">
+              <input type="checkbox" className="rounded"
+                checked={faState.includePower}
+                onChange={e => updateFAState({ includePower: e.target.checked })} />
+              <span className="text-gray-700">120V power circuit</span>
+            </label>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -101,7 +150,7 @@ export function FireAlarmBuilder() {
         {preview && (
           <div className="border-t border-gray-100 pt-3">
             <p className="text-xs font-medium text-gray-500 mb-2">
-              Preview: {faState.frameType} frame — {faState.circuitType.toUpperCase()} — {faState.whipFt}ft × {faState.qty}
+              Preview: {preview.label}
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">

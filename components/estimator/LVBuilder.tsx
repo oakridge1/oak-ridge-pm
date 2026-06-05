@@ -2,8 +2,24 @@
 
 import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
-import { getRates, applyMarkup, type SavedAssembly } from '@/lib/estimator/constants';
-import { getBomItem } from '@/lib/estimator/bom';
+import { calcLV } from '@/lib/estimator/calc';
+import { getRates } from '@/lib/estimator/constants';
+
+const DEVICE_OPTIONS = [
+  { value: 'camera',   label: 'Security Camera' },
+  { value: 'reader',   label: 'Card Reader' },
+  { value: 'intercom', label: 'Intercom Station' },
+  { value: 'av',       label: 'TV/AV Outlet' },
+  { value: 'speaker',  label: 'Speaker' },
+  { value: 'doorbell', label: 'Doorbell/Call Button' },
+];
+
+const SUPPORT_OPTIONS = [
+  { value: 'j-hook-sm', label: 'J-Hook Small (4")' },
+  { value: 'j-hook-lg', label: 'J-Hook Large (7")' },
+  { value: 'zip-tie',   label: 'Zip Tie' },
+  { value: 'staple',    label: 'LV Staple' },
+];
 
 const DIFF_OPTIONS = [
   { label: 'Normal',      value: 1.0  },
@@ -11,111 +27,16 @@ const DIFF_OPTIONS = [
   { label: 'V.Difficult', value: 1.55 },
 ];
 
-const LV_LABOR: Record<string, number> = {
-  camera: 0.75, reader: 0.85, intercom: 1.00,
-  av: 0.60, speaker: 0.50, doorbell: 0.60,
-};
-
-const DEVICE_LABELS: Record<string, string> = {
-  camera: 'Camera', reader: 'Card Reader', intercom: 'Intercom',
-  av: 'AV Device', speaker: 'Speaker', doorbell: 'Doorbell',
-};
-
-const MAKEUP_OPTIONS = [
-  { label: 'None',  value: 0  },
-  { label: '3 ft',  value: 3  },
-  { label: '5 ft',  value: 5  },
-  { label: '10 ft', value: 10 },
-];
-
-function buildLV(
-  deviceType: string, location: string,
-  feet: number, makeup: number, qty: number, diff: number,
-): SavedAssembly | null {
-  if (feet <= 0 || qty <= 0) return null;
-  const R = getRates();
-  const lhrEa = LV_LABOR[deviceType] ?? 0.75;
-  const devLabel = DEVICE_LABELS[deviceType] ?? deviceType;
-  const lines: SavedAssembly['lines'] = [];
-
-  // LV cable (lvc1: Cat6/Coax/2-wire per ft)
-  const totalFt = Math.ceil((feet + makeup * 2) / 10) * 10 * qty;
-  try {
-    const cable = getBomItem('lvc1');
-    lines.push({
-      name: `LV cable (${totalFt}ft)`,
-      qty: totalFt, unit: 'FT',
-      mat: applyMarkup(cable.mat * totalFt, cable.mk),
-      lab: cable.lhr * totalFt * R.labor,
-    });
-  } catch {
-    lines.push({
-      name: `LV cable (${totalFt}ft)`,
-      qty: totalFt, unit: 'FT',
-      mat: applyMarkup(0.375 * totalFt, 'bulk'),
-      lab: 0.010 * totalFt * R.labor,
-    });
-  }
-
-  // LV staples (lvc3)
-  const stapleQty = Math.ceil(feet * qty / 4) + 2 * qty;
-  try {
-    const staple = getBomItem('lvc3');
-    lines.push({
-      name: `LV staple (${stapleQty})`,
-      qty: stapleQty, unit: 'EA',
-      mat: applyMarkup(staple.mat * stapleQty, staple.mk),
-      lab: staple.lhr * stapleQty * R.labor,
-    });
-  } catch {
-    lines.push({
-      name: `LV staple (${stapleQty})`,
-      qty: stapleQty, unit: 'EA',
-      mat: applyMarkup(0.044 * stapleQty, 'bulk'),
-      lab: 0,
-    });
-  }
-
-  // Device — PER QUOTE
-  lines.push({
-    name: `${devLabel} ${location} (per quote)`,
-    qty, unit: 'EA', mat: 0.01 * qty, lab: 0,
-  });
-
-  // Install labor
-  lines.push({
-    name: `${devLabel} install (${qty} × ${lhrEa}hr × diff ${diff})`,
-    qty, unit: 'EA', mat: 0,
-    lab: lhrEa * qty * diff * R.labor,
-  });
-
-  const mat = lines.reduce((s, l) => s + l.mat, 0);
-  const lab = lines.reduce((s, l) => s + l.lab, 0);
-  return {
-    label: `LV — ${devLabel} ${location} — ${feet}ft × ${qty}`,
-    mat, lab, lines,
-  };
-}
-
 export function LVBuilder() {
-  const { state, updateLVState, setState } = useEstimatorContext();
+  const { state, updateLVState, addLVDevice } = useEstimatorContext();
   const { lvState } = state;
 
-  const preview = useMemo(
-    () => buildLV(lvState.deviceType, lvState.location, lvState.feet, lvState.makeup, lvState.qty, lvState.diff),
-    [lvState],
-  );
+  const preview = useMemo(() => calcLV(lvState), [lvState]);
 
   const R = getRates();
 
   const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]';
   const inp = 'w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]';
-
-  function handleAdd() {
-    const asm = buildLV(lvState.deviceType, lvState.location, lvState.feet, lvState.makeup, lvState.qty, lvState.diff);
-    if (!asm) return;
-    setState(s => ({ ...s, savedLV: [...s.savedLV, asm] }));
-  }
 
   return (
     <div className="mb-6">
@@ -124,44 +45,48 @@ export function LVBuilder() {
       </h2>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-end">
+
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Device Type</label>
+            <label className="block text-xs text-gray-500 mb-1">Device</label>
             <select className={sel} value={lvState.deviceType}
-              onChange={e => updateLVState({ deviceType: e.target.value as typeof lvState.deviceType })}>
-              {Object.entries(DEVICE_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Location</label>
-            <select className={sel} value={lvState.location}
-              onChange={e => updateLVState({ location: e.target.value as 'indoor' | 'outdoor' })}>
-              <option value="indoor">Indoor</option>
-              <option value="outdoor">Outdoor</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Feet</label>
-            <input type="number" min={0} placeholder="e.g. 50" className={inp}
-              value={lvState.feet === 0 ? '' : lvState.feet}
-              onChange={e => updateLVState({ feet: parseFloat(e.target.value) || 0 })} />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Makeup/End</label>
-            <select className={sel} value={lvState.makeup}
-              onChange={e => updateLVState({ makeup: parseInt(e.target.value) })}>
-              {MAKEUP_OPTIONS.map(o => (
+              onChange={e => updateLVState({ deviceType: e.target.value })}>
+              {DEVICE_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Support</label>
+            <select className={sel}
+              value={lvState.supportType}
+              onChange={e => updateLVState({ supportType: e.target.value as typeof lvState.supportType })}>
+              {SUPPORT_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Run Ft</label>
+            <input type="number" min={0} placeholder="e.g. 50" className={inp}
+              value={lvState.runFt === 0 ? '' : lvState.runFt}
+              onChange={e => updateLVState({ runFt: parseFloat(e.target.value) || 0 })} />
+          </div>
+
           <div>
             <label className="block text-xs text-gray-500 mb-1">Qty</label>
             <input type="number" min={1} className={inp}
               value={lvState.qty}
               onChange={e => updateLVState({ qty: Math.max(1, parseInt(e.target.value) || 1) })} />
           </div>
+
+          <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none pb-1.5">
+            <input type="checkbox" className="rounded"
+              checked={lvState.outdoor}
+              onChange={e => updateLVState({ outdoor: e.target.checked })} />
+            <span className="text-gray-700">Outdoor (WP box)</span>
+          </label>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -179,22 +104,22 @@ export function LVBuilder() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            {lvState.feet <= 0 && (
+            {lvState.runFt <= 0 && (
               <span className="text-xs text-red-500">Footage required</span>
             )}
             <button
-              onClick={handleAdd}
-              disabled={lvState.feet <= 0}
+              onClick={() => addLVDevice()}
+              disabled={lvState.runFt <= 0}
               className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
               + Add to Bid
             </button>
           </div>
         </div>
 
-        {preview && lvState.feet > 0 && (
+        {preview && lvState.runFt > 0 && (
           <div className="border-t border-gray-100 pt-3">
             <p className="text-xs font-medium text-gray-500 mb-2">
-              Preview: {DEVICE_LABELS[lvState.deviceType]} {lvState.location} — {lvState.feet}ft × {lvState.qty}
+              Preview: {preview.label}
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">

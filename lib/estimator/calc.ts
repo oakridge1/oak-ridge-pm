@@ -554,59 +554,185 @@ export function calcData(p: DataParams): SavedAssembly | null {
 // ─── calcFireAlarm ────────────────────────────────────────────────────────────
 
 export interface FireAlarmParams {
-  mountType: 'wood' | 'metal' | 'pipe';
-  wireType: 'slc' | 'nac' | 'ann';
-  feet: number;
-  qty: number;
-  quoted: boolean;
-  diff: number;
+  frameType:    'wood' | 'metal' | 'pipe';
+  circuitType:  'slc' | 'nac' | 'ann';
+  deviceId:     string;
+  pricing:      'firelite' | 'quoted';
+  whipFt:       number;
+  homeRun:      boolean;
+  qty:          number;
+  diff:         number;
+  includePower: boolean;
 }
 
+const FA_DEVICES: Record<string, { lbl: string; lhr: number; channels: number }> = {
+  fad1:  { lbl: 'Pull Station',           lhr: 0.35, channels: -1 },
+  fad2:  { lbl: 'Smoke Detector',         lhr: 0.35, channels: -1 },
+  fad3:  { lbl: 'Heat Detector',          lhr: 0.35, channels: -1 },
+  fad4:  { lbl: 'Smoke/CO Combo',         lhr: 0.45, channels: -1 },
+  fad5:  { lbl: 'Horn/Strobe',            lhr: 0.35, channels: -1 },
+  fad6:  { lbl: 'Strobe',                 lhr: 0.35, channels: -1 },
+  fad7:  { lbl: 'LF Sounder',             lhr: 0.35, channels: -1 },
+  fad8:  { lbl: 'Beacon',                 lhr: 0.35, channels: -1 },
+  fad9:  { lbl: 'Control/Monitor Module', lhr: 0.45, channels: -1 },
+  fad10: { lbl: 'Duct Smoke Detector',    lhr: 0.65, channels: -1 },
+  fad11: { lbl: 'Annunciator',            lhr: 1.00, channels: -1 },
+  fad12: { lbl: 'FL FACP Small (4ch)',    lhr: 3.00, channels:  4 },
+  fad13: { lbl: 'FL FACP Medium (6ch)',   lhr: 4.50, channels:  6 },
+  fad14: { lbl: 'FL FACP Large (10ch)',   lhr: 7.50, channels: 10 },
+  fad15: { lbl: 'FL Radio Box',           lhr: 1.00, channels:  0 },
+};
+
 const FA_CABLE: Record<string, Record<string, string>> = {
-  wood:  { slc: 'fa1', nac: 'fa2', ann: 'fa3' },
-  metal: { slc: 'fa4', nac: 'fa5', ann: 'fa6' },
-  pipe:  { slc: 'fa4', nac: 'fa5', ann: 'fa6' },
+  wood:  { slc: 'fa1', nac: 'fa2', ann: 'fa5' },
+  metal: { slc: 'fa3', nac: 'fa4', ann: 'fa6' },
+  pipe:  { slc: 'fa3', nac: 'fa4', ann: 'fa6' },
 };
 
 export function calcFireAlarm(p: FireAlarmParams): SavedAssembly | null {
   if (p.qty <= 0) return null;
-  const R = getRates();
+  const R      = getRates();
+  const acc    = newAcc();
+  const devDef = FA_DEVICES[p.deviceId];
+  if (!devDef) return null;
+  const isPanel = devDef.channels >= 0;
+
+  // ── CABLE (field devices only) ──────────────────────────────────
+  if (!isPanel) {
+    const cableId = FA_CABLE[p.frameType]?.[p.circuitType];
+    if (cableId) {
+      const baseFt  = p.whipFt * p.qty;
+      const totalFt = p.homeRun ? baseFt * 2 : baseFt;
+      const hrNote  = p.homeRun ? ' (Class A ×2)' : '';
+      addItem(acc, cableId, totalFt, `FA cable${hrNote} — ${totalFt}ft`);
+    }
+  }
+
+  // ── DEVICE ──────────────────────────────────────────────────────
+  if (p.pricing === 'firelite') {
+    addItem(acc, p.deviceId, p.qty, devDef.lbl);
+  } else {
+    addManual(acc, `${devDef.lbl} — PER QUOTE`, p.qty, 'EA', 0.01 * p.qty, 0);
+    addManual(acc, `${devDef.lbl} install (${p.qty} × ${devDef.lhr}hr)`, p.qty, 'EA', 0,
+      devDef.lhr * p.qty * p.diff * R.labor);
+  }
+
+  // ── BOX HARDWARE (field devices only) ────────────────────────────
+  if (!isPanel) {
+    if (p.frameType === 'wood') {
+      addItem(acc, 'b7', p.qty, 'Nail-On Box');
+      const staples = Math.ceil(p.whipFt / 4) * p.qty;
+      addItem(acc, 'rm4', staples, `Romex staples (${staples})`);
+      addManual(acc, 'Box rough-in labor', p.qty, 'EA', 0,
+        0.20 * p.qty * p.diff * R.labor);
+    } else {
+      addItem(acc, 'b1',  p.qty, '4" Square Deep Box');
+      addItem(acc, 'bs1', p.qty, 'C23 Metal Stud Bracket');
+      addItem(acc, 'mr1', p.qty, 'SG 3/4" Mud Ring');
+      addItem(acc, 'bs2', p.qty * 2, 'CJ6 Colorado Jim');
+      if (p.frameType !== 'pipe') {
+        const clips = Math.ceil(p.whipFt / 4) * p.qty;
+        addItem(acc, 'bs2', clips, `CJ6 cable clips (${clips})`);
+      }
+      addManual(acc, 'Box rough-in labor', p.qty, 'EA', 0,
+        0.30 * p.qty * p.diff * R.labor);
+    }
+  }
+
+  // ── FACP PROGRAMMING LABOR ───────────────────────────────────────
+  if (isPanel && devDef.channels > 0) {
+    addManual(acc,
+      `FA panel programming (${devDef.channels} ch × 0.75hr)`,
+      devDef.channels, 'EA', 0,
+      devDef.channels * 0.75 * p.diff * R.labor);
+  }
+
+  // ── 120V POWER CIRCUIT ───────────────────────────────────────────
+  if (isPanel && p.includePower) {
+    addItem(acc, 'w1',  30, '12/2 MC (power circuit, 30ft)');
+    addItem(acc, 'mc1',  2, 'MC connector ×2');
+    addItem(acc, 'b1',   1, '4" Sq Deep Box (power)');
+    addItem(acc, 'bs1',  1, 'C23 Bracket');
+    addItem(acc, 'mr1',  1, 'Mud Ring');
+    addItem(acc, 'bs2',  2, 'CJ6 ×2');
+    addManual(acc, 'MC pull labor (30ft)', 30, 'FT', 0,
+      30 * 0.026 * p.diff * R.labor);
+    addManual(acc, 'Box rough-in labor (power)', 1, 'EA', 0,
+      0.30 * p.diff * R.labor);
+    addManual(acc, '20A breaker termination', 1, 'EA', 0,
+      0.34 * p.diff * R.labor);
+  }
+
+  const frameDesc   = p.frameType === 'wood' ? 'Wood/NM' : p.frameType === 'metal' ? 'Metal/MC' : 'Metal/Pipe';
+  const hrDesc      = (!isPanel && p.homeRun) ? ' HR' : '';
+  const pricingDesc = p.pricing === 'quoted' ? ' (quoted)' : '';
+  const label = `${devDef.lbl}${pricingDesc} | ${frameDesc} | ${p.whipFt}ft${hrDesc} | ×${p.qty}`;
+  return toAsm(acc, label, p as unknown as Record<string, unknown>);
+}
+
+// ─── calcLV ───────────────────────────────────────────────────────────────────
+
+export interface LVParams {
+  deviceType:  string;
+  outdoor:     boolean;
+  supportType: 'j-hook-sm' | 'j-hook-lg' | 'zip-tie' | 'staple';
+  runFt:       number;
+  qty:         number;
+  diff:        number;
+}
+
+const LV_DEVICES: Record<string, { lbl: string; lhr: number }> = {
+  camera:   { lbl: 'Security Camera',       lhr: 0.35 },
+  reader:   { lbl: 'Access Control Reader', lhr: 0.35 },
+  intercom: { lbl: 'Intercom Station',      lhr: 0.35 },
+  av:       { lbl: 'TV/AV Outlet',          lhr: 0.35 },
+  speaker:  { lbl: 'Speaker',               lhr: 0.25 },
+  doorbell: { lbl: 'Doorbell/Call Button',  lhr: 0.25 },
+};
+
+export function calcLV(p: LVParams): SavedAssembly | null {
+  if (p.runFt <= 0 || p.qty <= 0) return null;
+  const R   = getRates();
   const acc = newAcc();
+  const dev = LV_DEVICES[p.deviceType];
+  if (!dev) return null;
 
   // Cable
-  const cableId = FA_CABLE[p.mountType]?.[p.wireType];
-  if (cableId) addItem(acc, cableId, p.feet);
+  const totalFt = p.runFt * p.qty;
+  addItem(acc, 'lvc1', totalFt, `LV cable (${totalFt}ft)`);
 
-  // Box hardware
-  if (p.mountType === 'wood') {
-    addItem(acc, 'b7',  p.qty);                      // single-gang old-work box
-    addItem(acc, 'fa_st', Math.ceil(p.feet / 4));    // staples every 4ft
-  } else if (p.mountType === 'metal') {
-    addItem(acc, 'b1',  p.qty);                      // 4" square box
-    addItem(acc, 'bs1', p.qty);                      // single-gang mud ring
-    addItem(acc, 'mr1', p.qty);                      // mud ring
-    addItem(acc, 'bs2', p.qty);                      // box support
-    addItem(acc, 'mc1', p.qty * 2);                  // MC connectors (2 per box)
+  // Supports every 4ft + 2 at ends per device
+  const suppQty = (Math.ceil(p.runFt / 4) + 2) * p.qty;
+  const suppId  = p.supportType === 'j-hook-sm' ? 'lv2'
+    : p.supportType === 'j-hook-lg' ? 'lv3'
+    : p.supportType === 'zip-tie'   ? 'lv4'
+    : 'lvc3';  // staple
+  addItem(acc, suppId, suppQty, `LV supports (${suppQty})`);
+
+  // Box / mount
+  if (p.outdoor) {
+    addItem(acc, 'b4', p.qty, 'WP Box (outdoor)');
+    addManual(acc, 'WP box mount labor', p.qty, 'EA', 0,
+      0.30 * p.qty * p.diff * R.labor);
   } else {
-    // pipe — same hardware as metal
-    addItem(acc, 'b1',  p.qty);
-    addItem(acc, 'bs1', p.qty);
-    addItem(acc, 'mr1', p.qty);
-    addItem(acc, 'bs2', p.qty);
-    addItem(acc, 'mc1', p.qty * 2);
+    addItem(acc, 'lvc2', p.qty, 'LV Mud Ring / Bracket');
+    addManual(acc, 'LV bracket install labor', p.qty, 'EA', 0,
+      0.15 * p.qty * p.diff * R.labor);
   }
 
-  // Device — PER QUOTE
-  if (p.quoted) {
-    addManual(acc, 'FA device (per quote)', p.qty, 'EA', 0.01 * p.qty, 0);
-  }
+  // Device — always PER QUOTE
+  addManual(acc, `${dev.lbl} — PER QUOTE`, p.qty, 'EA', 0.01 * p.qty, 0);
 
-  // Rough-in labor
-  const lhrEa = p.mountType === 'wood' ? 0.25 : 0.35;
-  addManual(acc, `FA rough-in labor (${p.qty} × ${lhrEa}hr)`, p.qty, 'EA', 0,
-    lhrEa * p.qty * p.diff * R.labor);
+  // Device install labor
+  addManual(acc, `${dev.lbl} install (${p.qty} × ${dev.lhr}hr)`, p.qty, 'EA', 0,
+    dev.lhr * p.qty * p.diff * R.labor);
 
-  const label = `Fire alarm — ${p.mountType} — ${p.wireType} — ${p.qty}ea`;
+  // Termination labor
+  addManual(acc, 'LV termination labor', p.qty, 'EA', 0,
+    0.20 * p.qty * p.diff * R.labor);
+
+  const locDesc = p.outdoor ? 'Outdoor' : 'Indoor';
+  const label   = `${dev.lbl} | ${locDesc} | ${p.runFt}ft | ×${p.qty}`;
   return toAsm(acc, label, p as unknown as Record<string, unknown>);
 }
 
