@@ -7,10 +7,48 @@ import {
   CATEGORY_LABELS, CAT_ORDER,
 } from '@/lib/estimator/takeoffConstants';
 
+// ── Takeoff → builder mappings ────────────────────────────────────────────────
+
+const FA_TAKEOFF_MAP: Record<string, string> = {
+  fa_smoke:       'fad2',
+  fa_heat:        'fad3',
+  fa_smoke_co:    'fad4',
+  fa_pull:        'fad1',
+  fa_horn_strobe: 'fad5',
+  fa_strobe:      'fad6',
+  fa_lf_sounder:  'fad7',
+  fa_beacon:      'fad8',
+  fa_ctrl_mod:    'fad9',
+  fa_monitor_mod: 'fad9',
+  fa_duct_smoke:  'fad10',
+  fa_annun:       'fad11',
+  fa_panel_sm:    'fad12',
+  fa_panel_md:    'fad13',
+  fa_panel_lg:    'fad14',
+  fa_radio:       'fad15',
+};
+
+const LV_TAKEOFF_MAP: Record<string, string> = {
+  camera_indoor:  'camera',
+  camera_outdoor: 'camera',
+  access_reader:  'reader',
+  intercom:       'intercom',
+  av_outlet:      'av',
+  speaker:        'speaker',
+  doorbell:       'doorbell',
+};
+
+const DATA_TAKEOFF_MAP: Record<string, number> = {
+  data_1port: 1,
+  data_2port: 2,
+  data_3port: 3,
+  data_4port: 4,
+};
+
 // ── TakeoffTab ─────────────────────────────────────────────────────────────────
 
 export function TakeoffTab() {
-  const { state, setState } = useEstimatorContext();
+  const { state, setState, setTab, updateFAState, updateLVState, updateDataState } = useEstimatorContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [editingId,   setEditingId]   = useState<string | null>(null);
@@ -238,9 +276,25 @@ export function TakeoffTab() {
                 <span className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c]">
                   {CATEGORY_LABELS[cat] ?? cat}
                 </span>
-                <span className="text-xs text-gray-500">
-                  {items.length} item{items.length !== 1 ? 's' : ''}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {items.length} item{items.length !== 1 ? 's' : ''}
+                  </span>
+                  {cat === 'fa' && (
+                    <button
+                      onClick={() => setTab('assemblies')}
+                      className="px-2 py-0.5 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-red-700 whitespace-nowrap transition-colors">
+                      → FA Builder
+                    </button>
+                  )}
+                  {cat === 'data_lv' && (
+                    <button
+                      onClick={() => setTab('assemblies')}
+                      className="px-2 py-0.5 text-xs font-semibold rounded bg-teal-600 text-white hover:bg-teal-700 whitespace-nowrap transition-colors">
+                      → Data/LV Builders
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Items table */}
@@ -250,6 +304,7 @@ export function TakeoffTab() {
                     <th className="text-left px-4 py-2 font-semibold">Item</th>
                     <th className="text-right px-4 py-2 font-semibold w-32">Qty / Footage</th>
                     <th className="text-center px-4 py-2 font-semibold w-16">Unit</th>
+                    <th className="w-24"></th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -292,6 +347,32 @@ export function TakeoffTab() {
                       </td>
                       <td className="px-4 py-2 text-center text-xs text-gray-400">
                         {FOOTAGE_ITEMS.has(id) ? 'ft' : 'ea'}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        {cat === 'fa' && id in FA_TAKEOFF_MAP && (
+                          <button
+                            onClick={() => { updateFAState({ deviceId: FA_TAKEOFF_MAP[id], qty }); setTab('assemblies'); }}
+                            title="Load into FA Builder"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-red-700 text-white hover:bg-red-800 whitespace-nowrap">
+                            → Build
+                          </button>
+                        )}
+                        {cat === 'data_lv' && id in LV_TAKEOFF_MAP && (
+                          <button
+                            onClick={() => { updateLVState({ deviceType: LV_TAKEOFF_MAP[id], qty }); setTab('assemblies'); }}
+                            title="Load into LV Builder"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-teal-600 text-white hover:bg-teal-700 whitespace-nowrap">
+                            → Build
+                          </button>
+                        )}
+                        {cat === 'data_lv' && id in DATA_TAKEOFF_MAP && (
+                          <button
+                            onClick={() => { updateDataState({ ports: DATA_TAKEOFF_MAP[id] as (1 | 2 | 3 | 4) }); setTab('assemblies'); }}
+                            title="Load into Data Builder"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
+                            → Build
+                          </button>
+                        )}
                       </td>
                       <td className="px-2 py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <button

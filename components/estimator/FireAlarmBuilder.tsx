@@ -4,6 +4,26 @@ import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { calcFireAlarm } from '@/lib/estimator/calc';
 import { getRates } from '@/lib/estimator/constants';
+import { ITEM_LABELS } from '@/lib/estimator/takeoffConstants';
+
+const FA_TAKEOFF_MAP: Record<string, string> = {
+  fa_smoke:       'fad2',
+  fa_heat:        'fad3',
+  fa_smoke_co:    'fad4',
+  fa_pull:        'fad1',
+  fa_horn_strobe: 'fad5',
+  fa_strobe:      'fad6',
+  fa_lf_sounder:  'fad7',
+  fa_beacon:      'fad8',
+  fa_ctrl_mod:    'fad9',
+  fa_monitor_mod: 'fad9',
+  fa_duct_smoke:  'fad10',
+  fa_annun:       'fad11',
+  fa_panel_sm:    'fad12',
+  fa_panel_md:    'fad13',
+  fa_panel_lg:    'fad14',
+  fa_radio:       'fad15',
+};
 
 const DEVICE_OPTIONS = [
   { id: 'fad1',  label: 'Pull Station' },
@@ -37,6 +57,9 @@ export function FireAlarmBuilder() {
 
   const isPanel = PANEL_IDS.has(faState.deviceId);
 
+  const faCounts = Object.entries(state.takeoffCounts)
+    .filter(([id, qty]) => id in FA_TAKEOFF_MAP && qty > 0);
+
   const preview = useMemo(() => calcFireAlarm(faState), [faState]);
 
   const R = getRates();
@@ -50,6 +73,30 @@ export function FireAlarmBuilder() {
         Fire Alarm Builder
       </h2>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+        {faCounts.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="text-xs font-bold tracking-widest uppercase text-red-700 mb-2">
+              From Takeoff — click to load
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {faCounts.map(([id, qty]) => (
+                <button
+                  key={id}
+                  onClick={() => updateFAState({ deviceId: FA_TAKEOFF_MAP[id], qty })}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                    faState.deviceId === FA_TAKEOFF_MAP[id] && faState.qty === qty
+                      ? 'bg-red-700 text-white border-red-700'
+                      : 'bg-white text-red-700 border-red-300 hover:bg-red-50'
+                  }`}>
+                  {ITEM_LABELS[id] ?? id} × {qty}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-red-500 mt-2">
+              Click any device to load its count into the builder. Adjust whip footage then Add to Bid.
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-3 items-end">
 
           <div>

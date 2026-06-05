@@ -4,6 +4,17 @@ import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { calcLV } from '@/lib/estimator/calc';
 import { getRates } from '@/lib/estimator/constants';
+import { ITEM_LABELS } from '@/lib/estimator/takeoffConstants';
+
+const LV_TAKEOFF_MAP: Record<string, string> = {
+  camera_indoor:  'camera',
+  camera_outdoor: 'camera',
+  access_reader:  'reader',
+  intercom:       'intercom',
+  av_outlet:      'av',
+  speaker:        'speaker',
+  doorbell:       'doorbell',
+};
 
 const DEVICE_OPTIONS = [
   { value: 'camera',   label: 'Security Camera' },
@@ -31,6 +42,9 @@ export function LVBuilder() {
   const { state, updateLVState, addLVDevice } = useEstimatorContext();
   const { lvState } = state;
 
+  const lvCounts = Object.entries(state.takeoffCounts)
+    .filter(([id, qty]) => id in LV_TAKEOFF_MAP && qty > 0);
+
   const preview = useMemo(() => calcLV(lvState), [lvState]);
 
   const R = getRates();
@@ -44,6 +58,30 @@ export function LVBuilder() {
         Low Voltage Builder
       </h2>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+        {lvCounts.length > 0 && (
+          <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
+            <div className="text-xs font-bold tracking-widest uppercase text-teal-700 mb-2">
+              From Takeoff — click to load
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {lvCounts.map(([id, qty]) => (
+                <button
+                  key={id}
+                  onClick={() => updateLVState({ deviceType: LV_TAKEOFF_MAP[id], qty })}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                    lvState.deviceType === LV_TAKEOFF_MAP[id] && lvState.qty === qty
+                      ? 'bg-teal-700 text-white border-teal-700'
+                      : 'bg-white text-teal-700 border-teal-300 hover:bg-teal-50'
+                  }`}>
+                  {ITEM_LABELS[id] ?? id} × {qty}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-teal-500 mt-2">
+              Click any device to load its count into the builder. Adjust run footage then Add to Bid.
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-3 items-end">
 
           <div>
