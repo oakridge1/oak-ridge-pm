@@ -63,6 +63,17 @@ export function BidSummaryTab() {
   // NOT dollar amounts. We compute actual permit/sub/rental totals below.
   const result = calcBid();
 
+  // ── Lighting & gear quoted costs ──────────────────────────────────────────
+  const lightingCost = state.lightingSchedule.reduce((sum, item) => {
+    if (!item.quotedPrice || !item.qty) return sum;
+    return sum + item.quotedPrice * item.qty * (1 + item.markup);
+  }, 0);
+
+  const gearCost = state.gearSchedule.reduce((sum, item) => {
+    if (!item.quotedPrice || !item.qty) return sum;
+    return sum + item.quotedPrice * item.qty * (1 + item.markup);
+  }, 0);
+
   // ── Permit / sub / rental totals (computed from state directly) ───────────
   const permitEntries = state.permits.filter(p => !p.desc.startsWith('[Rental]'));
   const rentalEntries = state.permits.filter(p =>  p.desc.startsWith('[Rental]'));
@@ -84,7 +95,8 @@ export function BidSummaryTab() {
 
   // ── Grand total (correct, independent of result.grandTotal) ──────────────
   const subtotal   = matTotal + effectiveLaborTotal + effectiveOverhead
-                   + permitTotal + rentalTotal + subTotal;
+                   + permitTotal + rentalTotal + subTotal
+                   + lightingCost + gearCost;
   const profit     = subtotal * R.profit;
   const grandTotal = subtotal + profit;
 
@@ -155,6 +167,8 @@ export function BidSummaryTab() {
       `  Permits:        ${fmt$(permitTotal)}`,
       `  Subcontractors: ${fmt$(subTotal)}`,
       `  Equipment Rent: ${fmt$(rentalTotal)}`,
+      ...(lightingCost > 0 ? [`  Lighting:       ${fmt$(lightingCost)}`] : []),
+      ...(gearCost     > 0 ? [`  Electrical Gear:${fmt$(gearCost)}`]     : []),
       ``,
       `── TOTALS ─────────────────────────────`,
       `  Subtotal:       ${fmt$(subtotal)}`,
@@ -198,7 +212,8 @@ export function BidSummaryTab() {
   // ── Empty guard ───────────────────────────────────────────────────────────
   const isEmpty =
     matTotal === 0 && laborBase === 0 &&
-    permitBase === 0 && subBase === 0 && rentalBase === 0;
+    permitBase === 0 && subBase === 0 && rentalBase === 0 &&
+    lightingCost === 0 && gearCost === 0;
 
   return (
     <div className="max-w-3xl">
@@ -414,6 +429,18 @@ export function BidSummaryTab() {
               <div className="flex justify-between text-gray-600">
                 <span>Equipment Rental</span>
                 <span className="font-mono">{fmt$(rentalTotal)}</span>
+              </div>
+            )}
+            {lightingCost > 0 && (
+              <div className="flex justify-between text-gray-600">
+                <span>Lighting Fixtures</span>
+                <span className="font-mono">{fmt$(lightingCost)}</span>
+              </div>
+            )}
+            {gearCost > 0 && (
+              <div className="flex justify-between text-gray-600">
+                <span>Electrical Gear</span>
+                <span className="font-mono">{fmt$(gearCost)}</span>
               </div>
             )}
             <div className="flex justify-between text-gray-700 border-t border-gray-200 pt-1.5">

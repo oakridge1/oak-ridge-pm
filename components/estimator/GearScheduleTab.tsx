@@ -2,12 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
-import {
-  getGearSchedule,
-  addGearItem,
-  updateGearItem,
-  deleteGearItem,
-} from '@/app/(app)/jobs/[id]/tabs/schedule-actions';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,16 +20,6 @@ interface Supplier {
   contacts: SupplierContact[];
 }
 
-interface ScheduleItem {
-  id:          string;
-  typeLabel:   string;   // maps from d.tag
-  description: string;
-  qty:         number;
-  quotedPrice: number | null;
-  markup:      number;
-  quoteStatus: string;
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmt$ = (n: number) =>
@@ -44,11 +28,16 @@ const fmt$ = (n: number) =>
 // ── GearScheduleTab ───────────────────────────────────────────────────────────
 
 export function GearScheduleTab() {
-  const { state } = useEstimatorContext();
+  const {
+    state,
+    addGearItem,
+    updateGearItem,
+    removeGearItem,
+  } = useEstimatorContext();
 
-  // ── Item state ────────────────────────────────────────────────────────────
-  const [items,          setItems]          = useState<ScheduleItem[]>([]);
-  const [loading,        setLoading]        = useState(true);
+  const items = state.gearSchedule;
+
+  // ── UI state ──────────────────────────────────────────────────────────────
   const [showAddForm,    setShowAddForm]    = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [editingId,      setEditingId]      = useState<string | null>(null);
@@ -69,110 +58,72 @@ export function GearScheduleTab() {
 
   const drawingInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Load data ─────────────────────────────────────────────────────────────
+  // ── Load suppliers ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!state.jobId) return;
-    setLoading(true);
-    getGearSchedule(state.jobId)
-      .then(data => {
-        setItems(data.map(d => ({
-          id:          d.id,
-          typeLabel:   d.tag         ?? '',   // tag is the gear identifier
-          description: d.description ?? '',
-          qty:         d.qty,
-          quotedPrice: d.quotedPrice ?? null,
-          markup:      d.markup,
-          quoteStatus: d.quoteStatus ?? 'PENDING',
-        })));
-      })
-      .catch(() => {/* network error — keep empty */})
-      .finally(() => setLoading(false));
-
     fetch('/api/admin/suppliers')
       .then(r => r.json())
       .then(setSuppliers)
       .catch(console.error);
-  }, [state.jobId]);
+  }, []);
 
   // ── Computed ──────────────────────────────────────────────────────────────
   const totalQuotedCost = items.reduce((sum, item) => {
     if (!item.quotedPrice || !item.qty) return sum;
     return sum + item.quotedPrice * item.qty * (1 + item.markup);
   }, 0);
-  const itemsWithQty = items.filter(i => i.qty > 0);
-  const itemsQuoted  = items.filter(i => i.quotedPrice !== null && i.quotedPrice > 0);
+  const itemsWithQty   = items.filter(i => i.qty > 0);
+  const itemsQuoted    = items.filter(i => i.quotedPrice !== null && i.quotedPrice > 0);
   const quoteSuppliers = suppliers.filter(s => !s.pickupOnly && s.email);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  async function handleAdd() {
+  // ── CRUD handlers ─────────────────────────────────────────────────────────
+  function handleAdd() {
     if (!newTag.trim() || !newDesc.trim()) return;
-    if (!state.jobId) {
-      alert(
-        'This job must be saved to the PM system before ' +
-        'adding gear items.\n\n' +
-        'Go to Bid Summary → "Convert to Project" to save ' +
-        'this job, then return to Gear Schedule.'
-      );
-      return;
-    }
-    try {
-      const item = await addGearItem(state.jobId, {
-        tag:         newTag.trim(),
-        description: newDesc.trim(),
-        qty:         newQty,
-      });
-      setItems(prev => [...prev, {
-        id:          item.id,
-        typeLabel:   item.tag         ?? newTag.trim(),
-        description: item.description ?? newDesc.trim(),
-        qty:         item.qty,
-        quotedPrice: item.quotedPrice ?? null,
-        markup:      item.markup,
-        quoteStatus: 'PENDING',
-      }]);
-      setNewTag('');
-      setNewDesc('');
-      setNewQty(0);
-    } catch {
-      alert('Failed to add gear item. Is this job saved to the PM system?');
-    }
+    addGearItem({
+      typeLabel:   newTag.trim(),
+      description: newDesc.trim(),
+      qty:         newQty,
+      quotedPrice: null,
+      markup:      0.05,
+      quoteStatus: 'PENDING',
+    });
+    setNewTag('');
+    setNewDesc('');
+    setNewQty(0);
   }
 
-  async function handleQtyBlur(id: string, qty: number) {
-    await updateGearItem(id, { qty }).catch(console.error);
+  function handleQtyChange(id: string, qty: number) {
+    updateGearItem(id, { qty });
   }
 
-  async function handlePriceBlur(id: string, raw: string) {
+  function handlePriceBlur(id: string, raw: string) {
     const v = parseFloat(raw);
     const quotedPrice = isNaN(v) || v <= 0 ? null : v;
-    const quoteStatus = quotedPrice ? 'RECEIVED' : (items.find(i => i.id === id)?.quoteStatus ?? 'PENDING');
-    setItems(prev => prev.map(i => i.id === id ? { ...i, quotedPrice, quoteStatus } : i));
-    await updateGearItem(id, { quotedPrice, quoteStatus }).catch(console.error);
+    const quoteStatus = quotedPrice
+      ? 'RECEIVED'
+      : (items.find(i => i.id === id)?.quoteStatus ?? 'PENDING');
+    updateGearItem(id, { quotedPrice, quoteStatus });
   }
 
-  async function handleMarkupBlur(id: string, raw: string) {
+  function handleMarkupBlur(id: string, raw: string) {
     const pct    = parseFloat(raw);
     const markup = isNaN(pct) ? 0.05 : Math.max(0, pct) / 100;
-    setItems(prev => prev.map(i => i.id === id ? { ...i, markup } : i));
-    await updateGearItem(id, { markup }).catch(console.error);
+    updateGearItem(id, { markup });
   }
 
-  async function handleTagBlur(id: string, value: string) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, typeLabel: value } : i));
-    await updateGearItem(id, { tag: value }).catch(console.error);
+  function handleTagBlur(id: string, value: string) {
+    updateGearItem(id, { typeLabel: value });
   }
 
-  async function handleDescBlur(id: string, value: string) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, description: value } : i));
-    await updateGearItem(id, { description: value }).catch(console.error);
+  function handleDescBlur(id: string, value: string) {
+    updateGearItem(id, { description: value });
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     if (!confirm('Remove this gear item?')) return;
-    await deleteGearItem(id).catch(console.error);
-    setItems(prev => prev.filter(i => i.id !== id));
+    removeGearItem(id);
   }
 
+  // ── Quote modal handlers ──────────────────────────────────────────────────
   function toggleVendor(name: string) {
     setSelectedVendors(prev =>
       prev.includes(name) ? prev.filter(v => v !== name) : [...prev, name]
@@ -199,6 +150,7 @@ export function GearScheduleTab() {
     setSendResult(null);
 
     try {
+      // gear-quote API expects { tag, description, qty }
       const quoteItems = itemsWithQty.map(i => ({
         tag:         i.typeLabel,
         description: i.description,
@@ -211,8 +163,8 @@ export function GearScheduleTab() {
 
         const fd = new FormData();
         fd.append('jobId',       state.jobId);
-        fd.append('jobNumber',   state.jobNumber);
-        fd.append('jobName',     state.jobName);
+        fd.append('jobNumber',   state.jobNumber || 'TBD');
+        fd.append('jobName',     state.jobName   || 'Estimate');
         fd.append('vendorName',  vendorName);
         fd.append('vendorEmail', supplier.email);
         fd.append('items',       JSON.stringify(quoteItems));
@@ -223,6 +175,11 @@ export function GearScheduleTab() {
         await fetch('/api/jobs/gear-quote', { method: 'POST', body: fd });
       }
 
+      // Mark PENDING items as QUOTED in local state
+      items
+        .filter(i => i.qty > 0 && i.quoteStatus === 'PENDING')
+        .forEach(i => updateGearItem(i.id, { quoteStatus: 'QUOTED' }));
+
       setSendResult(
         `✓ Quote request sent to ${selectedVendors.length} vendor${selectedVendors.length !== 1 ? 's' : ''}`
       );
@@ -230,18 +187,6 @@ export function GearScheduleTab() {
       setSelectedVendors([]);
       setAttachments([]);
       setQuoteNotes('');
-
-      // Refresh to show QUOTED status
-      const fresh = await getGearSchedule(state.jobId);
-      setItems(fresh.map(d => ({
-        id:          d.id,
-        typeLabel:   d.tag         ?? '',
-        description: d.description ?? '',
-        qty:         d.qty,
-        quotedPrice: d.quotedPrice ?? null,
-        markup:      d.markup,
-        quoteStatus: d.quoteStatus ?? 'PENDING',
-      })));
     } catch (err) {
       setSendResult('✗ Failed to send — check console');
       console.error(err);
@@ -251,14 +196,6 @@ export function GearScheduleTab() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
-        Loading…
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-6xl">
 
@@ -402,11 +339,11 @@ export function GearScheduleTab() {
                     : null;
                   const isEditing = editingId === item.id;
                   const statusCls =
-                    item.quotedPrice ? 'bg-green-100 text-green-700' :
+                    item.quotedPrice   ? 'bg-green-100 text-green-700' :
                     item.quoteStatus === 'QUOTED' ? 'bg-blue-100 text-blue-700' :
                     'bg-gray-100 text-gray-500';
                   const statusLabel =
-                    item.quotedPrice ? '✓ Priced' :
+                    item.quotedPrice   ? '✓ Priced' :
                     item.quoteStatus === 'QUOTED' ? 'Quote Sent' :
                     'Pending';
 
@@ -449,11 +386,7 @@ export function GearScheduleTab() {
                           value={item.qty}
                           min={0}
                           step={1}
-                          onChange={e => {
-                            const v = Math.max(0, parseInt(e.target.value) || 0);
-                            setItems(prev => prev.map(i => i.id === item.id ? { ...i, qty: v } : i));
-                          }}
-                          onBlur={e => handleQtyBlur(item.id, Math.max(0, parseInt(e.target.value) || 0))}
+                          onChange={e => handleQtyChange(item.id, Math.max(0, parseInt(e.target.value) || 0))}
                           className="w-16 text-center border border-gray-200 rounded px-2 py-1 text-sm font-mono focus:outline-none focus:border-blue-400"
                         />
                       </td>

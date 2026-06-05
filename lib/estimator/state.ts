@@ -166,6 +166,30 @@ export interface SubLine {
 }
 
 // ─────────────────────────────────────
+// Lighting & gear schedule items
+// ─────────────────────────────────────
+
+export interface LightingItem {
+  id:          string;
+  typeLabel:   string;
+  description: string;
+  qty:         number;
+  quotedPrice: number | null;
+  markup:      number;
+  quoteStatus: string;  // 'PENDING' | 'QUOTED' | 'RECEIVED'
+}
+
+export interface GearItem {
+  id:          string;
+  typeLabel:   string;
+  description: string;
+  qty:         number;
+  quotedPrice: number | null;
+  markup:      number;
+  quoteStatus: string;
+}
+
+// ─────────────────────────────────────
 // Takeoff tab types
 // ─────────────────────────────────────
 
@@ -237,6 +261,10 @@ export interface EstimatorState {
   // ── Permits & subs ────────────────────────────────────────────
   permits: PermitLine[];
   subs:    SubLine[];
+
+  // ── Lighting & gear schedules ─────────────────────────────────
+  lightingSchedule: LightingItem[];
+  gearSchedule:     GearItem[];
 
   // ── Bid conditions ────────────────────────────────────────────
   jobCondMult: number;
@@ -384,6 +412,8 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     savedHAR:       [], savedFloorBox:  [], asms:           [],
     permits: [],
     subs:    [],
+    lightingSchedule: [],
+    gearSchedule:     [],
     jobCondMult: 1.0,
     heightAdder: false,
     condRunState:   { ...DEFAULT_COND_RUN },

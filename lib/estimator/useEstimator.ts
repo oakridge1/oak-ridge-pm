@@ -4,7 +4,7 @@ import {
   useState, useCallback, useEffect, useRef,
   type Dispatch, type SetStateAction,
 } from 'react';
-import type { EstimatorState } from './state';
+import type { EstimatorState, LightingItem, GearItem } from './state';
 import {
   createNewState,
   DEFAULT_COND_RUN, DEFAULT_RACK, DEFAULT_MCHR,
@@ -108,6 +108,14 @@ export interface EstimatorActions {
   updateCanState:      (patch: Partial<EstimatorState['canState']>)      => void;
   updateLVState:       (patch: Partial<EstimatorState['lvState']>)       => void;
   updateTMState:       (patch: Partial<EstimatorState['tmState']>)       => void;
+
+  // ── Lighting & gear schedule ────────────────────────────────────
+  addLightingItem:    (item: Omit<LightingItem, 'id'>) => void;
+  updateLightingItem: (id: string, updates: Partial<Omit<LightingItem, 'id'>>) => void;
+  removeLightingItem: (id: string) => void;
+  addGearItem:        (item: Omit<GearItem, 'id'>) => void;
+  updateGearItem:     (id: string, updates: Partial<Omit<GearItem, 'id'>>) => void;
+  removeGearItem:     (id: string) => void;
 
   // ── Section reorder ─────────────────────────────────────────────
   reorderAsmSections: (newOrder: string[]) => void;
@@ -384,6 +392,61 @@ export function useEstimator(): EstimatorActions {
   const updateLVState       = useCallback((p: Partial<EstimatorState['lvState']>)       => patch(s => ({ lvState:       { ...s.lvState,       ...p } })), [patch]);
   const updateTMState       = useCallback((p: Partial<EstimatorState['tmState']>)       => patch(s => ({ tmState:       { ...s.tmState,       ...p } })), [patch]);
 
+  // ── Lighting & gear schedule ─────────────────────────────────────
+  const addLightingItemFn = useCallback(
+    (item: Omit<LightingItem, 'id'>) => {
+      setState(s => ({
+        ...s,
+        lightingSchedule: [...s.lightingSchedule, { ...item, id: crypto.randomUUID() }],
+      }));
+    }, []
+  );
+
+  const updateLightingItemFn = useCallback(
+    (id: string, updates: Partial<Omit<LightingItem, 'id'>>) => {
+      setState(s => ({
+        ...s,
+        lightingSchedule: s.lightingSchedule.map(i => i.id === id ? { ...i, ...updates } : i),
+      }));
+    }, []
+  );
+
+  const removeLightingItemFn = useCallback(
+    (id: string) => {
+      setState(s => ({
+        ...s,
+        lightingSchedule: s.lightingSchedule.filter(i => i.id !== id),
+      }));
+    }, []
+  );
+
+  const addGearItemFn = useCallback(
+    (item: Omit<GearItem, 'id'>) => {
+      setState(s => ({
+        ...s,
+        gearSchedule: [...s.gearSchedule, { ...item, id: crypto.randomUUID() }],
+      }));
+    }, []
+  );
+
+  const updateGearItemFn = useCallback(
+    (id: string, updates: Partial<Omit<GearItem, 'id'>>) => {
+      setState(s => ({
+        ...s,
+        gearSchedule: s.gearSchedule.map(i => i.id === id ? { ...i, ...updates } : i),
+      }));
+    }, []
+  );
+
+  const removeGearItemFn = useCallback(
+    (id: string) => {
+      setState(s => ({
+        ...s,
+        gearSchedule: s.gearSchedule.filter(i => i.id !== id),
+      }));
+    }, []
+  );
+
   // ── Section reorder ──────────────────────────────────────────────
   const reorderAsmSections = useCallback(
     (newOrder: string[]) => patch({ asmSectionOrder: newOrder }),
@@ -409,6 +472,12 @@ export function useEstimator(): EstimatorActions {
     updateThreeWayState, updateDataState, updateFAState,
     updateGearState, updateFloorBoxState, updateHARState,
     updateCanState, updateLVState, updateTMState,
+    addLightingItem:    addLightingItemFn,
+    updateLightingItem: updateLightingItemFn,
+    removeLightingItem: removeLightingItemFn,
+    addGearItem:        addGearItemFn,
+    updateGearItem:     updateGearItemFn,
+    removeGearItem:     removeGearItemFn,
     reorderAsmSections,
   };
 }
