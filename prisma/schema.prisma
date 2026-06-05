@@ -1084,9 +1084,11 @@ model LightingScheduleItem {
   id            String   @id @default(cuid())
   jobId         String
   job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  tag           String?          // fixture tag: "A", "B", "C"
-  fixtureType   String?          // "Recessed", "Surface Mount", "Pendant", etc.
-  description   String?
+  typeLabel     String?          // e.g. "Type A", "Type E-1"
+  tag           String?          // fixture tag shorthand
+  fixtureType   String?          // "Recessed", "Surface Mount", etc.
+  description   String?          // name exactly as on the plans
+  markup        Float    @default(0.05)
   manufacturer  String?
   catalogNumber String?
   volts         String?
@@ -1098,7 +1100,7 @@ model LightingScheduleItem {
   supplier      String?
   supplierEmail String?
   quotedPrice   Float?
-  quoteStatus   String?  @default("PENDING") // PENDING | QUOTED | ORDERED
+  quoteStatus   String?  @default("PENDING") // PENDING | QUOTED | RECEIVED
   notes         String?
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
@@ -1113,7 +1115,8 @@ model GearScheduleItem {
   job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   tag           String?          // panel tag: "MDP", "LP-A", "DP-1"
   gearType      String?          // "Panel", "Disconnect", "Transfer Switch", "Transformer"
-  description   String?
+  description   String?          // name exactly as on the plans
+  markup        Float    @default(0.05)
   manufacturer  String?
   catalogNumber String?
   volts         String?
@@ -1124,7 +1127,7 @@ model GearScheduleItem {
   supplier      String?
   supplierEmail String?
   quotedPrice   Float?
-  quoteStatus   String?  @default("PENDING") // PENDING | QUOTED | ORDERED
+  quoteStatus   String?  @default("PENDING") // PENDING | QUOTED | RECEIVED
   notes         String?
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())

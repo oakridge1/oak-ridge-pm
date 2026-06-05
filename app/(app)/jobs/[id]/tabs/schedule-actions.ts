@@ -29,9 +29,11 @@ async function requireActive() {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface LightingItemInput {
+  typeLabel?:     string | null;
   tag?:           string | null;
   fixtureType?:   string | null;
   description?:   string | null;
+  markup?:        number;
   manufacturer?:  string | null;
   catalogNumber?: string | null;
   volts?:         string | null;
@@ -52,6 +54,7 @@ export interface GearItemInput {
   tag?:           string | null;
   gearType?:      string | null;
   description?:   string | null;
+  markup?:        number;
   manufacturer?:  string | null;
   catalogNumber?: string | null;
   volts?:         string | null;
@@ -82,9 +85,11 @@ export async function addLightingItem(jobId: string, input: LightingItemInput) {
   const item = await prisma.lightingScheduleItem.create({
     data: {
       jobId,
+      typeLabel:     input.typeLabel     ?? null,
       tag:           input.tag           ?? null,
       fixtureType:   input.fixtureType   ?? null,
       description:   input.description   ?? null,
+      markup:        input.markup        ?? 0.05,
       manufacturer:  input.manufacturer  ?? null,
       catalogNumber: input.catalogNumber ?? null,
       volts:         input.volts         ?? null,
@@ -110,9 +115,11 @@ export async function updateLightingItem(id: string, input: Partial<LightingItem
   const item = await prisma.lightingScheduleItem.update({
     where: { id },
     data: {
+      ...(input.typeLabel     !== undefined && { typeLabel:     input.typeLabel }),
       ...(input.tag           !== undefined && { tag:           input.tag }),
       ...(input.fixtureType   !== undefined && { fixtureType:   input.fixtureType }),
       ...(input.description   !== undefined && { description:   input.description }),
+      ...(input.markup        !== undefined && { markup:        input.markup }),
       ...(input.manufacturer  !== undefined && { manufacturer:  input.manufacturer }),
       ...(input.catalogNumber !== undefined && { catalogNumber: input.catalogNumber }),
       ...(input.volts         !== undefined && { volts:         input.volts }),
@@ -167,6 +174,7 @@ export async function addGearItem(jobId: string, input: GearItemInput) {
       tag:           input.tag           ?? null,
       gearType:      input.gearType      ?? null,
       description:   input.description   ?? null,
+      markup:        input.markup        ?? 0.05,
       manufacturer:  input.manufacturer  ?? null,
       catalogNumber: input.catalogNumber ?? null,
       volts:         input.volts         ?? null,
@@ -194,6 +202,7 @@ export async function updateGearItem(id: string, input: Partial<GearItemInput>) 
       ...(input.tag           !== undefined && { tag:           input.tag }),
       ...(input.gearType      !== undefined && { gearType:      input.gearType }),
       ...(input.description   !== undefined && { description:   input.description }),
+      ...(input.markup        !== undefined && { markup:        input.markup }),
       ...(input.manufacturer  !== undefined && { manufacturer:  input.manufacturer }),
       ...(input.catalogNumber !== undefined && { catalogNumber: input.catalogNumber }),
       ...(input.volts         !== undefined && { volts:         input.volts }),

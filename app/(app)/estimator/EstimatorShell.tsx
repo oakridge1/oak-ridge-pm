@@ -25,6 +25,8 @@ import { GearBuilderTab }       from '@/components/estimator/GearBuilderTab';
 import { ProposalTab }          from '@/components/estimator/ProposalTab';
 import { TakeoffTab }           from '@/components/estimator/TakeoffTab';
 import { CounterTool }         from '@/components/estimator/CounterTool';
+import { LightingScheduleTab } from '@/components/estimator/LightingScheduleTab';
+import { GearScheduleTab }     from '@/components/estimator/GearScheduleTab';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
@@ -35,6 +37,8 @@ const TABS = [
   { id: 'gear',        label: 'Gear Builder'     },
   { id: 'permits',     label: 'Permits & Subs'   },
   { id: 'bom',         label: 'BOM Reference'    },
+  { id: 'lighting',    label: 'Lighting Schedule'},
+  { id: 'gear_sched',  label: 'Gear Schedule'    },
   { id: 'summary',     label: 'Bid Summary'      },
   { id: 'proposal',    label: 'Proposal'         },
   { id: 'settings',    label: 'Settings'         },
@@ -168,6 +172,10 @@ export function EstimatorShell() {
           <PermitsSubsTab />
         ) : tab === 'bom' ? (
           <BOMReferenceTab />
+        ) : tab === 'lighting' ? (
+          <LightingScheduleTab />
+        ) : tab === 'gear_sched' ? (
+          <GearScheduleTab />
         ) : tab === 'summary' ? (
           <BidSummaryTab />
         ) : tab === 'proposal' ? (
