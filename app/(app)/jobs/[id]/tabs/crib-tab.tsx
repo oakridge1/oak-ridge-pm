@@ -44,10 +44,11 @@ type ApprovalRequest = {
 };
 
 type Supplier = {
-  id: string;
-  name: string;
-  email: string | null;
+  id:         string;
+  name:       string;
+  email:      string | null;
   pickupOnly: boolean;
+  contacts?:  Array<{ id: string; name: string; email: string; isPrimary: boolean }>;
 };
 
 interface CribTabProps {
@@ -1246,7 +1247,9 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
   // Step 1: delivery method selection; Step 2: rest of form
   const [step, setStep] = useState<1 | 2>(1);
   const [supplierName, setSupplierName] = useState(electricalSuppliers[0]?.name ?? "");
-  const [supplierEmail, setSupplierEmail] = useState(electricalSuppliers[0]?.email ?? "");
+  const [supplierEmail, setSupplierEmail] = useState(
+    electricalSuppliers[0]?.contacts?.find(c => c.isPrimary)?.email ?? electricalSuppliers[0]?.email ?? ""
+  );
   const [poNumber, setPoNumber] = useState(job.jobNumber);
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
@@ -1254,6 +1257,9 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
   const [error, setError] = useState<string | null>(null);
   const [orderType, setOrderType] = useState<'ORDER' | 'QUOTE' | 'COMPETITIVE_QUOTE'>('ORDER');
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
+  const [ccEmails, setCcEmails] = useState<string[]>([]);
+  const [ccInput, setCcInput] = useState('');
+  const [ccForemanOn, setCcForemanOn] = useState(true);
 
   const jobAddress = [job.address, job.city, job.state].filter(Boolean).join(", ");
 
@@ -1296,12 +1302,14 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
       const electricalIds = electricalRequests.map(r => r.id);
 
       type OrderGroup = {
-        supplierName: string;
-        supplierEmail: string | null;
-        deliveryMethod: string;
-        requestIds: string[];
-        isConsumables: boolean;
-        orderType: string;
+        supplierName:       string;
+        supplierEmail:      string | null;
+        deliveryMethod:     string;
+        requestIds:         string[];
+        isConsumables:      boolean;
+        orderType:          string;
+        additionalCcEmails: string[];
+        ccForeman:          boolean;
       };
 
       let groups: OrderGroup[];
@@ -1310,44 +1318,52 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
         groups = selectedVendors.map(vendorName => {
           const supplier = suppliers.find(s => s.name === vendorName);
           return {
-            supplierName: vendorName,
-            supplierEmail: supplier?.email ?? '',
-            deliveryMethod: 'QUOTE',
-            requestIds: electricalIds,
-            isConsumables: false,
-            orderType: 'COMPETITIVE_QUOTE',
+            supplierName:       vendorName,
+            supplierEmail:      supplier?.email ?? '',
+            deliveryMethod:     'QUOTE',
+            requestIds:         electricalIds,
+            isConsumables:      false,
+            orderType:          'COMPETITIVE_QUOTE',
+            additionalCcEmails: ccEmails,
+            ccForeman:          ccForemanOn,
           };
         });
         if (groups.length === 0) { setError("Please select at least one vendor."); setSending(false); return; }
       } else if (orderType === 'QUOTE') {
         groups = [{
-          supplierName,
-          supplierEmail,
-          deliveryMethod: 'QUOTE',
-          requestIds: electricalIds,
-          isConsumables: false,
-          orderType: 'QUOTE',
+          supplierName:       supplierName,
+          supplierEmail:      supplierEmail,
+          deliveryMethod:     'QUOTE',
+          requestIds:         electricalIds,
+          isConsumables:      false,
+          orderType:          'QUOTE',
+          additionalCcEmails: ccEmails,
+          ccForeman:          ccForemanOn,
         }];
       } else {
         groups = [];
         if (electricalRequests.length > 0) {
           groups.push({
-            supplierName,
-            supplierEmail,
-            deliveryMethod: deliveryMethod ?? 'PICKUP',
-            requestIds: electricalIds,
-            isConsumables: false,
-            orderType: 'ORDER',
+            supplierName:       supplierName,
+            supplierEmail:      supplierEmail,
+            deliveryMethod:     deliveryMethod ?? 'PICKUP',
+            requestIds:         electricalIds,
+            isConsumables:      false,
+            orderType:          'ORDER',
+            additionalCcEmails: ccEmails,
+            ccForeman:          ccForemanOn,
           });
         }
         if (consumableRequests.length > 0) {
           groups.push({
-            supplierName: 'Pickup',
-            supplierEmail: null,
-            deliveryMethod: 'PICKUP',
-            requestIds: consumableRequests.map(r => r.id),
-            isConsumables: true,
-            orderType: 'ORDER',
+            supplierName:       'Pickup',
+            supplierEmail:      null,
+            deliveryMethod:     'PICKUP',
+            requestIds:         consumableRequests.map(r => r.id),
+            isConsumables:      true,
+            orderType:          'ORDER',
+            additionalCcEmails: ccEmails,
+            ccForeman:          ccForemanOn,
           });
         }
       }
@@ -1507,7 +1523,9 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                     <select value={supplierName} onChange={e => {
                       setSupplierName(e.target.value);
                       const sup = electricalSuppliers.find(s => s.name === e.target.value);
-                      setSupplierEmail(sup?.email ?? "");
+                      const primaryContact = sup?.contacts?.find(c => c.isPrimary);
+                      setSupplierEmail(primaryContact?.email ?? sup?.email ?? "");
+                      setCcEmails([]);
                     }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
                       {electricalSuppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                       <option value="custom">Custom…</option>
@@ -1548,6 +1566,101 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                 </div>
               )
             )}
+
+            {/* CC selector */}
+            <div>
+              <label className="text-xs font-bold tracking-widest uppercase text-gray-500 block mb-2">
+                CC (additional recipients)
+              </label>
+
+              {/* Selected CC chips */}
+              {ccEmails.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {ccEmails.map(email => (
+                    <span key={email} className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      {email}
+                      <button
+                        type="button"
+                        onClick={() => setCcEmails(prev => prev.filter(e => e !== email))}
+                        className="text-blue-400 hover:text-blue-700 ml-0.5"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Supplier contacts dropdown (single-supplier modes only) */}
+              {orderType !== 'COMPETITIVE_QUOTE' && (() => {
+                const currentSupplier = electricalSuppliers.find(s => s.name === supplierName);
+                const availableContacts = (currentSupplier?.contacts ?? []).filter(
+                  c => c.email !== supplierEmail && !ccEmails.includes(c.email)
+                );
+                return availableContacts.length > 0 ? (
+                  <select
+                    value=""
+                    onChange={e => {
+                      if (e.target.value) setCcEmails(prev => [...prev, e.target.value]);
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                  >
+                    <option value="">+ Add contact from {supplierName}…</option>
+                    {availableContacts.map(c => (
+                      <option key={c.id} value={c.email}>{c.name} — {c.email}</option>
+                    ))}
+                  </select>
+                ) : null;
+              })()}
+
+              {/* Freeform CC input */}
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={ccInput}
+                  onChange={e => setCcInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const trimmed = ccInput.trim();
+                      if (trimmed && !ccEmails.includes(trimmed)) {
+                        setCcEmails(prev => [...prev, trimmed]);
+                        setCcInput('');
+                      }
+                    }
+                  }}
+                  placeholder="Add any email address…"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = ccInput.trim();
+                    if (trimmed && !ccEmails.includes(trimmed)) {
+                      setCcEmails(prev => [...prev, trimmed]);
+                      setCcInput('');
+                    }
+                  }}
+                  className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
+                >
+                  Add
+                </button>
+              </div>
+
+              {/* CC foreman toggle */}
+              <label className="flex items-center gap-2 mt-2 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ccForemanOn}
+                  onChange={e => setCcForemanOn(e.target.checked)}
+                  className="w-4 h-4 accent-[#1a3a5c]"
+                />
+                CC job foreman (if assigned)
+              </label>
+              <p className="text-xs text-gray-400 mt-1">
+                Sam and Justin are always CC&apos;d automatically.
+              </p>
+            </div>
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">PO / Job Number *</label>

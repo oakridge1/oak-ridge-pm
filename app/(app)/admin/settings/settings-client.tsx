@@ -29,6 +29,13 @@ const NOTIFICATION_TYPE_LABELS: { key: string; label: string }[] = [
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+interface SupplierContact {
+  id: string;
+  name: string;
+  email: string;
+  isPrimary: boolean;
+}
+
 interface Supplier {
   id: string;
   name: string;
@@ -39,6 +46,7 @@ interface Supplier {
   deliveryNotes: string | null;
   pickupOnly: boolean;
   notes: string | null;
+  contacts?: SupplierContact[];
 }
 
 interface StockItem {
@@ -162,6 +170,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
   const [addingSupplier, setAddingSupplier] = useState(false);
   const [supplierSaving, setSupplierSaving] = useState(false);
   const [resettingSuppliers, setResettingSuppliers] = useState(false);
+  const [contactsForm, setContactsForm] = useState<Array<{ id?: string; name: string; email: string; isPrimary: boolean }>>([]);
 
   // Notification preferences state (Fix 2)
   const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({});
@@ -503,16 +512,26 @@ export function SettingsClient({ connection, justConnected, connectError, compan
     if (!supplierForm.name.trim()) return;
     setSupplierSaving(true);
     try {
-      const res = await fetch(`/api/admin/suppliers/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(supplierForm),
-      });
+      const validContacts = contactsForm.filter(c => c.name.trim() && c.email.trim());
+      const [res] = await Promise.all([
+        fetch(`/api/admin/suppliers/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(supplierForm),
+        }),
+        fetch(`/api/admin/suppliers/${id}/contacts`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contacts: validContacts }),
+        }),
+      ]);
       if (res.ok) {
-        const updated = await res.json();
-        setSuppliers(prev => prev.map(s => s.id === id ? updated : s).sort((a, b) => a.name.localeCompare(b.name)));
+        // Refetch all suppliers to get updated contacts
+        const allSuppliers = await fetch("/api/admin/suppliers").then(r => r.json());
+        setSuppliers(Array.isArray(allSuppliers) ? allSuppliers : []);
         setEditingSupplierId(null);
         setSupplierForm(emptySupplierForm);
+        setContactsForm([]);
       }
     } finally {
       setSupplierSaving(false);
@@ -1133,8 +1152,64 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                         className="rounded" />
                       Pickup only (not for delivery orders)
                     </label>
+
+                    {/* Contacts section */}
+                    <div className="border-t border-gray-200 pt-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">Contacts</p>
+                        <button
+                          type="button"
+                          onClick={() => setContactsForm(prev => [...prev, { name: "", email: "", isPrimary: false }])}
+                          className="text-xs text-[#002D72] hover:underline flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Add Contact
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mb-2">
+                        Add all contacts at this supplier. The primary contact receives orders by default.
+                      </p>
+                      {contactsForm.length === 0 && (
+                        <p className="text-xs text-gray-400 italic">No contacts yet.</p>
+                      )}
+                      <div className="space-y-2">
+                        {contactsForm.map((contact, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={contact.name}
+                              onChange={e => setContactsForm(prev => prev.map((c, i) => i === idx ? { ...c, name: e.target.value } : c))}
+                              placeholder="Name"
+                              className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                            />
+                            <input
+                              type="email"
+                              value={contact.email}
+                              onChange={e => setContactsForm(prev => prev.map((c, i) => i === idx ? { ...c, email: e.target.value } : c))}
+                              placeholder="Email"
+                              className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                            />
+                            <button
+                              type="button"
+                              title={contact.isPrimary ? "Primary contact" : "Set as primary"}
+                              onClick={() => setContactsForm(prev => prev.map((c, i) => ({ ...c, isPrimary: i === idx ? !c.isPrimary : false })))}
+                              className={`text-lg px-1 leading-none ${contact.isPrimary ? "text-yellow-400" : "text-gray-300 hover:text-yellow-300"}`}
+                            >
+                              ★
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setContactsForm(prev => prev.filter((_, i) => i !== idx))}
+                              className="text-gray-400 hover:text-red-500 p-0.5"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => { setEditingSupplierId(null); setSupplierForm(emptySupplierForm); }}
+                      <button onClick={() => { setEditingSupplierId(null); setSupplierForm(emptySupplierForm); setContactsForm([]); }}
                         className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
                       <button onClick={() => handleUpdateSupplier(supplier.id)} disabled={supplierSaving || !supplierForm.name.trim()}
                         className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
@@ -1159,6 +1234,11 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                       {supplier.accountNumber && (
                         <p className="text-xs text-gray-400">Acct: {supplier.accountNumber}</p>
                       )}
+                      {(supplier.contacts?.length ?? 0) > 0 && (
+                        <p className="text-xs text-gray-400">
+                          {supplier.contacts!.length} contact{supplier.contacts!.length !== 1 ? "s" : ""}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => {
@@ -1173,6 +1253,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                           pickupOnly: supplier.pickupOnly,
                           notes: supplier.notes ?? "",
                         });
+                        setContactsForm(supplier.contacts?.map(c => ({ ...c })) ?? []);
                       }}
                         className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />

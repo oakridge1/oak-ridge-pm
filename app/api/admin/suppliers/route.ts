@@ -29,7 +29,10 @@ export async function GET() {
   if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
 
   await ensureDefaultSuppliers();
-  const suppliers = await prisma.supplier.findMany({ orderBy: { name: "asc" } });
+  const suppliers = await prisma.supplier.findMany({
+    orderBy: { name: "asc" },
+    include: { contacts: { orderBy: { isPrimary: "desc" } } },
+  });
   return NextResponse.json(suppliers);
 }
 

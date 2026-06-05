@@ -230,7 +230,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const results = [];
 
   for (const group of groups) {
-    const { supplierName, supplierEmail, requestIds, isConsumables, orderType: groupOrderType = 'ORDER' } = group;
+    const {
+      supplierName,
+      supplierEmail,
+      requestIds,
+      isConsumables,
+      orderType:          groupOrderType       = 'ORDER',
+      additionalCcEmails: additionalCcEmails   = [] as string[],
+      ccForeman:          ccForeman            = true,
+    } = group;
 
     console.log(`[stock-order] Group ${supplierName}: ${requestIds.length} requests, isConsumables: ${isConsumables}`);
 
@@ -362,7 +370,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           ? [supplierEmail]
           : [JUSTIN_EMAIL]; // fallback if no supplier email
 
-      const ccEmails = [SAM_CC, JUSTIN_EMAIL, job.foreman?.email].filter((e): e is string => !!e && !toEmails.includes(e));
+      const foremanEmail = ccForeman ? (job.foreman?.email ?? null) : null;
+      const ccEmails = [...new Set(
+        [SAM_CC, JUSTIN_EMAIL, foremanEmail, ...additionalCcEmails]
+          .filter((e): e is string => !!e && !toEmails.includes(e))
+      )];
 
       const emailSubject = (!isConsumables && !supplierEmail)
         ? `[NO SUPPLIER EMAIL] ${subject}`
@@ -375,7 +387,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         const mailOptions: any = {
           from: `"Oak Ridge Electrical" <${FROM}>`,
           to: toEmails.join(", "),
-          cc: [...new Set(ccEmails)].join(", "),
+          cc: ccEmails.join(", "),
           subject: emailSubject,
           text: emailBodyText,
         };

@@ -672,17 +672,29 @@ model GoogleConnection {
 // ── Suppliers ─────────────────────────────────────────────────────────────────
 
 model Supplier {
-  id              String   @id @default(cuid())
+  id              String            @id @default(cuid())
   name            String
   repName         String?
   email           String?
   phone           String?
   accountNumber   String?
   deliveryNotes   String?
-  pickupOnly      Boolean  @default(false)
+  pickupOnly      Boolean           @default(false)
   notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  contacts        SupplierContact[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model SupplierContact {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name       String
+  email      String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // ── Stock Items ───────────────────────────────────────────────────────────────
