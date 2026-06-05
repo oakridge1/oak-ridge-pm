@@ -56,6 +56,7 @@ export function GearScheduleTab() {
   // ── Add form ──────────────────────────────────────────────────────────────
   const [newTag,  setNewTag]  = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newQty,  setNewQty]  = useState<number>(0);
 
   // ── Quote modal ───────────────────────────────────────────────────────────
   const [suppliers,       setSuppliers]       = useState<Supplier[]>([]);
@@ -104,12 +105,21 @@ export function GearScheduleTab() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   async function handleAdd() {
-    if (!newTag.trim() || !newDesc.trim() || !state.jobId) return;
+    if (!newTag.trim() || !newDesc.trim()) return;
+    if (!state.jobId) {
+      alert(
+        'This job must be saved to the PM system before ' +
+        'adding gear items.\n\n' +
+        'Go to Bid Summary → "Convert to Project" to save ' +
+        'this job, then return to Gear Schedule.'
+      );
+      return;
+    }
     try {
       const item = await addGearItem(state.jobId, {
         tag:         newTag.trim(),
         description: newDesc.trim(),
-        qty:         0,
+        qty:         newQty,
       });
       setItems(prev => [...prev, {
         id:          item.id,
@@ -122,6 +132,7 @@ export function GearScheduleTab() {
       }]);
       setNewTag('');
       setNewDesc('');
+      setNewQty(0);
     } catch {
       alert('Failed to add gear item. Is this job saved to the PM system?');
     }
@@ -325,6 +336,16 @@ export function GearScheduleTab() {
                 onKeyDown={e => e.key === 'Enter' && handleAdd()}
               />
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-600">Qty</label>
+              <input
+                type="number"
+                value={newQty}
+                onChange={e => setNewQty(parseInt(e.target.value) || 0)}
+                min={0}
+                className="border border-gray-300 rounded px-3 py-2 text-sm w-20 text-center focus:outline-none focus:border-blue-400"
+              />
+            </div>
             <button
               onClick={handleAdd}
               disabled={!newTag.trim() || !newDesc.trim()}
@@ -333,7 +354,7 @@ export function GearScheduleTab() {
               Add
             </button>
             <button
-              onClick={() => { setShowAddForm(false); setNewTag(''); setNewDesc(''); }}
+              onClick={() => { setShowAddForm(false); setNewTag(''); setNewDesc(''); setNewQty(0); }}
               className="px-3 py-2 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
             >
               Cancel
