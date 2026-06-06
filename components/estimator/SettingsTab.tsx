@@ -106,6 +106,11 @@ export function SettingsTab() {
           gcPhone:       c.phone,
           gcEmail:       c.email,
         },
+        proposal: {
+          ...s.proposal,
+          clientCompany: c.company,
+          clientAttn:    c.contactName || '',
+        },
       }));
     } else if (c.type === 'Owner') {
       setState(s => ({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import {
   type ProposalState,
@@ -23,10 +23,13 @@ function uid() { return Math.random().toString(36).slice(2, 9); }
 
 // Oak Ridge company header constants
 const CO_NAME    = 'Oak Ridge Electrical LLC';
-const CO_ADDR    = 'Licensed Electrical Contractor';
-const CO_PHONE   = '(865) 555-0100';
-const CO_EMAIL   = 'info@oakridgeelectrical.com';
-const CO_LICENSE = 'TN License # [000000]';
+const CO_ADDR    = '209 W. River Rd, Hooksett, NH 03106';
+const CO_PHONE   = '603-660-4651';
+const CO_EMAIL   = 'Justin@oakridgeelectrical.com';
+const CO_LICENSE = 'NH Electrical License # 0069M';
+
+// Absolute URL for logo so it resolves correctly in the blank print window
+const LOGO_URL = 'https://oak-ridge-pm.vercel.app/logo.png';
 
 // ─────────────────────────────────────
 // Scope bullet library
@@ -204,11 +207,19 @@ function buildPrintHtml(
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Proposal — ${jobName}</title>
+<title>Oak Ridge Electrical — Proposal</title>
 <style>
   body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1a1a; margin: 0; padding: 0; }
-  @page { margin: 0.75in; }
-  @media print { body { font-size: 11px; } }
+  @page { margin: 0.75in; size: letter; }
+  /* Note: Browser print headers/footers must be disabled in print dialog settings
+     (Chrome: More settings → uncheck Headers and footers) */
+  @media print {
+    body { font-size: 11px; }
+    html {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
   .page { max-width: 800px; margin: 0 auto; padding: 40px; }
   h2 { font-size: 14px; margin: 0 0 2px; text-transform: uppercase; letter-spacing: .06em; }
   h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #002D72; padding-bottom: 4px; color: #002D72; }
@@ -224,11 +235,15 @@ function buildPrintHtml(
   <!-- Header -->
   <table style="width:100%;border-bottom:2px solid #002D72;padding-bottom:12px;margin-bottom:16px">
     <tr>
-      <td>
-        <div style="font-size:22px;font-weight:700;color:#002D72;letter-spacing:.02em">${CO_NAME}</div>
-        <div style="font-size:11px;color:#555;margin-top:2px">${CO_ADDR}</div>
-        <div style="font-size:11px;color:#555">${CO_PHONE} · ${CO_EMAIL}</div>
-        <div style="font-size:11px;color:#555">${CO_LICENSE}</div>
+      <td style="vertical-align:top">
+        <img src="${LOGO_URL}"
+          style="height:70px;width:auto;object-fit:contain;display:block;margin-bottom:6px"
+          alt="Oak Ridge Electrical LLC" />
+        <div style="font-size:10px;color:#555;line-height:1.5">
+          ${CO_ADDR}<br/>
+          ${CO_PHONE} &nbsp;·&nbsp; ${CO_EMAIL}<br/>
+          ${CO_LICENSE}
+        </div>
       </td>
       <td style="text-align:right;vertical-align:top">
         <div style="font-size:28px;font-weight:700;color:#c8601a;letter-spacing:.08em">PROPOSAL</div>
@@ -395,6 +410,21 @@ export function ProposalTab() {
     s.title.toLowerCase().includes('low voltage') ||
     s.title.toLowerCase().includes(' lv'));
 
+  // ── Auto-sync GC info → proposal client fields (when clientCompany is empty) ──
+  useEffect(() => {
+    if (!state.proposal.clientCompany && state.jobInfo.gcCompany) {
+      setState(s => ({
+        ...s,
+        proposal: {
+          ...s.proposal,
+          clientCompany: s.jobInfo.gcCompany,
+          clientAttn:    s.jobInfo.gcContactName || '',
+        },
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.jobInfo.gcCompany, state.jobInfo.gcContactName]);
+
   // ── Bullet library state ────────────────────────────────────────
 
   const [savedBullets, setSavedBullets] = useState<string[]>(() => {
@@ -549,6 +579,20 @@ export function ProposalTab() {
             onChange={v => patch('clientCompany', v)}
             placeholder="GC Company Name"
           />
+          {state.jobInfo.gcCompany && (
+            <button
+              onClick={() => setState(s => ({
+                ...s,
+                proposal: {
+                  ...s.proposal,
+                  clientCompany: s.jobInfo.gcCompany,
+                  clientAttn:    s.jobInfo.gcContactName || '',
+                },
+              }))}
+              className="text-xs text-blue-500 hover:text-blue-700 mt-1 mb-1">
+              ↩ Pull from GC info
+            </button>
+          )}
           <LabelInput
             label="Attn / Contact"
             value={p.clientAttn}
