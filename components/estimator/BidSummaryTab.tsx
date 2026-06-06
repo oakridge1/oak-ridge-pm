@@ -74,6 +74,11 @@ export function BidSummaryTab() {
     return sum + item.quotedPrice * item.qty * (1 + item.markup);
   }, 0);
 
+  const lightingPending = state.lightingSchedule
+    .filter(i => i.qty > 0 && !i.quotedPrice).length;
+  const gearPending = state.gearSchedule
+    .filter(i => i.qty > 0 && !i.quotedPrice).length;
+
   // ── Permit / sub / rental totals (computed from state directly) ───────────
   const permitEntries = state.permits.filter(p => !p.desc.startsWith('[Rental]'));
   const rentalEntries = state.permits.filter(p =>  p.desc.startsWith('[Rental]'));
@@ -431,10 +436,26 @@ export function BidSummaryTab() {
                 <span className="font-mono">{fmt$(rentalTotal)}</span>
               </div>
             )}
+            {lightingPending > 0 && lightingCost === 0 && (
+              <div className="flex justify-between text-amber-600 text-sm">
+                <span>Lighting Fixtures</span>
+                <span className="text-xs italic">
+                  ⚠ {lightingPending} type{lightingPending !== 1 ? 's' : ''} awaiting quote
+                </span>
+              </div>
+            )}
             {lightingCost > 0 && (
               <div className="flex justify-between text-gray-600">
                 <span>Lighting Fixtures</span>
                 <span className="font-mono">{fmt$(lightingCost)}</span>
+              </div>
+            )}
+            {gearPending > 0 && gearCost === 0 && (
+              <div className="flex justify-between text-amber-600 text-sm">
+                <span>Electrical Gear</span>
+                <span className="text-xs italic">
+                  ⚠ {gearPending} item{gearPending !== 1 ? 's' : ''} awaiting quote
+                </span>
               </div>
             )}
             {gearCost > 0 && (

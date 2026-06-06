@@ -73,7 +73,12 @@ export function GearScheduleTab() {
   }, 0);
   const itemsWithQty   = items.filter(i => i.qty > 0);
   const itemsQuoted    = items.filter(i => i.quotedPrice !== null && i.quotedPrice > 0);
-  const quoteSuppliers = suppliers.filter(s => !s.pickupOnly && s.email);
+  const quoteSuppliers = suppliers.filter(s =>
+    !s.pickupOnly && (
+      s.email ||
+      (s.contacts && s.contacts.length > 0)
+    )
+  );
 
   // ── CRUD handlers ─────────────────────────────────────────────────────────
   function handleAdd() {
@@ -159,14 +164,17 @@ export function GearScheduleTab() {
 
       for (const vendorName of selectedVendors) {
         const supplier = suppliers.find(s => s.name === vendorName);
-        if (!supplier?.email) continue;
+        const vendorEmail = supplier?.email ||
+          supplier?.contacts?.find(c => c.isPrimary)?.email ||
+          supplier?.contacts?.[0]?.email;
+        if (!vendorEmail) continue;
 
         const fd = new FormData();
         fd.append('jobId',       state.jobId);
         fd.append('jobNumber',   state.jobNumber || 'TBD');
         fd.append('jobName',     state.jobName   || 'Estimate');
         fd.append('vendorName',  vendorName);
-        fd.append('vendorEmail', supplier.email);
+        fd.append('vendorEmail', vendorEmail);
         fd.append('items',       JSON.stringify(quoteItems));
         fd.append('notes',       quoteNotes);
         fd.append('ccEmails',    JSON.stringify(ccEmails));

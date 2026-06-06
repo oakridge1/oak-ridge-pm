@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const ccEmails    = JSON.parse((fd.get('ccEmails') as string) ?? '[]') as string[];
   const drawings    = fd.getAll('drawings') as File[];
 
-  if (!jobId || !vendorEmail || !items?.length) {
+  if (!vendorEmail || !items?.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
@@ -157,10 +157,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Mark pending items as QUOTED ──────────────────────────────────────────
-  await prisma.gearScheduleItem.updateMany({
-    where: { jobId, quoteStatus: 'PENDING' },
-    data:  { quoteStatus: 'QUOTED' },
-  });
+  if (jobId) {
+    await prisma.gearScheduleItem.updateMany({
+      where: { jobId, quoteStatus: 'PENDING' },
+      data:  { quoteStatus: 'QUOTED' },
+    });
+  }
 
   return NextResponse.json({ success: true });
 }
