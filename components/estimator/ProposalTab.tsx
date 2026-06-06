@@ -417,14 +417,20 @@ export function ProposalTab() {
   const permitTotal         = permitEntries.reduce((s, ent) => s + ent.cost, 0) * (1 + R.permit);
   const rentalTotal         = rentalEntries.reduce((s, ent) => s + ent.cost, 0) * (1 + R.bulk);
   const subTotal            = state.subs.reduce((s, ent) => s + ent.cost, 0)   * (1 + R.sub);
-  const lightingCost        = state.lightingSchedule.reduce((sum, item) => {
+  const lightingPerUnit     = state.lightingSchedule.reduce((sum, item) => {
     if (!item.quotedPrice || !item.qty) return sum;
     return sum + item.quotedPrice * item.qty * (1 + item.markup);
   }, 0);
-  const gearCost            = state.gearSchedule.reduce((sum, item) => {
+  const lightingCost        = state.lightingTotalQuote
+    ? state.lightingTotalQuote * (1 + (state.lightingQuoteMarkup ?? 0.05))
+    : lightingPerUnit;
+  const gearPerUnit         = state.gearSchedule.reduce((sum, item) => {
     if (!item.quotedPrice || !item.qty) return sum;
     return sum + item.quotedPrice * item.qty * (1 + item.markup);
   }, 0);
+  const gearCost            = state.gearTotalQuote
+    ? state.gearTotalQuote * (1 + (state.gearQuoteMarkup ?? 0.05))
+    : gearPerUnit;
   const correctSubtotal     = bid.matTotal + effectiveLaborTotal + effectiveOverhead
                             + permitTotal + rentalTotal + subTotal
                             + lightingCost + gearCost;

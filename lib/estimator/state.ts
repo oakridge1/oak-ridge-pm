@@ -267,6 +267,12 @@ export interface EstimatorState {
   lightingSchedule: LightingItem[];
   gearSchedule:     GearItem[];
 
+  // ── Blended quote totals ──────────────────────────────────────
+  lightingTotalQuote:  number | null;
+  lightingQuoteMarkup: number;
+  gearTotalQuote:      number | null;
+  gearQuoteMarkup:     number;
+
   // ── Bid conditions ────────────────────────────────────────────
   jobCondMult: number;
   heightAdder: boolean;
@@ -414,8 +420,12 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     savedHAR:       [], savedFloorBox:  [], asms:           [],
     permits: [],
     subs:    [],
-    lightingSchedule: [],
-    gearSchedule:     [],
+    lightingSchedule:    [],
+    gearSchedule:        [],
+    lightingTotalQuote:  null,
+    lightingQuoteMarkup: 0.05,
+    gearTotalQuote:      null,
+    gearQuoteMarkup:     0.05,
     jobCondMult: 1.0,
     heightAdder: false,
     condRunState:   { ...DEFAULT_COND_RUN },

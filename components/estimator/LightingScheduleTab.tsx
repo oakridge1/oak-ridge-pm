@@ -30,6 +30,7 @@ const fmt$ = (n: number) =>
 export function LightingScheduleTab() {
   const {
     state,
+    setState,
     addLightingItem,
     updateLightingItem,
     removeLightingItem,
@@ -55,6 +56,7 @@ export function LightingScheduleTab() {
   const [attachments,     setAttachments]     = useState<File[]>([]);
   const [sending,         setSending]         = useState(false);
   const [sendResult,      setSendResult]      = useState<string | null>(null);
+  const [quoteMode,       setQuoteMode]       = useState<'single' | 'competitive'>('single');
 
   const drawingInputRef = useRef<HTMLInputElement>(null);
 
@@ -173,6 +175,7 @@ export function LightingScheduleTab() {
         fd.append('items',       JSON.stringify(quoteItems));
         fd.append('notes',       quoteNotes);
         fd.append('ccEmails',    JSON.stringify(ccEmails));
+        fd.append('quoteMode',   quoteMode);
         attachments.forEach(file => fd.append('drawings', file));
 
         await fetch('/api/jobs/lighting-quote', { method: 'POST', body: fd });
@@ -492,6 +495,61 @@ export function LightingScheduleTab() {
         </div>
       )}
 
+      {/* ── BLENDED QUOTE TOTAL ──────────────────────────────────────────────── */}
+      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-sm font-bold text-[#1a3a5c]">Blended Quote Total</h3>
+          <span className="text-xs text-gray-500">
+            (optional — use when vendor sends one total price)
+          </span>
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 text-sm">$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={state.lightingTotalQuote ?? ''}
+              onChange={e => setState(s => ({
+                ...s,
+                lightingTotalQuote: parseFloat(e.target.value) || null,
+              }))}
+              placeholder="Vendor's total price"
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-48 focus:outline-none focus:border-blue-400"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min={0}
+              max={50}
+              value={Math.round(state.lightingQuoteMarkup * 100)}
+              onChange={e => setState(s => ({
+                ...s,
+                lightingQuoteMarkup: (parseInt(e.target.value) || 0) / 100,
+              }))}
+              className="border border-gray-300 rounded px-3 py-2 text-sm w-20 text-center focus:outline-none focus:border-blue-400"
+            />
+            <span className="text-gray-500 text-sm">%</span>
+            <span className="text-xs text-gray-400 ml-1">markup</span>
+          </div>
+          {state.lightingTotalQuote ? (
+            <div className="text-lg font-bold text-[#1a3a5c]">
+              {fmt$(state.lightingTotalQuote * (1 + state.lightingQuoteMarkup))}
+              <span className="text-xs font-normal text-green-600 ml-2">
+                ✓ Overrides per-unit pricing in bid
+              </span>
+            </div>
+          ) : null}
+        </div>
+        {state.lightingTotalQuote ? (
+          <p className="text-xs text-blue-600 mt-2">
+            Blended total is active — per-unit prices are kept for reference but bid uses this total.
+          </p>
+        ) : null}
+      </div>
+
       {/* ── QUOTE REQUEST MODAL ──────────────────────────────────────────────── */}
       {showQuoteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
@@ -512,6 +570,35 @@ export function LightingScheduleTab() {
 
             {/* Modal body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+              {/* Quote mode */}
+              <div>
+                <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setQuoteMode('single')}
+                    className={`flex-1 py-2 px-3 text-sm font-semibold transition-colors border-r border-gray-300 ${
+                      quoteMode === 'single' ? 'bg-[#1a3a5c] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Quote Request
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuoteMode('competitive')}
+                    className={`flex-1 py-2 px-3 text-sm font-semibold transition-colors ${
+                      quoteMode === 'competitive' ? 'bg-[#1a3a5c] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    ⚡ Competitive Quote
+                  </button>
+                </div>
+                {quoteMode === 'competitive' && (
+                  <p className="text-xs text-gray-400 mt-1 italic">
+                    Sends to all selected vendors simultaneously. Each vendor knows you are soliciting competitive quotes.
+                  </p>
+                )}
+              </div>
 
               {/* Section 1: Fixture summary */}
               <div>
@@ -680,7 +767,9 @@ export function LightingScheduleTab() {
               >
                 {sending
                   ? '⏳ Sending…'
-                  : `Send to ${selectedVendors.length} Vendor${selectedVendors.length !== 1 ? 's' : ''}`}
+                  : quoteMode === 'competitive'
+                    ? `⚡ Send to ${selectedVendors.length} Vendor${selectedVendors.length !== 1 ? 's' : ''}`
+                    : 'Send Quote Request'}
               </button>
             </div>
           </div>

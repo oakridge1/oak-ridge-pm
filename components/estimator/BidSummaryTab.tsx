@@ -64,20 +64,32 @@ export function BidSummaryTab() {
   const result = calcBid();
 
   // ── Lighting & gear quoted costs ──────────────────────────────────────────
-  const lightingCost = state.lightingSchedule.reduce((sum, item) => {
+  const lightingPerUnit = state.lightingSchedule.reduce((sum, item) => {
     if (!item.quotedPrice || !item.qty) return sum;
     return sum + item.quotedPrice * item.qty * (1 + item.markup);
   }, 0);
 
-  const gearCost = state.gearSchedule.reduce((sum, item) => {
+  const lightingCost = state.lightingTotalQuote
+    ? state.lightingTotalQuote * (1 + (state.lightingQuoteMarkup ?? 0.05))
+    : lightingPerUnit;
+
+  const gearPerUnit = state.gearSchedule.reduce((sum, item) => {
     if (!item.quotedPrice || !item.qty) return sum;
     return sum + item.quotedPrice * item.qty * (1 + item.markup);
   }, 0);
 
-  const lightingPending = state.lightingSchedule
-    .filter(i => i.qty > 0 && !i.quotedPrice).length;
-  const gearPending = state.gearSchedule
-    .filter(i => i.qty > 0 && !i.quotedPrice).length;
+  const gearCost = state.gearTotalQuote
+    ? state.gearTotalQuote * (1 + (state.gearQuoteMarkup ?? 0.05))
+    : gearPerUnit;
+
+  const lightingPending =
+    state.lightingSchedule.filter(i => i.qty > 0).length > 0 &&
+    !state.lightingTotalQuote &&
+    lightingPerUnit === 0;
+  const gearPending =
+    state.gearSchedule.filter(i => i.qty > 0).length > 0 &&
+    !state.gearTotalQuote &&
+    gearPerUnit === 0;
 
   // ── Permit / sub / rental totals (computed from state directly) ───────────
   const permitEntries = state.permits.filter(p => !p.desc.startsWith('[Rental]'));
@@ -436,12 +448,10 @@ export function BidSummaryTab() {
                 <span className="font-mono">{fmt$(rentalTotal)}</span>
               </div>
             )}
-            {lightingPending > 0 && lightingCost === 0 && (
+            {lightingPending && (
               <div className="flex justify-between text-amber-600 text-sm">
                 <span>Lighting Fixtures</span>
-                <span className="text-xs italic">
-                  ⚠ {lightingPending} type{lightingPending !== 1 ? 's' : ''} awaiting quote
-                </span>
+                <span className="text-xs italic">⚠ Awaiting quote</span>
               </div>
             )}
             {lightingCost > 0 && (
@@ -450,12 +460,10 @@ export function BidSummaryTab() {
                 <span className="font-mono">{fmt$(lightingCost)}</span>
               </div>
             )}
-            {gearPending > 0 && gearCost === 0 && (
+            {gearPending && (
               <div className="flex justify-between text-amber-600 text-sm">
                 <span>Electrical Gear</span>
-                <span className="text-xs italic">
-                  ⚠ {gearPending} item{gearPending !== 1 ? 's' : ''} awaiting quote
-                </span>
+                <span className="text-xs italic">⚠ Awaiting quote</span>
               </div>
             )}
             {gearCost > 0 && (

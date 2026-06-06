@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   const notes       = (fd.get('notes')      as string) ?? '';
   const ccEmails    = JSON.parse((fd.get('ccEmails') as string) ?? '[]') as string[];
   const drawings    = fd.getAll('drawings') as File[];
+  const quoteMode   = (fd.get('quoteMode') as string) ?? 'single';
 
   if (!vendorEmail || !items?.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -109,9 +110,10 @@ export async function POST(req: NextRequest) {
 
         <div style="padding:14px;background:#f9fafb;border-radius:6px;
           font-size:12px;color:#4b5563;">
-          Oak Ridge Electrical is soliciting competitive quotes from multiple vendors.
-          We will award based on pricing and availability.
-          Please reply with unit pricing per gear item.
+          ${quoteMode === 'competitive'
+            ? 'Oak Ridge Electrical is soliciting competitive quotes from multiple vendors. We will award based on competitive pricing and availability.'
+            : 'Please reply with your best pricing per gear item.'
+          }
         </div>
       </div>
 
