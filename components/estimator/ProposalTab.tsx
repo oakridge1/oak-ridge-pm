@@ -14,6 +14,7 @@ import {
   getPaymentParagraph,
 } from '@/lib/estimator/proposalState';
 import { fmt$ } from '@/lib/estimator/format';
+import type { ProposalPdfData } from '@/app/api/jobs/[id]/pdf/_templates';
 
 // ─────────────────────────────────────
 // Helpers
@@ -546,7 +547,9 @@ export function ProposalTab() {
   const removeListItem = (key: 'inclusions' | 'exclusions', idx: number) =>
     patch(key, p[key].filter((_, i) => i !== idx));
 
-  // ── Print ───────────────────────────────────────────────────────
+  // ── Print / Download PDF ────────────────────────────────────────
+
+  const [downloading, setDownloading] = useState(false);
 
   const handlePrint = () => {
     const win = window.open('', '_blank');
@@ -555,6 +558,55 @@ export function ProposalTab() {
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 300);
+  };
+
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const payload: ProposalPdfData = {
+        jobName:        state.jobName   || 'Estimate',
+        jobNumber:      state.jobNumber || '',
+        clientCompany:  p.clientCompany || '',
+        clientAttn:     p.clientAttn    || '',
+        proposalDate:   p.proposalDate,
+        validDays:      p.validDays,
+        workingHours:   p.workingHours,
+        scopeIntro:     p.scopeIntro,
+        scopeSections:  p.scopeSections,
+        alternates:     p.alternates,
+        inclusions:     p.inclusions,
+        exclusions:     p.exclusions,
+        warrantyText:   p.warrantyText,
+        paymentTerms:   p.paymentTerms,
+        paymentNote:    p.paymentNote,
+        validityNote:   p.validityNote,
+        depositEnabled: p.depositEnabled,
+        depositPercent: p.depositPercent,
+        grandTotal:     bid.grandTotal,
+      };
+
+      const res = await fetch('/api/pdf/proposal', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('PDF generation failed');
+
+      const blob    = await res.blob();
+      const url     = URL.createObjectURL(blob);
+      const a       = document.createElement('a');
+      const jobSlug = (state.jobNumber || 'proposal').replace(/[^a-z0-9]/gi, '_');
+      a.href        = url;
+      a.download    = `Oak_Ridge_Electrical_${jobSlug}_Proposal.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF download error:', err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   // ── Preview: valid-until date ───────────────────────────────────
@@ -940,13 +992,20 @@ export function ProposalTab() {
           />
         </Card>
 
-        {/* Print */}
-        <button
-          onClick={handlePrint}
-          className="w-full py-2.5 rounded-lg bg-[#002D72] text-white font-semibold text-sm hover:bg-[#1a3a5c] transition-colors flex items-center justify-center gap-2"
-        >
-          🖨️ Print / Save as PDF
-        </button>
+        {/* Download PDF + Print */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleDownloadPdf}
+            disabled={downloading}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#002D72] text-white font-semibold text-sm hover:bg-[#1a3a5c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {downloading ? '⏳ Generating...' : '⬇ Download PDF'}
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-gray-200 text-gray-500 text-xs hover:bg-gray-50 transition-colors">
+            🖨 Print
+          </button>
+        </div>
 
       </div>
 

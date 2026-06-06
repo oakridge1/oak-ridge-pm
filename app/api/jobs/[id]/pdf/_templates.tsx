@@ -1759,3 +1759,454 @@ export function AiaDoc({ data }: { data: AiaData }) {
     </Document>
   );
 }
+
+// ── Proposal PDF ──────────────────────────────────────────────────────────────
+
+const PS = StyleSheet.create({
+  page: {
+    fontFamily:      'Helvetica',
+    fontSize:        9,
+    padding:         45,
+    color:           '#1a1a1a',
+    backgroundColor: '#ffffff',
+  },
+  headerRow: {
+    flexDirection:  'row',
+    justifyContent: 'space-between',
+    alignItems:     'flex-start',
+    marginBottom:   10,
+  },
+  logo: { width: 80, height: 80 },
+  companyInfo: {
+    fontSize:   8,
+    color:      '#555555',
+    marginTop:  6,
+    lineHeight: 1.6,
+  },
+  proposalTitle: {
+    fontSize:   28,
+    fontFamily: 'Helvetica-Bold',
+    color:      '#c8601a',
+    textAlign:  'right',
+  },
+  jobName: {
+    fontSize:   13,
+    fontFamily: 'Helvetica-Bold',
+    color:      '#1a3a5c',
+    textAlign:  'right',
+    marginTop:  4,
+  },
+  dateLine: {
+    fontSize:  9,
+    color:     '#555555',
+    textAlign: 'right',
+    marginTop: 2,
+  },
+  heavyDivider: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#1a3a5c',
+    borderBottomStyle: 'solid',
+    marginVertical:    10,
+  },
+  thinDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    borderBottomStyle: 'solid',
+    marginVertical:    8,
+  },
+  toReRow: {
+    flexDirection: 'row',
+    marginBottom:  12,
+    gap:           40,
+  },
+  toBlock: { flex: 1 },
+  label: {
+    fontSize:      8,
+    color:         '#888888',
+    fontFamily:    'Helvetica-Bold',
+    textTransform: 'uppercase',
+    marginBottom:  2,
+  },
+  toCompany: {
+    fontSize:   10,
+    fontFamily: 'Helvetica-Bold',
+    color:      '#1a3a5c',
+  },
+  toDetail: { fontSize: 9, color: '#333333', marginTop: 1 },
+  sectionHeading: {
+    fontSize:      10,
+    fontFamily:    'Helvetica-Bold',
+    color:         '#1a3a5c',
+    marginTop:     12,
+    marginBottom:  4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  scopeIntro: {
+    fontSize:     9,
+    color:        '#333333',
+    lineHeight:   1.5,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize:     9,
+    fontFamily:   'Helvetica-Bold',
+    color:        '#1a1a1a',
+    marginTop:    6,
+    marginBottom: 2,
+  },
+  bullet: {
+    fontSize:     9,
+    color:        '#333333',
+    lineHeight:   1.5,
+    marginLeft:   10,
+    marginBottom: 2,
+  },
+  pricingRow: {
+    flexDirection:   'row',
+    justifyContent:  'space-between',
+    alignItems:      'center',
+    backgroundColor: '#1a3a5c',
+    padding:         10,
+    borderRadius:    4,
+    marginVertical:  8,
+  },
+  pricingLabel: {
+    fontSize:   10,
+    fontFamily: 'Helvetica-Bold',
+    color:      '#ffffff',
+  },
+  pricingAmount: {
+    fontSize:   14,
+    fontFamily: 'Helvetica-Bold',
+    color:      '#ffffff',
+  },
+  altHeader: {
+    flexDirection:   'row',
+    backgroundColor: '#1a3a5c',
+    padding:         6,
+  },
+  altHeaderText: {
+    fontSize:   8,
+    fontFamily: 'Helvetica-Bold',
+    color:      '#ffffff',
+  },
+  altRow: {
+    flexDirection:     'row',
+    padding:           6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    borderBottomStyle: 'solid',
+  },
+  altCell: { fontSize: 9, color: '#333333' },
+  twoCol: {
+    flexDirection: 'row',
+    gap:           20,
+    marginTop:     8,
+  },
+  col: { flex: 1 },
+  colHeading: {
+    fontSize:      9,
+    fontFamily:    'Helvetica-Bold',
+    color:         '#1a3a5c',
+    marginBottom:  4,
+    textTransform: 'uppercase',
+  },
+  colItem: {
+    fontSize:     8,
+    color:        '#333333',
+    lineHeight:   1.5,
+    marginBottom: 2,
+    marginLeft:   8,
+  },
+  depositBox: {
+    backgroundColor: '#eff6ff',
+    borderWidth:     1,
+    borderColor:     '#bfdbfe',
+    borderStyle:     'solid',
+    borderRadius:    4,
+    padding:         10,
+    marginVertical:  8,
+  },
+  depositTitle: {
+    fontSize:      9,
+    fontFamily:    'Helvetica-Bold',
+    color:         '#1a3a5c',
+    marginBottom:  4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  depositText: {
+    fontSize:  9,
+    color:     '#374151',
+    lineHeight: 1.5,
+  },
+  bodyText: {
+    fontSize:     9,
+    color:        '#333333',
+    lineHeight:   1.5,
+    marginBottom: 6,
+  },
+  noteText: {
+    fontSize:  8,
+    color:     '#555555',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  sigRow: {
+    flexDirection: 'row',
+    gap:           30,
+    marginTop:     20,
+  },
+  sigCol: { flex: 1 },
+  sigLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+    borderBottomStyle: 'solid',
+    marginBottom:      4,
+    height:            24,
+  },
+  sigLabel: { fontSize: 8, color: '#555555' },
+  footer: {
+    position:  'absolute',
+    bottom:    30,
+    left:      45,
+    right:     45,
+    textAlign: 'center',
+    fontSize:  8,
+    color:     '#9ca3af',
+  },
+});
+
+export type ProposalPdfData = {
+  jobName:        string;
+  jobNumber:      string;
+  clientCompany:  string;
+  clientAttn:     string;
+  proposalDate:   string;
+  validDays:      number;
+  workingHours:   string;
+  scopeIntro:     string;
+  scopeSections:  Array<{ id: string; title: string; items: string[] }>;
+  alternates:     Array<{ id: string; number: number; title: string; desc: string; price: number }>;
+  inclusions:     string[];
+  exclusions:     string[];
+  warrantyText:   string;
+  paymentTerms:   string;
+  paymentNote:    string;
+  validityNote:   string;
+  depositEnabled: boolean;
+  depositPercent: number;
+  grandTotal:     number;
+  logoSrc?:       string;
+};
+
+export function ProposalDoc({ data }: { data: ProposalPdfData }) {
+  const fmtCurrency = (n: number) =>
+    n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+
+  const validUntil = (() => {
+    const d = new Date(data.proposalDate + 'T12:00:00');
+    d.setDate(d.getDate() + data.validDays);
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  })();
+
+  const proposalDateFmt = new Date(data.proposalDate + 'T12:00:00').toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric',
+  });
+
+  const depositAmount = data.grandTotal * (data.depositPercent / 100);
+
+  const getPaymentText = (terms: string): string => {
+    const map: Record<string, string> = {
+      due_on_receipt: 'Payment is due upon receipt of invoice.',
+      net_10:         'Payment is due within 10 days of invoice date.',
+      net_15:         'Payment is due within 15 days of invoice date.',
+      net_30:         'Payment is due within 30 days of invoice date.',
+    };
+    return map[terms] ?? 'Payment is due within 10 days of invoice date.';
+  };
+
+  return (
+    <Document>
+      <Page size="LETTER" style={PS.page}>
+
+        {/* ── HEADER ── */}
+        <View style={PS.headerRow}>
+          <View>
+            {data.logoSrc ? (
+              <Image src={data.logoSrc} style={PS.logo} />
+            ) : null}
+            <Text style={PS.companyInfo}>
+              {'209 W. River Rd, Hooksett, NH 03106\n'}
+              {'603-660-4651 · Justin@oakridgeelectrical.com\n'}
+              {'NH Electrical License # 0069M'}
+            </Text>
+          </View>
+          <View>
+            <Text style={PS.proposalTitle}>PROPOSAL</Text>
+            <Text style={PS.jobName}>{data.jobName}</Text>
+            <Text style={PS.dateLine}>
+              {'Job #: '}{data.jobNumber || '—'}{' | Date: '}{proposalDateFmt}
+            </Text>
+            <Text style={PS.dateLine}>{'Valid Until: '}{validUntil}</Text>
+          </View>
+        </View>
+
+        <View style={PS.heavyDivider} />
+
+        {/* ── PROPOSAL TO / RE ── */}
+        <View style={PS.toReRow}>
+          <View style={PS.toBlock}>
+            <Text style={PS.label}>Proposal To</Text>
+            <Text style={PS.toCompany}>{data.clientCompany || '—'}</Text>
+            {data.clientAttn ? (
+              <Text style={PS.toDetail}>{'Attn: '}{data.clientAttn}</Text>
+            ) : null}
+          </View>
+          <View style={PS.toBlock}>
+            <Text style={PS.label}>Re</Text>
+            <Text style={PS.toCompany}>{data.jobName}</Text>
+            <Text style={PS.toDetail}>{'Working Hours: '}{data.workingHours}</Text>
+          </View>
+        </View>
+
+        <View style={PS.thinDivider} />
+
+        {/* ── SCOPE INTRO ── */}
+        {data.scopeIntro ? (
+          <Text style={PS.scopeIntro}>{data.scopeIntro}</Text>
+        ) : null}
+
+        {/* ── SCOPE OF WORK ── */}
+        {data.scopeSections.length > 0 ? (
+          <View>
+            <Text style={PS.sectionHeading}>Scope of Work</Text>
+            {data.scopeSections.map((sec, si) => (
+              <View key={sec.id}>
+                <Text style={PS.sectionTitle}>{si + 1}{'. '}{sec.title}</Text>
+                {sec.items.filter(Boolean).map((item, ii) => (
+                  <Text key={ii} style={PS.bullet}>{'• '}{item}</Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* ── PRICING ── */}
+        <Text style={PS.sectionHeading}>Pricing</Text>
+        <View style={PS.pricingRow}>
+          <Text style={PS.pricingLabel}>Base Bid — Complete Electrical Scope</Text>
+          <Text style={PS.pricingAmount}>{fmtCurrency(data.grandTotal)}</Text>
+        </View>
+
+        {/* ── ADD ALTERNATES ── */}
+        {data.alternates.length > 0 ? (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={PS.sectionHeading}>Add Alternates</Text>
+            <View style={PS.altHeader}>
+              {(['Alt #', 'Title', 'Description', 'Price'] as const).map((h, i) => (
+                <Text key={i} style={[PS.altHeaderText, { flex: i === 2 ? 3 : 1 }]}>{h}</Text>
+              ))}
+            </View>
+            {data.alternates.map(alt => (
+              <View key={alt.id} style={PS.altRow}>
+                <Text style={[PS.altCell, { flex: 1 }]}>{alt.number}</Text>
+                <Text style={[PS.altCell, { flex: 1 }]}>{alt.title}</Text>
+                <Text style={[PS.altCell, { flex: 3 }]}>{alt.desc}</Text>
+                <Text style={[PS.altCell, { flex: 1, textAlign: 'right' }]}>{fmtCurrency(alt.price)}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* ── INCLUSIONS / EXCLUSIONS ── */}
+        {(data.inclusions.length > 0 || data.exclusions.length > 0) ? (
+          <View style={PS.twoCol}>
+            {data.inclusions.length > 0 ? (
+              <View style={PS.col}>
+                <Text style={PS.colHeading}>Inclusions</Text>
+                {data.inclusions.filter(Boolean).map((item, i) => (
+                  <Text key={i} style={PS.colItem}>{'• '}{item}</Text>
+                ))}
+              </View>
+            ) : null}
+            {data.exclusions.length > 0 ? (
+              <View style={PS.col}>
+                <Text style={PS.colHeading}>Exclusions</Text>
+                {data.exclusions.filter(Boolean).map((item, i) => (
+                  <Text key={i} style={PS.colItem}>{'• '}{item}</Text>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* ── WARRANTY ── */}
+        {data.warrantyText ? (
+          <View style={{ marginTop: 10 }}>
+            <Text style={PS.sectionHeading}>Warranty</Text>
+            <Text style={PS.bodyText}>{data.warrantyText}</Text>
+          </View>
+        ) : null}
+
+        {/* ── DEPOSIT REQUEST ── */}
+        {data.depositEnabled ? (
+          <View style={PS.depositBox}>
+            <Text style={PS.depositTitle}>Deposit Request</Text>
+            <Text style={PS.depositText}>
+              {'Oak Ridge Electrical respectfully requests a '}
+              {data.depositPercent}{'% deposit ('}
+              {fmtCurrency(depositAmount)}
+              {') to cover permits and critical materials within 2 weeks of the start of work.'}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* ── PAYMENT TERMS ── */}
+        <View style={{ marginTop: 10 }}>
+          <Text style={PS.sectionHeading}>Payment Terms</Text>
+          <Text style={PS.bodyText}>{getPaymentText(data.paymentTerms)}</Text>
+          {data.paymentNote ? (
+            <Text style={PS.noteText}>{data.paymentNote}</Text>
+          ) : null}
+        </View>
+
+        {/* ── VALIDITY ── */}
+        {data.validityNote ? (
+          <Text style={PS.noteText}>{data.validityNote}</Text>
+        ) : null}
+
+        {/* ── ACCEPTANCE ── */}
+        <View style={{ marginTop: 10 }}>
+          <Text style={PS.sectionHeading}>Acceptance</Text>
+          <Text style={PS.bodyText}>
+            By signing below, the authorized representative accepts this proposal and authorizes Oak Ridge Electrical LLC to proceed with the described work under the terms stated herein.
+          </Text>
+        </View>
+
+        {/* ── SIGNATURE BLOCK ── */}
+        <View style={PS.sigRow}>
+          <View style={PS.sigCol}>
+            <View style={PS.sigLine} />
+            <Text style={PS.sigLabel}>Authorized Signature — Owner / GC</Text>
+            <View style={[PS.sigLine, { marginTop: 12 }]} />
+            <Text style={PS.sigLabel}>Date</Text>
+          </View>
+          <View style={PS.sigCol}>
+            <View style={PS.sigLine} />
+            <Text style={PS.sigLabel}>Oak Ridge Electrical LLC</Text>
+            <View style={[PS.sigLine, { marginTop: 12 }]} />
+            <Text style={PS.sigLabel}>Date</Text>
+          </View>
+        </View>
+
+        {/* ── FOOTER ── */}
+        <Text style={PS.footer}>
+          {'Oak Ridge Electrical LLC · 209 W. River Rd, Hooksett, NH 03106 · 603-660-4651 · Justin@oakridgeelectrical.com · NH Electrical License # 0069M'}
+        </Text>
+
+      </Page>
+    </Document>
+  );
+}
