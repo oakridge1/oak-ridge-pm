@@ -307,6 +307,14 @@ function buildPrintHtml(
   <h3>Warranty</h3>
   <p>${p.warrantyText}</p>
 
+  ${p.depositEnabled ? `
+  <!-- Deposit Request -->
+  <div style="background:#e8f0fe;border:1px solid #4a7bc8;border-radius:6px;padding:10px 14px;margin-top:12px;margin-bottom:4px">
+    <div style="font-weight:600;color:#002D72;font-size:13px">Deposit Request</div>
+    <p style="margin:4px 0">A deposit of <strong>${p.depositPercent}% (${fmt$(baseTotal * p.depositPercent / 100)})</strong> is required to schedule and begin work.</p>
+  </div>
+  ` : ''}
+
   <!-- Payment Terms -->
   <h3>Payment Terms</h3>
   <p style="white-space:pre-line">${getPaymentParagraph(p.paymentTerms)}</p>
@@ -872,6 +880,36 @@ export function ProposalTab() {
           >Reset to default</button>
         </Card>
 
+        {/* Deposit Request */}
+        <Card title="Deposit Request">
+          <label className="flex items-center gap-2 cursor-pointer mb-2">
+            <input
+              type="checkbox"
+              checked={p.depositEnabled}
+              onChange={e => patch('depositEnabled', e.target.checked)}
+              className="rounded accent-[#002D72]"
+            />
+            <span className="text-sm">Include deposit request</span>
+          </label>
+          {p.depositEnabled && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Deposit %</span>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                className="w-20 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#002D72]"
+                defaultValue={p.depositPercent}
+                onBlur={e => patch('depositPercent', Math.min(100, Math.max(1, parseInt(e.target.value) || 30)))}
+                key={p.depositPercent}
+              />
+              <span className="text-xs text-gray-500">
+                = {fmt$(bid.grandTotal * p.depositPercent / 100)}
+              </span>
+            </div>
+          )}
+        </Card>
+
         {/* Payment Terms */}
         <Card title="Payment Terms">
           <div className="flex flex-col gap-1 mb-2">
@@ -926,11 +964,18 @@ export function ProposalTab() {
             alignItems: 'flex-start',
             marginBottom: '16px',
           }}>
-            <img
-              src="/logo.png"
-              alt="Oak Ridge Electrical LLC"
-              style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
-            />
+            <div>
+              <img
+                src="/logo.png"
+                alt="Oak Ridge Electrical LLC"
+                style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
+              />
+              <div style={{ fontSize: '9pt', color: '#555', lineHeight: 1.5, marginTop: 4 }}>
+                {CO_ADDR}<br />
+                {CO_PHONE} · {CO_EMAIL}<br />
+                {CO_LICENSE}
+              </div>
+            </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{
                 fontSize: '24pt', fontWeight: 'bold', color: '#1a3a5c',
@@ -1047,6 +1092,27 @@ export function ProposalTab() {
           {/* Warranty */}
           <SectionHeading>Warranty</SectionHeading>
           <p>{p.warrantyText}</p>
+
+          {/* Deposit */}
+          {p.depositEnabled && (
+            <div style={{
+              background: '#e8f0fe',
+              border: '1px solid #4a7bc8',
+              borderRadius: 6,
+              padding: '10px 14px',
+              marginTop: 12,
+              marginBottom: 4,
+            }}>
+              <div className="font-semibold text-sm" style={{ color: '#002D72' }}>
+                Deposit Request
+              </div>
+              <div className="mt-1">
+                A deposit of{' '}
+                <strong>{p.depositPercent}% ({fmt$(bid.grandTotal * p.depositPercent / 100)})</strong>{' '}
+                is required to schedule and begin work.
+              </div>
+            </div>
+          )}
 
           {/* Payment Terms */}
           <SectionHeading>Payment Terms</SectionHeading>

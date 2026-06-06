@@ -41,6 +41,8 @@ export interface ProposalState {
   paymentTerms:    PaymentTerms;
   paymentNote:     string;   // extra note e.g. scissor lift caveat
   validityNote:    string;   // e.g. "This proposal is valid for 30 days"
+  depositEnabled:  boolean;
+  depositPercent:  number;   // 1–100
 }
 
 export const DEFAULT_INCLUSIONS = [
@@ -121,5 +123,7 @@ export function createProposalState(
     paymentTerms:   'net_10',
     paymentNote:    '',
     validityNote:   'This proposal is valid for 30 days from the date of issue.',
+    depositEnabled: false,
+    depositPercent: 30,
   };
 }
