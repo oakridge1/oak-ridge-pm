@@ -1804,13 +1804,13 @@ const PS = StyleSheet.create({
   },
   heavyDivider: {
     borderBottomWidth: 2,
-    borderBottomColor: '#1a3a5c',
+    borderBottomColor: '#c8601a',
     borderBottomStyle: 'solid',
     marginVertical:    10,
   },
   thinDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#c8601a',
     borderBottomStyle: 'solid',
     marginVertical:    8,
   },
@@ -1822,7 +1822,7 @@ const PS = StyleSheet.create({
   toBlock: { flex: 1 },
   label: {
     fontSize:      8,
-    color:         '#888888',
+    color:         '#1a3a5c',
     fontFamily:    'Helvetica-Bold',
     textTransform: 'uppercase',
     marginBottom:  2,
@@ -1966,15 +1966,30 @@ const PS = StyleSheet.create({
     marginBottom:      4,
     height:            24,
   },
-  sigLabel: { fontSize: 8, color: '#555555' },
+  sigLabel: { fontSize: 8, color: '#1a3a5c' },
   footer: {
-    position:  'absolute',
-    bottom:    30,
-    left:      45,
-    right:     45,
-    textAlign: 'center',
+    position: 'absolute',
+    bottom:   20,
+    left:     45,
+    right:    45,
+  },
+  footerLine: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#c8601a',
+    borderBottomStyle: 'solid',
+    marginBottom:      6,
+  },
+  footerText: {
     fontSize:  8,
     color:     '#9ca3af',
+    textAlign: 'center',
+  },
+  footerPage: {
+    fontSize:   8,
+    color:      '#1a3a5c',
+    fontFamily: 'Helvetica-Bold',
+    textAlign:  'right',
+    marginTop:  -12,
   },
 });
 
@@ -2202,9 +2217,19 @@ export function ProposalDoc({ data }: { data: ProposalPdfData }) {
         </View>
 
         {/* ── FOOTER ── */}
-        <Text style={PS.footer}>
-          {'Oak Ridge Electrical LLC · 209 W. River Rd, Hooksett, NH 03106 · 603-660-4651 · Justin@oakridgeelectrical.com · NH Electrical License # 0069M'}
-        </Text>
+        <View style={PS.footer} fixed>
+          <View style={PS.footerLine} />
+          <Text style={PS.footerText}>
+            {'Oak Ridge Electrical LLC · 209 W. River Rd, Hooksett, NH 03106 · 603-660-4651 · Justin@oakridgeelectrical.com · NH Electrical License # 0069M'}
+          </Text>
+          <Text
+            style={PS.footerPage}
+            render={({ pageNumber, totalPages }) =>
+              `Page ${pageNumber} of ${totalPages}`
+            }
+            fixed
+          />
+        </View>
 
       </Page>
     </Document>
