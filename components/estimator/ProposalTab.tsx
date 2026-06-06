@@ -14,6 +14,7 @@ import {
   getPaymentParagraph,
 } from '@/lib/estimator/proposalState';
 import { fmt$ } from '@/lib/estimator/format';
+import { getRates } from '@/lib/estimator/constants';
 import type { ProposalPdfData } from '@/app/api/jobs/[id]/pdf/_templates';
 
 // ─────────────────────────────────────
@@ -406,6 +407,29 @@ export function ProposalTab() {
 
   const bid = useMemo(() => calcBid(), [calcBid]);
 
+  // ── Correct grand total (mirrors BidSummaryTab — includes height adder,
+  //    actual permit/sub/rental dollar amounts, and lighting/gear quoted costs)
+  const R                   = getRates();
+  const effectiveLaborTotal = bid.laborTotal * (state.heightAdder ? 1.10 : 1.0);
+  const effectiveOverhead   = effectiveLaborTotal * R.overhead;
+  const permitEntries       = state.permits.filter(ent => !ent.desc.startsWith('[Rental]'));
+  const rentalEntries       = state.permits.filter(ent =>  ent.desc.startsWith('[Rental]'));
+  const permitTotal         = permitEntries.reduce((s, ent) => s + ent.cost, 0) * (1 + R.permit);
+  const rentalTotal         = rentalEntries.reduce((s, ent) => s + ent.cost, 0) * (1 + R.bulk);
+  const subTotal            = state.subs.reduce((s, ent) => s + ent.cost, 0)   * (1 + R.sub);
+  const lightingCost        = state.lightingSchedule.reduce((sum, item) => {
+    if (!item.quotedPrice || !item.qty) return sum;
+    return sum + item.quotedPrice * item.qty * (1 + item.markup);
+  }, 0);
+  const gearCost            = state.gearSchedule.reduce((sum, item) => {
+    if (!item.quotedPrice || !item.qty) return sum;
+    return sum + item.quotedPrice * item.qty * (1 + item.markup);
+  }, 0);
+  const correctSubtotal     = bid.matTotal + effectiveLaborTotal + effectiveOverhead
+                            + permitTotal + rentalTotal + subTotal
+                            + lightingCost + gearCost;
+  const correctGrandTotal   = correctSubtotal * (1 + R.profit);
+
   // ── Smart scope detection ───────────────────────────────────────
   const hasFAWork   = state.savedFA.length   > 0;
   const hasDataWork = state.savedData.length > 0;
@@ -554,7 +578,7 @@ export function ProposalTab() {
   const handlePrint = () => {
     const win = window.open('', '_blank');
     if (!win) return;
-    win.document.write(buildPrintHtml(p, state.jobName, bid.grandTotal));
+    win.document.write(buildPrintHtml(p, state.jobName, correctGrandTotal));
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 300);
@@ -582,7 +606,7 @@ export function ProposalTab() {
         validityNote:   p.validityNote,
         depositEnabled: p.depositEnabled,
         depositPercent: p.depositPercent,
-        grandTotal:     bid.grandTotal,
+        grandTotal:     correctGrandTotal,
       };
 
       const res = await fetch('/api/pdf/proposal', {
@@ -956,7 +980,7 @@ export function ProposalTab() {
                 key={p.depositPercent}
               />
               <span className="text-xs text-gray-500">
-                = {fmt$(bid.grandTotal * p.depositPercent / 100)}
+                = {fmt$(correctGrandTotal * p.depositPercent / 100)}
               </span>
             </div>
           )}
@@ -1101,7 +1125,7 @@ export function ProposalTab() {
             <tbody>
               <tr className="font-semibold" style={{ background: '#f0f4fa' }}>
                 <td className="px-2.5 py-2 border border-gray-200">Base Bid — Complete Electrical Scope</td>
-                <td className="px-2.5 py-2 border border-gray-200 text-right font-bold text-sm">{fmt$(bid.grandTotal)}</td>
+                <td className="px-2.5 py-2 border border-gray-200 text-right font-bold text-sm">{fmt$(correctGrandTotal)}</td>
               </tr>
             </tbody>
           </table>
@@ -1167,7 +1191,7 @@ export function ProposalTab() {
               </div>
               <div className="mt-1">
                 A deposit of{' '}
-                <strong>{p.depositPercent}% ({fmt$(bid.grandTotal * p.depositPercent / 100)})</strong>{' '}
+                <strong>{p.depositPercent}% ({fmt$(correctGrandTotal * p.depositPercent / 100)})</strong>{' '}
                 is required to schedule and begin work.
               </div>
             </div>
