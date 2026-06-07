@@ -1,5 +1,5 @@
 import { DEFAULTS, type RateConfig } from './constants';
-import type { SavedAssembly } from './constants';
+import type { SavedAssembly, AssemblyLine } from './constants';
 import type { CounterState } from './counterState';
 import { createCounterState } from './counterState';
 import type { PanelBuilderState } from './panelBuilder';
@@ -14,6 +14,18 @@ import type {
 
 // Suppress unused-import lint for param types kept as future mapping references.
 type _CalcParamRefs = FireAlarmParams | GearParams | FloorBoxParams | HighAmpReceptParams;
+
+// ─────────────────────────────────────
+// Assembly template (saved line pattern)
+// ─────────────────────────────────────
+
+export interface AssemblyTemplate {
+  id:      string;           // unique key, e.g. 'savedRuns_template'
+  label:   string;           // assembly label at time of save
+  lines:   AssemblyLine[];
+  savedAt: string;           // ISO date string
+  scope:   'job' | 'master';
+}
 
 // ─────────────────────────────────────
 // Builder state types
@@ -267,6 +279,9 @@ export interface EstimatorState {
   lightingSchedule: LightingItem[];
   gearSchedule:     GearItem[];
 
+  // ── Assembly templates ────────────────────────────────────────
+  assemblyTemplates: AssemblyTemplate[];
+
   // ── Blended quote totals ──────────────────────────────────────
   lightingTotalQuote:  number | null;
   lightingQuoteMarkup: number;
@@ -422,6 +437,7 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     subs:    [],
     lightingSchedule:    [],
     gearSchedule:        [],
+    assemblyTemplates:   [],
     lightingTotalQuote:  null,
     lightingQuoteMarkup: 0.05,
     gearTotalQuote:      null,

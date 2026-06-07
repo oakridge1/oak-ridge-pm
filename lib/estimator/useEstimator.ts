@@ -4,7 +4,7 @@ import {
   useState, useCallback, useEffect, useRef,
   type Dispatch, type SetStateAction,
 } from 'react';
-import type { EstimatorState, LightingItem, GearItem } from './state';
+import type { EstimatorState, LightingItem, GearItem, AssemblyTemplate } from './state';
 import {
   createNewState,
   DEFAULT_COND_RUN, DEFAULT_RACK, DEFAULT_MCHR,
@@ -92,6 +92,10 @@ export interface EstimatorActions {
     asmIndex: number,
     lineIndex: number
   ) => void;
+
+  // ── Assembly template saving ────────────────────────────────────
+  saveAssemblyToJob:    (arrayKey: string, asmIndex: number) => void;
+  saveAssemblyToMaster: (arrayKey: string, asmIndex: number) => void;
 
   // ── Bid calculation ─────────────────────────────────────────────
   calcBid: () => BidResult;
@@ -358,6 +362,56 @@ export function useEstimator(): EstimatorActions {
     []
   );
 
+  // ── Assembly template saving ─────────────────────────────────────
+  const saveAssemblyToJob = useCallback(
+    (arrayKey: string, asmIndex: number) => {
+      setState(s => {
+        const asm = (s[arrayKey as keyof EstimatorState] as SavedAssembly[])[asmIndex];
+        if (!asm) return s;
+        const templateId = `${arrayKey}_template`;
+        const template: AssemblyTemplate = {
+          id:      templateId,
+          label:   asm.label,
+          lines:   [...asm.lines],
+          savedAt: new Date().toISOString(),
+          scope:   'job',
+        };
+        const existing = s.assemblyTemplates.filter(t => t.id !== templateId);
+        return { ...s, assemblyTemplates: [...existing, template] };
+      });
+    },
+    []
+  );
+
+  const saveAssemblyToMaster = useCallback(
+    (arrayKey: string, asmIndex: number) => {
+      setState(s => {
+        const asm = (s[arrayKey as keyof EstimatorState] as SavedAssembly[])[asmIndex];
+        if (!asm) return s;
+        const templateId = `${arrayKey}_template`;
+        const template: AssemblyTemplate = {
+          id:      templateId,
+          label:   asm.label,
+          lines:   [...asm.lines],
+          savedAt: new Date().toISOString(),
+          scope:   'master',
+        };
+        try {
+          const existing: AssemblyTemplate[] = JSON.parse(
+            localStorage.getItem('ore_master_templates') ?? '[]'
+          );
+          const filtered = existing.filter(t => t.id !== templateId);
+          localStorage.setItem(
+            'ore_master_templates',
+            JSON.stringify([...filtered, template])
+          );
+        } catch { /* ignore */ }
+        return s; // master save is localStorage only — no state mutation
+      });
+    },
+    []
+  );
+
   // ── Bid calc ─────────────────────────────────────────────────────
   const runCalcBid = useCallback((): BidResult => {
     return calcBid({
@@ -475,6 +529,7 @@ export function useEstimator(): EstimatorActions {
     addHighAmpRecept,
     removeAssembly,
     updateAssemblyLine, addAssemblyLine, removeAssemblyLine,
+    saveAssemblyToJob, saveAssemblyToMaster,
     calcBid: runCalcBid,
     updateCondRunState, updateRackState, updateMCHRState,
     updateThreeWayState, updateDataState, updateFAState,
