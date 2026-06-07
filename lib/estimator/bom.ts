@@ -340,24 +340,26 @@ export const BOM: BomItem[] = [
   { id:'dp10', cat:'Devices', name:'4-Port Keystone Plate (2-gang)', unit:'EA', mat:2.75,   lhr:0.15,        mk:'bulk'         },
 
   // ── LIGHTING ──────────────────────────────────────────────────────────────
-  // lhr:0 on all lc* items — install labor comes solely from the explicit
-  // fixLabCost line in FixtureBuilderTab (asm.iHr × qty × diff × R.labor).
-  // Setting BOM lhr>0 here would double-count fixture install labor.
-  { id:'lc1',  cat:'Lighting', name:'2x4 LED Lay-In T-Bar',          unit:'EA', mat:48.00,  lhr:0, mk:'light'          },
-  { id:'lc2',  cat:'Lighting', name:'2x2 LED Lay-In T-Bar',          unit:'EA', mat:38.00,  lhr:0, mk:'light'          },
-  { id:'lc5',  cat:'Lighting', name:'4ft LED Strip Surface',          unit:'EA', mat:64.11,  lhr:0, mk:'light', gc:true },
-  { id:'lc6',  cat:'Lighting', name:'8ft LED Strip Surface',          unit:'EA', mat:72.00,  lhr:0, mk:'light'          },
-  { id:'lc7',  cat:'Lighting', name:'48" Chain Hung Industrial LED',  unit:'EA', mat:95.00,  lhr:0, mk:'light'          },
-  { id:'lc8',  cat:'Lighting', name:'High Bay LED Round (UFO)',       unit:'EA', mat:185.00, lhr:0, mk:'light'          },
-  { id:'lc9',  cat:'Lighting', name:'4" LED Recessed Wafer',          unit:'EA', mat:18.37,  lhr:0, mk:'light', gc:true },
-  { id:'lc10', cat:'Lighting', name:'LED Wall Pack (RAB Brisk)',      unit:'EA', mat:66.75,  lhr:0, mk:'light', gc:true },
-  { id:'lc11', cat:'Lighting', name:'Exit Sign Surface Mount',        unit:'EA', mat:38.00,  lhr:0, mk:'light'          },
-  { id:'lc12', cat:'Lighting', name:'Exit/EBU Combo (CCR)',           unit:'EA', mat:79.92,  lhr:0, mk:'light', gc:true },
-  { id:'lc13', cat:'Lighting', name:'Emergency Dual Head',            unit:'EA', mat:55.00,  lhr:0, mk:'light'          },
-  { id:'lc14', cat:'Lighting', name:'Ceiling Fan up to 36"',          unit:'EA', mat:95.00,  lhr:0, mk:'light'          },
-  { id:'lc15', cat:'Lighting', name:'Ceiling Fan 37"-48"',            unit:'EA', mat:145.00, lhr:0, mk:'light'          },
-  { id:'lc16', cat:'Lighting', name:'Wafer Rough-In Frame Kit 4"',   unit:'EA', mat:5.29,   lhr:0, mk:'light', gc:true },
-  { id:'lc17', cat:'Lighting', name:'Tek Screw to T-Bar',            unit:'EA', mat:0.25,   lhr:0, mk:'bulk'           },
+  // lc1–lc15: fixture placeholders — mat:0.01 triggers the "⚠ Price needed"
+  // flag in BidItemsTab so quoted prices are entered there. Real fixture cost
+  // comes from the Lighting Schedule tab. lhr:0 — install labor comes solely
+  // from the explicit fixLabCost line in FixtureBuilderTab (asm.iHr × qty).
+  { id:'lc1',  cat:'Lighting', name:'2x4 LED Lay-In T-Bar',          unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc2',  cat:'Lighting', name:'2x2 LED Lay-In T-Bar',          unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc5',  cat:'Lighting', name:'4ft LED Strip Surface',          unit:'EA', mat:0.01, lhr:0, mk:'light', gc:true },
+  { id:'lc6',  cat:'Lighting', name:'8ft LED Strip Surface',          unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc7',  cat:'Lighting', name:'48" Chain Hung Industrial LED',  unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc8',  cat:'Lighting', name:'High Bay LED Round (UFO)',       unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc9',  cat:'Lighting', name:'4" LED Recessed Wafer',          unit:'EA', mat:0.01, lhr:0, mk:'light', gc:true },
+  { id:'lc10', cat:'Lighting', name:'LED Wall Pack (RAB Brisk)',      unit:'EA', mat:0.01, lhr:0, mk:'light', gc:true },
+  { id:'lc11', cat:'Lighting', name:'Exit Sign Surface Mount',        unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc12', cat:'Lighting', name:'Exit/EBU Combo (CCR)',           unit:'EA', mat:0.01, lhr:0, mk:'light', gc:true },
+  { id:'lc13', cat:'Lighting', name:'Emergency Dual Head',            unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc14', cat:'Lighting', name:'Ceiling Fan up to 36"',          unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  { id:'lc15', cat:'Lighting', name:'Ceiling Fan 37"-48"',            unit:'EA', mat:0.01, lhr:0, mk:'light'          },
+  // lc16–lc17: real hardware — keep actual mat values
+  { id:'lc16', cat:'Lighting', name:'Wafer Rough-In Frame Kit 4"',   unit:'EA', mat:5.29, lhr:0, mk:'light', gc:true },
+  { id:'lc17', cat:'Lighting', name:'Tek Screw to T-Bar',            unit:'EA', mat:0.25, lhr:0, mk:'bulk'           },
 
   // ── HEATING & HVAC ────────────────────────────────────────────────────────
   { id:'h1',  cat:'Heating & HVAC', name:'Electric Baseboard 48"',             unit:'EA', mat:72.00,  lhr:N9.bb48,  mk:'bulk' },
