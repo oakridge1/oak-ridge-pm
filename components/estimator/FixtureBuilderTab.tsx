@@ -235,6 +235,7 @@ export function FixtureBuilderTab() {
 
   // Add-line state
   const [addName,      setAddName]      = useState('');
+  const [addQty,       setAddQty]       = useState('1');
   const [addMat,       setAddMat]       = useState('');
   const [addHrs,       setAddHrs]       = useState('');
   const [suggestions,  setSuggestions]  = useState<typeof BOM>([]);
@@ -517,6 +518,15 @@ export function FixtureBuilderTab() {
                   </div>
                   <input
                     type="number"
+                    min={1}
+                    step={1}
+                    value={addQty}
+                    onChange={e => setAddQty(e.target.value)}
+                    placeholder="Qty"
+                    className="w-16 border border-gray-300 rounded px-2 py-1 text-xs text-center"
+                  />
+                  <input
+                    type="number"
                     placeholder="Mat $"
                     value={addMat}
                     onChange={e => setAddMat(e.target.value)}
@@ -534,10 +544,10 @@ export function FixtureBuilderTab() {
                       const R = getRates();
                       const newLine: AssemblyLine = {
                         name: addName || 'Custom item',
-                        qty:  1,
+                        qty:  parseInt(addQty) || 1,
                         unit: 'EA',
-                        mat:  parseFloat(addMat) || 0,
-                        lab:  (parseFloat(addHrs) || 0) * R.labor,
+                        mat:  (parseFloat(addMat) || 0) * (parseInt(addQty) || 1),
+                        lab:  (parseFloat(addHrs) || 0) * (parseInt(addQty) || 1) * R.labor,
                       };
                       setPreview(prev => {
                         const lines = [...prev.lines, newLine];
@@ -547,6 +557,7 @@ export function FixtureBuilderTab() {
                       });
                       setPreviewEdited(true);
                       setAddName('');
+                      setAddQty('1');
                       setAddMat('');
                       setAddHrs('');
                     }}
