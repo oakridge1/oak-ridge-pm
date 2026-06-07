@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { getRates, applyMarkup, N5, N6 } from '@/lib/estimator/constants';
 import type { AssemblyLine, SavedAssembly } from '@/lib/estimator/constants';
-import { getBomItem } from '@/lib/estimator/bom';
+import { getBomItem, BOM } from '@/lib/estimator/bom';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
@@ -217,16 +217,65 @@ export function FixtureBuilderTab() {
     }
   }
 
-  // Live preview
-  const preview = useMemo(
+  // Computed (pure) assembly from builder inputs
+  const computed = useMemo(
     () => buildFixtureAsm(selectedAsm, whipFt, qty, twoGang, romex, diff),
     [selectedAsm, whipFt, qty, twoGang, romex, diff],
   );
 
-  // Add to bid
+  // Editable copy — reset when computed changes
+  const [preview, setPreview]           = useState<SavedAssembly>(computed);
+  const [previewEdited, setPreviewEdited] = useState(false);
+
+  // When builder inputs change, reset to computed
+  useEffect(() => {
+    setPreview(computed);
+    setPreviewEdited(false);
+  }, [computed]);
+
+  // Add-line state
+  const [addName,      setAddName]      = useState('');
+  const [addMat,       setAddMat]       = useState('');
+  const [addHrs,       setAddHrs]       = useState('');
+  const [suggestions,  setSuggestions]  = useState<typeof BOM>([]);
+
+  // ── Preview mutation helpers ──────────────────────────────────────────────────
+
+  function updatePreviewLine(
+    lineIdx: number,
+    field: 'name' | 'mat' | 'lab',
+    value: string | number,
+  ) {
+    setPreview(prev => {
+      const lines = [...prev.lines];
+      lines[lineIdx] = { ...lines[lineIdx], [field]: typeof value === 'string' ? value : Number(value) };
+      const mat = lines.reduce((s, l) => s + (l.mat ?? 0), 0);
+      const lab = lines.reduce((s, l) => s + (l.lab ?? 0), 0);
+      return { ...prev, lines, mat, lab };
+    });
+    setPreviewEdited(true);
+  }
+
+  function removePreviewLine(lineIdx: number) {
+    setPreview(prev => {
+      const lines = prev.lines.filter((_, i) => i !== lineIdx);
+      const mat = lines.reduce((s, l) => s + (l.mat ?? 0), 0);
+      const lab = lines.reduce((s, l) => s + (l.lab ?? 0), 0);
+      return { ...prev, lines, mat, lab };
+    });
+    setPreviewEdited(true);
+  }
+
+  // ── Add to bid ────────────────────────────────────────────────────────────────
+
   function handleAdd() {
-    const asm = buildFixtureAsm(selectedAsm, whipFt, qty, twoGang, romex, diff);
-    setState(s => ({ ...s, asms: [...s.asms, asm] }));
+    setState(s => ({
+      ...s,
+      asms: [...s.asms, { ...preview, _edited: previewEdited }],
+    }));
+    // Reset preview to computed after adding
+    setPreview(computed);
+    setPreviewEdited(false);
   }
 
   return (
@@ -319,7 +368,7 @@ export function FixtureBuilderTab() {
         )}
 
         {/* Difficulty */}
-        <div className="mb-4">
+        <div>
           <p className="text-xs text-gray-500 mb-2">Difficulty</p>
           <div className="flex gap-2 flex-wrap">
             {DIFF_OPTIONS.map(d => (
@@ -337,20 +386,29 @@ export function FixtureBuilderTab() {
             ))}
           </div>
         </div>
-
-        <button
-          onClick={handleAdd}
-          className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
-        >
-          + Add to Bid
-        </button>
       </div>
 
-      {/* ── LIVE PREVIEW ────────────────────────────────────────────────────── */}
+      {/* ── LIVE PREVIEW (editable) ──────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
-          Preview — {preview.label}
+
+        {/* Preview header */}
+        <div className="flex items-center gap-3 border-b border-gray-200 pb-1 mb-3">
+          <span className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c]">
+            Preview — {preview.label}
+          </span>
+          {previewEdited && (
+            <>
+              <span className="text-xs text-orange-500 font-semibold">✎ Modified</span>
+              <button
+                onClick={() => { setPreview(computed); setPreviewEdited(false); }}
+                className="text-xs text-gray-400 hover:text-gray-600 underline"
+              >
+                Reset
+              </button>
+            </>
+          )}
         </div>
+
         <table className="w-full text-xs mb-2">
           <thead>
             <tr className="text-gray-400 font-semibold border-b border-gray-100">
@@ -359,22 +417,146 @@ export function FixtureBuilderTab() {
               <th className="text-left pb-1 w-10 pl-1">Unit</th>
               <th className="text-right pb-1 w-24">Mat $</th>
               <th className="text-right pb-1 w-16">Hrs</th>
+              <th className="w-6"></th>
             </tr>
           </thead>
           <tbody>
             {preview.lines.map((line, i) => (
-              <tr key={i} className="border-b border-gray-50">
-                <td className="py-0.5 pr-2 text-gray-700">{line.name}</td>
-                <td className="py-0.5 text-right text-gray-500">{line.qty}</td>
-                <td className="py-0.5 text-gray-500 pl-1">{line.unit}</td>
-                <td className="py-0.5 text-right font-mono text-gray-600">
-                  {line.mat > 0 ? fmt$(line.mat) : '—'}
+              <tr key={i} className="border-b border-gray-50 group">
+                {/* Name */}
+                <td className="py-0.5 pr-2">
+                  <input
+                    type="text"
+                    value={line.name}
+                    onChange={e => updatePreviewLine(i, 'name', e.target.value)}
+                    className="w-full text-gray-700 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1 -mx-1"
+                  />
                 </td>
-                <td className="py-0.5 text-right font-mono text-gray-600">
-                  {line.lab > 0 ? (line.lab / R.labor).toFixed(2) + 'h' : '—'}
+                {/* Qty (read-only) */}
+                <td className="py-0.5 text-right text-gray-500">{line.qty}</td>
+                {/* Unit (read-only) */}
+                <td className="py-0.5 text-gray-500 pl-1">{line.unit}</td>
+                {/* Mat $ */}
+                <td className="py-0.5 text-right">
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={line.mat === 0 ? '' : line.mat.toFixed(2)}
+                    placeholder="—"
+                    onChange={e => updatePreviewLine(i, 'mat', parseFloat(e.target.value) || 0)}
+                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1"
+                  />
+                </td>
+                {/* Hrs */}
+                <td className="py-0.5 text-right">
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={line.lab === 0 ? '' : (line.lab / R.labor).toFixed(2)}
+                    placeholder="—"
+                    onChange={e => updatePreviewLine(i, 'lab', (parseFloat(e.target.value) || 0) * R.labor)}
+                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1"
+                  />
+                </td>
+                {/* Trash */}
+                <td className="py-0.5 pl-1">
+                  <button
+                    onClick={() => removePreviewLine(i)}
+                    className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity leading-none"
+                    title="Remove line"
+                  >
+                    🗑
+                  </button>
                 </td>
               </tr>
             ))}
+
+            {/* ── Add Line row ─────────────────────────────────────────────── */}
+            <tr>
+              <td colSpan={6} className="pt-2">
+                <div className="flex gap-2">
+                  {/* BOM search with suggestions */}
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="Search BOM or type name..."
+                      value={addName}
+                      onChange={e => {
+                        setAddName(e.target.value);
+                        setSuggestions(
+                          e.target.value.length > 1
+                            ? BOM.filter(b =>
+                                b.name.toLowerCase().includes(e.target.value.toLowerCase())
+                              ).slice(0, 6)
+                            : []
+                        );
+                      }}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                    />
+                    {suggestions.length > 0 && (
+                      <div className="absolute z-10 top-full left-0 right-0 bg-white border border-gray-200 rounded shadow-lg max-h-40 overflow-y-auto">
+                        {suggestions.map(b => (
+                          <div
+                            key={b.id}
+                            onClick={() => {
+                              setAddName(b.name);
+                              setAddMat(String(applyMarkup(b.mat, b.mk)));
+                              setAddHrs(String(b.lhr));
+                              setSuggestions([]);
+                            }}
+                            className="px-3 py-1.5 text-xs hover:bg-blue-50 cursor-pointer flex justify-between"
+                          >
+                            <span>{b.name}</span>
+                            <span className="text-gray-400">${b.mat} · {b.lhr}hr</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    placeholder="Mat $"
+                    value={addMat}
+                    onChange={e => setAddMat(e.target.value)}
+                    className="w-20 border border-gray-300 rounded px-2 py-1 text-xs"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Hrs"
+                    value={addHrs}
+                    onChange={e => setAddHrs(e.target.value)}
+                    className="w-16 border border-gray-300 rounded px-2 py-1 text-xs"
+                  />
+                  <button
+                    onClick={() => {
+                      const R = getRates();
+                      const newLine: AssemblyLine = {
+                        name: addName || 'Custom item',
+                        qty:  1,
+                        unit: 'EA',
+                        mat:  parseFloat(addMat) || 0,
+                        lab:  (parseFloat(addHrs) || 0) * R.labor,
+                      };
+                      setPreview(prev => {
+                        const lines = [...prev.lines, newLine];
+                        const mat = lines.reduce((s, l) => s + l.mat, 0);
+                        const lab = lines.reduce((s, l) => s + l.lab, 0);
+                        return { ...prev, lines, mat, lab };
+                      });
+                      setPreviewEdited(true);
+                      setAddName('');
+                      setAddMat('');
+                      setAddHrs('');
+                    }}
+                    className="px-2 py-1 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]"
+                  >
+                    + Add
+                  </button>
+                </div>
+              </td>
+            </tr>
           </tbody>
           <tfoot>
             <tr className="font-bold border-t-2 border-[#1a3a5c]">
@@ -383,11 +565,26 @@ export function FixtureBuilderTab() {
               <td className="py-1 text-right font-mono">
                 {(preview.lab / R.labor).toFixed(2)}h
               </td>
+              <td></td>
             </tr>
           </tfoot>
         </table>
-        <div className="text-xs text-gray-400">
+
+        <div className="text-xs text-gray-400 mb-3">
           Combined: {fmt$(preview.mat + preview.lab)}
+        </div>
+
+        {/* Add to Bid footer */}
+        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+          <span className="text-xs text-gray-400">
+            {previewEdited ? 'Modified assembly will be added' : 'Standard assembly'}
+          </span>
+          <button
+            onClick={handleAdd}
+            className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+          >
+            + Add to Bid
+          </button>
         </div>
       </div>
 
