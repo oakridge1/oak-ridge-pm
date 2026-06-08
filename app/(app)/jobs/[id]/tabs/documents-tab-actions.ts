@@ -15,6 +15,7 @@ export async function createDocument(
   jobId: string,
   input: {
     category: DocumentCategory;
+    customCategory?: string | null;
     name: string;
     fileUrl: string;
     fileName: string;
@@ -32,6 +33,7 @@ export async function createDocument(
       jobId,
       uploadedById: session.user.id,
       category: input.category,
+      customCategory: input.customCategory ?? null,
       name,
       fileUrl: input.fileUrl,
       fileName: input.fileName,

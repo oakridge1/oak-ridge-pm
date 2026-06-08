@@ -138,7 +138,8 @@ model User {
   savedTasks     SavedTask[]
   inspections    Inspection[]   @relation("InspectionCreator")
   rfis           Rfi[]          @relation("RfiSubmitter")
-  documents      Document[]     @relation("DocumentUploader")
+  documents           Document[]                 @relation("DocumentUploader")
+  customDocCategories DocumentCategoryCustom[]
   invoices       Invoice[]      @relation("InvoiceCreator")
   calendarRequests         CalendarRequest[] @relation("CalendarRequestSubmitter")
   reviewedCalendarRequests CalendarRequest[] @relation("CalendarRequestReviewer")
@@ -266,8 +267,9 @@ model Job {
   invoices         Invoice[]
   inspections      Inspection[]
   rfis             Rfi[]
-  documents        Document[]
-  stockRequests    StockRequest[]
+  documents           Document[]
+  customDocCategories DocumentCategoryCustom[]
+  stockRequests       StockRequest[]
   stockOrders      StockOrder[]
   userPermissions  UserPermission[]
   stockApprovalRequests StockApprovalRequest[]
@@ -553,18 +555,33 @@ model Rfi {
 // ── Document Vault ────────────────────────────────────────────────────────────
 
 model Document {
-  id           String           @id @default(cuid())
-  jobId        String
-  uploadedById String
-  category     DocumentCategory @default(OTHER)
-  name         String
-  fileUrl      String
-  fileName     String
-  fileSize     Int?
-  createdAt    DateTime         @default(now())
+  id             String           @id @default(cuid())
+  jobId          String
+  uploadedById   String
+  category       DocumentCategory @default(OTHER)
+  customCategory String?
+  name           String
+  fileUrl        String
+  fileName       String
+  fileSize       Int?
+  createdAt      DateTime         @default(now())
 
   job        Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   uploadedBy User @relation("DocumentUploader", fields: [uploadedById], references: [id])
+}
+
+model DocumentCategoryCustom {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  scope       String   @default("job")
+  jobId       String?
+  job         Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([slug, jobId])
 }
 
 // ── Calendar Requests (Teammate → Foreman/Admin approval) ────────────────────
