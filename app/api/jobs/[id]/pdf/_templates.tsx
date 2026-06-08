@@ -1035,30 +1035,27 @@ export type StandardInvoiceData = {
 
 const IS = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 9, padding: 45, color: "#1a1a1a", backgroundColor: "#fff" },
-  // Letterhead row (logo left, company info right)
-  letterheadRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 14 },
+  // Header row — logo + contact left, INVOICE title right (matches ProposalDoc layout)
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
   letterheadLogo: { width: 80, height: 80 },
-  letterheadRight: { flex: 1, justifyContent: "center" },
-  companyName: { fontSize: 14, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 1 },
-  companyInfo: { fontSize: 8, color: GRAY, marginTop: 2, lineHeight: 1.5 },
+  contactInfo: { fontSize: 8, color: "#555555", marginTop: 6, lineHeight: 1.6 },
   // Dividers
-  heavyDivider: { borderBottomWidth: 3, borderBottomColor: ORANGE, borderBottomStyle: "solid", marginVertical: 10 },
+  heavyDivider: { borderBottomWidth: 2, borderBottomColor: "#c8601a", borderBottomStyle: "solid", marginVertical: 10 },
   thinDivider: { borderBottomWidth: 1, borderBottomColor: BORDER, borderBottomStyle: "solid", marginVertical: 8 },
-  // Invoice title row
-  titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 4 },
-  invoiceTitle: { fontSize: 26, fontFamily: "Helvetica-Bold", color: NAVY },
-  invoiceKindLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: ORANGE, textAlign: "right", marginBottom: 2 },
+  // Invoice title (right side of header)
+  invoiceTitle: { fontSize: 28, fontFamily: "Helvetica-Bold", color: "#c8601a", textAlign: "right" },
+  invoiceKindLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#c8601a", textAlign: "right", marginTop: 2 },
   invoiceNumDate: { alignItems: "flex-end" },
-  invoiceNum: { fontSize: 9, color: GRAY, textAlign: "right" },
+  invoiceNum: { fontSize: 9, color: GRAY, textAlign: "right", marginTop: 2 },
   invoiceDate: { fontSize: 9, color: GRAY, textAlign: "right", marginTop: 1 },
   // Two-column project info
   twoCol: { flexDirection: "row", gap: 20, marginBottom: 16 },
   col: { flex: 1 },
-  colLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.8, marginBottom: 5, textTransform: "uppercase" as const },
+  colLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#1a3a5c", letterSpacing: 0.8, marginBottom: 5, textTransform: "uppercase" as const },
   colValue: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.6 },
   colValueBold: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1a1a1a" },
   // Scope section
-  scopeLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.8, marginBottom: 6, textTransform: "uppercase" as const },
+  scopeLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#1a3a5c", letterSpacing: 0.8, marginBottom: 6, textTransform: "uppercase" as const },
   scopeRow: { flexDirection: "row", marginBottom: 4, gap: 6 },
   scopeNum: { fontSize: 9, color: GRAY, width: 18 },
   scopeText: { fontSize: 9, color: "#1a1a1a", flex: 1, lineHeight: 1.4 },
@@ -1068,30 +1065,28 @@ const IS = StyleSheet.create({
   finLabel: { fontSize: 9, color: GRAY, width: 260, textAlign: "right", paddingRight: 12 },
   finValue: { fontSize: 9, fontFamily: "Helvetica-Bold", width: 110, textAlign: "right" },
   finRowCO: { flexDirection: "row", justifyContent: "flex-end", paddingVertical: 3 },
-  finLabelCO: { fontSize: 9, color: ORANGE, width: 260, textAlign: "right", paddingRight: 12 },
-  finValueCO: { fontSize: 9, fontFamily: "Helvetica-Oblique", color: ORANGE, width: 110, textAlign: "right" },
+  finLabelCO: { fontSize: 9, color: "#c8601a", width: 260, textAlign: "right", paddingRight: 12 },
+  finValueCO: { fontSize: 9, fontFamily: "Helvetica-Oblique", color: "#c8601a", width: 110, textAlign: "right" },
   totalRow: {
     flexDirection: "row", justifyContent: "flex-end",
     paddingVertical: 6, marginTop: 4,
-    borderTopWidth: 2, borderTopColor: NAVY, borderTopStyle: "solid",
+    borderTopWidth: 2, borderTopColor: "#1a3a5c", borderTopStyle: "solid",
   },
-  totalLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, width: 260, textAlign: "right", paddingRight: 12 },
-  totalValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, width: 110, textAlign: "right" },
+  totalLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1a3a5c", width: 260, textAlign: "right", paddingRight: 12 },
+  totalValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1a3a5c", width: 110, textAlign: "right" },
   // Payment terms + warranty
   termsBox: { marginBottom: 10 },
-  termsLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.8, marginBottom: 4, textTransform: "uppercase" as const },
+  termsLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#1a3a5c", letterSpacing: 0.8, marginBottom: 4, textTransform: "uppercase" as const },
   termsText: { fontSize: 8, color: GRAY, lineHeight: 1.5 },
   // Notes
   notesBox: { backgroundColor: "#f9fafb", borderRadius: 4, padding: 8, marginBottom: 10 },
   notesLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: LIGHT, marginBottom: 3 },
   notesText: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.5 },
-  // Footer
-  invFooter: {
-    position: "absolute", bottom: 28, left: 45, right: 45,
-    flexDirection: "row", justifyContent: "space-between",
-    borderTopWidth: 1, borderTopColor: BORDER, borderTopStyle: "solid", paddingTop: 5,
-  },
-  invFooterText: { fontSize: 7, color: LIGHT },
+  // Footer — matching ProposalDoc
+  invFooter: { position: "absolute", bottom: 20, left: 45, right: 45 },
+  invFooterLine: { borderBottomWidth: 2, borderBottomColor: "#c8601a", borderBottomStyle: "solid", marginBottom: 6 },
+  invFooterText: { fontSize: 8, color: "#9ca3af", textAlign: "center" },
+  invFooterPage: { fontSize: 8, color: "#1a3a5c", fontFamily: "Helvetica-Bold", textAlign: "right", marginTop: -12 },
 });
 
 const PAYMENT_TERMS_TEXT: Record<string, string> = {
@@ -1132,23 +1127,20 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
     <Document>
       <Page size="LETTER" style={IS.page}>
 
-        {/* ── Letterhead Header ── */}
-        <View style={IS.letterheadRow}>
-          {data.logoSrc ? (
-            <Image src={data.logoSrc} style={IS.letterheadLogo} />
-          ) : null}
-          <View style={IS.letterheadRight}>
-            <Text style={IS.companyName}>{co_name.toUpperCase()}</Text>
-            <Text style={IS.companyInfo}>{co_address} · {co_cityState}{"\n"}{co_phone} · {co_email}</Text>
+        {/* ── Header — logo + contact left, INVOICE title right (matches ProposalDoc) ── */}
+        <View style={IS.headerRow}>
+          <View>
+            {data.logoSrc ? (
+              <Image src={data.logoSrc} style={IS.letterheadLogo} />
+            ) : null}
+            <Text style={IS.contactInfo}>
+              {'209 W. River Rd, Hooksett, NH 03106\n'}
+              {'603-660-4651 · Justin@oakridgeelectrical.com\n'}
+              {'NH Electrical License # 0069M'}
+            </Text>
           </View>
-        </View>
-
-        <View style={IS.heavyDivider} />
-
-        {/* ── INVOICE title + kind label ── */}
-        <View style={IS.titleRow}>
-          <Text style={IS.invoiceTitle}>INVOICE</Text>
           <View style={IS.invoiceNumDate}>
+            <Text style={IS.invoiceTitle}>INVOICE</Text>
             <Text style={IS.invoiceKindLabel}>{invoiceKind}</Text>
             <Text style={IS.invoiceNum}>Invoice #{data.jobNumber}-{String(data.invoiceNumber).padStart(3, "0")}</Text>
             <Text style={IS.invoiceDate}>Date: {fmtDate(data.invoiceDate)}</Text>
@@ -1156,7 +1148,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
           </View>
         </View>
 
-        <View style={IS.thinDivider} />
+        <View style={IS.heavyDivider} />
 
         {/* ── Project Info — two columns ── */}
         <View style={IS.twoCol}>
@@ -1233,9 +1225,9 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
           ) : null}
 
           {retainageHeld > 0 ? (
-            <View style={[IS.finRow, { borderTopWidth: 2, borderTopColor: NAVY, borderTopStyle: "solid" }]}>
-              <Text style={[IS.finLabel, { color: NAVY, fontFamily: "Helvetica-Bold" }]}>CURRENT PAYMENT DUE</Text>
-              <Text style={[IS.finValue, { color: NAVY }]}>{fmt$(data.amount - retainageHeld)}</Text>
+            <View style={[IS.finRow, { borderTopWidth: 2, borderTopColor: "#1a3a5c", borderTopStyle: "solid" }]}>
+              <Text style={[IS.finLabel, { color: "#1a3a5c", fontFamily: "Helvetica-Bold" }]}>CURRENT PAYMENT DUE</Text>
+              <Text style={[IS.finValue, { color: "#1a3a5c" }]}>{fmt$(data.amount - retainageHeld)}</Text>
             </View>
           ) : null}
         </View>
@@ -1268,8 +1260,15 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
 
         {/* ── Footer ── */}
         <View style={IS.invFooter} fixed>
-          <Text style={IS.invFooterText}>Thank you for your business! {co_name} — Justin Marceau, Owner — {co_phone} | {co_email}</Text>
-          <Text style={IS.invFooterText}>Generated {today}</Text>
+          <View style={IS.invFooterLine} />
+          <Text style={IS.invFooterText}>
+            {'Oak Ridge Electrical LLC · 209 W. River Rd, Hooksett, NH 03106 · 603-660-4651 · Justin@oakridgeelectrical.com · NH Electrical License # 0069M'}
+          </Text>
+          <Text
+            style={IS.invFooterPage}
+            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+            fixed
+          />
         </View>
       </Page>
     </Document>
