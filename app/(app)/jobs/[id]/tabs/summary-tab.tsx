@@ -17,6 +17,88 @@ import {
 } from "./summary-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
 
+// ── Scope section builder (mirrors ProposalTab) ────────────────────────────────
+interface ScopeSection { id: string; title: string; items: string[] }
+
+const PRELOADED_SCOPE_BULLETS: Record<string, string[]> = {
+  "General": [
+    "Furnish all labor, material, and equipment necessary for the electrical work described herein.",
+    "All work to be performed in accordance with the current NEC and applicable local codes.",
+    "Coordinate with other trades as required.",
+  ],
+  "Power Distribution": [
+    "Install panelboard(s) as specified.",
+    "Install feeders and branch circuits as shown on drawings.",
+    "Install dedicated circuits for equipment as required.",
+    "Install disconnect means as required by code.",
+  ],
+  "Lighting": [
+    "Install interior lighting fixtures as specified.",
+    "Install exterior lighting fixtures as specified.",
+    "Install lighting controls (switches, dimmers, occupancy sensors) as specified.",
+    "Provide lamp/LED source for all fixtures.",
+  ],
+  "Devices": [
+    "Install receptacles throughout as indicated.",
+    "Install GFCI receptacles in all wet/damp locations.",
+    "Install AFCI breakers/receptacles as required by code.",
+    "Install USB charging receptacles as specified.",
+  ],
+  "Equipment Connections": [
+    "Provide final electrical connections to owner-furnished equipment.",
+    "Install wiring and terminations for HVAC equipment.",
+    "Install wiring and terminations for water heater(s).",
+    "Install wiring and terminations for kitchen equipment.",
+  ],
+  "Service Work": [
+    "Install new electrical service as specified.",
+    "Upgrade existing electrical service.",
+    "Install meter socket and service entrance conductors.",
+    "Coordinate service installation with utility company.",
+  ],
+  "Fire Alarm": [
+    "Install fire alarm devices (smoke detectors, pull stations, horns/strobes) as shown.",
+    "Install fire alarm control panel.",
+    "Program and test fire alarm system.",
+    "Provide as-built drawings and owner training.",
+  ],
+  "Data/Low Voltage": [
+    "Install structured cabling (Cat6) throughout.",
+    "Install data outlets at locations shown.",
+    "Install patch panels and network rack.",
+    "Label all cables per TIA-606 standard.",
+  ],
+  "Security & Access Control": [
+    "Install security cameras at locations shown.",
+    "Install access control hardware and wiring.",
+    "Install intercom/video doorbell system.",
+    "Program and test security system.",
+  ],
+  "Audio/Visual": [
+    "Install TV/display mounting and connections.",
+    "Install in-ceiling speakers and amplifier.",
+    "Install conduit for AV cabling.",
+  ],
+  "Demolition": [
+    "Remove existing electrical equipment as indicated.",
+    "Demo existing wiring not to be reused.",
+    "Cap and label circuits removed from service.",
+    "Properly dispose of all demolished materials.",
+  ],
+  "Closeout": [
+    "Provide as-built drawings upon project completion.",
+    "Test and verify all circuits prior to energizing.",
+    "Label all panels, circuits, and equipment.",
+    "Provide owner training on systems installed.",
+  ],
+  "Clarifications": [
+    "Pricing based on plans and specifications dated as noted.",
+    "Any changes to scope will be addressed via change order.",
+    "Owner to provide unobstructed access to work areas.",
+    "Excludes permit fees unless otherwise noted.",
+  ],
+};
+
 type OtherCost = { id: string; description: string; amount: number; markupPct?: number };
 type LaborEntryWithWage = {
   hours: number;
@@ -1162,7 +1244,50 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   const [invRetainagePct, setInvRetainagePct] = useState("10");
   const [invNotes, setInvNotes] = useState("");
   const [invPaymentTerms, setInvPaymentTerms] = useState("due_on_receipt");
-  const [invScopeOfWork, setInvScopeOfWork] = useState("");
+
+  // Scope section builder state
+  const [invScopeSections, setInvScopeSections] = useState<ScopeSection[]>([]);
+  const [showInvBulletPicker, setShowInvBulletPicker] = useState(false);
+  const [invBulletPickerTarget, setInvBulletPickerTarget] = useState<{ sectionId: string } | null>(null);
+  const [invBulletPickerTab, setInvBulletPickerTab] = useState<"library" | "saved">("library");
+  const [invBulletSearch, setInvBulletSearch] = useState("");
+  const [savedBullets, setSavedBullets] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("ore_scope_bullets") ?? "[]"); } catch { return []; }
+  });
+
+  function addInvSection() {
+    setInvScopeSections(prev => [...prev, { id: crypto.randomUUID(), title: "", items: [] }]);
+  }
+  function removeInvSection(id: string) {
+    setInvScopeSections(prev => prev.filter(s => s.id !== id));
+  }
+  function updateInvSection(id: string, field: "title" | "items", value: string | string[]) {
+    setInvScopeSections(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+  }
+  function insertInvBullet(sectionId: string, bullet: string) {
+    setInvScopeSections(prev => prev.map(s =>
+      s.id === sectionId ? { ...s, items: [...s.items, bullet] } : s
+    ));
+  }
+  function toggleSavedBullet(bullet: string) {
+    setSavedBullets(prev => {
+      const next = prev.includes(bullet) ? prev.filter(b => b !== bullet) : [...prev, bullet];
+      try { localStorage.setItem("ore_scope_bullets", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  function buildScopeString(): string {
+    return invScopeSections
+      .filter(s => s.title.trim() || s.items.length > 0)
+      .map((s, i) => {
+        const header = s.title.trim() ? `${i + 1}. ${s.title.trim()}` : `${i + 1}.`;
+        const bullets = s.items.map(item => `  • ${item}`).join("\n");
+        return bullets ? `${header}\n${bullets}` : header;
+      })
+      .join("\n\n");
+  }
 
   // Payment form state
   const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
@@ -1221,7 +1346,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
           retainagePct: invRetainagePct,
           notes: invNotes,
           paymentTerms: invPaymentTerms,
-          scopeOfWork: invScopeOfWork,
+          scopeOfWork: buildScopeString(),
           lineItems: buildLineItems(),
           force,
         });
@@ -1233,6 +1358,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
         setDuplicateWarning(null);
         setInvAmount(grossBilling.toFixed(2));
         setInvNotes(""); setInvPeriodTo(""); setInvAppNo(""); setInvRetainagePct("0");
+        setInvScopeSections([]);
       } catch (e) { setError(e instanceof Error ? e.message : "Failed."); }
     });
   }
@@ -1577,12 +1703,71 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                   className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
               </div>
             </div>
+            {/* ── Scope of Work Section Builder ── */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Scope of Work</label>
-              <textarea value={invScopeOfWork} onChange={e => setInvScopeOfWork(e.target.value)}
-                placeholder="Describe the scope of work for this invoice…"
-                rows={3}
-                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] resize-none" />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs text-gray-500">Scope of Work</label>
+                <button type="button" onClick={() => { setShowInvBulletPicker(true); setInvBulletPickerTarget(null); setInvBulletSearch(""); }}
+                  className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+                  📚 Library
+                </button>
+              </div>
+              {invScopeSections.map((section, si) => (
+                <div key={section.id} className="border border-gray-200 rounded-lg mb-2 overflow-hidden">
+                  <div className="flex items-center gap-1 bg-gray-50 px-2 py-1.5 border-b border-gray-200">
+                    <input
+                      value={section.title}
+                      onChange={e => updateInvSection(section.id, "title", e.target.value)}
+                      placeholder={`Section ${si + 1} title…`}
+                      className="flex-1 bg-transparent text-xs font-semibold text-gray-700 focus:outline-none placeholder-gray-400"
+                    />
+                    <button type="button" onClick={() => { setShowInvBulletPicker(true); setInvBulletPickerTarget({ sectionId: section.id }); setInvBulletSearch(""); }}
+                      className="text-xs text-[#002D72] hover:text-[#003d99] px-1.5 py-0.5 rounded hover:bg-blue-50">📚</button>
+                    <button type="button" onClick={() => removeInvSection(section.id)}
+                      className="text-gray-300 hover:text-red-500 px-1"><Trash2 className="w-3 h-3" /></button>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    {section.items.map((item, ii) => (
+                      <div key={ii} className="flex items-start gap-1">
+                        <span className="text-gray-400 text-xs mt-1.5 shrink-0">•</span>
+                        <input
+                          value={item}
+                          onChange={e => {
+                            const next = [...section.items];
+                            next[ii] = e.target.value;
+                            updateInvSection(section.id, "items", next);
+                          }}
+                          className="flex-1 text-xs border-0 border-b border-gray-100 focus:border-[#002D72] focus:outline-none py-0.5 bg-white"
+                        />
+                        <button type="button"
+                          onClick={() => {
+                            const next = [...section.items];
+                            const isSaved = savedBullets.includes(item);
+                            toggleSavedBullet(item);
+                            void isSaved;
+                          }}
+                          title={savedBullets.includes(item) ? "Remove from saved" : "Save bullet"}
+                          className={`shrink-0 text-xs px-1 ${savedBullets.includes(item) ? "text-yellow-500" : "text-gray-300 hover:text-yellow-400"}`}>⭐</button>
+                        <button type="button"
+                          onClick={() => {
+                            const next = section.items.filter((_, i) => i !== ii);
+                            updateInvSection(section.id, "items", next);
+                          }}
+                          className="shrink-0 text-gray-300 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                      </div>
+                    ))}
+                    <button type="button"
+                      onClick={() => updateInvSection(section.id, "items", [...section.items, ""])}
+                      className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] mt-1">
+                      <Plus className="w-3 h-3" /> New bullet
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={addInvSection}
+                className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium mt-1">
+                <Plus className="w-3.5 h-3.5" /> Add Section
+              </button>
             </div>
             {parseFloat(invRetainagePct || "0") > 0 && parseFloat(invAmount || "0") > 0 && (
               <p className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1.5">
@@ -1626,6 +1811,103 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
           </span>
         </div>
       </div>
+
+      {/* ── Bullet Picker Modal ── */}
+      {showInvBulletPicker && (
+        <div className="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-4" onClick={() => setShowInvBulletPicker(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-gray-100">
+              <p className="font-semibold text-sm text-gray-900">Bullet Library</p>
+              <button onClick={() => setShowInvBulletPicker(false)} className="text-gray-400 hover:text-gray-700 text-lg leading-none">×</button>
+            </div>
+            <div className="flex gap-2 px-4 pt-3">
+              {(["library", "saved"] as const).map(tab => (
+                <button key={tab} onClick={() => setInvBulletPickerTab(tab)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${invBulletPickerTab === tab ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300 hover:border-[#002D72]/50"}`}>
+                  {tab === "library" ? "📚 Library" : `⭐ Saved (${savedBullets.length})`}
+                </button>
+              ))}
+            </div>
+            <div className="px-4 pt-2">
+              <input value={invBulletSearch} onChange={e => setInvBulletSearch(e.target.value)}
+                placeholder="Search bullets…"
+                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            </div>
+            <div className="overflow-y-auto flex-1 px-4 py-3 space-y-4">
+              {invBulletPickerTab === "library" ? (
+                Object.entries(PRELOADED_SCOPE_BULLETS)
+                  .map(([cat, bullets]) => {
+                    const filtered = invBulletSearch
+                      ? bullets.filter(b => b.toLowerCase().includes(invBulletSearch.toLowerCase()))
+                      : bullets;
+                    if (!filtered.length) return null;
+                    return (
+                      <div key={cat}>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{cat}</p>
+                        {filtered.map(bullet => (
+                          <button key={bullet} type="button"
+                            onClick={() => {
+                              if (invBulletPickerTarget) {
+                                insertInvBullet(invBulletPickerTarget.sectionId, bullet);
+                              } else {
+                                // No target section — add to last section or create one
+                                if (invScopeSections.length === 0) {
+                                  const newId = crypto.randomUUID();
+                                  setInvScopeSections([{ id: newId, title: cat, items: [bullet] }]);
+                                } else {
+                                  const lastId = invScopeSections[invScopeSections.length - 1].id;
+                                  insertInvBullet(lastId, bullet);
+                                }
+                              }
+                            }}
+                            className="flex items-start gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-blue-50 text-xs text-gray-700 group">
+                            <span className="text-gray-400 mt-0.5 shrink-0">•</span>
+                            <span className="flex-1">{bullet}</span>
+                            <span onClick={e => { e.stopPropagation(); toggleSavedBullet(bullet); }}
+                              className={`shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ${savedBullets.includes(bullet) ? "text-yellow-500 opacity-100" : "text-gray-300 hover:text-yellow-400"}`}>⭐</span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })
+              ) : (
+                savedBullets.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-4">No saved bullets yet. Star bullets in the library to save them.</p>
+                ) : (
+                  savedBullets
+                    .filter(b => !invBulletSearch || b.toLowerCase().includes(invBulletSearch.toLowerCase()))
+                    .map(bullet => (
+                      <button key={bullet} type="button"
+                        onClick={() => {
+                          if (invBulletPickerTarget) {
+                            insertInvBullet(invBulletPickerTarget.sectionId, bullet);
+                          } else {
+                            if (invScopeSections.length === 0) {
+                              const newId = crypto.randomUUID();
+                              setInvScopeSections([{ id: newId, title: "Scope of Work", items: [bullet] }]);
+                            } else {
+                              const lastId = invScopeSections[invScopeSections.length - 1].id;
+                              insertInvBullet(lastId, bullet);
+                            }
+                          }
+                        }}
+                        className="flex items-start gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-blue-50 text-xs text-gray-700 group">
+                        <span className="text-yellow-500 mt-0.5 shrink-0">⭐</span>
+                        <span className="flex-1">{bullet}</span>
+                        <span onClick={e => { e.stopPropagation(); toggleSavedBullet(bullet); }}
+                          className="shrink-0 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">×</span>
+                      </button>
+                    ))
+                )
+              )}
+            </div>
+            <div className="px-4 py-3 border-t border-gray-100">
+              <button onClick={() => setShowInvBulletPicker(false)}
+                className="w-full bg-[#002D72] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#003d99]">Done</button>
+            </div>
+          </div>
+        </div>
+      )}
     </SectionCard>
   );
 }
