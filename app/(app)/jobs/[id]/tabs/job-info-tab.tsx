@@ -180,6 +180,20 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
           <div className="col-span-full">
             <hr className="border-gray-100 my-1" />
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mt-3 mb-3">
+              Financial
+            </p>
+          </div>
+          <InputField
+            label="Contract Value $"
+            name="contractValue"
+            type="number"
+            defaultValue={job.contractValue ? job.contractValue.toString() : ""}
+            placeholder="0.00"
+          />
+
+          <div className="col-span-full">
+            <hr className="border-gray-100 my-1" />
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mt-3 mb-3">
               Site Address
             </p>
           </div>

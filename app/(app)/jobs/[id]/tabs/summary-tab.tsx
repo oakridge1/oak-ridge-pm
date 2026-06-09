@@ -263,6 +263,8 @@ function DirectCostsCard({ job, role, computed }: {
 
   // Cost inputs
   const [rateInput, setRateInput] = useState(String(job.blendedLaborRate ?? ""));
+  const [laborBudgetInput, setLaborBudgetInput] = useState(String(job.laborBudgetDollars ?? ""));
+  const [materialBudgetInput, setMaterialBudgetInput] = useState(String(job.materialBudget ?? ""));
   const [subInput, setSubInput] = useState(String(job.subcontractorCost ?? ""));
   const [subBillPctInput, setSubBillPctInput] = useState(String(job.subcontractorBillPct ?? "100"));
   const [equipInput, setEquipInput] = useState(String(job.equipmentCost ?? ""));
@@ -331,6 +333,7 @@ function DirectCostsCard({ job, role, computed }: {
         await updateDirectCostsWithMarkups(job.id, {
           blendedLaborRate: rateInput,
           laborMarkupPct: laborMkup,
+          laborBudgetDollars: laborBudgetInput,
           subcontractorCost: subInput,
           subcontractorBillPct: subBillPctInput,
           subMarkupPct: subMkup,
@@ -338,6 +341,7 @@ function DirectCostsCard({ job, role, computed }: {
           equipmentBillPct: billPctInput,
           equipmentMarkupPct: equipMkup,
           materialMarkupPct: matMkup,
+          materialBudget: materialBudgetInput,
           otherMarkupPct: defaultOtherMkup,
           otherCosts: updatedOtherCosts,
         });
@@ -399,6 +403,18 @@ function DirectCostsCard({ job, role, computed }: {
                   <span className="text-xs text-gray-400">/hr rate</span>
                 </div>
                 <MkupInput value={laborMkup} onChange={setLaborMkup} />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500">Labor Budget $</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={laborBudgetInput}
+                    onChange={e => setLaborBudgetInput(e.target.value)}
+                    placeholder="0"
+                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-white w-32 focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+                  />
+                </div>
               </div>
             ) : (
               <p className="text-xs text-gray-400 mt-0.5">
@@ -426,6 +442,18 @@ function DirectCostsCard({ job, role, computed }: {
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                 <span className="text-xs text-gray-400 italic">From Purchase Orders tab</span>
                 <MkupInput value={matMkup} onChange={setMatMkup} />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500">Material Budget $</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={materialBudgetInput}
+                    onChange={e => setMaterialBudgetInput(e.target.value)}
+                    placeholder="0"
+                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-white w-32 focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+                  />
+                </div>
               </div>
             ) : (
               <p className="text-xs text-gray-400 mt-0.5">

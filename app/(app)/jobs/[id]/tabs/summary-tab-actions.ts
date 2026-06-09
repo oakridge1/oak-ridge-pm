@@ -72,6 +72,8 @@ export async function updateDirectCostsWithMarkups(
     materialMarkupPct: string;
     otherMarkupPct: string;
     otherCosts: { id: string; description: string; amount: number; markupPct: number }[];
+    laborBudgetDollars?: string;
+    materialBudget?: string;
   }
 ) {
   await requireAdmin();
@@ -80,6 +82,8 @@ export async function updateDirectCostsWithMarkups(
     data: {
       blendedLaborRate: data.blendedLaborRate ? parseFloat(data.blendedLaborRate) : null,
       laborMarkupPct:   data.laborMarkupPct   ? parseFloat(data.laborMarkupPct)   : null,
+      laborBudgetDollars: data.laborBudgetDollars !== undefined
+        ? (data.laborBudgetDollars ? parseFloat(data.laborBudgetDollars) : null) : undefined,
       subcontractorCost:    data.subcontractorCost    ? parseFloat(data.subcontractorCost)    : null,
       subcontractorBillPct: data.subcontractorBillPct ? parseFloat(data.subcontractorBillPct) : null,
       subMarkupPct:         data.subMarkupPct         ? parseFloat(data.subMarkupPct)         : null,
@@ -87,6 +91,8 @@ export async function updateDirectCostsWithMarkups(
       equipmentBillPct:  data.equipmentBillPct  ? parseFloat(data.equipmentBillPct)  : null,
       equipmentMarkupPct: data.equipmentMarkupPct ? parseFloat(data.equipmentMarkupPct) : null,
       materialMarkupPct:  data.materialMarkupPct  ? parseFloat(data.materialMarkupPct)  : null,
+      materialBudget: data.materialBudget !== undefined
+        ? (data.materialBudget ? parseFloat(data.materialBudget) : null) : undefined,
       otherMarkupPct:     data.otherMarkupPct     ? parseFloat(data.otherMarkupPct)     : null,
       otherCosts: data.otherCosts,
     },
