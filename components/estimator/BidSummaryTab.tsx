@@ -148,7 +148,7 @@ export function BidSummaryTab() {
       fd.append('status',           'ACTIVE');
       fd.append('contractValue',    grandTotal.toFixed(2));
       fd.append('materialBudget',   result.matTotal.toFixed(2));
-      fd.append('laborBudgetHours', totalHrs.toFixed(1));
+      fd.append('laborBudgetDollars', effectiveLaborTotal.toFixed(2));
       fd.append('blendedLaborRate', state.settings.labor.toFixed(2));
       const response = await createJob(fd);
       if ('jobId' in response && response.jobId) {

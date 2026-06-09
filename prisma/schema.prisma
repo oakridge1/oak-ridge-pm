@@ -227,7 +227,7 @@ model Job {
   status            JobStatus @default(ACTIVE)
   jobType           JobType   @default(BID)
   contractValue     Decimal?  @db.Decimal(12, 2)
-  laborBudgetHours  Float?
+  laborBudgetDollars  Decimal?  @db.Decimal(12, 2)
   materialBudget    Decimal?  @db.Decimal(12, 2)
   calendarColor     String?
   // Summary tab settings

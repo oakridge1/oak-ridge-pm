@@ -147,7 +147,7 @@ interface SummaryTabProps {
     jobName: string;
     jobType: "BID" | "TIME_AND_MATERIALS" | "ESTIMATE";
     contractValue: number | null;
-    laborBudgetHours: number | null;
+    laborBudgetDollars: number | null;
     materialBudget: number | null;
     blendedLaborRate: number | null;
     subcontractorCost: number | null;
@@ -597,6 +597,59 @@ function DirectCostsCard({ job, role, computed }: {
         </div>
         <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalMarkedUp)}</span>
       </div>
+
+      {/* ── % Complete tracker ── */}
+      {(role === "ADMIN" || role === "OFFICE") && (() => {
+        const rate = job.blendedLaborRate ? Number(job.blendedLaborRate) : 0;
+        const laborCostToDate = computed.laborCost ?? (computed.totalHours * rate);
+        const laborBudget = job.laborBudgetDollars ? Number(job.laborBudgetDollars) : null;
+        const matBudget = job.materialBudget ? Number(job.materialBudget) : null;
+
+        const laborPct = laborBudget != null && laborBudget > 0
+          ? Math.min(Math.round((laborCostToDate / laborBudget) * 100), 999) : null;
+        const matPct = matBudget != null && matBudget > 0
+          ? Math.min(Math.round((computed.materialsCost / matBudget) * 100), 999) : null;
+
+        if (laborPct === null && matPct === null) return null;
+
+        return (
+          <div className="mt-1 pt-3 border-t border-gray-100 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">% of Budget Used</p>
+            {laborPct !== null && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500">Labor</span>
+                  <span className={`text-xs font-semibold tabular-nums ${laborPct >= 100 ? "text-red-600" : laborPct >= 80 ? "text-amber-600" : "text-green-700"}`}>
+                    {fmt$(laborCostToDate)} / {fmt$(laborBudget)} · {laborPct}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${laborPct >= 100 ? "bg-red-500" : laborPct >= 80 ? "bg-amber-400" : "bg-green-500"}`}
+                    style={{ width: `${Math.min(laborPct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {matPct !== null && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500">Materials</span>
+                  <span className={`text-xs font-semibold tabular-nums ${matPct >= 100 ? "text-red-600" : matPct >= 80 ? "text-amber-600" : "text-green-700"}`}>
+                    {fmt$(computed.materialsCost)} / {fmt$(matBudget)} · {matPct}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${matPct >= 100 ? "bg-red-500" : matPct >= 80 ? "bg-amber-400" : "bg-green-500"}`}
+                    style={{ width: `${Math.min(matPct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </SectionCard>
   );
 }
@@ -2127,9 +2180,12 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
   const trueNetMarginPct = computed.grossBilling > 0
     ? (trueNetProfit / computed.grossBilling) * 100 : 0;
 
-  // Labor budget comparison
-  const laborBudgetVariance = job.laborBudgetHours != null
-    ? job.laborBudgetHours - computed.totalHours : null;
+  // Labor budget comparison (dollar-based)
+  const rate = job.blendedLaborRate ? Number(job.blendedLaborRate) : 0;
+  const laborCostToDate = computed.totalHours * rate;
+  const laborBudgetDollars = job.laborBudgetDollars ? Number(job.laborBudgetDollars) : null;
+  const laborBudgetVariance = laborBudgetDollars != null
+    ? laborBudgetDollars - laborCostToDate : null;
 
   const profitable = grossProfit >= 0;
 
@@ -2265,10 +2321,10 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
               <p className="text-xs font-semibold text-gray-500 mb-1">Labor Budget vs Actual</p>
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-600">
-                  Budget: {job.laborBudgetHours?.toFixed(1)} hrs · Actual: {computed.totalHours.toFixed(1)} hrs
+                  Budget: {fmt$(laborBudgetDollars)} · Actual: {fmt$(laborCostToDate)}
                 </p>
                 <span className={`text-sm font-semibold tabular-nums ${laborBudgetVariance >= 0 ? "text-green-700" : "text-red-600"}`}>
-                  {laborBudgetVariance >= 0 ? "+" : ""}{laborBudgetVariance.toFixed(1)} hrs
+                  {laborBudgetVariance >= 0 ? "+" : ""}{fmt$(laborBudgetVariance)}
                 </span>
               </div>
             </div>

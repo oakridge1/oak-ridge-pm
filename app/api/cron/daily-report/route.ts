@@ -154,7 +154,7 @@ export async function GET(request: Request) {
         where: { status: { in: ["ACTIVE", "ON_HOLD"] }, archived: false },
         select: {
           id: true, jobName: true, jobNumber: true,
-          laborBudgetHours: true, materialBudget: true,
+          laborBudgetDollars: true, blendedLaborRate: true, materialBudget: true,
           laborEntries: { select: { hours: true } },
           materials: { select: { amount: true } },
         },
@@ -194,9 +194,12 @@ export async function GET(request: Request) {
     const materialAlerts: { job: typeof activeJobs[0]; pct: number }[] = [];
 
     for (const job of activeJobs) {
-      if (job.laborBudgetHours && job.laborBudgetHours > 0) {
-        const used = job.laborEntries.reduce((s, e) => s + (e.hours ?? 0), 0);
-        const pct = (used / job.laborBudgetHours) * 100;
+      if (job.laborBudgetDollars && Number(job.laborBudgetDollars) > 0) {
+        const usedHours = job.laborEntries.reduce((s, e) => s + (e.hours ?? 0), 0);
+        const rate = job.blendedLaborRate ? Number(job.blendedLaborRate) : 0;
+        const usedDollars = usedHours * rate;
+        const budget = Number(job.laborBudgetDollars);
+        const pct = budget > 0 ? (usedDollars / budget) * 100 : 0;
         if (pct >= 80) laborAlerts.push({ job, pct });
       }
       if (job.materialBudget) {
@@ -484,7 +487,7 @@ export async function GET(request: Request) {
           where: { status: { in: ["ACTIVE", "ON_HOLD"] }, archived: false },
           select: {
             id: true, jobName: true, jobNumber: true,
-            contractValue: true, blendedLaborRate: true, laborBudgetHours: true,
+            contractValue: true, blendedLaborRate: true, laborBudgetDollars: true,
             scopeOfWork: true,
             laborEntries: { select: { hours: true, date: true, user: { select: { name: true } } } },
             tasks: {
@@ -524,8 +527,11 @@ export async function GET(request: Request) {
 
         // Total hours + percent complete
         const totalHrs = job.laborEntries.reduce((s, e) => s + e.hours, 0);
-        const pctComplete = job.laborBudgetHours && job.laborBudgetHours > 0
-          ? Math.round((totalHrs / job.laborBudgetHours) * 100)
+        const rate = job.blendedLaborRate ? Number(job.blendedLaborRate) : 0;
+        const laborCostToDate = totalHrs * rate;
+        const budget = job.laborBudgetDollars ? Number(job.laborBudgetDollars) : 0;
+        const pctComplete = budget > 0
+          ? Math.round((laborCostToDate / budget) * 100)
           : null;
 
         // Open RFIs with days open

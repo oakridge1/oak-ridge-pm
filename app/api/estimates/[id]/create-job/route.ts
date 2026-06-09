@@ -50,7 +50,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       status: "ACTIVE",
       jobType: "BID",
       contractValue: totals.grandWithSubs,
-      laborBudgetHours: totals.rawLhr,
+      laborBudgetDollars: totals.rawLabor,
       materialBudget: totals.rawMat,
       createdById: session.user.id!,
     },

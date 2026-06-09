@@ -139,6 +139,7 @@ export default async function JobPage({ params }: PageProps) {
   const serializedJob = {
     ...job,
     contractValue: job.contractValue?.toNumber() ?? null,
+    laborBudgetDollars: job.laborBudgetDollars?.toNumber() ?? null,
     materialBudget: job.materialBudget?.toNumber() ?? null,
     blendedLaborRate: job.blendedLaborRate?.toNumber() ?? null,
     subcontractorCost: job.subcontractorCost?.toNumber() ?? null,

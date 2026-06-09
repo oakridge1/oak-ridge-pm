@@ -149,7 +149,7 @@ export async function updateContractBudget(
   jobId: string,
   data: {
     contractValue: string;
-    laborBudgetHours: string;
+    laborBudgetDollars: string;
     materialBudget: string;
   }
 ) {
@@ -158,7 +158,7 @@ export async function updateContractBudget(
     where: { id: jobId },
     data: {
       contractValue: data.contractValue ? data.contractValue : null,
-      laborBudgetHours: data.laborBudgetHours ? parseFloat(data.laborBudgetHours) : null,
+      laborBudgetDollars: data.laborBudgetDollars ? parseFloat(data.laborBudgetDollars) : null,
       materialBudget: data.materialBudget ? data.materialBudget : null,
     },
   });

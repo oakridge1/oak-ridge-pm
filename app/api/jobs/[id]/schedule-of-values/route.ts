@@ -219,7 +219,7 @@ export async function GET(
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       select: {
-        laborBudgetHours: true,
+        laborBudgetDollars: true,
         materialBudget: true,
         blendedLaborRate: true,
         changeOrders: {
@@ -277,8 +277,8 @@ export async function GET(
     const totalMaterialCost = materials.reduce((s, m) => s + m.amount, 0);
 
     const laborBudget =
-      job.laborBudgetHours != null && blendedRate != null
-        ? job.laborBudgetHours * blendedRate
+      job.laborBudgetDollars != null
+        ? Number(job.laborBudgetDollars)
         : totalLaborCost;
 
     const materialBudget =

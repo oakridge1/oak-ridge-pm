@@ -60,7 +60,7 @@ export async function updateJobInfo(jobId: string, fd: FormData) {
       inspectionPhone: getString("inspectionPhone"),
       status: (getString("status") as any) || undefined,
       contractValue: optDecimal("contractValue"),
-      laborBudgetHours: optFloat("laborBudgetHours"),
+      laborBudgetDollars: optDecimal("laborBudgetDollars"),
       materialBudget: optDecimal("materialBudget"),
       calendarColor: getString("calendarColor"),
       ...(fd.get("excludeFromPL") !== null && session.user.role === "ADMIN"

@@ -34,7 +34,8 @@ type CrewMember = { id: string; name: string | null; role: Role };
 interface LaborTabProps {
   job: {
     id: string;
-    laborBudgetHours: number | null;
+    laborBudgetDollars: number | null;
+    blendedLaborRate: number | null;
     laborEntries: LaborEntry[];
   };
   role: Role;
@@ -166,8 +167,19 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
   const totalHours = entries.reduce((sum, e) => sum + e.hours, 0);
-  const budget = job.laborBudgetHours;
-  const remaining = budget != null ? budget - totalHours : null;
+  const budgetDollars = job.laborBudgetDollars != null ? Number(job.laborBudgetDollars) : null;
+  const rate = job.blendedLaborRate != null ? Number(job.blendedLaborRate) : null;
+  const budgetHours = budgetDollars != null && rate != null && rate > 0
+    ? budgetDollars / rate : null;
+  const remainingHours = budgetHours != null ? budgetHours - totalHours : null;
+  const laborCostToDate = rate != null ? totalHours * rate : null;
+  const remainingDollars = budgetDollars != null && laborCostToDate != null
+    ? budgetDollars - laborCostToDate : null;
+
+  function fmt$(n: number | null | undefined) {
+    if (n == null) return "—";
+    return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  }
 
   function toggleMember(id: string) {
     setSelectedIds((prev) => {
@@ -280,18 +292,27 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
         <div className="bg-gray-50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Total Logged</p>
           <p className="text-xl font-bold text-[#002D72]">{totalHours.toFixed(1)} <span className="text-sm font-normal text-gray-500">hrs</span></p>
+          {laborCostToDate != null && (
+            <p className="text-xs text-gray-500 mt-0.5">{fmt$(laborCostToDate)}</p>
+          )}
         </div>
-        {(role === "ADMIN" || role === "OFFICE") && budget != null && (
+        {(role === "ADMIN" || role === "OFFICE") && budgetDollars != null && (
           <>
             <div className="bg-gray-50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
               <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Budget</p>
-              <p className="text-xl font-bold text-gray-700">{budget} <span className="text-sm font-normal text-gray-500">hrs</span></p>
+              <p className="text-xl font-bold text-gray-700">{fmt$(budgetDollars)}</p>
+              {budgetHours != null && (
+                <p className="text-xs text-gray-500 mt-0.5">{budgetHours.toFixed(0)} hrs</p>
+              )}
             </div>
-            <div className={`rounded-xl px-4 py-3 flex-1 min-w-[120px] ${remaining != null && remaining < 0 ? "bg-red-50" : "bg-gray-50"}`}>
+            <div className={`rounded-xl px-4 py-3 flex-1 min-w-[120px] ${remainingDollars != null && remainingDollars < 0 ? "bg-red-50" : "bg-gray-50"}`}>
               <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Remaining</p>
-              <p className={`text-xl font-bold ${remaining != null && remaining < 0 ? "text-red-600" : "text-green-700"}`}>
-                {remaining != null ? remaining.toFixed(1) : "—"} <span className="text-sm font-normal text-gray-500">hrs</span>
+              <p className={`text-xl font-bold ${remainingDollars != null && remainingDollars < 0 ? "text-red-600" : "text-green-700"}`}>
+                {fmt$(remainingDollars)}
               </p>
+              {remainingHours != null && (
+                <p className="text-xs text-gray-500 mt-0.5">{remainingHours.toFixed(1)} hrs</p>
+              )}
             </div>
           </>
         )}
