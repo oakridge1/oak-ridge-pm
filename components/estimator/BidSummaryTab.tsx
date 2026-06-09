@@ -214,6 +214,152 @@ export function BidSummaryTab() {
     });
   }
 
+  // ── Download Summary PDF ─────────────────────────────────────────────────
+  function handleDownloadSummaryPDF() {
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+    const fmt = (n: number) =>
+      '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // ── Assembly breakdown rows ──
+    const breakdownRows = Object.entries(result.breakdown)
+      .filter(([, v]) => v.mat + v.lab > 0)
+      .map(([key, v]) => {
+        const labAdj = v.lab * heightMult;
+        const total  = v.mat + labAdj;
+        const lbl    = BREAKDOWN_LABELS[key] ?? key;
+        return `<tr>
+          <td>${lbl}</td>
+          <td class="r">${fmt(v.mat)}</td>
+          <td class="r">${fmt(labAdj)}</td>
+          <td class="r b">${fmt(total)}</td>
+        </tr>`;
+      }).join('');
+
+    // ── By Label section (only if any package other than (No Package)) ──
+    const hasLabels = allAsms.some(a => a.bidPackage || a.area || a.costCode);
+    let labelHtml = '';
+    if (hasLabels) {
+      const pkgRows = Object.entries(labelGrouped).map(([pkg, areas]) => {
+        let pkgTotal = 0;
+        const areaRows = Object.entries(areas).map(([area, ccs]) => {
+          const ccRows = Object.entries(ccs).map(([cc, asms]) => {
+            const mat = asms.reduce((s, a) => s + a.mat, 0);
+            const lab = asms.reduce((s, a) => s + a.lab * (state.jobCondMult ?? 1.0) * heightMult, 0);
+            pkgTotal += mat + lab;
+            return `<tr>
+              <td style="padding-left:24px;color:#444">${cc}</td>
+              <td class="r">${fmt(mat)}</td>
+              <td class="r">${fmt(lab)}</td>
+              <td class="r b">${fmt(mat + lab)}</td>
+            </tr>`;
+          }).join('');
+          return `<tr style="background:#f4f0fb">
+            <td style="padding-left:12px;font-weight:600;color:#6b21a8">${area}</td>
+            <td colspan="3"></td>
+          </tr>${ccRows}`;
+        }).join('');
+        return `<tr style="background:#e8eef8">
+          <td style="font-weight:700;color:#1a3a5c">${pkg}</td>
+          <td colspan="3" class="r" style="font-weight:600;color:#1a3a5c"></td>
+        </tr>${areaRows}`;
+      }).join('');
+
+      labelHtml = `
+        <h3 style="margin-top:24px">By Label Breakdown</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left">Package / Area / Cost Code</th>
+              <th class="r">Material</th>
+              <th class="r">Labor</th>
+              <th class="r">Total</th>
+            </tr>
+          </thead>
+          <tbody>${pkgRows}</tbody>
+        </table>`;
+    }
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bid Summary — ${state.jobName || 'Estimate'}</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 32px; }
+    h1 { font-size: 18px; color: #1a3a5c; margin: 0 0 4px; }
+    h2 { font-size: 13px; color: #444; font-weight: normal; margin: 0 0 16px; }
+    h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+         border-bottom: 2px solid #1a3a5c; color: #1a3a5c;
+         padding-bottom: 3px; margin: 20px 0 8px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { padding: 5px 8px; border: 1px solid #ddd; }
+    th { background: #f0f4fa; font-weight: 600; }
+    .r { text-align: right; }
+    .b { font-weight: 700; }
+    .grand { background: #1a3a5c; color: #fff; font-size: 14px; }
+    .grand td { border-color: #1a3a5c; }
+    @media print { body { margin: 16px; } }
+  </style>
+</head>
+<body>
+  <h1>BID SUMMARY</h1>
+  <h2>${state.jobName || '(No Job Name)'} &nbsp;·&nbsp; ${today}</h2>
+  <div style="font-size:11px;color:#666;margin-bottom:16px">
+    Labor rate: ${fmt(R.labor)}/hr &nbsp;|&nbsp;
+    Overhead: ${(R.overhead * 100).toFixed(0)}% &nbsp;|&nbsp;
+    Profit: ${(R.profit * 100).toFixed(0)}% &nbsp;|&nbsp;
+    Condition mult: ${(state.jobCondMult ?? 1).toFixed(2)}x
+    ${state.heightAdder ? ' &nbsp;|&nbsp; Height adder: +10%' : ''}
+  </div>
+
+  <h3>Assembly Breakdown</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left">Category</th>
+        <th class="r">Material</th>
+        <th class="r">Labor</th>
+        <th class="r">Total</th>
+      </tr>
+    </thead>
+    <tbody>${breakdownRows}</tbody>
+  </table>
+
+  <h3>Cost Summary</h3>
+  <table>
+    <tbody>
+      <tr><td>Material</td><td class="r">${fmt(matTotal)}</td></tr>
+      <tr><td>Labor (${fmtH(totalHrs)})</td><td class="r">${fmt(effectiveLaborTotal)}</td></tr>
+      <tr><td>Overhead (${(R.overhead * 100).toFixed(0)}%)</td><td class="r">${fmt(effectiveOverhead)}</td></tr>
+      ${permitTotal > 0 ? `<tr><td>Permits</td><td class="r">${fmt(permitTotal)}</td></tr>` : ''}
+      ${subTotal    > 0 ? `<tr><td>Subcontractors</td><td class="r">${fmt(subTotal)}</td></tr>` : ''}
+      ${rentalTotal > 0 ? `<tr><td>Equipment Rental</td><td class="r">${fmt(rentalTotal)}</td></tr>` : ''}
+      ${lightingCost > 0 ? `<tr><td>Lighting Fixtures</td><td class="r">${fmt(lightingCost)}</td></tr>` : ''}
+      ${gearCost    > 0 ? `<tr><td>Electrical Gear</td><td class="r">${fmt(gearCost)}</td></tr>` : ''}
+      <tr style="background:#f5f5f5;font-weight:600"><td>Subtotal</td><td class="r">${fmt(subtotal)}</td></tr>
+      <tr><td>Profit (${(R.profit * 100).toFixed(0)}%)</td><td class="r">${fmt(profit)}</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <tbody>
+      <tr class="grand"><td class="b">GRAND TOTAL</td><td class="r b">${fmt(grandTotal)}</td></tr>
+    </tbody>
+  </table>
+
+  ${labelHtml}
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) { alert('Pop-up blocked — allow pop-ups for this site and try again.'); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  }
+
   // ── Export JSON ───────────────────────────────────────────────────────────
   function handleExport() {
     const json    = exportJob();
@@ -606,6 +752,12 @@ export function BidSummaryTab() {
           className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#eef4ff] transition-colors"
         >
           ↓ Export JSON
+        </button>
+        <button
+          onClick={handleDownloadSummaryPDF}
+          className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#eef4ff] transition-colors"
+        >
+          ⬇ Download Summary
         </button>
         <button
           onClick={handleConvert}

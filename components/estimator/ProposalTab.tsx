@@ -437,6 +437,11 @@ export function ProposalTab() {
                             + lightingCost + gearCost;
   const correctGrandTotal   = correctSubtotal * (1 + R.profit);
 
+  // ── Per-label proportional totals (for alternates and Base Bid row) ─────────
+  const labelTotals  = useMemo(() => calcLabelTotals(state), [state]);
+  // If assemblies are labeled, Base Bid row = labeled Base Bid share; else full total
+  const baseBidTotal = labelTotals['Base Bid']?.total ?? correctGrandTotal;
+
   // ── Smart scope detection ───────────────────────────────────────
   const hasFAWork   = state.savedFA.length   > 0;
   const hasDataWork = state.savedData.length > 0;
@@ -467,11 +472,10 @@ export function ProposalTab() {
 
   // ── Auto-sync estimator bid packages → proposal alternates ──────────────────
   // Any bid package in the label system that is NOT "Base Bid" gets an alternate
-  // row auto-populated with the fully-loaded subtotal (mat + condMult*heightMult
-  // labor + overhead + profit). Title/desc edits are preserved; price stays live.
+  // row auto-populated with a proportional share of the project grand total.
+  // Title/desc edits are preserved; price stays live.
   useEffect(() => {
     const totals = calcLabelTotals(state);
-    const R      = getRates();
 
     // Only non-base packages that exist in the label registry
     const estimatorPkgs = (state.labelsBidPackage ?? []).filter(p => p !== 'Base Bid');
@@ -480,17 +484,24 @@ export function ProposalTab() {
       const current = prev.proposal.alternates;
 
       // 1. Remove alternates that were auto-synced but whose package was deleted
-      const filtered = current.filter(
+      let filtered = current.filter(
         a => !a.bidPackage || estimatorPkgs.includes(a.bidPackage),
       );
 
-      // 2. Upsert each estimator package
+      // 2. When estimator packages exist, also drop blank manual alternates
+      //    (no title, no desc, $0 price, no bidPackage) so they don't stack
+      if (estimatorPkgs.length > 0) {
+        filtered = filtered.filter(
+          a => a.bidPackage || a.title || a.desc || a.price > 0,
+        );
+      }
+
+      // 3. Upsert each estimator package
       const result = [...filtered];
       for (const pkg of estimatorPkgs) {
-        const t   = totals[pkg] ?? { mat: 0, lab: 0, total: 0 };
-        // fully-loaded: (mat + lab*(1+overhead)) * (1+profit)
-        const price = Math.round((t.mat + t.lab * (1 + R.overhead)) * (1 + R.profit));
-        const idx  = result.findIndex(a => a.bidPackage === pkg);
+        const t     = totals[pkg] ?? { raw: 0, total: 0 };
+        const price = Math.round(t.total);
+        const idx   = result.findIndex(a => a.bidPackage === pkg);
         if (idx >= 0) {
           // Preserve title / desc; only refresh the price
           result[idx] = { ...result[idx], price };
@@ -509,10 +520,10 @@ export function ProposalTab() {
         }
       }
 
-      // 3. Re-number to keep a clean 1, 2, 3… sequence
+      // 4. Re-number to keep a clean 1, 2, 3… sequence
       const renumbered = result.map((a, i) => ({ ...a, number: i + 1 }));
 
-      // 4. Bail out (no re-render) if nothing changed
+      // 5. Bail out (no re-render) if nothing changed
       if (JSON.stringify(renumbered) === JSON.stringify(current)) return prev;
 
       return { ...prev, proposal: { ...prev.proposal, alternates: renumbered } };
@@ -648,7 +659,7 @@ export function ProposalTab() {
   const handlePrint = () => {
     const win = window.open('', '_blank');
     if (!win) return;
-    win.document.write(buildPrintHtml(p, state.jobName, correctGrandTotal));
+    win.document.write(buildPrintHtml(p, state.jobName, baseBidTotal));
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 300);
@@ -951,18 +962,23 @@ export function ProposalTab() {
               />
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500">$</span>
-                <input
-                  type="number"
-                  className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#002D72] bg-white"
-                  defaultValue={alt.price}
-                  onBlur={e => updateAlternate(alt.id, { price: parseFloat(e.target.value) || 0 })}
-                  key={alt.price}
-                  placeholder="0.00"
-                />
-                {alt.bidPackage && (
-                  <span className="text-[10px] text-blue-400 whitespace-nowrap" title="Auto-calculated from estimator assemblies">
+                {alt.bidPackage ? (
+                  /* Estimator-driven: price is read-only, styled navy/orange */
+                  <div
+                    className="flex-1 border border-blue-200 rounded px-1.5 py-0.5 text-xs bg-blue-50 text-[#1a3a5c] font-semibold font-mono select-all cursor-default"
+                    title="Auto-calculated from Estimator label system — edit assemblies in the Estimator to change this price"
+                  >
                     {fmt$(alt.price)}
-                  </span>
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#002D72] bg-white"
+                    defaultValue={alt.price}
+                    onBlur={e => updateAlternate(alt.id, { price: parseFloat(e.target.value) || 0 })}
+                    key={alt.price}
+                    placeholder="0.00"
+                  />
                 )}
               </div>
             </div>
@@ -1070,7 +1086,7 @@ export function ProposalTab() {
                 key={p.depositPercent}
               />
               <span className="text-xs text-gray-500">
-                = {fmt$(correctGrandTotal * p.depositPercent / 100)}
+                = {fmt$(baseBidTotal * p.depositPercent / 100)}
               </span>
             </div>
           )}
@@ -1215,7 +1231,7 @@ export function ProposalTab() {
             <tbody>
               <tr className="font-semibold" style={{ background: '#f0f4fa' }}>
                 <td className="px-2.5 py-2 border border-gray-200">Base Bid — Complete Electrical Scope</td>
-                <td className="px-2.5 py-2 border border-gray-200 text-right font-bold text-sm">{fmt$(correctGrandTotal)}</td>
+                <td className="px-2.5 py-2 border border-gray-200 text-right font-bold text-sm">{fmt$(baseBidTotal)}</td>
               </tr>
             </tbody>
           </table>
@@ -1281,7 +1297,7 @@ export function ProposalTab() {
               </div>
               <div className="mt-1">
                 A deposit of{' '}
-                <strong>{p.depositPercent}% ({fmt$(correctGrandTotal * p.depositPercent / 100)})</strong>{' '}
+                <strong>{p.depositPercent}% ({fmt$(baseBidTotal * p.depositPercent / 100)})</strong>{' '}
                 is required to schedule and begin work.
               </div>
             </div>
