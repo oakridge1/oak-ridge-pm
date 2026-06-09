@@ -5,11 +5,12 @@ export interface ScopeSection {
 }
 
 export interface AddAlternate {
-  id:     string;
-  number: number;
-  title:  string;
-  desc:   string;
-  price:  number;
+  id:          string;
+  number:      number;
+  title:       string;
+  desc:        string;
+  price:       number;
+  bidPackage?: string;  // set when auto-synced from estimator label system
 }
 
 export type PaymentTerms =

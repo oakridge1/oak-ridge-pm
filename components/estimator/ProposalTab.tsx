@@ -15,6 +15,7 @@ import {
 } from '@/lib/estimator/proposalState';
 import { fmt$ } from '@/lib/estimator/format';
 import { getRates } from '@/lib/estimator/constants';
+import { calcLabelTotals } from '@/lib/estimator/labelTotals';
 import type { ProposalPdfData } from '@/app/api/jobs/[id]/pdf/_templates';
 
 // ─────────────────────────────────────
@@ -464,6 +465,69 @@ export function ProposalTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.jobInfo.gcCompany, state.jobInfo.gcContactName]);
 
+  // ── Auto-sync estimator bid packages → proposal alternates ──────────────────
+  // Any bid package in the label system that is NOT "Base Bid" gets an alternate
+  // row auto-populated with the fully-loaded subtotal (mat + condMult*heightMult
+  // labor + overhead + profit). Title/desc edits are preserved; price stays live.
+  useEffect(() => {
+    const totals = calcLabelTotals(state);
+    const R      = getRates();
+
+    // Only non-base packages that exist in the label registry
+    const estimatorPkgs = (state.labelsBidPackage ?? []).filter(p => p !== 'Base Bid');
+
+    setState(prev => {
+      const current = prev.proposal.alternates;
+
+      // 1. Remove alternates that were auto-synced but whose package was deleted
+      const filtered = current.filter(
+        a => !a.bidPackage || estimatorPkgs.includes(a.bidPackage),
+      );
+
+      // 2. Upsert each estimator package
+      const result = [...filtered];
+      for (const pkg of estimatorPkgs) {
+        const t   = totals[pkg] ?? { mat: 0, lab: 0, total: 0 };
+        // fully-loaded: (mat + lab*(1+overhead)) * (1+profit)
+        const price = Math.round((t.mat + t.lab * (1 + R.overhead)) * (1 + R.profit));
+        const idx  = result.findIndex(a => a.bidPackage === pkg);
+        if (idx >= 0) {
+          // Preserve title / desc; only refresh the price
+          result[idx] = { ...result[idx], price };
+        } else {
+          const nextNum = result.length > 0
+            ? Math.max(...result.map(a => a.number)) + 1
+            : 1;
+          result.push({
+            id:         uid(),
+            number:     nextNum,
+            title:      pkg,
+            desc:       '',
+            price,
+            bidPackage: pkg,
+          });
+        }
+      }
+
+      // 3. Re-number to keep a clean 1, 2, 3… sequence
+      const renumbered = result.map((a, i) => ({ ...a, number: i + 1 }));
+
+      // 4. Bail out (no re-render) if nothing changed
+      if (JSON.stringify(renumbered) === JSON.stringify(current)) return prev;
+
+      return { ...prev, proposal: { ...prev.proposal, alternates: renumbered } };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    state.labelsBidPackage,
+    state.heightAdder,
+    state.jobCondMult,
+    state.savedRuns,    state.savedRacks,    state.savedMCHR,  state.savedThreeWay,
+    state.savedData,    state.savedFA,       state.savedCans,  state.savedGear,
+    state.savedCustomDev, state.savedTM,     state.savedLV,    state.savedCustomAsm,
+    state.savedHAR,     state.savedFloorBox, state.asms,       state.savedPanels,
+  ]);
+
   // ── Bullet library state ────────────────────────────────────────
 
   const [savedBullets, setSavedBullets] = useState<string[]>(() => {
@@ -848,9 +912,24 @@ export function ProposalTab() {
         {/* Alternates */}
         <Card title="Add Alternates">
           {p.alternates.map((alt) => (
-            <div key={alt.id} className="mb-2 border border-gray-100 rounded p-2 bg-gray-50">
+            <div
+              key={alt.id}
+              className={`mb-2 border rounded p-2 ${
+                alt.bidPackage
+                  ? 'border-blue-200 bg-blue-50/40'
+                  : 'border-gray-100 bg-gray-50'
+              }`}
+            >
               <div className="flex items-center gap-1 mb-1.5">
                 <span className="text-xs font-semibold text-gray-600">Alt {alt.number}</span>
+                {alt.bidPackage && (
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 whitespace-nowrap"
+                    title="Price auto-synced from Estimator label system"
+                  >
+                    ⟳ Estimator
+                  </span>
+                )}
                 <input
                   className="flex-1 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:border-[#002D72]"
                   defaultValue={alt.title}
@@ -880,6 +959,11 @@ export function ProposalTab() {
                   key={alt.price}
                   placeholder="0.00"
                 />
+                {alt.bidPackage && (
+                  <span className="text-[10px] text-blue-400 whitespace-nowrap" title="Auto-calculated from estimator assemblies">
+                    {fmt$(alt.price)}
+                  </span>
+                )}
               </div>
             </div>
           ))}
