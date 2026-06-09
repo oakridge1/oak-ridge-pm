@@ -442,6 +442,10 @@ export function ProposalTab() {
   // If assemblies are labeled, Base Bid row = labeled Base Bid share; else full total
   const baseBidTotal = labelTotals['Base Bid']?.total ?? correctGrandTotal;
 
+  // ── Base Bid manual override (for T&M / legacy unlabeled adjustments) ───────
+  const [baseBidOverride, setBaseBidOverride] = useState<number | null>(null);
+  const displayBaseBid = baseBidOverride ?? baseBidTotal;
+
   // ── Smart scope detection ───────────────────────────────────────
   const hasFAWork   = state.savedFA.length   > 0;
   const hasDataWork = state.savedData.length > 0;
@@ -478,7 +482,8 @@ export function ProposalTab() {
     const totals = calcLabelTotals(state);
 
     // Only non-base packages that exist in the label registry
-    const estimatorPkgs = (state.labelsBidPackage ?? []).filter(p => p !== 'Base Bid');
+    const estimatorPkgs = (state.labelsBidPackage ?? [])
+      .filter(p => p !== 'Base Bid' && p !== '(No Package)');
 
     setState(prev => {
       const current = prev.proposal.alternates;
@@ -659,7 +664,7 @@ export function ProposalTab() {
   const handlePrint = () => {
     const win = window.open('', '_blank');
     if (!win) return;
-    win.document.write(buildPrintHtml(p, state.jobName, baseBidTotal));
+    win.document.write(buildPrintHtml(p, state.jobName, displayBaseBid));
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 300);
@@ -920,6 +925,40 @@ export function ProposalTab() {
           >+ Add Section</button>
         </Card>
 
+        {/* Base Bid pricing override */}
+        <Card title="Pricing">
+          <div className="mb-1">
+            <label className="text-xs font-semibold text-[#002D72] uppercase tracking-wide block mb-1">
+              Base Bid Total
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">$</span>
+              <input
+                type="number"
+                value={baseBidOverride ?? baseBidTotal}
+                onChange={e =>
+                  setBaseBidOverride(
+                    e.target.value === '' ? null : parseFloat(e.target.value),
+                  )
+                }
+                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono text-gray-800 focus:outline-none focus:border-[#002D72]"
+              />
+              {baseBidOverride !== null && (
+                <button
+                  onClick={() => setBaseBidOverride(null)}
+                  className="text-xs text-blue-500 hover:text-blue-700 whitespace-nowrap"
+                  title="Reset to calculated value"
+                >
+                  ↺ Reset
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Auto: {fmt$(baseBidTotal)} — edit to override
+            </p>
+          </div>
+        </Card>
+
         {/* Alternates */}
         <Card title="Add Alternates">
           {p.alternates.map((alt) => (
@@ -1086,7 +1125,7 @@ export function ProposalTab() {
                 key={p.depositPercent}
               />
               <span className="text-xs text-gray-500">
-                = {fmt$(baseBidTotal * p.depositPercent / 100)}
+                = {fmt$(displayBaseBid * p.depositPercent / 100)}
               </span>
             </div>
           )}
@@ -1231,7 +1270,7 @@ export function ProposalTab() {
             <tbody>
               <tr className="font-semibold" style={{ background: '#f0f4fa' }}>
                 <td className="px-2.5 py-2 border border-gray-200">Base Bid — Complete Electrical Scope</td>
-                <td className="px-2.5 py-2 border border-gray-200 text-right font-bold text-sm">{fmt$(baseBidTotal)}</td>
+                <td className="px-2.5 py-2 border border-gray-200 text-right font-bold text-sm">{fmt$(displayBaseBid)}</td>
               </tr>
             </tbody>
           </table>
@@ -1297,7 +1336,7 @@ export function ProposalTab() {
               </div>
               <div className="mt-1">
                 A deposit of{' '}
-                <strong>{p.depositPercent}% ({fmt$(baseBidTotal * p.depositPercent / 100)})</strong>{' '}
+                <strong>{p.depositPercent}% ({fmt$(displayBaseBid * p.depositPercent / 100)})</strong>{' '}
                 is required to schedule and begin work.
               </div>
             </div>
