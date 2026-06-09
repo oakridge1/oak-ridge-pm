@@ -322,6 +322,14 @@ export interface EstimatorState {
   editLVIdx:        number;
   editCustomAsmIdx: number;
 
+  // ── Label system ──────────────────────────────────────────────
+  labelsBidPackage: string[];
+  labelsArea:       string[];
+  labelsCostCode:   string[];
+  activeBidPackage: string;
+  activeArea:       string;
+  activeCostCode:   string;
+
   // ── Assembly section order (drag-to-reorder) ──────────────────
   asmSectionOrder: string[];
 }
@@ -470,6 +478,12 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     editTMIdx:        -1,
     editLVIdx:        -1,
     editCustomAsmIdx: -1,
+    labelsBidPackage: ['Base Bid'],
+    labelsArea:       [],
+    labelsCostCode:   [],
+    activeBidPackage: 'Base Bid',
+    activeArea:       '',
+    activeCostCode:   '',
     asmSectionOrder: [...DEFAULT_ASM_SECTION_ORDER],
     ...overrides,
   };

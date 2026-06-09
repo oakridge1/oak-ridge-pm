@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
+import { LabelSelector } from '@/components/estimator/LabelSelector';
 import { getRates, applyMarkup, N5, N6 } from '@/lib/estimator/constants';
 import type { AssemblyLine, SavedAssembly } from '@/lib/estimator/constants';
 import { getBomItem, BOM } from '@/lib/estimator/bom';
@@ -272,7 +273,13 @@ export function FixtureBuilderTab() {
   function handleAdd() {
     setState(s => ({
       ...s,
-      asms: [...s.asms, { ...preview, _edited: previewEdited }],
+      asms: [...s.asms, {
+        ...preview,
+        _edited:    previewEdited,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
     }));
     // Reset preview to computed after adding
     setPreview(computed);
@@ -281,6 +288,7 @@ export function FixtureBuilderTab() {
 
   return (
     <div className="max-w-3xl">
+      <LabelSelector />
 
       {/* ── BUILDER FORM ────────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">

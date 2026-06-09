@@ -6,6 +6,7 @@ import { getRates, applyMarkup, type SavedAssembly } from '@/lib/estimator/const
 import { BOM, type BomItem } from '@/lib/estimator/bom';
 import type { EstimatorState } from '@/lib/estimator/state';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { LabelSelector } from '@/components/estimator/LabelSelector';
 
 // ── Key type (subset of EstimatorState that holds SavedAssembly[]) ─────────────
 
@@ -110,11 +111,26 @@ function AssemblyRow({
             : <ChevronRight className="w-3.5 h-3.5" />}
         </span>
 
-        <span className="flex-1 text-sm text-gray-800 truncate min-w-0">
-          {item.label}
+        <span className="flex-1 text-sm text-gray-800 truncate min-w-0 flex items-center gap-1.5 flex-wrap">
+          <span className="truncate">{item.label}</span>
           {item._edited && (
-            <span className="ml-1.5 text-[10px] text-orange-500 font-bold" title="Manually edited">
+            <span className="ml-1.5 text-[10px] text-orange-500 font-bold shrink-0" title="Manually edited">
               ✎
+            </span>
+          )}
+          {item.bidPackage && (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 font-medium shrink-0">
+              {item.bidPackage}
+            </span>
+          )}
+          {item.area && (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700 font-medium shrink-0">
+              {item.area}
+            </span>
+          )}
+          {item.costCode && (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 font-medium shrink-0">
+              {item.costCode}
             </span>
           )}
         </span>
@@ -496,6 +512,7 @@ export function BidItemsTab() {
   // ── Populated state ──────────────────────────────────────────────────────────
   return (
     <div className="max-w-5xl">
+      <LabelSelector />
 
       {/* Summary bar */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-blue-800 mb-3 flex flex-wrap gap-x-6 gap-y-1">

@@ -27,6 +27,7 @@ import { TakeoffTab }           from '@/components/estimator/TakeoffTab';
 import { CounterTool }         from '@/components/estimator/CounterTool';
 import { LightingScheduleTab } from '@/components/estimator/LightingScheduleTab';
 import { GearScheduleTab }     from '@/components/estimator/GearScheduleTab';
+import { LabelSelector }       from '@/components/estimator/LabelSelector';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
@@ -144,7 +145,8 @@ export function EstimatorShell() {
           <TakeoffTab />
         ) : tab === 'assemblies' ? (
           <div className="max-w-5xl">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-sm text-blue-800 mb-4">
+            <LabelSelector />
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-sm text-blue-800 mb-4 mt-3">
               Assemblies auto-explode to full material + labor. Home runs always separate.
               Underground: qty = linear feet.
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { getRates } from '@/lib/estimator/constants';
@@ -51,6 +51,7 @@ export function BidSummaryTab() {
   const [converting,     setConverting]     = useState(false);
   const [convertError,   setConvertError]   = useState<string | null>(null);
   const [convertSuccess, setConvertSuccess] = useState(false);
+  const [summaryView,    setSummaryView]    = useState<'type' | 'label'>('type');
 
   // ── Conditions ────────────────────────────────────────────────────────────
   const setCondMult = (v: number) =>
@@ -226,6 +227,32 @@ export function BidSummaryTab() {
     URL.revokeObjectURL(url);
   }
 
+  // ── All assemblies (for By Label view) ───────────────────────────────────
+  const allAsms = useMemo(() => [
+    ...state.savedRuns, ...state.savedRacks, ...state.savedMCHR,
+    ...state.savedThreeWay, ...state.savedData, ...state.savedFA,
+    ...state.savedCans, ...state.savedGear, ...state.savedCustomDev,
+    ...state.savedTM, ...state.savedLV, ...state.savedCustomAsm,
+    ...state.savedHAR, ...state.savedFloorBox, ...state.asms,
+    ...state.savedPanels,
+  ], [state]);
+
+  // Group allAsms by bidPackage → area → costCode
+  type LabelGroup = Record<string, Record<string, Record<string, typeof allAsms>>>;
+  const labelGrouped = useMemo<LabelGroup>(() => {
+    const grouped: LabelGroup = {};
+    for (const asm of allAsms) {
+      const pkg  = asm.bidPackage || '(No Package)';
+      const area = asm.area       || '(No Area)';
+      const cc   = asm.costCode   || '(No Cost Code)';
+      if (!grouped[pkg]) grouped[pkg] = {};
+      if (!grouped[pkg][area]) grouped[pkg][area] = {};
+      if (!grouped[pkg][area][cc]) grouped[pkg][area][cc] = [];
+      grouped[pkg][area][cc].push(asm);
+    }
+    return grouped;
+  }, [allAsms]);
+
   // ── Empty guard ───────────────────────────────────────────────────────────
   const isEmpty =
     matTotal === 0 && laborBase === 0 &&
@@ -289,10 +316,36 @@ export function BidSummaryTab() {
       {/* ── ASSEMBLY BREAKDOWN ──────────────────────────────────────────────── */}
       {!isEmpty && (
         <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-          <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
-            Assembly Breakdown
+          <div className="flex items-center justify-between border-b border-gray-200 pb-1 mb-3">
+            <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c]">
+              Assembly Breakdown
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setSummaryView('type')}
+                className={`px-3 py-1 text-xs rounded border transition-colors ${
+                  summaryView === 'type'
+                    ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
+                    : 'bg-white text-gray-500 border-gray-300 hover:border-[#1a3a5c]'
+                }`}
+              >
+                By Type
+              </button>
+              <button
+                onClick={() => setSummaryView('label')}
+                className={`px-3 py-1 text-xs rounded border transition-colors ${
+                  summaryView === 'label'
+                    ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
+                    : 'bg-white text-gray-500 border-gray-300 hover:border-[#1a3a5c]'
+                }`}
+              >
+                By Label
+              </button>
+            </div>
           </div>
 
+          {summaryView === 'type' && (
+          <>
           <table className="w-full text-xs">
             <thead>
               <tr className="text-gray-400 font-semibold border-b border-gray-200">
@@ -347,6 +400,56 @@ export function BidSummaryTab() {
               <span>Total hrs: {fmtH(totalHrs)}</span>
             )}
           </div>
+          </>) /* end summaryView === 'type' */}
+
+          {/* ── By Label view ──────────────────────────────────────────────── */}
+          {summaryView === 'label' && (
+            <div className="space-y-4">
+              {Object.entries(labelGrouped).map(([pkg, areas]) => {
+                const pkgMat = Object.values(areas).flatMap(a => Object.values(a).flat()).reduce((s, a) => s + a.mat, 0);
+                const pkgLab = Object.values(areas).flatMap(a => Object.values(a).flat()).reduce((s, a) => s + a.lab * heightMult, 0);
+                return (
+                  <div key={pkg}>
+                    <div className="bg-[#1a3a5c] text-white px-3 py-1.5 rounded-t text-xs font-bold flex justify-between">
+                      <span>{pkg}</span>
+                      <span className="font-mono">{fmt$(pkgMat + pkgLab)}</span>
+                    </div>
+                    {Object.entries(areas).map(([area, costCodes]) => {
+                      const areaMat = Object.values(costCodes).flat().reduce((s, a) => s + a.mat, 0);
+                      const areaLab = Object.values(costCodes).flat().reduce((s, a) => s + a.lab * heightMult, 0);
+                      return (
+                        <div key={area} className="border border-[#1a3a5c]/20 border-t-0">
+                          <div className="bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 flex justify-between">
+                            <span>{area}</span>
+                            <span className="font-mono">{fmt$(areaMat + areaLab)}</span>
+                          </div>
+                          <table className="w-full text-xs">
+                            <tbody>
+                              {Object.entries(costCodes).map(([cc, items]) => {
+                                const ccMat = items.reduce((s, a) => s + a.mat, 0);
+                                const ccLab = items.reduce((s, a) => s + a.lab * heightMult, 0);
+                                return (
+                                  <tr key={cc} className="border-b border-gray-100 hover:bg-blue-50/30">
+                                    <td className="py-1.5 px-3 text-gray-600">
+                                      <span className="text-green-700 font-medium">{cc}</span>
+                                      <span className="ml-2 text-gray-400">({items.length})</span>
+                                    </td>
+                                    <td className="py-1.5 text-right font-mono text-gray-500 w-24 pr-2">{fmt$(ccMat)}</td>
+                                    <td className="py-1.5 text-right font-mono text-gray-500 w-24 pr-2">{fmt$(ccLab)}</td>
+                                    <td className="py-1.5 text-right font-mono font-semibold text-gray-800 w-28 pr-3">{fmt$(ccMat + ccLab)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

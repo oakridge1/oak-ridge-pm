@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { calcGear, GEAR_DEF, type GearParams } from '@/lib/estimator/calc';
 import { getRates } from '@/lib/estimator/constants';
+import { LabelSelector } from '@/components/estimator/LabelSelector';
 
 // ── Format helpers ─────────────────────────────────────────────────────────────
 
@@ -110,6 +111,7 @@ export function GearBuilderTab() {
 
   return (
     <div className="max-w-3xl">
+      <LabelSelector />
 
       {/* ── BUILDER FORM ────────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">

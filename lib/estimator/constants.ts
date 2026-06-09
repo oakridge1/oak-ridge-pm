@@ -118,8 +118,11 @@ export interface SavedAssembly {
   mat:      number;
   lab:      number;
   lines:    AssemblyLine[];
-  params?:  Record<string, unknown>;  // original builder params for edit/rebuild
-  _edited?: boolean;                  // true if lines were manually modified
+  params?:      Record<string, unknown>;  // original builder params for edit/rebuild
+  _edited?:     boolean;                  // true if lines were manually modified
+  bidPackage?:  string;
+  area?:        string;
+  costCode?:    string;
 }
 
 // ─────────────────────────────────────

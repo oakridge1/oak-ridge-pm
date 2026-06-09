@@ -124,6 +124,11 @@ export interface EstimatorActions {
 
   // ── Section reorder ─────────────────────────────────────────────
   reorderAsmSections: (newOrder: string[]) => void;
+
+  // ── Label system ────────────────────────────────────────────────
+  setActiveLabel: (dimension: 'bidPackage' | 'area' | 'costCode', value: string) => void;
+  addLabel:       (dimension: 'bidPackage' | 'area' | 'costCode', value: string) => void;
+  removeLabel:    (dimension: 'bidPackage' | 'area' | 'costCode', value: string) => void;
 }
 
 export function useEstimator(): EstimatorActions {
@@ -211,85 +216,165 @@ export function useEstimator(): EstimatorActions {
   const addConduitRun = useCallback(() => {
     const result = calcConduitRun(state.condRunState);
     if (!result) return false;
-    pushToArray('savedRuns', result);
-    patch({ condRunState: { ...DEFAULT_COND_RUN } });
+    setState(s => ({
+      ...s,
+      savedRuns: [...s.savedRuns, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      condRunState: { ...DEFAULT_COND_RUN },
+    }));
     return true;
-  }, [state.condRunState, pushToArray, patch]);
+  }, [state.condRunState]);
 
   const addRack = useCallback(() => {
     const result = calcRack(state.rackState);
     if (!result) return false;
-    pushToArray('savedRacks', result);
-    patch({ rackState: { ...DEFAULT_RACK } });
+    setState(s => ({
+      ...s,
+      savedRacks: [...s.savedRacks, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      rackState: { ...DEFAULT_RACK },
+    }));
     return true;
-  }, [state.rackState, pushToArray, patch]);
+  }, [state.rackState]);
 
   const addMCHomeRun = useCallback(() => {
     const result = calcMCHomeRun(state.mcHRState);
     if (!result) return false;
-    pushToArray('savedMCHR', result);
-    patch({ mcHRState: { ...DEFAULT_MCHR } });
+    setState(s => ({
+      ...s,
+      savedMCHR: [...s.savedMCHR, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      mcHRState: { ...DEFAULT_MCHR },
+    }));
     return true;
-  }, [state.mcHRState, pushToArray, patch]);
+  }, [state.mcHRState]);
 
   const addThreeWay = useCallback(() => {
     const result = calcThreeWay(state.threeWayState);
     if (!result) return false;
-    pushToArray('savedThreeWay', result);
-    patch({ threeWayState: { ...DEFAULT_THREE_WAY } });
+    setState(s => ({
+      ...s,
+      savedThreeWay: [...s.savedThreeWay, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      threeWayState: { ...DEFAULT_THREE_WAY },
+    }));
     return true;
-  }, [state.threeWayState, pushToArray, patch]);
+  }, [state.threeWayState]);
 
   const addDataLocation = useCallback(() => {
     const result = calcData(state.dataState);
     if (!result) return false;
-    pushToArray('savedData', result);
-    patch({ dataState: { ...DEFAULT_DATA } });
+    setState(s => ({
+      ...s,
+      savedData: [...s.savedData, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      dataState: { ...DEFAULT_DATA },
+    }));
     return true;
-  }, [state.dataState, pushToArray, patch]);
+  }, [state.dataState]);
 
   const addFireAlarm = useCallback(() => {
     const result = calcFireAlarm(state.faState);
     if (!result) return false;
-    pushToArray('savedFA', result);
-    patch({ faState: { ...DEFAULT_FA } });
+    setState(s => ({
+      ...s,
+      savedFA: [...s.savedFA, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      faState: { ...DEFAULT_FA },
+    }));
     return true;
-  }, [state.faState, pushToArray, patch]);
+  }, [state.faState]);
 
   const addLVDevice = useCallback(() => {
     const result = calcLV(state.lvState);
     if (!result) return false;
-    pushToArray('savedLV', result);
-    patch({ lvState: { ...DEFAULT_LV } });
+    setState(s => ({
+      ...s,
+      savedLV: [...s.savedLV, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      lvState: { ...DEFAULT_LV },
+    }));
     return true;
-  }, [state.lvState, pushToArray, patch]);
+  }, [state.lvState]);
 
   const addGear = useCallback(() => {
     const result = calcGear(
       state.gearState as unknown as Parameters<typeof calcGear>[0]);
     if (!result) return false;
-    pushToArray('savedGear', result);
-    patch({ gearState: { ...DEFAULT_GEAR } });
+    setState(s => ({
+      ...s,
+      savedGear: [...s.savedGear, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      gearState: { ...DEFAULT_GEAR },
+    }));
     return true;
-  }, [state.gearState, pushToArray, patch]);
+  }, [state.gearState]);
 
   const addFloorBox = useCallback(() => {
     const result = calcFloorBox(
       state.floorBoxState as unknown as Parameters<typeof calcFloorBox>[0]);
     if (!result) return false;
-    pushToArray('savedFloorBox', result);
-    patch({ floorBoxState: { ...DEFAULT_FLOOR_BOX } });
+    setState(s => ({
+      ...s,
+      savedFloorBox: [...s.savedFloorBox, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      floorBoxState: { ...DEFAULT_FLOOR_BOX },
+    }));
     return true;
-  }, [state.floorBoxState, pushToArray, patch]);
+  }, [state.floorBoxState]);
 
   const addHighAmpRecept = useCallback(() => {
     const result = calcHighAmpRecept(
       state.harState as unknown as Parameters<typeof calcHighAmpRecept>[0]);
     if (!result) return false;
-    pushToArray('savedHAR', result);
-    patch({ harState: { ...DEFAULT_HAR } });
+    setState(s => ({
+      ...s,
+      savedHAR: [...s.savedHAR, {
+        ...result,
+        bidPackage: s.activeBidPackage || undefined,
+        area:       s.activeArea       || undefined,
+        costCode:   s.activeCostCode   || undefined,
+      }],
+      harState: { ...DEFAULT_HAR },
+    }));
     return true;
-  }, [state.harState, pushToArray, patch]);
+  }, [state.harState]);
 
   // ── Remove assembly ──────────────────────────────────────────────
   const removeAssembly = useCallback(
@@ -515,6 +600,54 @@ export function useEstimator(): EstimatorActions {
     [patch]
   );
 
+  // ── Label system ─────────────────────────────────────────────────
+  const setActiveLabel = useCallback(
+    (dimension: 'bidPackage' | 'area' | 'costCode', value: string) => {
+      const key = dimension === 'bidPackage' ? 'activeBidPackage'
+                : dimension === 'area'       ? 'activeArea'
+                :                              'activeCostCode';
+      patch({ [key]: value });
+    },
+    [patch]
+  );
+
+  const addLabel = useCallback(
+    (dimension: 'bidPackage' | 'area' | 'costCode', value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      const key = dimension === 'bidPackage' ? 'labelsBidPackage'
+                : dimension === 'area'       ? 'labelsArea'
+                :                              'labelsCostCode';
+      setState(s => {
+        const arr = s[key] as string[];
+        if (arr.includes(trimmed)) return s;
+        return { ...s, [key]: [...arr, trimmed] };
+      });
+    },
+    []
+  );
+
+  const removeLabel = useCallback(
+    (dimension: 'bidPackage' | 'area' | 'costCode', value: string) => {
+      const key = dimension === 'bidPackage' ? 'labelsBidPackage'
+                : dimension === 'area'       ? 'labelsArea'
+                :                              'labelsCostCode';
+      const activeKey = dimension === 'bidPackage' ? 'activeBidPackage'
+                      : dimension === 'area'       ? 'activeArea'
+                      :                              'activeCostCode';
+      setState(s => {
+        const arr = (s[key] as string[]).filter(v => v !== value);
+        const active = s[activeKey] as string;
+        return {
+          ...s,
+          [key]: arr,
+          [activeKey]: active === value ? (arr[0] ?? '') : active,
+        };
+      });
+    },
+    []
+  );
+
   return {
     state, setState,
     setTab,
@@ -542,5 +675,6 @@ export function useEstimator(): EstimatorActions {
     updateGearItem:     updateGearItemFn,
     removeGearItem:     removeGearItemFn,
     reorderAsmSections,
+    setActiveLabel, addLabel, removeLabel,
   };
 }
