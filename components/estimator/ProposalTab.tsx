@@ -440,7 +440,7 @@ export function ProposalTab() {
   // ── Per-label proportional totals (for alternates and Base Bid row) ─────────
   const labelTotals  = useMemo(() => calcLabelTotals(state), [state]);
   // If assemblies are labeled, Base Bid row = labeled Base Bid share; else full total
-  const baseBidTotal = labelTotals['Base Bid']?.total ?? correctGrandTotal;
+  const baseBidTotal = Math.round((labelTotals['Base Bid']?.total ?? correctGrandTotal) * 100) / 100;
 
   // ── Base Bid manual override (for T&M / legacy unlabeled adjustments) ───────
   const [baseBidOverride, setBaseBidOverride] = useState<number | null>(null);
@@ -935,7 +935,7 @@ export function ProposalTab() {
               <span className="text-gray-500 text-sm">$</span>
               <input
                 type="number"
-                value={baseBidOverride ?? baseBidTotal}
+                value={(baseBidOverride ?? baseBidTotal).toFixed(2)}
                 onChange={e =>
                   setBaseBidOverride(
                     e.target.value === '' ? null : parseFloat(e.target.value),

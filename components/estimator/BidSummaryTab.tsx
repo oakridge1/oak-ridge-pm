@@ -352,12 +352,17 @@ export function BidSummaryTab() {
 </body>
 </html>`;
 
-    const win = window.open('', '_blank');
-    if (!win) { alert('Pop-up blocked — allow pop-ups for this site and try again.'); return; }
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 400);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `Bid_Summary_${
+      (state.jobName || 'Estimate').replace(/\s+/g, '_')
+    }_${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // ── Export JSON ───────────────────────────────────────────────────────────
@@ -388,7 +393,7 @@ export function BidSummaryTab() {
   const labelGrouped = useMemo<LabelGroup>(() => {
     const grouped: LabelGroup = {};
     for (const asm of allAsms) {
-      const pkg  = asm.bidPackage || '(No Package)';
+      const pkg  = asm.bidPackage || 'Base Bid';
       const area = asm.area       || '(No Area)';
       const cc   = asm.costCode   || '(No Cost Code)';
       if (!grouped[pkg]) grouped[pkg] = {};
@@ -757,7 +762,7 @@ export function BidSummaryTab() {
           onClick={handleDownloadSummaryPDF}
           className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#eef4ff] transition-colors"
         >
-          ⬇ Download Summary
+          ⬇ Download Summary (open & print to PDF)
         </button>
         <button
           onClick={handleConvert}
