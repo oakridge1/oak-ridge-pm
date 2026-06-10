@@ -6,6 +6,7 @@ import type { PanelBuilderState } from './panelBuilder';
 import { createPanelState } from './panelBuilder';
 import type { ProposalState } from './proposalState';
 import { createProposalState } from './proposalState';
+import type { CustomAssemblyDef } from './customAssembly';
 import type {
   ConduitRunParams, RackParams, MCHomeRunParams,
   ThreeWayParams, DataParams, FireAlarmParams,
@@ -282,6 +283,9 @@ export interface EstimatorState {
   // ── Assembly templates ────────────────────────────────────────
   assemblyTemplates: AssemblyTemplate[];
 
+  // ── Custom assembly defs (permanent library, mirrored to localStorage) ──
+  customAsmDefs: CustomAssemblyDef[];
+
   // ── Blended quote totals ──────────────────────────────────────
   lightingTotalQuote:  number | null;
   lightingQuoteMarkup: number;
@@ -446,6 +450,7 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     lightingSchedule:    [],
     gearSchedule:        [],
     assemblyTemplates:   [],
+    customAsmDefs:       [],
     lightingTotalQuote:  null,
     lightingQuoteMarkup: 0.05,
     gearTotalQuote:      null,

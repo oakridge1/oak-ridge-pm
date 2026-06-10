@@ -28,11 +28,13 @@ import { CounterTool }         from '@/components/estimator/CounterTool';
 import { LightingScheduleTab } from '@/components/estimator/LightingScheduleTab';
 import { GearScheduleTab }     from '@/components/estimator/GearScheduleTab';
 import { LabelSelector }       from '@/components/estimator/LabelSelector';
+import { CustomAssemblyBuilder } from '@/components/estimator/CustomAssemblyBuilder';
 
 const TABS = [
   { id: 'takeoff',     label: 'Takeoff'         },
   { id: 'assemblies',  label: 'Assembly Library' },
   { id: 'fixtures',    label: 'Fixture Builder'  },
+  { id: 'custom_asm',  label: 'Custom Assembly'  },
   { id: 'panel',       label: 'Panel Builder'    },
   { id: 'items',       label: 'Audit Trail'      },
   { id: 'gear',        label: 'Gear Builder'     },
@@ -166,6 +168,8 @@ export function EstimatorShell() {
           <BidItemsTab />
         ) : tab === 'fixtures' ? (
           <FixtureBuilderTab />
+        ) : tab === 'custom_asm' ? (
+          <CustomAssemblyBuilder />
         ) : tab === 'panel' ? (
           <PanelBuilderTab />
         ) : tab === 'gear' ? (
