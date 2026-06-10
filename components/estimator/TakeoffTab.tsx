@@ -45,10 +45,48 @@ const DATA_TAKEOFF_MAP: Record<string, number> = {
   data_4port: 4,
 };
 
+// Takeoff key → FixtureBuilderTab ASMS id (every id verified against ASMS)
+const FIXTURE_TAKEOFF_MAP: Record<string, string> = {
+  // Devices
+  recept_20a:          'r20',
+  recept_15a_tr:       'r15',
+  gfci_20a:            'gfci20',
+  gfci_15a_tr:         'gfci15',
+  switch_sp:           'sw1p',
+  switch_4way:         'sw4way',
+  dimmer:              'dim',
+  dimmer_010v:         'dim010',
+  occ_sensor:          'occ1',
+  // Fixtures
+  fixture_2x4:         'tb24',
+  fixture_2x2:         'tb22',
+  fixture_strip:       'st48',
+  fixture_strip_8:     'st96',
+  fixture_wrap_4:      'vt48',
+  fixture_wrap_8:      'vt96',
+  fixture_highbay:     'hbay',
+  fixture_highbay_lin: 'hbay_lin',
+  fixture_lowbay:      'lowbay',
+  fixture_pendant:     'pendant',
+  fixture_wall:        'sconce',
+  fixture_wallpack:    'ewp',
+  fixture_chain48:     'ch48',
+  fixture_chain96:     'ch96',
+  fixture_exit_ebu:    'exit',
+  fixture_emrg:        'emrg',
+  fixture_fan36:       'fan36',
+  fixture_fan48:       'fan48',
+  fixture_fan55:       'fan55',
+  fixture_fan60:       'fan60',
+};
+
+// 3-way switch is a footage item (traveler ft) — prefills the ThreeWayBuilder
+const THREEWAY_TAKEOFF_KEYS = new Set(['switch_3way']);
+
 // ── TakeoffTab ─────────────────────────────────────────────────────────────────
 
 export function TakeoffTab() {
-  const { state, setState, setTab, setActiveLabel, addLabel, updateFAState, updateLVState, updateDataState } = useEstimatorContext();
+  const { state, setState, setTab, setActiveLabel, addLabel, updateFAState, updateLVState, updateDataState, updateFixtureState, updateThreeWayState } = useEstimatorContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [editingId,   setEditingId]   = useState<string | null>(null);
@@ -367,6 +405,13 @@ export function TakeoffTab() {
                       → Data/LV Builders
                     </button>
                   )}
+                  {(cat === 'devices' || cat === 'fixtures') && (
+                    <button
+                      onClick={() => setTab('fixtures')}
+                      className="px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap transition-colors">
+                      → Fixture Builder
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -443,6 +488,22 @@ export function TakeoffTab() {
                             onClick={() => { updateDataState({ ports: DATA_TAKEOFF_MAP[id] as (1 | 2 | 3 | 4) }); setTab('assemblies'); }}
                             title="Load into Data Builder"
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
+                            → Build
+                          </button>
+                        )}
+                        {(cat === 'devices' || cat === 'fixtures') && id in FIXTURE_TAKEOFF_MAP && (
+                          <button
+                            onClick={() => { updateFixtureState({ selectedId: FIXTURE_TAKEOFF_MAP[id], qty: Math.max(1, Math.round(qty)) }); setTab('fixtures'); }}
+                            title="Load into Fixture Builder"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
+                            → Build
+                          </button>
+                        )}
+                        {THREEWAY_TAKEOFF_KEYS.has(id) && (
+                          <button
+                            onClick={() => { updateThreeWayState({ travelerFt: qty }); setTab('assemblies'); }}
+                            title="Load traveler footage into 3-Way Builder"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">
                             → Build
                           </button>
                         )}

@@ -190,32 +190,25 @@ function buildFixtureAsm(
 // ── FixtureBuilderTab ──────────────────────────────────────────────────────────
 
 export function FixtureBuilderTab() {
-  const { state, setState } = useEstimatorContext();
+  const { state, setState, updateFixtureState } = useEstimatorContext();
   const R = getRates();
 
-  // Local form state
-  const [selectedId, setSelectedId] = useState<string>('r20');
-  const [whipFt,     setWhipFt]     = useState<number>(20);
-  const [qty,        setQty]        = useState<number>(1);
-  const [twoGang,    setTwoGang]    = useState<boolean>(false);
-  const [romex,      setRomex]      = useState<boolean>(false);
-  const [diff,       setDiff]       = useState<number>(1.00);
+  // Form state lives on EstimatorState so the Takeoff tab can prefill it
+  const { selectedId, whipFt, qty, twoGang, romex, diff } = state.fixtureState;
 
   const selectedAsm = ASMS.find(a => a.id === selectedId) ?? ASMS[0];
   const isDevice    = selectedAsm.grp === 'Device';
 
   // When the assembly type changes, reset toggles and update whip default
   function handleAsmChange(id: string) {
-    setSelectedId(id);
     const asm = ASMS.find(a => a.id === id);
-    if (!asm) return;
-    setTwoGang(false);
-    setRomex(false);
-    if (asm.grp === 'Device') {
-      setWhipFt(asm.wFt);
-    } else {
-      setWhipFt(0);
-    }
+    if (!asm) { updateFixtureState({ selectedId: id }); return; }
+    updateFixtureState({
+      selectedId: id,
+      twoGang:    false,
+      romex:      false,
+      whipFt:     asm.grp === 'Device' ? asm.wFt : 0,
+    });
   }
 
   // Computed (pure) assembly from builder inputs
@@ -324,7 +317,7 @@ export function FixtureBuilderTab() {
             <label className="block text-xs text-gray-500 mb-1">Whip Length</label>
             <select
               value={whipFt}
-              onChange={e => setWhipFt(parseInt(e.target.value, 10))}
+              onChange={e => updateFixtureState({ whipFt: parseInt(e.target.value, 10) })}
               className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-full"
             >
               {WHIP_OPTIONS.map(o => (
@@ -340,7 +333,7 @@ export function FixtureBuilderTab() {
               type="number"
               min={1}
               value={qty}
-              onChange={e => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+              onChange={e => updateFixtureState({ qty: Math.max(1, parseInt(e.target.value, 10) || 1) })}
               className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-full text-right font-mono"
             />
           </div>
@@ -353,7 +346,7 @@ export function FixtureBuilderTab() {
               <input
                 type="checkbox"
                 checked={twoGang}
-                onChange={e => setTwoGang(e.target.checked)}
+                onChange={e => updateFixtureState({ twoGang: e.target.checked })}
                 className="w-4 h-4 accent-[#1a3a5c]"
               />
               <span className="text-sm text-gray-700">
@@ -365,7 +358,7 @@ export function FixtureBuilderTab() {
               <input
                 type="checkbox"
                 checked={romex}
-                onChange={e => setRomex(e.target.checked)}
+                onChange={e => updateFixtureState({ romex: e.target.checked })}
                 className="w-4 h-4 accent-[#1a3a5c]"
               />
               <span className="text-sm text-gray-700">
@@ -383,7 +376,7 @@ export function FixtureBuilderTab() {
             {DIFF_OPTIONS.map(d => (
               <button
                 key={d.value}
-                onClick={() => setDiff(d.value)}
+                onClick={() => updateFixtureState({ diff: d.value })}
                 className={`px-3 py-1.5 text-xs rounded border transition-colors ${
                   diff === d.value
                     ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'

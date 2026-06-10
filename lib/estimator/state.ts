@@ -114,6 +114,15 @@ export interface TMState {
   markup: 'bulk' | 'light' | 'none';
 }
 
+export interface FixtureState {
+  selectedId: string;
+  whipFt:     number;
+  qty:        number;
+  twoGang:    boolean;
+  romex:      boolean;
+  diff:       number;   // 1.00 normal / 1.25 difficult / 1.55 v.difficult
+}
+
 export interface CustomAsmState {
   label: string;
   lines: Array<{ name: string; qty: number; unit: string; mat: number; lab: number }>;
@@ -311,6 +320,7 @@ export interface EstimatorState {
   tmState:        TMState;
   customAsmState: CustomAsmState;
   customDevState: CustomDevState;
+  fixtureState:   FixtureState;
 
   // ── Edit indices (-1 = new, >= 0 = editing that index) ───────
   editRunIdx:       number;
@@ -409,6 +419,11 @@ export const DEFAULT_CUSTOM_ASM: CustomAsmState = {
   label: '', lines: [],
 };
 
+export const DEFAULT_FIXTURE: FixtureState = {
+  selectedId: 'r20', whipFt: 20, qty: 1,
+  twoGang: false, romex: false, diff: 1.00,
+};
+
 export const DEFAULT_CUSTOM_DEV: CustomDevState = {
   devBomId: 'd1', cableType: 'mc', cableId: 'w1',
   boxId: 'b1', whipFt: 20, qty: 1, diff: 1.0,
@@ -471,6 +486,7 @@ export function createNewState(overrides?: Partial<EstimatorState>): EstimatorSt
     tmState:        { ...DEFAULT_TM },
     customAsmState: { ...DEFAULT_CUSTOM_ASM },
     customDevState: { ...DEFAULT_CUSTOM_DEV },
+    fixtureState:   { ...DEFAULT_FIXTURE },
     editRunIdx:       -1,
     editRackIdx:      -1,
     editHRIdx:        -1,

@@ -113,6 +113,7 @@ export interface EstimatorActions {
   updateCanState:      (patch: Partial<EstimatorState['canState']>)      => void;
   updateLVState:       (patch: Partial<EstimatorState['lvState']>)       => void;
   updateTMState:       (patch: Partial<EstimatorState['tmState']>)       => void;
+  updateFixtureState:  (patch: Partial<EstimatorState['fixtureState']>)  => void;
 
   // ── Lighting & gear schedule ────────────────────────────────────
   addLightingItem:    (item: Omit<LightingItem, 'id'>) => void;
@@ -538,6 +539,7 @@ export function useEstimator(): EstimatorActions {
   const updateCanState      = useCallback((p: Partial<EstimatorState['canState']>)      => patch(s => ({ canState:      { ...s.canState,      ...p } })), [patch]);
   const updateLVState       = useCallback((p: Partial<EstimatorState['lvState']>)       => patch(s => ({ lvState:       { ...s.lvState,       ...p } })), [patch]);
   const updateTMState       = useCallback((p: Partial<EstimatorState['tmState']>)       => patch(s => ({ tmState:       { ...s.tmState,       ...p } })), [patch]);
+  const updateFixtureState  = useCallback((p: Partial<EstimatorState['fixtureState']>)  => patch(s => ({ fixtureState:  { ...s.fixtureState,  ...p } })), [patch]);
 
   // ── Lighting & gear schedule ─────────────────────────────────────
   const addLightingItemFn = useCallback(
@@ -667,7 +669,7 @@ export function useEstimator(): EstimatorActions {
     updateCondRunState, updateRackState, updateMCHRState,
     updateThreeWayState, updateDataState, updateFAState,
     updateGearState, updateFloorBoxState, updateHARState,
-    updateCanState, updateLVState, updateTMState,
+    updateCanState, updateLVState, updateTMState, updateFixtureState,
     addLightingItem:    addLightingItemFn,
     updateLightingItem: updateLightingItemFn,
     removeLightingItem: removeLightingItemFn,
