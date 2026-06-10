@@ -193,7 +193,7 @@ function buildPrintHtml(
   `).join('');
 
   const altTable = p.alternates.length > 0 ? `
-    <h3 style="margin:20px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #002D72;padding-bottom:4px;color:#002D72">Add Alternates</h3>
+    <h3 style="margin:20px 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1e3a8a;padding-bottom:4px;color:#1e3a8a">Add Alternates</h3>
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>
         <tr style="background:#f0f4fa">
@@ -226,7 +226,7 @@ function buildPrintHtml(
   }
   .page { max-width: 800px; margin: 0 auto; padding: 40px; }
   h2 { font-size: 14px; margin: 0 0 2px; text-transform: uppercase; letter-spacing: .06em; }
-  h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #002D72; padding-bottom: 4px; color: #002D72; }
+  h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #1e3a8a; padding-bottom: 4px; color: #1e3a8a; }
   ul { margin: 4px 0; padding-left: 20px; }
   li { margin-bottom: 2px; }
   p { margin: 4px 0; line-height: 1.5; }
@@ -237,7 +237,7 @@ function buildPrintHtml(
 <div class="page">
 
   <!-- Header -->
-  <table style="width:100%;border-bottom:2px solid #002D72;padding-bottom:12px;margin-bottom:16px">
+  <table style="width:100%;border-bottom:2px solid #1e3a8a;padding-bottom:12px;margin-bottom:16px">
     <tr>
       <td style="vertical-align:top">
         <img src="${LOGO_URL}"
@@ -314,7 +314,7 @@ function buildPrintHtml(
   ${p.depositEnabled ? `
   <!-- Deposit Request -->
   <div style="background:#e8f0fe;border:1px solid #4a7bc8;border-radius:6px;padding:10px 14px;margin-top:12px;margin-bottom:4px">
-    <div style="font-weight:600;color:#002D72;font-size:13px">Deposit Request</div>
+    <div style="font-weight:600;color:#1e3a8a;font-size:13px">Deposit Request</div>
     <p style="margin:4px 0">A deposit of <strong>${p.depositPercent}% (${fmt$(baseTotal * p.depositPercent / 100)})</strong> is required to schedule and begin work.</p>
   </div>
   ` : ''}
@@ -363,7 +363,7 @@ function buildPrintHtml(
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3">
-      <div className="text-xs font-semibold text-[#002D72] uppercase tracking-wide mb-2">{title}</div>
+      <div className="text-xs font-semibold text-[#1e3a8a] uppercase tracking-wide mb-2">{title}</div>
       {children}
     </div>
   );
@@ -383,7 +383,7 @@ function LabelInput({
       <label className="text-xs text-gray-500">{label}</label>
       <input
         type={type}
-        className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#002D72]"
+        className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#1e3a8a]"
         defaultValue={value}
         placeholder={placeholder}
         onBlur={e => onChange(e.target.value)}
@@ -796,7 +796,7 @@ export function ProposalTab() {
         {/* Scope Intro */}
         <Card title="Scope Introduction">
           <textarea
-            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#002D72] resize-none"
+            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1e3a8a] resize-none"
             rows={4}
             defaultValue={p.scopeIntro}
             onBlur={e => patch('scopeIntro', e.target.value)}
@@ -852,7 +852,7 @@ export function ProposalTab() {
               <div className="flex items-center gap-1 mb-1.5">
                 <span className="text-xs text-gray-500 font-medium w-4">{si + 1}.</span>
                 <input
-                  className="flex-1 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:border-[#002D72]"
+                  className="flex-1 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:border-[#1e3a8a]"
                   defaultValue={sec.title}
                   onBlur={e => updateSection(sec.id, { title: e.target.value })}
                   key={sec.title}
@@ -880,7 +880,7 @@ export function ProposalTab() {
                 <div key={ii} className="flex items-center gap-1 mb-1">
                   <span className="text-gray-300 text-xs">•</span>
                   <input
-                    className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#002D72] bg-white"
+                    className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#1e3a8a] bg-white"
                     defaultValue={item}
                     onBlur={e => updateBullet(sec.id, ii, e.target.value)}
                     key={`${sec.id}-${ii}-${item}`}
@@ -922,14 +922,14 @@ export function ProposalTab() {
           ))}
           <button
             onClick={addSection}
-            className="w-full text-xs border border-dashed border-[#002D72] text-[#002D72] rounded py-1 hover:bg-blue-50 transition-colors"
+            className="w-full text-xs border border-dashed border-[#1e3a8a] text-[#1e3a8a] rounded py-1 hover:bg-blue-50 transition-colors"
           >+ Add Section</button>
         </Card>
 
         {/* Base Bid pricing override */}
         <Card title="Pricing">
           <div className="mb-1">
-            <label className="text-xs font-semibold text-[#002D72] uppercase tracking-wide block mb-1">
+            <label className="text-xs font-semibold text-[#1e3a8a] uppercase tracking-wide block mb-1">
               Base Bid Total
             </label>
             <div className="flex items-center gap-2">
@@ -942,7 +942,7 @@ export function ProposalTab() {
                     e.target.value === '' ? null : parseFloat(e.target.value),
                   )
                 }
-                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono text-gray-800 focus:outline-none focus:border-[#002D72]"
+                className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm font-mono text-gray-800 focus:outline-none focus:border-[#1e3a8a]"
               />
               {baseBidOverride !== null && (
                 <button
@@ -982,7 +982,7 @@ export function ProposalTab() {
                   </span>
                 )}
                 <input
-                  className="flex-1 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:border-[#002D72]"
+                  className="flex-1 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:border-[#1e3a8a]"
                   defaultValue={alt.title}
                   onBlur={e => updateAlternate(alt.id, { title: e.target.value })}
                   key={alt.title}
@@ -994,7 +994,7 @@ export function ProposalTab() {
                 >✕</button>
               </div>
               <input
-                className="w-full border border-gray-100 rounded px-1.5 py-0.5 text-xs mb-1 focus:outline-none focus:border-[#002D72] bg-white"
+                className="w-full border border-gray-100 rounded px-1.5 py-0.5 text-xs mb-1 focus:outline-none focus:border-[#1e3a8a] bg-white"
                 defaultValue={alt.desc}
                 onBlur={e => updateAlternate(alt.id, { desc: e.target.value })}
                 key={alt.desc}
@@ -1005,7 +1005,7 @@ export function ProposalTab() {
                 {alt.bidPackage ? (
                   /* Estimator-driven: price is read-only, styled navy/orange */
                   <div
-                    className="flex-1 border border-blue-200 rounded px-1.5 py-0.5 text-xs bg-blue-50 text-[#1a3a5c] font-semibold font-mono select-all cursor-default"
+                    className="flex-1 border border-blue-200 rounded px-1.5 py-0.5 text-xs bg-blue-50 text-[#1e3a8a] font-semibold font-mono select-all cursor-default"
                     title="Auto-calculated from Estimator label system — edit assemblies in the Estimator to change this price"
                   >
                     {fmt$(alt.price)}
@@ -1013,7 +1013,7 @@ export function ProposalTab() {
                 ) : (
                   <input
                     type="number"
-                    className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#002D72] bg-white"
+                    className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#1e3a8a] bg-white"
                     defaultValue={alt.price}
                     onBlur={e => updateAlternate(alt.id, { price: parseFloat(e.target.value) || 0 })}
                     key={alt.price}
@@ -1025,7 +1025,7 @@ export function ProposalTab() {
           ))}
           <button
             onClick={addAlternate}
-            className="w-full text-xs border border-dashed border-[#002D72] text-[#002D72] rounded py-1 hover:bg-blue-50 transition-colors"
+            className="w-full text-xs border border-dashed border-[#1e3a8a] text-[#1e3a8a] rounded py-1 hover:bg-blue-50 transition-colors"
           >+ Add Alternate</button>
         </Card>
 
@@ -1035,7 +1035,7 @@ export function ProposalTab() {
             <div key={i} className="flex items-center gap-1 mb-1">
               <span className="text-gray-300 text-xs">•</span>
               <input
-                className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#002D72]"
+                className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#1e3a8a]"
                 defaultValue={item}
                 onBlur={e => updateListItem('inclusions', i, e.target.value)}
                 key={`inc-${i}-${item}`}
@@ -1049,7 +1049,7 @@ export function ProposalTab() {
           <div className="flex gap-2 mt-1">
             <button
               onClick={() => addListItem('inclusions')}
-              className="text-xs text-[#002D72] hover:underline"
+              className="text-xs text-[#1e3a8a] hover:underline"
             >+ Add</button>
             <button
               onClick={() => patch('inclusions', [...DEFAULT_INCLUSIONS])}
@@ -1064,7 +1064,7 @@ export function ProposalTab() {
             <div key={i} className="flex items-center gap-1 mb-1">
               <span className="text-gray-300 text-xs">•</span>
               <input
-                className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#002D72]"
+                className="flex-1 border border-gray-100 rounded px-1.5 py-0.5 text-xs focus:outline-none focus:border-[#1e3a8a]"
                 defaultValue={item}
                 onBlur={e => updateListItem('exclusions', i, e.target.value)}
                 key={`exc-${i}-${item}`}
@@ -1078,7 +1078,7 @@ export function ProposalTab() {
           <div className="flex gap-2 mt-1">
             <button
               onClick={() => addListItem('exclusions')}
-              className="text-xs text-[#002D72] hover:underline"
+              className="text-xs text-[#1e3a8a] hover:underline"
             >+ Add</button>
             <button
               onClick={() => patch('exclusions', [...DEFAULT_EXCLUSIONS])}
@@ -1090,7 +1090,7 @@ export function ProposalTab() {
         {/* Warranty */}
         <Card title="Warranty">
           <textarea
-            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#002D72] resize-none"
+            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#1e3a8a] resize-none"
             rows={3}
             defaultValue={p.warrantyText}
             onBlur={e => patch('warrantyText', e.target.value)}
@@ -1109,7 +1109,7 @@ export function ProposalTab() {
               type="checkbox"
               checked={p.depositEnabled}
               onChange={e => patch('depositEnabled', e.target.checked)}
-              className="rounded accent-[#002D72]"
+              className="rounded accent-[#1e3a8a]"
             />
             <span className="text-sm">Include deposit request</span>
           </label>
@@ -1120,7 +1120,7 @@ export function ProposalTab() {
                 type="number"
                 min={1}
                 max={100}
-                className="w-20 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#002D72]"
+                className="w-20 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#1e3a8a]"
                 defaultValue={p.depositPercent}
                 onBlur={e => patch('depositPercent', Math.min(100, Math.max(1, parseInt(e.target.value) || 30)))}
                 key={p.depositPercent}
@@ -1143,7 +1143,7 @@ export function ProposalTab() {
                   value={key}
                   checked={p.paymentTerms === key}
                   onChange={() => patch('paymentTerms', key)}
-                  className="accent-[#002D72]"
+                  className="accent-[#1e3a8a]"
                 />
                 <span className="text-sm">{label}</span>
               </label>
@@ -1167,7 +1167,7 @@ export function ProposalTab() {
           <button
             onClick={handleDownloadPdf}
             disabled={downloading}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#002D72] text-white font-semibold text-sm hover:bg-[#1a3a5c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1e3a8a] text-white font-semibold text-sm hover:bg-[#1e3a8a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             {downloading ? '⏳ Generating...' : '⬇ Download PDF'}
           </button>
           <button
@@ -1207,7 +1207,7 @@ export function ProposalTab() {
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{
-                fontSize: '24pt', fontWeight: 'bold', color: '#1a3a5c',
+                fontSize: '24pt', fontWeight: 'bold', color: '#1e3a8a',
                 letterSpacing: '0.02em',
               }}>
                 ELECTRICAL PROPOSAL
@@ -1229,7 +1229,7 @@ export function ProposalTab() {
               </div>
             </div>
           </div>
-          <hr style={{ borderTop: '2px solid #1a3a5c', margin: '0 0 16px 0' }} />
+          <hr style={{ borderTop: '2px solid #1e3a8a', margin: '0 0 16px 0' }} />
 
           {/* Proposal To */}
           <div className="flex gap-8 mb-4">
@@ -1332,7 +1332,7 @@ export function ProposalTab() {
               marginTop: 12,
               marginBottom: 4,
             }}>
-              <div className="font-semibold text-sm" style={{ color: '#002D72' }}>
+              <div className="font-semibold text-sm" style={{ color: '#1e3a8a' }}>
                 Deposit Request
               </div>
               <div className="mt-1">
@@ -1391,7 +1391,7 @@ export function ProposalTab() {
           >
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-              <h3 className="font-bold text-[#1a3a5c] text-lg">Scope Bullet Library</h3>
+              <h3 className="font-bold text-[#1e3a8a] text-lg">Scope Bullet Library</h3>
               <button
                 onClick={() => setShowBulletPicker(null)}
                 className="text-gray-400 hover:text-gray-600 text-xl"
@@ -1406,7 +1406,7 @@ export function ProposalTab() {
                   onClick={() => setBulletPickerTab(tab)}
                   className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors capitalize ${
                     bulletPickerTab === tab
-                      ? 'border-[#1a3a5c] text-[#1a3a5c]'
+                      ? 'border-[#1e3a8a] text-[#1e3a8a]'
                       : 'border-transparent text-gray-400 hover:text-gray-600'
                   }`}
                 >
@@ -1440,7 +1440,7 @@ export function ProposalTab() {
                     if (!filtered.length) return null;
                     return (
                       <div key={category}>
-                        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] mb-2">
+                        <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] mb-2">
                           {category}
                         </div>
                         <div className="space-y-1">
@@ -1523,7 +1523,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="font-semibold text-xs uppercase tracking-wide mt-3 mb-1 pb-0.5 border-b"
-      style={{ color: '#002D72', borderColor: '#002D72', letterSpacing: '.05em' }}
+      style={{ color: '#1e3a8a', borderColor: '#1e3a8a', letterSpacing: '.05em' }}
     >
       {children}
     </div>

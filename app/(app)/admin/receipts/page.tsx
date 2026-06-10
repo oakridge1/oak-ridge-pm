@@ -61,7 +61,7 @@ export default async function AdminReceiptsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002D72]">Receipt Manager</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">Receipt Manager</h1>
         <p className="text-sm text-gray-500 mt-1">
           Review, categorize, and manage all submitted receipts.
         </p>
@@ -71,49 +71,49 @@ export default async function AdminReceiptsPage() {
       <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
         <a
           href="/admin/users"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+          className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors"
         >
           Users
         </a>
         <a
           href="/admin/saved-tasks"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+          className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors"
         >
           Saved Tasks
         </a>
         <a
           href="/admin/receipts"
-          className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5"
+          className="text-sm font-medium text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1 -mb-5"
         >
           Receipts
         </a>
         <a
           href="/admin/settings"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+          className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors"
         >
           Settings
         </a>
         <a
           href="/admin/overhead"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+          className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors"
         >
           Overhead
         </a>
         <a
           href="/admin/owner-draws"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+          className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors"
         >
           Owner Draws
         </a>
         <a
           href="/admin/contractor-payments"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+          className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors"
         >
           Contractor Pay
         </a>
         <a
           href="/admin/pl"
-          className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors"
+          className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors"
         >
           P&amp;L
         </a>

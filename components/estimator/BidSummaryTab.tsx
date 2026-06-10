@@ -261,8 +261,8 @@ export function BidSummaryTab() {
           </tr>${ccRows}`;
         }).join('');
         return `<tr style="background:#e8eef8">
-          <td style="font-weight:700;color:#1a3a5c">${pkg}</td>
-          <td colspan="3" class="r" style="font-weight:600;color:#1a3a5c"></td>
+          <td style="font-weight:700;color:#1e3a8a">${pkg}</td>
+          <td colspan="3" class="r" style="font-weight:600;color:#1e3a8a"></td>
         </tr>${areaRows}`;
       }).join('');
 
@@ -288,18 +288,18 @@ export function BidSummaryTab() {
   <title>Bid Summary — ${state.jobName || 'Estimate'}</title>
   <style>
     body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 32px; }
-    h1 { font-size: 18px; color: #1a3a5c; margin: 0 0 4px; }
+    h1 { font-size: 18px; color: #1e3a8a; margin: 0 0 4px; }
     h2 { font-size: 13px; color: #444; font-weight: normal; margin: 0 0 16px; }
     h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
-         border-bottom: 2px solid #1a3a5c; color: #1a3a5c;
+         border-bottom: 2px solid #1e3a8a; color: #1e3a8a;
          padding-bottom: 3px; margin: 20px 0 8px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
     th, td { padding: 5px 8px; border: 1px solid #ddd; }
     th { background: #f0f4fa; font-weight: 600; }
     .r { text-align: right; }
     .b { font-weight: 700; }
-    .grand { background: #1a3a5c; color: #fff; font-size: 14px; }
-    .grand td { border-color: #1a3a5c; }
+    .grand { background: #1e3a8a; color: #fff; font-size: 14px; }
+    .grand td { border-color: #1e3a8a; }
     @media print { body { margin: 16px; } }
   </style>
 </head>
@@ -415,7 +415,7 @@ export function BidSummaryTab() {
 
       {/* ── JOB CONDITIONS ──────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+        <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
           Job Conditions
         </div>
 
@@ -429,8 +429,8 @@ export function BidSummaryTab() {
                 onClick={() => setCondMult(opt.value)}
                 className={`px-3 py-1.5 text-xs rounded border transition-colors ${
                   state.jobCondMult === opt.value
-                    ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#1a3a5c]'
+                    ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#1e3a8a]'
                 }`}
               >
                 {opt.label}
@@ -448,7 +448,7 @@ export function BidSummaryTab() {
             type="checkbox"
             checked={state.heightAdder}
             onChange={toggleHeight}
-            className="w-4 h-4 accent-[#1a3a5c]"
+            className="w-4 h-4 accent-[#1e3a8a]"
           />
           <span className="text-sm text-gray-700">
             Height / overhead-work adder
@@ -468,7 +468,7 @@ export function BidSummaryTab() {
       {!isEmpty && (
         <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-200 pb-1 mb-3">
-            <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c]">
+            <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a]">
               Assembly Breakdown
             </div>
             <div className="flex gap-1">
@@ -476,8 +476,8 @@ export function BidSummaryTab() {
                 onClick={() => setSummaryView('type')}
                 className={`px-3 py-1 text-xs rounded border transition-colors ${
                   summaryView === 'type'
-                    ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
-                    : 'bg-white text-gray-500 border-gray-300 hover:border-[#1a3a5c]'
+                    ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
+                    : 'bg-white text-gray-500 border-gray-300 hover:border-[#1e3a8a]'
                 }`}
               >
                 By Type
@@ -486,8 +486,8 @@ export function BidSummaryTab() {
                 onClick={() => setSummaryView('label')}
                 className={`px-3 py-1 text-xs rounded border transition-colors ${
                   summaryView === 'label'
-                    ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
-                    : 'bg-white text-gray-500 border-gray-300 hover:border-[#1a3a5c]'
+                    ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
+                    : 'bg-white text-gray-500 border-gray-300 hover:border-[#1e3a8a]'
                 }`}
               >
                 By Label
@@ -527,11 +527,11 @@ export function BidSummaryTab() {
                 ))}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-[#1a3a5c] font-bold">
+              <tr className="border-t-2 border-[#1e3a8a] font-bold">
                 <td className="pt-2 text-gray-700">Assembly Subtotal</td>
                 <td className="pt-2 text-right font-mono">{fmt$(matTotal)}</td>
                 <td className="pt-2 text-right font-mono">{fmt$(effectiveLaborTotal)}</td>
-                <td className="pt-2 text-right font-mono text-[#1a3a5c]">
+                <td className="pt-2 text-right font-mono text-[#1e3a8a]">
                   {fmt$(matTotal + effectiveLaborTotal)}
                 </td>
               </tr>
@@ -561,7 +561,7 @@ export function BidSummaryTab() {
                 const pkgLab = Object.values(areas).flatMap(a => Object.values(a).flat()).reduce((s, a) => s + a.lab * heightMult, 0);
                 return (
                   <div key={pkg}>
-                    <div className="bg-[#1a3a5c] text-white px-3 py-1.5 rounded-t text-xs font-bold flex justify-between">
+                    <div className="bg-[#1e3a8a] text-white px-3 py-1.5 rounded-t text-xs font-bold flex justify-between">
                       <span>{pkg}</span>
                       <span className="font-mono">{fmt$(pkgMat + pkgLab)}</span>
                     </div>
@@ -569,7 +569,7 @@ export function BidSummaryTab() {
                       const areaMat = Object.values(costCodes).flat().reduce((s, a) => s + a.mat, 0);
                       const areaLab = Object.values(costCodes).flat().reduce((s, a) => s + a.lab * heightMult, 0);
                       return (
-                        <div key={area} className="border border-[#1a3a5c]/20 border-t-0">
+                        <div key={area} className="border border-[#1e3a8a]/20 border-t-0">
                           <div className="bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 flex justify-between">
                             <span>{area}</span>
                             <span className="font-mono">{fmt$(areaMat + areaLab)}</span>
@@ -607,7 +607,7 @@ export function BidSummaryTab() {
       {/* ── PERMITS / SUBS / RENTAL ──────────────────────────────────────────── */}
       {(permitBase > 0 || subBase > 0 || rentalBase > 0) && (
         <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-          <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+          <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
             Permits, Subs &amp; Rental
           </div>
           <table className="w-full text-xs">
@@ -667,7 +667,7 @@ export function BidSummaryTab() {
       {/* ── BID SUMMARY ─────────────────────────────────────────────────────── */}
       {!isEmpty && (
         <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-          <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+          <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
             Bid Summary
           </div>
 
@@ -737,9 +737,9 @@ export function BidSummaryTab() {
           </div>
 
           {/* Grand total */}
-          <div className="mt-3 pt-3 border-t-2 border-[#1a3a5c] flex justify-between items-baseline">
-            <span className="text-base font-bold text-[#1a3a5c]">Grand Total</span>
-            <span className="text-xl font-bold text-[#1a3a5c] font-mono">{fmt$(grandTotal)}</span>
+          <div className="mt-3 pt-3 border-t-2 border-[#1e3a8a] flex justify-between items-baseline">
+            <span className="text-base font-bold text-[#1e3a8a]">Grand Total</span>
+            <span className="text-xl font-bold text-[#1e3a8a] font-mono">{fmt$(grandTotal)}</span>
           </div>
         </div>
       )}
@@ -748,19 +748,19 @@ export function BidSummaryTab() {
       <div className="flex flex-wrap gap-3">
         <button
           onClick={copyToClipboard}
-          className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+          className="px-4 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
         >
           📋 Copy Summary
         </button>
         <button
           onClick={handleExport}
-          className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#eef4ff] transition-colors"
+          className="px-4 py-2 text-sm font-semibold rounded border border-[#1e3a8a] text-[#1e3a8a] hover:bg-[#eef4ff] transition-colors"
         >
           ↓ Export JSON
         </button>
         <button
           onClick={handleDownloadSummaryPDF}
-          className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#eef4ff] transition-colors"
+          className="px-4 py-2 text-sm font-semibold rounded border border-[#1e3a8a] text-[#1e3a8a] hover:bg-[#eef4ff] transition-colors"
         >
           ⬇ Download Summary (open & print to PDF)
         </button>

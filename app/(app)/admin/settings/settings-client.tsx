@@ -919,7 +919,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       {/* ── Company Info card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Building2 className="w-5 h-5 text-[#002D72]" />
+          <Building2 className="w-5 h-5 text-[#1e3a8a]" />
           <div>
             <h2 className="text-base font-semibold text-gray-900">Company Info</h2>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -936,7 +936,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 type="text"
                 value={company.name}
                 onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
                 required
               />
             </div>
@@ -946,7 +946,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 type="text"
                 value={company.address}
                 onChange={(e) => setCompany({ ...company, address: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               />
             </div>
             <div>
@@ -955,7 +955,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 type="text"
                 value={company.city}
                 onChange={(e) => setCompany({ ...company, city: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -966,7 +966,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                   value={company.state}
                   onChange={(e) => setCompany({ ...company, state: e.target.value })}
                   maxLength={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
                 />
               </div>
               <div>
@@ -975,7 +975,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                   type="text"
                   value={company.zip}
                   onChange={(e) => setCompany({ ...company, zip: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
                 />
               </div>
             </div>
@@ -985,7 +985,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 type="tel"
                 value={company.phone}
                 onChange={(e) => setCompany({ ...company, phone: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               />
             </div>
             <div>
@@ -994,7 +994,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 type="email"
                 value={company.email}
                 onChange={(e) => setCompany({ ...company, email: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               />
             </div>
             <div className="sm:col-span-2">
@@ -1004,7 +1004,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 value={company.logoUrl ?? ""}
                 onChange={(e) => setCompany({ ...company, logoUrl: e.target.value || null })}
                 placeholder="https://... (paste URL of uploaded logo)"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               />
               <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                 <Upload className="w-3 h-3" />
@@ -1016,7 +1016,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               <select
                 value={company.defaultPaymentTerms}
                 onChange={(e) => setCompany({ ...company, defaultPaymentTerms: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               >
                 <option value="due_on_receipt">Due on Receipt</option>
                 <option value="net_10">Net 10</option>
@@ -1033,7 +1033,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 value={company.accountantEmail ?? ""}
                 onChange={(e) => setCompany({ ...company, accountantEmail: e.target.value })}
                 placeholder="accountant@example.com"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               />
             </div>
             <div>
@@ -1041,7 +1041,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               <select
                 value={company.overheadAllocMethod ?? "equal"}
                 onChange={(e) => setCompany({ ...company, overheadAllocMethod: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               >
                 <option value="equal">Equal Split</option>
                 <option value="contract_value">By Contract Value</option>
@@ -1053,7 +1053,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               <select
                 value={company.taxYearStartMonth ?? 1}
                 onChange={(e) => setCompany({ ...company, taxYearStartMonth: parseInt(e.target.value, 10) })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               >
                 {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
                   <option key={i + 1} value={i + 1}>{m}</option>
@@ -1065,7 +1065,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               <select
                 value={company.fiscalYearType ?? "calendar"}
                 onChange={(e) => setCompany({ ...company, fiscalYearType: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
               >
                 <option value="calendar">Calendar Year</option>
                 <option value="fiscal">Custom Fiscal Year</option>
@@ -1083,7 +1083,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             <button
               type="submit"
               disabled={companySaving}
-              className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
+              className="flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
             >
               {companySaving ? "Saving..." : "Save Company Info"}
             </button>
@@ -1100,7 +1100,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Truck className="w-5 h-5 text-[#002D72]" />
+            <Truck className="w-5 h-5 text-[#1e3a8a]" />
             <div>
               <h2 className="text-base font-semibold text-gray-900">Suppliers</h2>
               <p className="text-sm text-gray-500 mt-0.5">Manage your preferred electrical suppliers.</p>
@@ -1122,49 +1122,49 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             {suppliers.map(supplier => (
               <div key={supplier.id}>
                 {editingSupplierId === supplier.id ? (
-                  <div className="border border-[#002D72]/20 rounded-lg p-3 space-y-2 bg-blue-50">
+                  <div className="border border-[#1e3a8a]/20 rounded-lg p-3 space-y-2 bg-blue-50">
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <input
                         type="text"
                         value={supplierForm.name}
                         onChange={e => setSupplierForm(f => ({ ...f, name: e.target.value }))}
                         placeholder="Supplier name *"
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                       />
                       <input
                         type="text"
                         value={supplierForm.repName}
                         onChange={e => setSupplierForm(f => ({ ...f, repName: e.target.value }))}
                         placeholder="Rep name"
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                       />
                       <input
                         type="email"
                         value={supplierForm.email}
                         onChange={e => setSupplierForm(f => ({ ...f, email: e.target.value }))}
                         placeholder="Rep email"
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                       />
                       <input
                         type="tel"
                         value={supplierForm.phone}
                         onChange={e => setSupplierForm(f => ({ ...f, phone: e.target.value }))}
                         placeholder="Phone"
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                       />
                       <input
                         type="text"
                         value={supplierForm.accountNumber}
                         onChange={e => setSupplierForm(f => ({ ...f, accountNumber: e.target.value }))}
                         placeholder="Account #"
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                       />
                       <input
                         type="text"
                         value={supplierForm.deliveryNotes}
                         onChange={e => setSupplierForm(f => ({ ...f, deliveryNotes: e.target.value }))}
                         placeholder="Delivery notes"
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                       />
                     </div>
                     <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
@@ -1181,7 +1181,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                         <button
                           type="button"
                           onClick={() => setContactsForm(prev => [...prev, { name: "", email: "", isPrimary: false }])}
-                          className="text-xs text-[#002D72] hover:underline flex items-center gap-1"
+                          className="text-xs text-[#1e3a8a] hover:underline flex items-center gap-1"
                         >
                           <Plus className="w-3 h-3" /> Add Contact
                         </button>
@@ -1200,14 +1200,14 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                               value={contact.name}
                               onChange={e => setContactsForm(prev => prev.map((c, i) => i === idx ? { ...c, name: e.target.value } : c))}
                               placeholder="Name"
-                              className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                              className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                             />
                             <input
                               type="email"
                               value={contact.email}
                               onChange={e => setContactsForm(prev => prev.map((c, i) => i === idx ? { ...c, email: e.target.value } : c))}
                               placeholder="Email"
-                              className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                              className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                             />
                             <button
                               type="button"
@@ -1233,7 +1233,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                       <button onClick={() => { setEditingSupplierId(null); setSupplierForm(emptySupplierForm); setContactsForm([]); }}
                         className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
                       <button onClick={() => handleUpdateSupplier(supplier.id)} disabled={supplierSaving || !supplierForm.name.trim()}
-                        className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                        className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
                         {supplierSaving ? "Saving…" : "Save"}
                       </button>
                     </div>
@@ -1276,7 +1276,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                         });
                         setContactsForm(supplier.contacts?.map(c => ({ ...c })) ?? []);
                       }}
-                        className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors">
+                        className="p-1.5 text-gray-400 hover:text-[#1e3a8a] hover:bg-blue-50 rounded-lg transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => handleDeleteSupplier(supplier.id)}
@@ -1297,7 +1297,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                     value={supplierForm.name}
                     onChange={e => setSupplierForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Supplier name *"
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                     autoFocus
                   />
                   <input
@@ -1305,35 +1305,35 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                     value={supplierForm.repName}
                     onChange={e => setSupplierForm(f => ({ ...f, repName: e.target.value }))}
                     placeholder="Rep name"
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                   />
                   <input
                     type="email"
                     value={supplierForm.email}
                     onChange={e => setSupplierForm(f => ({ ...f, email: e.target.value }))}
                     placeholder="Rep email"
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                   />
                   <input
                     type="tel"
                     value={supplierForm.phone}
                     onChange={e => setSupplierForm(f => ({ ...f, phone: e.target.value }))}
                     placeholder="Phone"
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                   />
                   <input
                     type="text"
                     value={supplierForm.accountNumber}
                     onChange={e => setSupplierForm(f => ({ ...f, accountNumber: e.target.value }))}
                     placeholder="Account #"
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                   />
                   <input
                     type="text"
                     value={supplierForm.deliveryNotes}
                     onChange={e => setSupplierForm(f => ({ ...f, deliveryNotes: e.target.value }))}
                     placeholder="Delivery notes"
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                   />
                 </div>
                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
@@ -1354,7 +1354,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             ) : (
               <button
                 onClick={() => { setAddingSupplier(true); setEditingSupplierId(null); setSupplierForm(emptySupplierForm); }}
-                className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-dashed border-[#002D72]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#002D72] transition-colors"
+                className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:text-[#003d99] border border-dashed border-[#1e3a8a]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#1e3a8a] transition-colors"
               >
                 <Plus className="w-4 h-4" /> Add Supplier
               </button>
@@ -1370,7 +1370,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
           className="flex items-center justify-between w-full"
         >
           <div className="flex items-center gap-3">
-            <Package className="w-5 h-5 text-[#002D72]" />
+            <Package className="w-5 h-5 text-[#1e3a8a]" />
             <div className="text-left">
               <h2 className="text-base font-semibold text-gray-900">Stock List</h2>
               <p className="text-sm text-gray-500 mt-0.5">Manage items in The Crib ordering system.</p>
@@ -1388,21 +1388,21 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 {/* Group by category */}
                 {[...new Set(stockItems.map(i => i.category))].sort().map(cat => (
                   <div key={cat} className="mb-3">
-                    <h4 className="text-xs font-bold text-[#002D72] uppercase tracking-wide mb-1">{cat}</h4>
+                    <h4 className="text-xs font-bold text-[#1e3a8a] uppercase tracking-wide mb-1">{cat}</h4>
                     <div className="space-y-1">
                       {stockItems.filter(i => i.category === cat).map(item => (
                         <div key={item.id}>
                           {editingStockId === item.id ? (
-                            <div className="border border-[#002D72]/20 rounded-lg p-3 space-y-2 bg-blue-50">
+                            <div className="border border-[#1e3a8a]/20 rounded-lg p-3 space-y-2 bg-blue-50">
                               <div className="grid grid-cols-2 gap-2">
                                 <input type="text" value={stockForm.name} onChange={e => setStockForm(f => ({ ...f, name: e.target.value }))}
-                                  placeholder="Name *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                                  placeholder="Name *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                                 <input type="text" value={stockForm.lingo} onChange={e => setStockForm(f => ({ ...f, lingo: e.target.value }))}
-                                  placeholder="Lingo / shorthand" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                                  placeholder="Lingo / shorthand" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                                 <input type="text" value={stockForm.unitOfMeasure} onChange={e => setStockForm(f => ({ ...f, unitOfMeasure: e.target.value }))}
-                                  placeholder="Unit (EA, Rolls…)" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                                  placeholder="Unit (EA, Rolls…)" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                                 <input type="text" value={stockForm.notes} onChange={e => setStockForm(f => ({ ...f, notes: e.target.value }))}
-                                  placeholder="Notes" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                                  placeholder="Notes" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                               </div>
                               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                                 <input type="checkbox" checked={stockForm.isConsumable} onChange={e => setStockForm(f => ({ ...f, isConsumable: e.target.checked }))} className="rounded" />
@@ -1411,7 +1411,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                               <div className="flex gap-2 justify-end">
                                 <button onClick={() => setEditingStockId(null)} className="text-sm text-gray-500 px-2 py-1">Cancel</button>
                                 <button onClick={() => handleUpdateStock(item.id)} disabled={stockSaving}
-                                  className="bg-[#002D72] text-white px-3 py-1 rounded text-sm font-medium disabled:opacity-60">
+                                  className="bg-[#1e3a8a] text-white px-3 py-1 rounded text-sm font-medium disabled:opacity-60">
                                   {stockSaving ? "Saving…" : "Save"}
                                 </button>
                               </div>
@@ -1431,7 +1431,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                                 <button onClick={() => {
                                   setEditingStockId(item.id);
                                   setStockForm({ category: item.category, name: item.name, lingo: item.lingo ?? "", unitOfMeasure: item.unitOfMeasure, isConsumable: item.isConsumable, notes: item.notes ?? "" });
-                                }} className="p-1 text-gray-400 hover:text-[#002D72] rounded">
+                                }} className="p-1 text-gray-400 hover:text-[#1e3a8a] rounded">
                                   <Edit2 className="w-3 h-3" />
                                 </button>
                                 <button onClick={() => handleDeleteStock(item.id)} className="p-1 text-gray-400 hover:text-red-500 rounded">
@@ -1451,13 +1451,13 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                     <h4 className="text-xs font-semibold text-gray-700">New Stock Item</h4>
                     <div className="grid grid-cols-2 gap-2">
                       <input type="text" value={stockForm.category} onChange={e => setStockForm(f => ({ ...f, category: e.target.value }))}
-                        placeholder="Category *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" autoFocus />
+                        placeholder="Category *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" autoFocus />
                       <input type="text" value={stockForm.name} onChange={e => setStockForm(f => ({ ...f, name: e.target.value }))}
-                        placeholder="Name *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                        placeholder="Name *" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                       <input type="text" value={stockForm.lingo} onChange={e => setStockForm(f => ({ ...f, lingo: e.target.value }))}
-                        placeholder="Lingo / shorthand" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                        placeholder="Lingo / shorthand" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                       <input type="text" value={stockForm.unitOfMeasure} onChange={e => setStockForm(f => ({ ...f, unitOfMeasure: e.target.value }))}
-                        placeholder="Unit (EA, Rolls…)" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                        placeholder="Unit (EA, Rolls…)" className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                     </div>
                     <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                       <input type="checkbox" checked={stockForm.isConsumable} onChange={e => setStockForm(f => ({ ...f, isConsumable: e.target.checked }))} className="rounded" />
@@ -1474,7 +1474,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                 ) : (
                   <button
                     onClick={() => { setAddingStock(true); setEditingStockId(null); }}
-                    className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-dashed border-[#002D72]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#002D72] transition-colors mt-2"
+                    className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:text-[#003d99] border border-dashed border-[#1e3a8a]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#1e3a8a] transition-colors mt-2"
                   >
                     <Plus className="w-4 h-4" /> Add Stock Item
                   </button>
@@ -1488,7 +1488,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       {/* ── Notifications card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Bell className="w-5 h-5 text-[#002D72]" />
+          <Bell className="w-5 h-5 text-[#1e3a8a]" />
           <div>
             <h2 className="text-base font-semibold text-gray-900">Notifications</h2>
             <p className="text-sm text-gray-500 mt-0.5">Email notification settings for the workspace.</p>
@@ -1545,7 +1545,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       {/* ── Notification Preferences card (Fix 2) ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-4">
-          <ToggleRight className="w-5 h-5 text-[#002D72]" />
+          <ToggleRight className="w-5 h-5 text-[#1e3a8a]" />
           <div>
             <h2 className="text-base font-semibold text-gray-900">Notification Preferences</h2>
             <p className="text-sm text-gray-500 mt-0.5">Choose which email notifications you receive. Sam&apos;s CC and Admin BCC are always on.</p>
@@ -1563,7 +1563,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                   <span className="text-sm text-gray-800">{label}</span>
                   <button
                     onClick={() => setNotifPrefs(p => ({ ...p, [key]: !enabled }))}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${enabled ? "bg-[#002D72]" : "bg-gray-200"}`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${enabled ? "bg-[#1e3a8a]" : "bg-gray-200"}`}
                     aria-label={`Toggle ${label}`}
                   >
                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-1"}`} />
@@ -1576,7 +1576,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               <button
                 onClick={handleSaveNotifPrefs}
                 disabled={notifSaving}
-                className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
+                className="flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
               >
                 {notifSaving ? "Saving..." : "Save Preferences"}
               </button>
@@ -1633,7 +1633,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             <div className="flex gap-3 flex-wrap">
               <a
                 href="/api/google/auth"
-                className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] border border-[#002D72]/30 px-3 py-2 rounded-lg hover:bg-[#002D72]/5 transition-colors"
+                className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a]/30 px-3 py-2 rounded-lg hover:bg-[#1e3a8a]/5 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" /> Reconnect
               </a>
@@ -1656,7 +1656,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             </p>
             <a
               href="/api/google/auth"
-              className="inline-flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
+              className="inline-flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
             >
               <ExternalLink className="w-4 h-4" /> Connect Google Account
             </a>
@@ -1690,7 +1690,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
           <button
             onClick={handleSyncCalendar}
             disabled={syncing}
-            className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors disabled:opacity-60"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Syncing..." : "Sync Calendar Events"}
@@ -1734,22 +1734,22 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                   <div className="relative">
                     <input type="number" value={burdenInput} onChange={e => setBurdenInput(e.target.value)}
                       step="1" min="0" max="200" placeholder="35"
-                      className="w-20 border border-gray-300 rounded-lg px-2 pr-6 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      className="w-20 border border-gray-300 rounded-lg px-2 pr-6 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
                   </div>
                   <button onClick={handleSaveBurden} disabled={laborRatesSaving}
-                    className="flex items-center gap-1 text-xs bg-[#002D72] text-white px-2.5 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
+                    className="flex items-center gap-1 text-xs bg-[#1e3a8a] text-white px-2.5 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
                     <Save className="w-3 h-3" /> {laborRatesSaving ? "…" : "Save"}
                   </button>
                   <button onClick={() => setEditingBurden(false)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <span className="text-lg font-bold text-[#002D72]">
+                  <span className="text-lg font-bold text-[#1e3a8a]">
                     {laborRates ? Math.round(laborRates.defaultBurden * 100) : 35}%
                   </span>
                   <button onClick={() => { setEditingBurden(true); setBurdenInput(String(Math.round((laborRates?.defaultBurden ?? 0.35) * 100))); }}
-                    className="p-1.5 text-gray-400 hover:text-[#002D72] transition-colors">
+                    className="p-1.5 text-gray-400 hover:text-[#1e3a8a] transition-colors">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1784,10 +1784,10 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
                                   <input type="number" value={bidRateInput} onChange={e => setBidRateInput(e.target.value)}
                                     step="0.50" min="0" placeholder="0.00"
-                                    className="w-20 border border-gray-300 rounded px-4 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right" />
+                                    className="w-20 border border-gray-300 rounded px-4 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] text-right" />
                                 </div>
                                 <button onClick={() => handleSaveBidRate(key)} disabled={laborRatesSaving}
-                                  className="text-xs bg-[#002D72] text-white px-2 py-1 rounded hover:bg-[#003d99] disabled:opacity-60">
+                                  className="text-xs bg-[#1e3a8a] text-white px-2 py-1 rounded hover:bg-[#003d99] disabled:opacity-60">
                                   {laborRatesSaving ? "…" : "Save"}
                                 </button>
                                 <button onClick={() => setEditingBidRateKey(null)} className="text-xs text-gray-500">✕</button>
@@ -1799,7 +1799,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                           <td className="px-2 py-2.5">
                             {!isEditingThis && (
                               <button onClick={() => { setEditingBidRateKey(key); setBidRateInput(String(rate)); }}
-                                className="p-1 text-gray-300 hover:text-[#002D72] transition-colors">
+                                className="p-1 text-gray-300 hover:text-[#1e3a8a] transition-colors">
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                             )}
@@ -1836,12 +1836,12 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             value={bomSearch}
             onChange={e => setBomSearch(e.target.value)}
             placeholder="Search items…"
-            className="flex-1 min-w-[160px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="flex-1 min-w-[160px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
           <select
             value={bomCatFilter}
             onChange={e => setBomCatFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             <option value="All">All Categories</option>
             {BOM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1918,7 +1918,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                               step="0.0001"
                               min="0"
                               autoFocus={bomEditFocus === "mat"}
-                              className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                              className="w-20 border border-[#1e3a8a] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] text-right"
                             />
                           ) : (
                             <span className={override ? "text-amber-700 font-semibold" : "text-gray-700"}>
@@ -1947,7 +1947,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                               step="0.0001"
                               min="0"
                               autoFocus={bomEditFocus === "lhr"}
-                              className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                              className="w-20 border border-[#1e3a8a] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] text-right"
                             />
                           ) : (
                             <span className={override ? "text-amber-700 font-semibold" : "text-gray-700"}>
@@ -2007,7 +2007,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Car className="w-5 h-5 text-[#002D72]" />
+            <Car className="w-5 h-5 text-[#1e3a8a]" />
             <div>
               <h2 className="text-base font-semibold text-gray-900">Fleet &amp; Vehicles</h2>
               <p className="text-sm text-gray-500 mt-0.5">Manage company vehicles and primary drivers.</p>
@@ -2022,28 +2022,28 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             {vehicles.map(v => (
               <div key={v.id}>
                 {editingVehicleId === v.id ? (
-                  <div className="border border-[#002D72]/20 rounded-lg p-3 space-y-2 bg-blue-50">
+                  <div className="border border-[#1e3a8a]/20 rounded-lg p-3 space-y-2 bg-blue-50">
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       <input type="text" value={vehicleForm.tag} onChange={e => setVehicleForm(f => ({ ...f, tag: e.target.value }))}
-                        placeholder="Tag (e.g. ORE1) *" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                        placeholder="Tag (e.g. ORE1) *" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                       <input type="text" value={vehicleForm.year} onChange={e => setVehicleForm(f => ({ ...f, year: e.target.value }))}
-                        placeholder="Year" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                        placeholder="Year" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                       <input type="text" value={vehicleForm.make} onChange={e => setVehicleForm(f => ({ ...f, make: e.target.value }))}
-                        placeholder="Make" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                        placeholder="Make" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                       <input type="text" value={vehicleForm.model} onChange={e => setVehicleForm(f => ({ ...f, model: e.target.value }))}
-                        placeholder="Model" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                        placeholder="Model" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                       <input type="text" value={vehicleForm.plate} onChange={e => setVehicleForm(f => ({ ...f, plate: e.target.value }))}
-                        placeholder="Plate" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                        placeholder="Plate" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                       <input type="text" value={vehicleForm.primaryDriver} onChange={e => setVehicleForm(f => ({ ...f, primaryDriver: e.target.value }))}
-                        placeholder="Primary Driver" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                        placeholder="Primary Driver" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                     </div>
                     <input type="text" value={vehicleForm.notes} onChange={e => setVehicleForm(f => ({ ...f, notes: e.target.value }))}
-                      placeholder="Notes" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                      placeholder="Notes" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => { setEditingVehicleId(null); setVehicleForm(emptyVehicleForm); }}
                         className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
                       <button onClick={() => handleUpdateVehicle(v.id)} disabled={vehicleSaving || !vehicleForm.tag.trim()}
-                        className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                        className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
                         {vehicleSaving ? "Saving…" : "Save"}
                       </button>
                     </div>
@@ -2053,7 +2053,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                     <div className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-[#002D72]">{v.tag}</span>
+                          <span className="text-sm font-semibold text-[#1e3a8a]">{v.tag}</span>
                           {(v.year || v.make || v.model) && (
                             <span className="text-sm text-gray-700">{[v.year, v.make, v.model].filter(Boolean).join(" ")}</span>
                           )}
@@ -2075,7 +2075,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                           setEditingVehicleId(v.id);
                           setVehicleForm({ tag: v.tag, year: v.year ?? "", make: v.make ?? "", model: v.model ?? "", plate: v.plate ?? "", primaryDriver: v.primaryDriver ?? "", notes: v.notes ?? "" });
                           setAddingVehicle(false);
-                        }} className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors">
+                        }} className="p-1.5 text-gray-400 hover:text-[#1e3a8a] hover:bg-blue-50 rounded-lg transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => setVehicleDeleteId(v.id)}
@@ -2093,7 +2093,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                           <select
                             value={costForm.costType}
                             onChange={e => setCostForm(f => ({ ...f, costType: e.target.value }))}
-                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                           >
                             {["Tires", "Registration", "Maintenance", "Inspection", "Repair", "Other"].map(t => (
                               <option key={t} value={t}>{t}</option>
@@ -2106,21 +2106,21 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                               value={costForm.amount}
                               onChange={e => setCostForm(f => ({ ...f, amount: e.target.value }))}
                               placeholder="Amount"
-                              className="w-full border border-gray-300 rounded-lg pl-5 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                              className="w-full border border-gray-300 rounded-lg pl-5 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                             />
                           </div>
                           <input
                             type="date"
                             value={costForm.date}
                             onChange={e => setCostForm(f => ({ ...f, date: e.target.value }))}
-                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                           />
                           <input
                             type="text"
                             value={costForm.description}
                             onChange={e => setCostForm(f => ({ ...f, description: e.target.value }))}
                             placeholder="Description"
-                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                           />
                         </div>
                         <input
@@ -2136,7 +2136,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                           <button
                             onClick={() => handleLogCost(v.id)}
                             disabled={costSaving || !costForm.amount}
-                            className="bg-[#002D72] text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-[#003d99] disabled:opacity-60"
+                            className="bg-[#1e3a8a] text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-[#003d99] disabled:opacity-60"
                           >
                             {costSaving ? "Saving…" : "Save Cost"}
                           </button>
@@ -2170,7 +2170,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
                                   {c.description && <span className="text-gray-400 truncate">{c.description}</span>}
                                 </div>
                               ))}
-                              <a href={`/admin/receipts?vehicleId=${v.id}`} className="block text-xs text-[#002D72] hover:underline pt-1">View All →</a>
+                              <a href={`/admin/receipts?vehicleId=${v.id}`} className="block text-xs text-[#1e3a8a] hover:underline pt-1">View All →</a>
                             </>
                           )}
                         </div>
@@ -2196,20 +2196,20 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               <div className="border border-[#FF5910]/30 rounded-lg p-3 space-y-2 bg-orange-50">
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <input type="text" value={vehicleForm.tag} onChange={e => setVehicleForm(f => ({ ...f, tag: e.target.value }))}
-                    placeholder="Tag (e.g. ORE2) *" autoFocus className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                    placeholder="Tag (e.g. ORE2) *" autoFocus className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                   <input type="text" value={vehicleForm.year} onChange={e => setVehicleForm(f => ({ ...f, year: e.target.value }))}
-                    placeholder="Year" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                    placeholder="Year" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                   <input type="text" value={vehicleForm.make} onChange={e => setVehicleForm(f => ({ ...f, make: e.target.value }))}
-                    placeholder="Make" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                    placeholder="Make" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                   <input type="text" value={vehicleForm.model} onChange={e => setVehicleForm(f => ({ ...f, model: e.target.value }))}
-                    placeholder="Model" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                    placeholder="Model" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                   <input type="text" value={vehicleForm.plate} onChange={e => setVehicleForm(f => ({ ...f, plate: e.target.value }))}
-                    placeholder="Plate" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                    placeholder="Plate" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                   <input type="text" value={vehicleForm.primaryDriver} onChange={e => setVehicleForm(f => ({ ...f, primaryDriver: e.target.value }))}
-                    placeholder="Primary Driver" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                    placeholder="Primary Driver" className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                 </div>
                 <input type="text" value={vehicleForm.notes} onChange={e => setVehicleForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Notes" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                  placeholder="Notes" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => { setAddingVehicle(false); setVehicleForm(emptyVehicleForm); }}
                     className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
@@ -2222,7 +2222,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             ) : (
               <button
                 onClick={() => { setAddingVehicle(true); setEditingVehicleId(null); setVehicleForm(emptyVehicleForm); }}
-                className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-dashed border-[#002D72]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#002D72] transition-colors"
+                className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:text-[#003d99] border border-dashed border-[#1e3a8a]/30 px-4 py-2 rounded-lg w-full justify-center hover:border-[#1e3a8a] transition-colors"
               >
                 <Plus className="w-4 h-4" /> Add Vehicle
               </button>
@@ -2234,7 +2234,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       {/* ── Payroll Import card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-4">
-          <FileSpreadsheet className="w-5 h-5 text-[#002D72]" />
+          <FileSpreadsheet className="w-5 h-5 text-[#1e3a8a]" />
           <div>
             <h2 className="text-base font-semibold text-gray-900">Payroll (Gusto CSV Import)</h2>
             <p className="text-sm text-gray-500 mt-0.5">Upload a Gusto payroll CSV to allocate labor costs.</p>
@@ -2250,7 +2250,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Select CSV file</label>
             <input ref={payrollFileRef} type="file" accept=".csv" onChange={() => { setPayrollMatched(null); setPayrollUnmatched(null); setPayrollResult(null); setPayrollPreviewError(null); }}
-              className="text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-[#002D72] file:text-white hover:file:bg-[#003d99]" />
+              className="text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-[#1e3a8a] file:text-white hover:file:bg-[#003d99]" />
           </div>
 
           {payrollPreviewError && (
@@ -2338,7 +2338,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
 
               {payrollMatched && payrollMatched.some(r => r.confirmed) && (
                 <button onClick={handlePayrollConfirm} disabled={payrollConfirming}
-                  className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                  className="flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
                   <CheckCircle2 className="w-4 h-4" />
                   {payrollConfirming ? "Importing…" : `Confirm Import (${payrollMatched.filter(r => r.confirmed).length} employee${payrollMatched.filter(r => r.confirmed).length !== 1 ? "s" : ""})`}
                 </button>
@@ -2357,7 +2357,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       {/* ── Receipt Reminders card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Receipt className="w-5 h-5 text-[#002D72]" />
+          <Receipt className="w-5 h-5 text-[#1e3a8a]" />
           <div>
             <h2 className="text-base font-semibold text-gray-900">Receipt Reminders (Sam&apos;s Crib)</h2>
             <p className="text-sm text-gray-500 mt-0.5">Automated and manual receipt upload reminders for the crew.</p>
@@ -2374,7 +2374,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               </div>
               <button
                 onClick={() => setMondayReminder(v => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${mondayReminder ? "bg-[#002D72]" : "bg-gray-200"}`}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${mondayReminder ? "bg-[#1e3a8a]" : "bg-gray-200"}`}
               >
                 <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${mondayReminder ? "translate-x-4" : "translate-x-1"}`} />
               </button>
@@ -2386,7 +2386,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               </div>
               <button
                 onClick={() => setFridayReminder(v => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${fridayReminder ? "bg-[#002D72]" : "bg-gray-200"}`}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${fridayReminder ? "bg-[#1e3a8a]" : "bg-gray-200"}`}
               >
                 <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${fridayReminder ? "translate-x-4" : "translate-x-1"}`} />
               </button>
@@ -2400,13 +2400,13 @@ export function SettingsClient({ connection, justConnected, connectError, compan
               value={reminderMessage}
               onChange={e => setReminderMessage(e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72] resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a] resize-none"
             />
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
             <button onClick={handleSaveReminderSettings} disabled={reminderSaving}
-              className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+              className="flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
               <Save className="w-4 h-4" />
               {reminderSaving ? "Saving…" : "Save Settings"}
             </button>
@@ -2459,7 +2459,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
       {/* ── Year-End Close card ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Archive className="w-5 h-5 text-[#002D72]" />
+          <Archive className="w-5 h-5 text-[#1e3a8a]" />
           <div>
             <h2 className="text-base font-semibold text-gray-900">Year-End Close</h2>
             <p className="text-sm text-gray-500 mt-0.5">Archive current system jobs and create next-year jobs.</p>
@@ -2477,7 +2477,7 @@ export function SettingsClient({ connection, justConnected, connectError, compan
             <div className="space-y-1">
               {systemJobs.map(j => (
                 <div key={j.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-                  <span className="text-sm font-mono font-semibold text-[#002D72]">{j.jobNumber}</span>
+                  <span className="text-sm font-mono font-semibold text-[#1e3a8a]">{j.jobNumber}</span>
                   <span className="text-sm text-gray-700">{j.jobName}</span>
                 </div>
               ))}

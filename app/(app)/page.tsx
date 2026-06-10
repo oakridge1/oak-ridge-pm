@@ -79,7 +79,7 @@ export default async function DashboardPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#002D72]">Jobs</h1>
+          <h1 className="text-2xl font-bold text-[#1e3a8a]">Jobs</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {jobs.filter((j) => j.status === "ACTIVE").length} active job
             {jobs.filter((j) => j.status === "ACTIVE").length !== 1 ? "s" : ""}
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
             </div>
             <Link
               href="/estimating"
-              className="flex items-center gap-1 text-xs text-[#002D72] hover:underline font-medium"
+              className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:underline font-medium"
             >
               View all <ChevronRight className="w-3 h-3" />
             </Link>
@@ -147,14 +147,14 @@ export default async function DashboardPage() {
               className="flex items-center justify-between gap-3 bg-gray-50 border border-dashed border-gray-200 rounded-xl px-4 py-4 hover:bg-blue-50 hover:border-blue-200 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#002D72] flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-[#1e3a8a] flex items-center justify-center shrink-0">
                   <Calculator className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-sm text-gray-500 group-hover:text-[#002D72]">
+                <span className="text-sm text-gray-500 group-hover:text-[#1e3a8a]">
                   No estimates yet — open the estimating tool to create one
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#002D72]" />
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#1e3a8a]" />
             </Link>
           ) : (
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
@@ -188,7 +188,7 @@ export default async function DashboardPage() {
               {estimates.length >= 5 && (
                 <Link
                   href="/estimating"
-                  className="flex items-center justify-center gap-1 px-4 py-3 text-xs text-[#002D72] font-medium hover:bg-gray-50 border-t border-gray-100 transition-colors"
+                  className="flex items-center justify-center gap-1 px-4 py-3 text-xs text-[#1e3a8a] font-medium hover:bg-gray-50 border-t border-gray-100 transition-colors"
                 >
                   See all estimates <ChevronRight className="w-3 h-3" />
                 </Link>

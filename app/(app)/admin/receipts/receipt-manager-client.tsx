@@ -96,7 +96,7 @@ function StatsBar({ receipts }: { receipts: ReceiptRow[] }) {
           <p className="text-xs text-gray-500 mb-0.5">{s.label}</p>
           <p
             className={`text-lg font-bold ${
-              s.highlight ? "text-red-600" : "text-[#002D72]"
+              s.highlight ? "text-red-600" : "text-[#1e3a8a]"
             }`}
           >
             {s.value}
@@ -151,7 +151,7 @@ function FilterBar({
               onClick={() => setFilters({ ...filters, type: t.value })}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 filters.type === t.value
-                  ? "bg-[#002D72] text-white"
+                  ? "bg-[#1e3a8a] text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -204,7 +204,7 @@ function FilterBar({
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
           <div>
@@ -213,7 +213,7 @@ function FilterBar({
               type="date"
               value={filters.dateTo}
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
           <div>
@@ -221,7 +221,7 @@ function FilterBar({
             <select
               value={filters.jobId}
               onChange={(e) => setFilters({ ...filters, jobId: e.target.value })}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             >
               <option value="">All jobs</option>
               {jobs.map((j) => (
@@ -236,7 +236,7 @@ function FilterBar({
             <select
               value={filters.uploadedById}
               onChange={(e) => setFilters({ ...filters, uploadedById: e.target.value })}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             >
               <option value="">Anyone</option>
               {users.map((u) => (
@@ -313,7 +313,7 @@ function InlineEditForm({
               type="text"
               value={form.vendor}
               onChange={(e) => set("vendor", e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               placeholder="Vendor name"
             />
           </div>
@@ -324,7 +324,7 @@ function InlineEditForm({
               step="0.01"
               value={form.amount}
               onChange={(e) => set("amount", e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               placeholder="0.00"
             />
           </div>
@@ -334,7 +334,7 @@ function InlineEditForm({
               type="date"
               value={form.receiptDate}
               onChange={(e) => set("receiptDate", e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
           <div>
@@ -342,7 +342,7 @@ function InlineEditForm({
             <select
               value={form.type}
               onChange={(e) => set("type", e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             >
               <option value="job">Job</option>
               <option value="business">Business</option>
@@ -355,7 +355,7 @@ function InlineEditForm({
               type="text"
               value={form.category}
               onChange={(e) => set("category", e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               placeholder="e.g. Materials, Tools"
             />
           </div>
@@ -366,7 +366,7 @@ function InlineEditForm({
                 <select
                   value={form.vehicleId}
                   onChange={(e) => set("vehicleId", e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 >
                   <option value="">No vehicle</option>
                   {vehicles.map((v) => (
@@ -382,7 +382,7 @@ function InlineEditForm({
                   type="number"
                   value={form.mileage}
                   onChange={(e) => set("mileage", e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   placeholder="Miles"
                 />
               </div>
@@ -394,7 +394,7 @@ function InlineEditForm({
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
               rows={2}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none"
               placeholder="Optional description"
             />
           </div>
@@ -404,7 +404,7 @@ function InlineEditForm({
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               rows={2}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none"
               placeholder="Admin notes"
             />
           </div>
@@ -413,7 +413,7 @@ function InlineEditForm({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-[#002D72] text-white rounded-lg hover:bg-blue-900 transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-[#1e3a8a] text-white rounded-lg hover:bg-blue-900 transition-colors disabled:opacity-60"
           >
             <Save className="w-3.5 h-3.5" />
             {saving ? "Saving…" : "Save"}
@@ -620,7 +620,7 @@ export function ReceiptManagerClient({ initialReceipts, jobs, users, vehicles }:
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#002D72] text-white text-left">
+            <thead className="bg-[#1e3a8a] text-white text-left">
               <tr>
                 <th className="px-3 py-3 font-medium w-14">Image</th>
                 <th className="px-3 py-3 font-medium">Date</th>
@@ -695,7 +695,7 @@ export function ReceiptManagerClient({ initialReceipts, jobs, users, vehicles }:
                         onChange={(e) => {
                           if (e.target.value) moveToJob(receipt.id, e.target.value);
                         }}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] max-w-[160px]"
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] max-w-[160px]"
                       >
                         <option value="">No job</option>
                         {jobs.map((j) => (
@@ -716,7 +716,7 @@ export function ReceiptManagerClient({ initialReceipts, jobs, users, vehicles }:
                             isFuel: e.target.value === "fuel",
                           }).catch(() => setError("Failed to update type"))
                         }
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                       >
                         <option value="job">Job</option>
                         <option value="business">Business</option>
@@ -737,7 +737,7 @@ export function ReceiptManagerClient({ initialReceipts, jobs, users, vehicles }:
                             );
                           }
                         }}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] w-24"
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] w-24"
                         placeholder="—"
                       />
                     </td>
@@ -805,8 +805,8 @@ export function ReceiptManagerClient({ initialReceipts, jobs, users, vehicles }:
                           title="Edit receipt"
                           className={`p-1.5 rounded-lg transition-colors ${
                             editingId === receipt.id
-                              ? "bg-[#002D72] text-white"
-                              : "text-gray-400 hover:bg-blue-50 hover:text-[#002D72]"
+                              ? "bg-[#1e3a8a] text-white"
+                              : "text-gray-400 hover:bg-blue-50 hover:text-[#1e3a8a]"
                           }`}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -968,8 +968,8 @@ export function ReceiptManagerClient({ initialReceipts, jobs, users, vehicles }:
                   onClick={() => setEditingId(editingId === receipt.id ? null : receipt.id)}
                   className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
                     editingId === receipt.id
-                      ? "bg-[#002D72] text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-[#002D72]"
+                      ? "bg-[#1e3a8a] text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-[#1e3a8a]"
                   }`}
                 >
                   <Edit2 className="w-3.5 h-3.5" />
@@ -1072,7 +1072,7 @@ function MobileEditForm({
             type="text"
             value={form.vendor}
             onChange={(e) => set("vendor", e.target.value)}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
         <div>
@@ -1082,7 +1082,7 @@ function MobileEditForm({
             step="0.01"
             value={form.amount}
             onChange={(e) => set("amount", e.target.value)}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
         <div>
@@ -1091,7 +1091,7 @@ function MobileEditForm({
             type="date"
             value={form.receiptDate}
             onChange={(e) => set("receiptDate", e.target.value)}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
         <div>
@@ -1099,7 +1099,7 @@ function MobileEditForm({
           <select
             value={form.type}
             onChange={(e) => set("type", e.target.value)}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             <option value="job">Job</option>
             <option value="business">Business</option>
@@ -1112,7 +1112,7 @@ function MobileEditForm({
             type="text"
             value={form.category}
             onChange={(e) => set("category", e.target.value)}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             placeholder="e.g. Materials, Tools"
           />
         </div>
@@ -1123,7 +1123,7 @@ function MobileEditForm({
               <select
                 value={form.vehicleId}
                 onChange={(e) => set("vehicleId", e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               >
                 <option value="">No vehicle</option>
                 {vehicles.map((v) => (
@@ -1139,7 +1139,7 @@ function MobileEditForm({
                 type="number"
                 value={form.mileage}
                 onChange={(e) => set("mileage", e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
             </div>
           </>
@@ -1150,7 +1150,7 @@ function MobileEditForm({
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
             rows={2}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none"
           />
         </div>
         <div className="col-span-2">
@@ -1159,7 +1159,7 @@ function MobileEditForm({
             value={form.notes}
             onChange={(e) => set("notes", e.target.value)}
             rows={2}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none"
           />
         </div>
       </div>
@@ -1167,7 +1167,7 @@ function MobileEditForm({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-[#002D72] text-white rounded-lg hover:bg-blue-900 transition-colors disabled:opacity-60"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-[#1e3a8a] text-white rounded-lg hover:bg-blue-900 transition-colors disabled:opacity-60"
         >
           <Save className="w-3.5 h-3.5" />
           {saving ? "Saving…" : "Save"}

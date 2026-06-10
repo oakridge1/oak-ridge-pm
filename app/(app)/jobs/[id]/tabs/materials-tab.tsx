@@ -93,22 +93,22 @@ function EditRow({
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="grid grid-cols-2 gap-2">
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
         <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="Vendor"
-          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
         <input type="text" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="PO # (optional)"
-          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
         <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" required
-          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] col-span-2" />
+          className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] col-span-2" />
         <div>
           <label className="block text-xs text-gray-500 mb-0.5">Base Cost ($)</label>
           <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" min="0" placeholder="0.00"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-0.5">Markup %</label>
           <input type="number" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} step="0.5" min="0" placeholder="0"
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
         </div>
       </div>
       {markup > 0 && (
@@ -117,7 +117,7 @@ function EditRow({
       <div className="flex gap-2 justify-end">
         <button onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
         <button onClick={handleSave} disabled={pending}
-          className="bg-[#002D72] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+          className="bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
           {pending ? "Saving…" : "Save"}
         </button>
       </div>
@@ -162,7 +162,7 @@ function EntryRow({
             href={entry.fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-400 hover:text-[#002D72] transition-colors"
+            className="text-gray-400 hover:text-[#1e3a8a] transition-colors"
             title={entry.fileName ?? "Attachment"}
           >
             {isImage(entry.fileUrl) ? (
@@ -185,7 +185,7 @@ function EntryRow({
         </div>
         {role === "ADMIN" && (
           <>
-            <button onClick={() => setEditing(true)} className="p-1 text-gray-400 hover:text-[#002D72] hover:bg-gray-100 rounded">
+            <button onClick={() => setEditing(true)} className="p-1 text-gray-400 hover:text-[#1e3a8a] hover:bg-gray-100 rounded">
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
@@ -260,7 +260,7 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
     <form onSubmit={handleSubmit} className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-sm text-gray-900 flex items-center gap-2">
-          <Package className="w-4 h-4 text-[#002D72]" />
+          <Package className="w-4 h-4 text-[#1e3a8a]" />
           Add Expense
         </h3>
         <button type="button" onClick={onDone} className="p-1 text-gray-400 hover:text-gray-700">
@@ -274,39 +274,39 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Date <span className="text-red-500">*</span></label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Vendor</label>
           <input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="Home Depot"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">PO #</label>
           <input type="text" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="e.g. PO-2025-001"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <div className="col-span-2">
           <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
           <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Wire, conduit, breakers…" required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Base Cost ($) <span className="text-red-500">*</span></label>
           <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" min="0" placeholder="0.00" required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Markup %</label>
           <input type="number" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} step="0.5" min="0" placeholder="0"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
           {parseFloat(markupPct) > 0 && parseFloat(amount) > 0 && (
             <p className="text-xs text-gray-400 mt-0.5">Total: {fmtMoney(parseFloat(amount) * (1 + parseFloat(markupPct) / 100))}</p>
           )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Receipt / Invoice</label>
-          <label className="flex items-center gap-2 cursor-pointer border border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 hover:border-[#002D72] hover:text-[#002D72] transition-colors bg-white">
+          <label className="flex items-center gap-2 cursor-pointer border border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 hover:border-[#1e3a8a] hover:text-[#1e3a8a] transition-colors bg-white">
             <Upload className="w-4 h-4 shrink-0" />
             <span className="truncate">{file ? file.name : "Upload file…"}</span>
             <input type="file" accept="image/*,.pdf" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -317,7 +317,7 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onDone} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
         <button type="submit" disabled={pending || uploading}
-          className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+          className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
           {uploading ? "Uploading…" : pending ? "Saving…" : "Add Expense"}
         </button>
       </div>
@@ -345,7 +345,7 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="bg-gray-50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Total Spent</p>
-          <p className="text-xl font-bold text-[#002D72]">{fmtMoney(total)}</p>
+          <p className="text-xl font-bold text-[#1e3a8a]">{fmtMoney(total)}</p>
         </div>
         {(role === "ADMIN" || role === "OFFICE") && budget != null && (
           <>
@@ -368,7 +368,7 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium transition-colors mb-6"
+          className="flex items-center gap-1.5 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium transition-colors mb-6"
         >
           <Plus className="w-4 h-4" />
           Add Expense
@@ -389,7 +389,7 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
             <div className="px-4 py-3 border-t border-gray-100 text-center">
               <button
                 onClick={() => setShowAll(true)}
-                className="text-sm text-[#002D72] hover:text-[#003d99] font-medium"
+                className="text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium"
               >
                 View All ({entries.length} entries) — older receipts archived to Document Vault
               </button>

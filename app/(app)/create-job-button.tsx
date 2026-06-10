@@ -46,7 +46,7 @@ export function CreateJobButton() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-[#002D72] text-lg">New Job</h2>
+              <h2 className="font-bold text-[#1e3a8a] text-lg">New Job</h2>
               <button
                 onClick={handleClose}
                 className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
@@ -71,7 +71,7 @@ export function CreateJobButton() {
                     name="jobNumber"
                     required
                     placeholder="e.g. 2025-042"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   />
                 </div>
 
@@ -82,7 +82,7 @@ export function CreateJobButton() {
                   <select
                     name="status"
                     defaultValue="ACTIVE"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
                   >
                     <option value="ACTIVE">Active</option>
                     <option value="ON_HOLD">On Hold</option>
@@ -97,7 +97,7 @@ export function CreateJobButton() {
                 <select
                   name="jobType"
                   defaultValue="BID"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
                 >
                   <option value="BID">Bid</option>
                   <option value="TIME_AND_MATERIALS">Time &amp; Materials</option>
@@ -113,7 +113,7 @@ export function CreateJobButton() {
                   name="jobName"
                   required
                   placeholder="e.g. Main Street Office Renovation"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
 
@@ -128,7 +128,7 @@ export function CreateJobButton() {
                   min="0"
                   step="0.01"
                   placeholder="e.g. 65.00"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
 
@@ -143,7 +143,7 @@ export function CreateJobButton() {
                     min="0"
                     step="1"
                     placeholder="0"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   />
                 </div>
                 <div>
@@ -156,7 +156,7 @@ export function CreateJobButton() {
                     min="0"
                     step="0.01"
                     placeholder="0.00"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   />
                 </div>
               </div>
@@ -171,7 +171,7 @@ export function CreateJobButton() {
                   min="0"
                   step="0.01"
                   placeholder="0.00"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
 
@@ -186,7 +186,7 @@ export function CreateJobButton() {
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="flex-1 bg-[#002D72] text-white rounded-xl py-2.5 text-sm font-medium hover:bg-blue-900 disabled:opacity-60 transition-colors"
+                  className="flex-1 bg-[#1e3a8a] text-white rounded-xl py-2.5 text-sm font-medium hover:bg-blue-900 disabled:opacity-60 transition-colors"
                 >
                   {isPending ? "Creating…" : "Create Job"}
                 </button>

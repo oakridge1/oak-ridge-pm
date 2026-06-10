@@ -96,7 +96,7 @@ export function BOMReferenceTab() {
             type="checkbox"
             checked={gcOnly}
             onChange={e => { setGcOnly(e.target.checked); resetPage(); }}
-            className="accent-[#1a3a5c]"
+            className="accent-[#1e3a8a]"
           />
           GC stocked only
         </label>
@@ -132,7 +132,7 @@ export function BOMReferenceTab() {
                     <td className="px-2 py-1.5 text-center text-gray-500">{item.unit}</td>
                     <td className="px-3 py-1.5 text-right font-mono text-gray-500">{fmt$(item.mat)}</td>
                     <td className="px-2 py-1.5 text-center text-gray-400">{mkLabel}</td>
-                    <td className="px-3 py-1.5 text-right font-mono font-medium text-[#1a3a5c]">
+                    <td className="px-3 py-1.5 text-right font-mono font-medium text-[#1e3a8a]">
                       {fmt$(applyMarkup(item.mat, item.mk))}
                     </td>
                     <td className="px-3 py-1.5 text-right font-mono text-gray-500">

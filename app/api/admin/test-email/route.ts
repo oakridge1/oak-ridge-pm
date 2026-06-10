@@ -47,7 +47,7 @@ export async function POST() {
           <div style="margin-bottom:20px">
             <span style="font-size:13px;font-weight:700;color:#FF5910;text-transform:uppercase;letter-spacing:0.1em">Oak Ridge Electrical LLC</span>
           </div>
-          <h2 style="font-size:20px;color:#002D72;margin:0 0 12px">✓ Email is working</h2>
+          <h2 style="font-size:20px;color:#1e3a8a;margin:0 0 12px">✓ Email is working</h2>
           <p style="margin:0 0 16px">This is a test email from Oak Ridge PM. Email delivery is configured and working correctly.</p>
           <p style="font-size:12px;color:#888;margin:0">Sent: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })} EST</p>
           <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb" />

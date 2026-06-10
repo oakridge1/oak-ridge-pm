@@ -281,7 +281,7 @@ export function CustomAssemblyBuilder() {
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+        <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
           Custom Assembly Builder
         </div>
 
@@ -314,7 +314,7 @@ export function CustomAssemblyBuilder() {
                     setNewCatMode(false);
                     setNewCatName('');
                   }}
-                  className="px-2 py-1 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] shrink-0"
+                  className="px-2 py-1 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] shrink-0"
                 >✓</button>
                 <button
                   onClick={() => { setNewCatMode(false); setNewCatName(''); }}
@@ -345,7 +345,7 @@ export function CustomAssemblyBuilder() {
 
       {/* ── MATERIALS ───────────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+        <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
           Materials
         </div>
 
@@ -369,7 +369,7 @@ export function CustomAssemblyBuilder() {
                       type="text"
                       value={line.name}
                       onChange={e => updateLine(line.id, { name: e.target.value })}
-                      className="flex-1 text-gray-700 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1 -mx-1"
+                      className="flex-1 text-gray-700 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] rounded px-1 -mx-1"
                     />
                     {line.isNew && (
                       <span
@@ -387,7 +387,7 @@ export function CustomAssemblyBuilder() {
                     min={0}
                     value={line.qty || ''}
                     onChange={e => updateLine(line.id, { qty: parseFloat(e.target.value) || 0 })}
-                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1"
+                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] rounded px-1"
                   />
                 </td>
                 <td className="py-0.5 pl-1">
@@ -408,7 +408,7 @@ export function CustomAssemblyBuilder() {
                     value={line.matUnit === 0 ? '' : line.matUnit}
                     placeholder="—"
                     onChange={e => updateLine(line.id, { matUnit: parseFloat(e.target.value) || 0 })}
-                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1"
+                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] rounded px-1"
                   />
                 </td>
                 <td className="py-0.5 text-right">
@@ -419,7 +419,7 @@ export function CustomAssemblyBuilder() {
                     value={line.hrs === 0 ? '' : line.hrs}
                     placeholder="—"
                     onChange={e => updateLine(line.id, { hrs: parseFloat(e.target.value) || 0 })}
-                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1"
+                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] rounded px-1"
                   />
                 </td>
                 <td className="py-0.5 pl-1">
@@ -510,7 +510,7 @@ export function CustomAssemblyBuilder() {
                   />
                   <button
                     onClick={handleAddLine}
-                    className="px-2 py-1 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]"
+                    className="px-2 py-1 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c]"
                   >
                     + Add
                   </button>
@@ -535,7 +535,7 @@ export function CustomAssemblyBuilder() {
 
       {/* ── CONDUCTORS ──────────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+        <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
           Conductors
         </div>
 
@@ -597,7 +597,7 @@ export function CustomAssemblyBuilder() {
 
         <button
           onClick={addConductor}
-          className="w-full text-xs border border-dashed border-[#1a3a5c] text-[#1a3a5c] rounded py-1.5 hover:bg-blue-50 transition-colors mt-1"
+          className="w-full text-xs border border-dashed border-[#1e3a8a] text-[#1e3a8a] rounded py-1.5 hover:bg-blue-50 transition-colors mt-1"
         >
           + Add Conductor
         </button>
@@ -616,7 +616,7 @@ export function CustomAssemblyBuilder() {
               {totalHrs.toFixed(2)} hrs&nbsp;&nbsp;→&nbsp;&nbsp;{fmt$(totalHrs * R.labor)}
             </span>
           </div>
-          <div className="flex justify-between font-bold text-[#1a3a5c] border-t-2 border-[#1a3a5c] pt-1.5 mt-1.5">
+          <div className="flex justify-between font-bold text-[#1e3a8a] border-t-2 border-[#1e3a8a] pt-1.5 mt-1.5">
             <span>Combined</span>
             <span className="font-mono">{fmt$(totalMat + totalHrs * R.labor)}</span>
           </div>
@@ -625,13 +625,13 @@ export function CustomAssemblyBuilder() {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={handleAddToJob}
-            className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+            className="px-4 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
           >
             + Add to This Job
           </button>
           <button
             onClick={handleSaveToLibrary}
-            className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#eef4ff] transition-colors"
+            className="px-4 py-2 text-sm font-semibold rounded border border-[#1e3a8a] text-[#1e3a8a] hover:bg-[#eef4ff] transition-colors"
           >
             ★ Save to Library
           </button>
@@ -649,7 +649,7 @@ export function CustomAssemblyBuilder() {
       <div className="bg-white rounded border border-gray-200 p-4 shadow-sm">
         <button
           onClick={() => setLibraryOpen(o => !o)}
-          className="w-full flex items-center justify-between text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3"
+          className="w-full flex items-center justify-between text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3"
         >
           <span>Saved Assemblies ({permanentDefs.length})</span>
           <span className="text-gray-400">{libraryOpen ? '▾' : '▸'}</span>
@@ -674,7 +674,7 @@ export function CustomAssemblyBuilder() {
                 <span className="font-mono text-xs text-gray-500 shrink-0">{def.totalHrs.toFixed(2)}h</span>
                 <button
                   onClick={() => handleLibraryAddToBid(def)}
-                  className="px-2.5 py-1 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] shrink-0 transition-colors"
+                  className="px-2.5 py-1 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] shrink-0 transition-colors"
                 >
                   + Add to Bid
                 </button>

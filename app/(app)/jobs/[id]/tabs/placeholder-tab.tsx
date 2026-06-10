@@ -15,7 +15,7 @@ export function PlaceholderTab({ title, description }: PlaceholderTabProps) {
       <p className="text-sm text-gray-400 mt-2 max-w-xs leading-relaxed">
         {description}
       </p>
-      <div className="mt-6 px-4 py-2 bg-[#002D72]/10 text-[#002D72] text-xs font-medium rounded-full">
+      <div className="mt-6 px-4 py-2 bg-[#1e3a8a]/10 text-[#1e3a8a] text-xs font-medium rounded-full">
         Phase 2
       </div>
     </div>

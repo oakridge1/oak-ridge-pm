@@ -109,7 +109,7 @@ export function WeekBanner() {
 
   return (
     <div className="mb-6">
-      <div className="bg-[#1a3a5c] rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-[#1e3a8a] rounded-2xl shadow-sm overflow-hidden">
 
         {/* ── Header ───────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -159,7 +159,7 @@ export function WeekBanner() {
                 <span
                   className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${
                     isToday
-                      ? "bg-white text-[#1a3a5c]"
+                      ? "bg-white text-[#1e3a8a]"
                       : isSelected
                       ? "text-white ring-1 ring-white/50"
                       : "text-white/90"

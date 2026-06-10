@@ -319,7 +319,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
         <button
           onClick={() => setViewMode("job")}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            viewMode === "job" ? "bg-white text-[#002D72] shadow-sm" : "text-gray-500 hover:text-gray-700"
+            viewMode === "job" ? "bg-white text-[#1e3a8a] shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}
         >
           This Job
@@ -327,7 +327,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
         <button
           onClick={() => setViewMode("company")}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            viewMode === "company" ? "bg-white text-[#002D72] shadow-sm" : "text-gray-500 hover:text-gray-700"
+            viewMode === "company" ? "bg-white text-[#1e3a8a] shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}
         >
           All Jobs
@@ -396,16 +396,16 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
               }
               className={`border-b border-r border-gray-200 min-h-[60px] p-1 text-left transition-colors ${
                 isSelected
-                  ? "bg-blue-50 border-[#002D72]"
+                  ? "bg-blue-50 border-[#1e3a8a]"
                   : "hover:bg-gray-50"
               }`}
             >
               <span
                 className={`text-xs font-medium block mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
                   isToday
-                    ? "bg-[#002D72] text-white"
+                    ? "bg-[#1e3a8a] text-white"
                     : isSelected
-                    ? "text-[#002D72]"
+                    ? "text-[#1e3a8a]"
                     : "text-gray-700"
                 }`}
               >
@@ -493,7 +493,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                     {canManageSchedule && (
                       <button
                         onClick={() => { setScheduleToEdit(s); setShowScheduleModal(true); }}
-                        className="text-xs text-[#002D72] hover:underline shrink-0"
+                        className="text-xs text-[#1e3a8a] hover:underline shrink-0"
                       >
                         Edit
                       </button>
@@ -704,7 +704,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
           !showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium transition-colors"
+            className="flex items-center gap-1.5 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Event
@@ -715,7 +715,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
             className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3"
           >
             <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#002D72]" />
+              <Calendar className="w-4 h-4 text-[#1e3a8a]" />
               Add Calendar Event
             </h4>
             {error && (
@@ -731,7 +731,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                 <select
                   name="type"
                   defaultValue="MILESTONE"
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 >
                   {(role === "ADMIN" || role === "FOREMAN") && (
                     <>
@@ -755,7 +755,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                     selectedDay?.toISOString().slice(0, 10) ??
                     new Date().toISOString().slice(0, 10)
                   }
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
             </div>
@@ -767,18 +767,18 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
                 name="title"
                 required
                 placeholder="Event title…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
               <input name="note" placeholder="Optional note…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Recurrence</label>
               <select name="recurrence" value={recurrenceType} onChange={e => setRecurrenceType(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]">
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]">
                 <option value="NONE">Does not repeat</option>
                 <option value="WEEKLY">Weekly</option>
                 <option value="BIWEEKLY">Bi-Weekly</option>
@@ -788,7 +788,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">End Date (optional)</label>
                 <input name="recurrenceEndDate" type="date"
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
                 <p className="text-xs text-gray-400 mt-1">Leave blank to repeat indefinitely.</p>
               </div>
             )}
@@ -796,7 +796,7 @@ export function CalendarTab({ job, role, currentUserId, allCalendarEvents = [] }
               <button type="button" onClick={() => { setShowAddForm(false); setError(null); setRecurrenceType("NONE"); }}
                 className="text-sm text-gray-500 hover:text-gray-700 transition-colors">Cancel</button>
               <button type="submit" disabled={pending}
-                className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+                className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
                 {pending ? "Adding…" : "Add Event"}
               </button>
             </div>

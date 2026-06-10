@@ -178,28 +178,28 @@ export default async function JobPage({ params }: PageProps) {
     <div>
       <div className="mb-4">
         <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-          <a href="/" className="hover:text-[#002D72] transition-colors">
+          <a href="/" className="hover:text-[#1e3a8a] transition-colors">
             Jobs
           </a>
           <span>/</span>
           <span className="font-mono">{job.jobNumber}</span>
         </div>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-xl font-bold text-[#002D72] leading-tight">
+          <h1 className="text-xl font-bold text-[#1e3a8a] leading-tight">
             {job.jobName}
           </h1>
           {canViewReports && (
             <div className="flex items-center gap-2 shrink-0">
               <a href={reportUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                 <FileText className="w-3.5 h-3.5" /> Full Report
               </a>
               <a href={summaryUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                 <BarChart2 className="w-3.5 h-3.5" /> Summary PDF
               </a>
               <a href={mailtoLink}
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                 <Mail className="w-3.5 h-3.5" /> Share
               </a>
             </div>

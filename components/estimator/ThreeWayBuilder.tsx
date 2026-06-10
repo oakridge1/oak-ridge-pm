@@ -18,8 +18,8 @@ export function ThreeWayBuilder() {
   const preview = useMemo(() => calcThreeWay(threeWayState), [threeWayState]);
   const R = getRates();
 
-  const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]';
-  const inp = 'w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]';
+  const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
+  const inp = 'w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
 
   return (
     <div className="mb-6">
@@ -60,7 +60,7 @@ export function ThreeWayBuilder() {
                 onClick={() => updateThreeWayState({ diff: d.value })}
                 className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
                   threeWayState.diff === d.value
-                    ? 'bg-[#002D72] text-white'
+                    ? 'bg-[#1e3a8a] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
                 {d.label}
@@ -74,7 +74,7 @@ export function ThreeWayBuilder() {
             <button
               onClick={() => addThreeWay()}
               disabled={threeWayState.travelerFt <= 0}
-              className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
               + Add to Bid
             </button>
           </div>

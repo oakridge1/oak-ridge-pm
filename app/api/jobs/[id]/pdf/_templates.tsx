@@ -1055,11 +1055,11 @@ const IS = StyleSheet.create({
   // Two-column project info
   twoCol: { flexDirection: "row", gap: 20, marginBottom: 16 },
   col: { flex: 1 },
-  colLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#1a3a5c", letterSpacing: 0.8, marginBottom: 5, textTransform: "uppercase" as const },
+  colLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#1e3a8a", letterSpacing: 0.8, marginBottom: 5, textTransform: "uppercase" as const },
   colValue: { fontSize: 9, color: "#1a1a1a", lineHeight: 1.6 },
   colValueBold: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1a1a1a" },
   // Scope section
-  scopeLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#1a3a5c", letterSpacing: 0.8, marginBottom: 6, textTransform: "uppercase" as const },
+  scopeLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#1e3a8a", letterSpacing: 0.8, marginBottom: 6, textTransform: "uppercase" as const },
   scopeRow: { flexDirection: "row", marginBottom: 4, gap: 6 },
   scopeNum: { fontSize: 9, color: GRAY, width: 18 },
   scopeText: { fontSize: 9, color: "#1a1a1a", flex: 1, lineHeight: 1.4 },
@@ -1074,13 +1074,13 @@ const IS = StyleSheet.create({
   totalRow: {
     flexDirection: "row", justifyContent: "flex-end",
     paddingVertical: 6, marginTop: 4,
-    borderTopWidth: 2, borderTopColor: "#1a3a5c", borderTopStyle: "solid",
+    borderTopWidth: 2, borderTopColor: "#1e3a8a", borderTopStyle: "solid",
   },
-  totalLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1a3a5c", width: 260, textAlign: "right", paddingRight: 12 },
-  totalValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1a3a5c", width: 110, textAlign: "right" },
+  totalLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1e3a8a", width: 260, textAlign: "right", paddingRight: 12 },
+  totalValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: "#1e3a8a", width: 110, textAlign: "right" },
   // Payment terms + warranty
   termsBox: { marginBottom: 10 },
-  termsLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#1a3a5c", letterSpacing: 0.8, marginBottom: 4, textTransform: "uppercase" as const },
+  termsLabel: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#1e3a8a", letterSpacing: 0.8, marginBottom: 4, textTransform: "uppercase" as const },
   termsText: { fontSize: 8, color: GRAY, lineHeight: 1.5 },
   // Notes
   notesBox: { backgroundColor: "#f9fafb", borderRadius: 4, padding: 8, marginBottom: 10 },
@@ -1090,7 +1090,7 @@ const IS = StyleSheet.create({
   invFooter: { position: "absolute", bottom: 20, left: 45, right: 45 },
   invFooterLine: { borderBottomWidth: 2, borderBottomColor: "#c8601a", borderBottomStyle: "solid", marginBottom: 6 },
   invFooterText: { fontSize: 8, color: "#9ca3af", textAlign: "center" },
-  invFooterPage: { fontSize: 8, color: "#1a3a5c", fontFamily: "Helvetica-Bold", textAlign: "right", marginTop: -12 },
+  invFooterPage: { fontSize: 8, color: "#1e3a8a", fontFamily: "Helvetica-Bold", textAlign: "right", marginTop: -12 },
 });
 
 const PAYMENT_TERMS_TEXT: Record<string, string> = {
@@ -1229,9 +1229,9 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
           ) : null}
 
           {retainageHeld > 0 ? (
-            <View style={[IS.finRow, { borderTopWidth: 2, borderTopColor: "#1a3a5c", borderTopStyle: "solid" }]}>
-              <Text style={[IS.finLabel, { color: "#1a3a5c", fontFamily: "Helvetica-Bold" }]}>CURRENT PAYMENT DUE</Text>
-              <Text style={[IS.finValue, { color: "#1a3a5c" }]}>{fmt$(data.amount - retainageHeld)}</Text>
+            <View style={[IS.finRow, { borderTopWidth: 2, borderTopColor: "#1e3a8a", borderTopStyle: "solid" }]}>
+              <Text style={[IS.finLabel, { color: "#1e3a8a", fontFamily: "Helvetica-Bold" }]}>CURRENT PAYMENT DUE</Text>
+              <Text style={[IS.finValue, { color: "#1e3a8a" }]}>{fmt$(data.amount - retainageHeld)}</Text>
             </View>
           ) : null}
         </View>
@@ -1403,7 +1403,7 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
         {(!data.orderType || data.orderType === 'ORDER') ? (
           <Text style={SS.docTitle}>{data.title ?? "MATERIAL ORDER"}</Text>
         ) : (
-          <View style={{ backgroundColor: '#1a3a5c', padding: 16, borderRadius: 6, marginBottom: 10, alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#1e3a8a', padding: 16, borderRadius: 6, marginBottom: 10, alignItems: 'center' }}>
             <Text style={{ color: 'white', fontSize: 22, fontFamily: 'Helvetica-Bold', letterSpacing: 3 }}>
               QUOTE REQUESTED
             </Text>
@@ -1456,12 +1456,12 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
 
         {/* Pricing request note for quote modes */}
         {data.orderType === 'QUOTE' && (
-          <Text style={{ fontSize: 9, color: '#444', marginBottom: 10, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 3, borderLeftColor: '#1a3a5c', borderLeftStyle: 'solid', paddingLeft: 8 }}>
+          <Text style={{ fontSize: 9, color: '#444', marginBottom: 10, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 3, borderLeftColor: '#1e3a8a', borderLeftStyle: 'solid', paddingLeft: 8 }}>
             Please provide your best pricing for the items listed below and respond at your earliest convenience.
           </Text>
         )}
         {data.orderType === 'COMPETITIVE_QUOTE' && (
-          <Text style={{ fontSize: 9, color: '#444', marginBottom: 10, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 3, borderLeftColor: '#1a3a5c', borderLeftStyle: 'solid', paddingLeft: 8 }}>
+          <Text style={{ fontSize: 9, color: '#444', marginBottom: 10, fontFamily: 'Helvetica-Oblique', borderLeftWidth: 3, borderLeftColor: '#1e3a8a', borderLeftStyle: 'solid', paddingLeft: 8 }}>
             Oak Ridge Electrical is soliciting material quotes from multiple vendors for this order. We are looking for the best available pricing and will award based on competitive response. Please provide your pricing at your earliest convenience.
           </Text>
         )}
@@ -1795,7 +1795,7 @@ const PS = StyleSheet.create({
   jobName: {
     fontSize:   13,
     fontFamily: 'Helvetica-Bold',
-    color:      '#1a3a5c',
+    color:      '#1e3a8a',
     textAlign:  'right',
     marginTop:  4,
   },
@@ -1825,7 +1825,7 @@ const PS = StyleSheet.create({
   toBlock: { flex: 1 },
   label: {
     fontSize:      8,
-    color:         '#1a3a5c',
+    color:         '#1e3a8a',
     fontFamily:    'Helvetica-Bold',
     textTransform: 'uppercase',
     marginBottom:  2,
@@ -1833,13 +1833,13 @@ const PS = StyleSheet.create({
   toCompany: {
     fontSize:   10,
     fontFamily: 'Helvetica-Bold',
-    color:      '#1a3a5c',
+    color:      '#1e3a8a',
   },
   toDetail: { fontSize: 9, color: '#333333', marginTop: 1 },
   sectionHeading: {
     fontSize:      10,
     fontFamily:    'Helvetica-Bold',
-    color:         '#1a3a5c',
+    color:         '#1e3a8a',
     marginTop:     12,
     marginBottom:  4,
     textTransform: 'uppercase',
@@ -1869,7 +1869,7 @@ const PS = StyleSheet.create({
     flexDirection:   'row',
     justifyContent:  'space-between',
     alignItems:      'center',
-    backgroundColor: '#1a3a5c',
+    backgroundColor: '#1e3a8a',
     padding:         10,
     borderRadius:    4,
     marginVertical:  8,
@@ -1886,7 +1886,7 @@ const PS = StyleSheet.create({
   },
   altHeader: {
     flexDirection:   'row',
-    backgroundColor: '#1a3a5c',
+    backgroundColor: '#1e3a8a',
     padding:         6,
   },
   altHeaderText: {
@@ -1911,7 +1911,7 @@ const PS = StyleSheet.create({
   colHeading: {
     fontSize:      9,
     fontFamily:    'Helvetica-Bold',
-    color:         '#1a3a5c',
+    color:         '#1e3a8a',
     marginBottom:  4,
     textTransform: 'uppercase',
   },
@@ -1934,7 +1934,7 @@ const PS = StyleSheet.create({
   depositTitle: {
     fontSize:      9,
     fontFamily:    'Helvetica-Bold',
-    color:         '#1a3a5c',
+    color:         '#1e3a8a',
     marginBottom:  4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1969,7 +1969,7 @@ const PS = StyleSheet.create({
     marginBottom:      4,
     height:            24,
   },
-  sigLabel: { fontSize: 8, color: '#1a3a5c' },
+  sigLabel: { fontSize: 8, color: '#1e3a8a' },
   footer: {
     position: 'absolute',
     bottom:   20,
@@ -1989,7 +1989,7 @@ const PS = StyleSheet.create({
   },
   footerPage: {
     fontSize:   8,
-    color:      '#1a3a5c',
+    color:      '#1e3a8a',
     fontFamily: 'Helvetica-Bold',
     textAlign:  'right',
     marginTop:  -12,

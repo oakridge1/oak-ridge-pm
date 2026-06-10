@@ -107,7 +107,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
       {/* Page header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#002D72] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#1e3a8a] flex items-center justify-center shrink-0">
             <Calculator className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -117,7 +117,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
         </div>
         <button
           onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 bg-[#002D72] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#003d99] transition-colors"
+          className="flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#003d99] transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Estimate
@@ -129,7 +129,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#002D72]">New Estimate</h2>
+              <h2 className="text-lg font-bold text-[#1e3a8a]">New Estimate</h2>
               <button onClick={() => setShowNew(false)} className="p-1 text-gray-400 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
@@ -145,7 +145,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="e.g. Smith Residence Service Upgrade"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   autoFocus
                 />
               </div>
@@ -156,7 +156,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
                   value={newClient}
                   onChange={e => setNewClient(e.target.value)}
                   placeholder="Optional"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
               <div>
@@ -166,7 +166,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
                   value={newAddress}
                   onChange={e => setNewAddress(e.target.value)}
                   placeholder="Optional"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
             </div>
@@ -175,7 +175,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
               <button
                 onClick={handleCreate}
                 disabled={creating || !newName.trim()}
-                className="bg-[#002D72] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
+                className="bg-[#1e3a8a] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
               >
                 {creating ? "Creating…" : "Create Estimate"}
               </button>
@@ -192,7 +192,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or client…"
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
         />
       </div>
 
@@ -204,7 +204,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
             onClick={() => setTab(t.value)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               tab === t.value
-                ? "bg-[#002D72] text-white"
+                ? "bg-[#1e3a8a] text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -227,7 +227,7 @@ export function EstimatingClient({ estimates, isAdmin }: Props) {
               <Link
                 key={e.id}
                 href={`/estimating/${e.id}`}
-                className="block w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-[#002D72]/30 hover:shadow-sm transition-all"
+                className="block w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-[#1e3a8a]/30 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

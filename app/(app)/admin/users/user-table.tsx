@@ -121,7 +121,7 @@ function WageSection({ userId, initialWage }: { userId: string; initialWage: Wag
             <div>
               <label className="block text-xs text-gray-500 mb-1">Title</label>
               <select value={title} onChange={e => { setTitle(e.target.value); setYear(""); }}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]">
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]">
                 {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
@@ -129,7 +129,7 @@ function WageSection({ userId, initialWage }: { userId: string; initialWage: Wag
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Year</label>
                 <select value={year} onChange={e => setYear(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]">
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]">
                   <option value="">—</option>
                   {years.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -141,14 +141,14 @@ function WageSection({ userId, initialWage }: { userId: string; initialWage: Wag
               <label className="block text-xs text-gray-500 mb-1">Hourly Wage ($)</label>
               <input type="number" value={hourlyWage} onChange={e => setHourlyWage(e.target.value)}
                 step="0.25" min="0" placeholder="0.00"
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Burden Rate (%)</label>
               <div className="relative">
                 <input type="number" value={burdenRate} onChange={e => setBurdenRate(e.target.value)}
                   step="1" min="0" max="200" placeholder="35"
-                  className="w-full border border-gray-300 rounded px-2 pr-7 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded px-2 pr-7 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
               </div>
             </div>
@@ -161,13 +161,13 @@ function WageSection({ userId, initialWage }: { userId: string; initialWage: Wag
           <div>
             <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
             <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. overhead, unpaid"
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
           </div>
           <div className="flex gap-2 justify-end">
             <button onClick={() => { setEditing(false); setError(null); }}
               className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
             <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-1 text-xs bg-[#002D72] text-white px-2.5 py-1 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
+              className="flex items-center gap-1 text-xs bg-[#1e3a8a] text-white px-2.5 py-1 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
               <Save className="w-3 h-3" />{saving ? "Saving…" : "Save Wage"}
             </button>
           </div>
@@ -196,7 +196,7 @@ function WageSection({ userId, initialWage }: { userId: string; initialWage: Wag
             )}
           </div>
           <button onClick={startEdit}
-            className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors shrink-0">
+            className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/30 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors shrink-0">
             <DollarSign className="w-3 h-3" /> {wage ? "Edit" : "Set Wage"}
           </button>
         </div>
@@ -231,7 +231,7 @@ function UserAvatar({ user }: { user: UserRow }) {
   }
   const initials = (user.name ?? user.email).slice(0, 2).toUpperCase();
   return (
-    <div className="w-9 h-9 rounded-full bg-[#002D72] text-white flex items-center justify-center text-sm font-bold shrink-0">
+    <div className="w-9 h-9 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-bold shrink-0">
       {initials}
     </div>
   );
@@ -311,7 +311,7 @@ function UserRowMobile({
           value={user.role}
           onChange={(e) => handleRoleChange(e.target.value as Role)}
           disabled={isSelf}
-          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
         >
           {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map((r) => (
             <option key={r} value={r}>{ROLE_LABELS[r]}</option>
@@ -334,7 +334,7 @@ function UserRowMobile({
 
         <button
           onClick={() => setShowWage(v => !v)}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#002D72] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#1e3a8a] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
         >
           <DollarSign className="w-3 h-3" />
           {showWage ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -432,7 +432,7 @@ function UserRowDesktop({
             value={user.role}
             onChange={(e) => handleRoleChange(e.target.value as Role)}
             disabled={isSelf}
-            className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map((r) => (
               <option key={r} value={r}>{ROLE_LABELS[r]}</option>
@@ -464,7 +464,7 @@ function UserRowDesktop({
             <UserPermissionGrid userId={user.id} userRole={user.role} />
             <button
               onClick={() => setShowWage(v => !v)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#002D72] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#1e3a8a] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
             >
               <DollarSign className="w-3 h-3" /> Wage
               {showWage ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -523,9 +523,9 @@ function AddUserForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="mb-6 bg-blue-50 border border-[#002D72]/20 rounded-xl p-4 space-y-3">
+    <div className="mb-6 bg-blue-50 border border-[#1e3a8a]/20 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[#002D72] flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-[#1e3a8a] flex items-center gap-2">
           <UserPlus className="w-4 h-4" /> Add New User
         </h3>
         <button onClick={onDone} className="p-1 text-gray-400 hover:text-gray-700"><X className="w-4 h-4" /></button>
@@ -535,17 +535,17 @@ function AddUserForm({ onDone }: { onDone: () => void }) {
         <div className="sm:col-span-1">
           <label className="block text-xs font-medium text-gray-600 mb-1">Email <span className="text-red-500">*</span></label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="user@example.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
           <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Full name"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
           <select value={role} onChange={e => setRole(e.target.value as Role)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]">
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]">
             {(["ADMIN", "OFFICE", "FOREMAN", "TEAMMATE"] as Role[]).map(r => (
               <option key={r} value={r}>{ROLE_LABELS[r]}</option>
             ))}
@@ -558,7 +558,7 @@ function AddUserForm({ onDone }: { onDone: () => void }) {
       <div className="flex justify-end gap-2">
         <button onClick={onDone} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
         <button onClick={handleSave} disabled={pending || !email.trim()}
-          className="flex items-center gap-1.5 bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+          className="flex items-center gap-1.5 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
           <Save className="w-3.5 h-3.5" />
           {pending ? "Creating…" : "Create User"}
         </button>
@@ -582,7 +582,7 @@ export function UserTable({ users, currentUserId }: UserTableProps) {
         <div className="mb-4 flex justify-end">
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/30 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
           >
             <UserPlus className="w-4 h-4" /> Add User
           </button>

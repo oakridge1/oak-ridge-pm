@@ -61,11 +61,11 @@ export default async function JobReportPage({ params }: PageProps) {
 
       <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
-        <div className="border-b-4 border-[#002D72] pb-6 mb-8">
+        <div className="border-b-4 border-[#1e3a8a] pb-6 mb-8">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-semibold text-[#FF5910] uppercase tracking-widest">Oak Ridge Electrical LLC</p>
-              <h1 className="text-3xl font-bold text-[#002D72] mt-1">{job.jobName}</h1>
+              <h1 className="text-3xl font-bold text-[#1e3a8a] mt-1">{job.jobName}</h1>
               <p className="text-gray-500 mt-1 font-mono text-sm">Job #{job.jobNumber}</p>
             </div>
             <div className="text-right text-sm text-gray-500">
@@ -77,7 +77,7 @@ export default async function JobReportPage({ params }: PageProps) {
 
         {/* Job Info */}
         <section className="mb-8">
-          <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Job Information</h2>
+          <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Job Information</h2>
           <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
             {[
               ["Foreman", job.foreman?.name],
@@ -105,7 +105,7 @@ export default async function JobReportPage({ params }: PageProps) {
 
         {/* Labor */}
         <section className="mb-8">
-          <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
+          <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
             Labor — {totalHours.toFixed(1)} hrs total
           </h2>
           <table className="w-full text-sm">
@@ -126,7 +126,7 @@ export default async function JobReportPage({ params }: PageProps) {
 
         {/* Materials */}
         <section className="mb-8">
-          <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
+          <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
             Materials & Expenses — {fmt$(totalMaterials)} total
           </h2>
           <table className="w-full text-sm">
@@ -149,7 +149,7 @@ export default async function JobReportPage({ params }: PageProps) {
         {/* Notes */}
         {job.notes.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Notes</h2>
+            <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Notes</h2>
             <div className="space-y-3">
               {job.notes.map(n => (
                 <div key={n.id} className="text-sm">
@@ -164,7 +164,7 @@ export default async function JobReportPage({ params }: PageProps) {
         {/* Tasks */}
         {job.tasks.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Tasks</h2>
+            <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Tasks</h2>
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-gray-400 border-b border-gray-100">
                 <th className="pb-1 font-medium">Task</th><th className="pb-1 font-medium">Assignee</th><th className="pb-1 font-medium">Status</th><th className="pb-1 font-medium">Due</th>
@@ -186,7 +186,7 @@ export default async function JobReportPage({ params }: PageProps) {
         {/* Photos */}
         {job.photos.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
+            <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
               Photos ({job.photos.length})
             </h2>
             <div className="grid grid-cols-4 gap-3">
@@ -203,7 +203,7 @@ export default async function JobReportPage({ params }: PageProps) {
         {/* Payments */}
         {job.payments.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
+            <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">
               Payment History — {fmt$(totalBilled)} received
             </h2>
             <table className="w-full text-sm">

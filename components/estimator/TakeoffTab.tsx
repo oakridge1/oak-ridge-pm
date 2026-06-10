@@ -308,7 +308,7 @@ export function TakeoffTab() {
       {/* ── HEADER BAR ────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between bg-[#eef4ff] border border-[#c0d4f0] rounded-lg px-4 py-3">
         <div>
-          <div className="text-sm font-semibold text-[#1a3a5c]">
+          <div className="text-sm font-semibold text-[#1e3a8a]">
             Takeoff Counts
           </div>
           {state.takeoffSource ? (
@@ -324,7 +324,7 @@ export function TakeoffTab() {
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => fileRef.current?.click()}
-            className="px-3 py-1.5 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] flex items-center gap-1 transition-colors"
+            className="px-3 py-1.5 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] flex items-center gap-1 transition-colors"
           >
             ⬆ Import Counter JSON
           </button>
@@ -384,7 +384,7 @@ export function TakeoffTab() {
             <div key={cat} className="bg-white rounded border border-gray-200 shadow-sm overflow-hidden">
               {/* Group header */}
               <div className="bg-[#eef4ff] px-4 py-2 flex justify-between items-center border-b border-[#d0dff0]">
-                <span className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c]">
+                <span className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a]">
                   {CATEGORY_LABELS[cat] ?? cat}
                 </span>
                 <div className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export function TakeoffTab() {
                   {cat === 'fa' && (
                     <button
                       onClick={() => setTab('assemblies')}
-                      className="px-2 py-0.5 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-red-700 whitespace-nowrap transition-colors">
+                      className="px-2 py-0.5 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-red-700 whitespace-nowrap transition-colors">
                       → FA Builder
                     </button>
                   )}
@@ -455,7 +455,7 @@ export function TakeoffTab() {
                           />
                         ) : (
                           <span
-                            className="font-mono text-gray-700 cursor-pointer hover:text-[#1a3a5c] hover:underline"
+                            className="font-mono text-gray-700 cursor-pointer hover:text-[#1e3a8a] hover:underline"
                             onClick={() => setEditingId(id)}
                             title="Click to edit"
                           >
@@ -528,7 +528,7 @@ export function TakeoffTab() {
       {/* ── AREA BREAKDOWN ────────────────────────────────────────────────── */}
       {hasData && state.takeoffAreas.length > 1 && (
         <div className="bg-white rounded border border-gray-200 shadow-sm p-4">
-          <h3 className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+          <h3 className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
             By Area
           </h3>
           <div className="space-y-2">
@@ -553,7 +553,7 @@ export function TakeoffTab() {
 
       {/* ── SUMMARY BAR ───────────────────────────────────────────────────── */}
       {hasData && (
-        <div className="bg-[#1a3a5c] text-white rounded-lg px-4 py-3 flex flex-wrap gap-6 text-sm">
+        <div className="bg-[#1e3a8a] text-white rounded-lg px-4 py-3 flex flex-wrap gap-6 text-sm">
           <div>
             <div className="text-blue-200 text-xs">Total line items</div>
             <div className="font-bold">{Object.keys(counts).length}</div>

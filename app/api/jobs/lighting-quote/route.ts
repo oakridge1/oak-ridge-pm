@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   // ── Build HTML table ──────────────────────────────────────────────────────
   const itemRows = items.map((item, idx) => `
     <tr style="background:${idx % 2 === 0 ? '#f9fafb' : '#ffffff'}">
-      <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;color:#1a3a5c;">
+      <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:bold;color:#1e3a8a;">
         ${item.typeLabel}</td>
       <td style="padding:8px 12px;border:1px solid #e5e7eb;">
         ${item.description}</td>
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
-      <div style="background:#1a3a5c;padding:24px;border-radius:8px 8px 0 0;">
+      <div style="background:#1e3a8a;padding:24px;border-radius:8px 8px 0 0;">
         <h1 style="color:white;margin:0;font-size:22px;letter-spacing:1px;">
           LIGHTING FIXTURE QUOTE REQUEST
         </h1>
@@ -90,12 +90,12 @@ export async function POST(req: NextRequest) {
 
         <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
           <thead>
-            <tr style="background:#1a3a5c;color:white;">
-              <th style="padding:10px 12px;text-align:left;border:1px solid #1a3a5c;width:100px;">
+            <tr style="background:#1e3a8a;color:white;">
+              <th style="padding:10px 12px;text-align:left;border:1px solid #1e3a8a;width:100px;">
                 Type</th>
-              <th style="padding:10px 12px;text-align:left;border:1px solid #1a3a5c;">
+              <th style="padding:10px 12px;text-align:left;border:1px solid #1e3a8a;">
                 Fixture Description</th>
-              <th style="padding:10px 12px;text-align:center;border:1px solid #1a3a5c;width:60px;">
+              <th style="padding:10px 12px;text-align:center;border:1px solid #1e3a8a;width:60px;">
                 Qty</th>
             </tr>
           </thead>

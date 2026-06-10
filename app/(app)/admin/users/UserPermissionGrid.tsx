@@ -84,7 +84,7 @@ export function UserPermissionGrid({ userId, userRole }: UserPermissionGridProps
     <div>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#002D72] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+        className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#1e3a8a] border border-gray-200 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
       >
         <Shield className="w-3 h-3" />
         Permissions
@@ -120,7 +120,7 @@ export function UserPermissionGrid({ userId, userRole }: UserPermissionGridProps
                         onClick={() => handleToggle(key)}
                         disabled={busy}
                         className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-                          on ? "bg-[#002D72]" : "bg-gray-200"
+                          on ? "bg-[#1e3a8a]" : "bg-gray-200"
                         }`}
                         aria-label={`Toggle ${label}`}
                       >

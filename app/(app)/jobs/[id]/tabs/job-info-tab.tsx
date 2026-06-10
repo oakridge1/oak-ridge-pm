@@ -65,7 +65,7 @@ function InputField({
   textarea?: boolean;
 }) {
   const cls =
-    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white";
+    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white";
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -151,7 +151,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
             <select
               name="status"
               defaultValue={job.status}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
             >
               <option value="ACTIVE">Active</option>
               <option value="ON_HOLD">On Hold</option>
@@ -166,7 +166,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
             <select
               name="foremanId"
               defaultValue={job.foremanId ?? ""}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
             >
               <option value="">— Unassigned —</option>
               {fieldUsers.filter(u => u.role === "FOREMAN" || u.role === "ADMIN").map((u) => (
@@ -361,7 +361,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
           <button
             type="submit"
             disabled={isPending}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#002D72] text-white text-sm font-medium hover:bg-blue-900 disabled:opacity-60 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1e3a8a] text-white text-sm font-medium hover:bg-blue-900 disabled:opacity-60 transition-colors"
           >
             <Save className="w-4 h-4" />
             {isPending ? "Saving…" : "Save Changes"}
@@ -387,7 +387,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
         <div className="flex justify-end mb-4">
           <button
             onClick={() => setEditing(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#002D72] hover:bg-blue-50 transition-colors border border-[#002D72]/20"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#1e3a8a] hover:bg-blue-50 transition-colors border border-[#1e3a8a]/20"
           >
             <Pencil className="w-4 h-4" />
             Edit
@@ -487,7 +487,7 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
               No details entered yet.{" "}
               <button
                 onClick={() => setEditing(true)}
-                className="text-[#002D72] underline"
+                className="text-[#1e3a8a] underline"
               >
                 Add them now
               </button>

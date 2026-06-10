@@ -16,9 +16,9 @@ function wrap(body: string, title: string, date: string) {
 <div style="font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
   <div style="margin-bottom:20px">
     <span style="font-size:13px;font-weight:700;color:#FF5910;text-transform:uppercase;letter-spacing:0.1em">Oak Ridge Electrical LLC</span>
-    <h1 style="font-size:22px;font-weight:700;color:#002D72;margin:8px 0 4px">${title}</h1>
+    <h1 style="font-size:22px;font-weight:700;color:#1e3a8a;margin:8px 0 4px">${title}</h1>
     <p style="font-size:13px;color:#888;margin:0">${date}</p>
-    <a href="${APP_URL}" style="display:inline-block;margin-top:10px;font-size:12px;color:#002D72;text-decoration:none">→ Open Oak Ridge PM</a>
+    <a href="${APP_URL}" style="display:inline-block;margin-top:10px;font-size:12px;color:#1e3a8a;text-decoration:none">→ Open Oak Ridge PM</a>
   </div>
   ${body}
   <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb" />
@@ -229,7 +229,7 @@ export async function GET(request: Request) {
       },
       {}
     );
-    sections.push(section(`⏱ Hours Logged (${yesterdayLabel})`, "#002D72",
+    sections.push(section(`⏱ Hours Logged (${yesterdayLabel})`, "#1e3a8a",
       Object.keys(laborByJob).length === 0 ? none() :
       Object.values(laborByJob).map(({ job, entries }) => {
         const totalHrs = entries.reduce((s, e) => s + e.hours, 0);
@@ -267,7 +267,7 @@ export async function GET(request: Request) {
     ));
 
     // Tasks Due Today
-    sections.push(section("📋 Tasks Due Today", "#002D72",
+    sections.push(section("📋 Tasks Due Today", "#1e3a8a",
       tasksDueToday.length === 0 ? none() :
       tasksDueToday.map((t) => row(
         t.title,
@@ -317,7 +317,7 @@ export async function GET(request: Request) {
     ));
 
     // Calendar Events Today
-    sections.push(section("📅 Calendar Events Today", "#002D72",
+    sections.push(section("📅 Calendar Events Today", "#1e3a8a",
       calendarToday.length === 0 ? none() :
       calendarToday.map((ev) => row(
         ev.title,
@@ -459,7 +459,7 @@ export async function GET(request: Request) {
           .join("");
 
         const reminderHtml = wrap(
-          section("💸 Contractor Payments Due in 2 Days", "#002D72", reminderRows),
+          section("💸 Contractor Payments Due in 2 Days", "#1e3a8a", reminderRows),
           "Contractor Payment Reminder",
           now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
         );
@@ -546,7 +546,7 @@ export async function GET(request: Request) {
         foremanSections.push(`
 <div style="background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:16px">
   <p style="margin:0 0 4px;font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.05em">Job</p>
-  <p style="margin:0;font-size:16px;font-weight:700;color:#002D72">${job.jobName}</p>
+  <p style="margin:0;font-size:16px;font-weight:700;color:#1e3a8a">${job.jobName}</p>
   <p style="margin:2px 0 0;font-size:12px;color:#555">
     #${job.jobNumber}${pctComplete != null ? ` · ${pctComplete}% complete (${totalHrs.toFixed(1)} hrs logged)` : ` · ${totalHrs.toFixed(1)} hrs logged`}
   </p>
@@ -554,7 +554,7 @@ export async function GET(request: Request) {
 
         // Yesterday's hours
         foremanSections.push(section(
-          `Hours Yesterday (${yesterdayLabel})`, "#002D72",
+          `Hours Yesterday (${yesterdayLabel})`, "#1e3a8a",
           yesterdayHrs === 0
             ? none()
             : row(`${yesterdayHrs.toFixed(1)} total hours`, yesterdayCrew || "No crew details")

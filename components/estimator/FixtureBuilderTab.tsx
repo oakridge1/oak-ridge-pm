@@ -285,7 +285,7 @@ export function FixtureBuilderTab() {
 
       {/* ── BUILDER FORM ────────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+        <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
           Fixture &amp; Device Builder
         </div>
 
@@ -347,7 +347,7 @@ export function FixtureBuilderTab() {
                 type="checkbox"
                 checked={twoGang}
                 onChange={e => updateFixtureState({ twoGang: e.target.checked })}
-                className="w-4 h-4 accent-[#1a3a5c]"
+                className="w-4 h-4 accent-[#1e3a8a]"
               />
               <span className="text-sm text-gray-700">
                 2-gang
@@ -359,7 +359,7 @@ export function FixtureBuilderTab() {
                 type="checkbox"
                 checked={romex}
                 onChange={e => updateFixtureState({ romex: e.target.checked })}
-                className="w-4 h-4 accent-[#1a3a5c]"
+                className="w-4 h-4 accent-[#1e3a8a]"
               />
               <span className="text-sm text-gray-700">
                 Romex / residential
@@ -379,8 +379,8 @@ export function FixtureBuilderTab() {
                 onClick={() => updateFixtureState({ diff: d.value })}
                 className={`px-3 py-1.5 text-xs rounded border transition-colors ${
                   diff === d.value
-                    ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#1a3a5c]'
+                    ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#1e3a8a]'
                 }`}
               >
                 {d.label}
@@ -395,7 +395,7 @@ export function FixtureBuilderTab() {
 
         {/* Preview header */}
         <div className="flex items-center gap-3 border-b border-gray-200 pb-1 mb-3">
-          <span className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c]">
+          <span className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a]">
             Preview — {preview.label}
           </span>
           {previewEdited && (
@@ -431,7 +431,7 @@ export function FixtureBuilderTab() {
                     type="text"
                     value={line.name}
                     onChange={e => updatePreviewLine(i, 'name', e.target.value)}
-                    className="w-full text-gray-700 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1 -mx-1"
+                    className="w-full text-gray-700 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] rounded px-1 -mx-1"
                   />
                 </td>
                 {/* Qty (read-only) */}
@@ -447,7 +447,7 @@ export function FixtureBuilderTab() {
                     value={line.mat === 0 ? '' : line.mat.toFixed(2)}
                     placeholder="—"
                     onChange={e => updatePreviewLine(i, 'mat', parseFloat(e.target.value) || 0)}
-                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1"
+                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] rounded px-1"
                   />
                 </td>
                 {/* Hrs */}
@@ -459,7 +459,7 @@ export function FixtureBuilderTab() {
                     value={line.lab === 0 ? '' : (line.lab / R.labor).toFixed(2)}
                     placeholder="—"
                     onChange={e => updatePreviewLine(i, 'lab', (parseFloat(e.target.value) || 0) * R.labor)}
-                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1a3a5c] rounded px-1"
+                    className="w-full text-right font-mono text-gray-600 bg-transparent hover:bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] rounded px-1"
                   />
                 </td>
                 {/* Trash */}
@@ -562,7 +562,7 @@ export function FixtureBuilderTab() {
                       setAddMat('');
                       setAddHrs('');
                     }}
-                    className="px-2 py-1 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]"
+                    className="px-2 py-1 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c]"
                   >
                     + Add
                   </button>
@@ -571,7 +571,7 @@ export function FixtureBuilderTab() {
             </tr>
           </tbody>
           <tfoot>
-            <tr className="font-bold border-t-2 border-[#1a3a5c]">
+            <tr className="font-bold border-t-2 border-[#1e3a8a]">
               <td className="py-1 text-gray-700" colSpan={3}>Total</td>
               <td className="py-1 text-right font-mono">{fmt$(preview.mat)}</td>
               <td className="py-1 text-right font-mono">
@@ -593,7 +593,7 @@ export function FixtureBuilderTab() {
           </span>
           <button
             onClick={handleAdd}
-            className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+            className="px-4 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
           >
             + Add to Bid
           </button>
@@ -603,7 +603,7 @@ export function FixtureBuilderTab() {
       {/* ── SAVED FIXTURES/DEVICES LIST ──────────────────────────────────────── */}
       {state.asms.length > 0 && (
         <div className="bg-white rounded border border-gray-200 p-4 shadow-sm">
-          <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+          <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
             Added to Bid ({state.asms.length})
           </div>
           {state.asms.map((item, idx) => (

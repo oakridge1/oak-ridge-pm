@@ -85,7 +85,7 @@ export function ArriveDepart({ scheduleId, initialClockEntry }: ArriveDepartProp
         <div className="flex items-center gap-3 text-xs text-gray-500">
           <span>In at {formatTime12(entry.arrivedAt)}</span>
           {elapsed && (
-            <span className="font-mono bg-blue-50 text-[#002D72] px-2 py-0.5 rounded font-medium">
+            <span className="font-mono bg-blue-50 text-[#1e3a8a] px-2 py-0.5 rounded font-medium">
               {elapsed}
             </span>
           )}
@@ -95,7 +95,7 @@ export function ArriveDepart({ scheduleId, initialClockEntry }: ArriveDepartProp
             type="checkbox"
             checked={lunchDeducted}
             onChange={(e) => setLunch(e.target.checked)}
-            className="rounded border-gray-300 text-[#002D72] focus:ring-[#002D72]"
+            className="rounded border-gray-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
           />
           Deduct 30-min lunch
         </label>

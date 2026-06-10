@@ -29,7 +29,7 @@ function BtnGroup<T extends string>({
             'px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap',
             i > 0 ? 'border-l border-gray-200' : '',
             value === opt.value
-              ? 'bg-[#1a3a5c] text-white'
+              ? 'bg-[#1e3a8a] text-white'
               : 'bg-white text-gray-600 hover:bg-gray-50',
           ].join(' ')}
         >
@@ -123,7 +123,7 @@ export function PanelBuilderTab() {
 
           {/* PANEL SELECTION */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] mb-3">
+            <h2 className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] mb-3">
               Panel Builder
             </h2>
 
@@ -180,7 +180,7 @@ export function PanelBuilderTab() {
                   type="checkbox"
                   checked={panel.surge}
                   onChange={e => patchPanel({ surge: e.target.checked })}
-                  className="w-4 h-4 accent-[#1a3a5c]"
+                  className="w-4 h-4 accent-[#1e3a8a]"
                 />
                 <label htmlFor="surge-check" className="text-sm text-gray-700 cursor-pointer">
                   Add whole-home surge protector <span className="text-gray-400">(+$101.89)</span>
@@ -205,7 +205,7 @@ export function PanelBuilderTab() {
                         'px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap',
                         i > 0 ? 'border-l border-gray-200' : '',
                         panel.diff === opt.value
-                          ? 'bg-[#1a3a5c] text-white'
+                          ? 'bg-[#1e3a8a] text-white'
                           : 'bg-white text-gray-600 hover:bg-gray-50',
                       ].join(' ')}
                     >
@@ -219,7 +219,7 @@ export function PanelBuilderTab() {
 
           {/* CIRCUIT DIRECTORY */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] mb-3">
+            <h2 className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] mb-3">
               Circuit Directory
             </h2>
 
@@ -327,7 +327,7 @@ export function PanelBuilderTab() {
 
               <button
                 onClick={addCircuit}
-                className="px-3 py-1.5 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors whitespace-nowrap"
+                className="px-3 py-1.5 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors whitespace-nowrap"
               >
                 + Add Circuit
               </button>
@@ -348,7 +348,7 @@ export function PanelBuilderTab() {
           {/* LIVE PREVIEW */}
           {preview && (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-              <h3 className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] mb-1">
+              <h3 className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] mb-1">
                 Preview
               </h3>
               <p className="text-xs text-gray-500 mb-3">
@@ -359,7 +359,7 @@ export function PanelBuilderTab() {
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs text-gray-500">Slots used:</span>
                 <span className={`text-xs font-bold font-mono ${
-                  totalSlots > maxSlots ? 'text-red-600' : 'text-[#1a3a5c]'
+                  totalSlots > maxSlots ? 'text-red-600' : 'text-[#1e3a8a]'
                 }`}>
                   {totalSlots} / {maxSlots}
                 </span>
@@ -397,7 +397,7 @@ export function PanelBuilderTab() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="font-bold border-t-2 border-[#1a3a5c]">
+                  <tr className="font-bold border-t-2 border-[#1e3a8a]">
                     <td className="py-1 text-gray-700" colSpan={2}>Total</td>
                     <td className="py-1 text-right font-mono text-gray-800">
                       {fmt$(preview.mat)}
@@ -426,7 +426,7 @@ export function PanelBuilderTab() {
                     panelState:  createPanelState(),
                   }));
                 }}
-                className="mt-3 w-full py-2 text-sm font-semibold rounded bg-[#002D72] text-white hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="mt-3 w-full py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 + Add Panel to Bid
               </button>
@@ -441,7 +441,7 @@ export function PanelBuilderTab() {
           {/* SAVED PANELS LIST */}
           {state.savedPanels.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-              <h3 className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] mb-3">
+              <h3 className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] mb-3">
                 Saved Panels
               </h3>
               <div className="space-y-2">

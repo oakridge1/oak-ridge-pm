@@ -15,9 +15,9 @@ function newId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-const INPUT = "w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]";
+const INPUT = "w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]";
 const LABEL = "block text-xs font-medium text-gray-500 mb-1";
-const SECT  = "text-xs font-bold text-[#002D72] uppercase tracking-wide mt-4 mb-2 border-b border-blue-100 pb-1";
+const SECT  = "text-xs font-bold text-[#1e3a8a] uppercase tracking-wide mt-4 mb-2 border-b border-blue-100 pb-1";
 const DIFF_OPTS = [{ v:0.8,l:"Easy (0.8×)" },{ v:1.0,l:"Normal (1.0×)" },{ v:1.2,l:"Moderate (1.2×)" },{ v:1.5,l:"Hard (1.5×)" }];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -55,7 +55,7 @@ function LinePreview({ result, rate }: { result: AssemblyResult | null; rate: nu
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       {/* Summary bar */}
       <div className="flex items-center justify-between px-3 py-2 bg-blue-50 cursor-pointer select-none" onClick={() => setOpen(o => !o)}>
-        <div className="flex gap-4 text-xs font-mono font-semibold text-[#002D72]">
+        <div className="flex gap-4 text-xs font-mono font-semibold text-[#1e3a8a]">
           <span>Mat {fmt$(result.mat)}</span>
           <span>Lab {fmt$(result.lab)}</span>
           <span className="border-l border-blue-200 pl-4">Total {fmt$(result.mat + result.lab)}</span>
@@ -84,7 +84,7 @@ function LinePreview({ result, rate }: { result: AssemblyResult | null; rate: nu
                 <td className="text-right px-3 py-1 tabular-nums text-gray-700">{ln.lab > 0 ? fmt$(ln.lab) : ""}</td>
               </tr>
             ))}
-            <tr className="border-t-2 border-gray-300 bg-blue-50 font-semibold text-[#002D72]">
+            <tr className="border-t-2 border-gray-300 bg-blue-50 font-semibold text-[#1e3a8a]">
               <td className="px-3 py-1.5" colSpan={3}>Total</td>
               <td className="text-right px-3 py-1.5 tabular-nums">{fmt$(result.mat)}</td>
               <td className="text-right px-3 py-1.5 tabular-nums">{fmt$(result.lab)}</td>
@@ -108,7 +108,7 @@ function AsmCard({ asm, onDelete }: { asm: Assembly; onDelete: () => void }) {
         <div className="flex gap-3 mt-1 text-xs font-mono text-gray-500">
           <span>Mat {fmt$(mat)}</span>
           <span>Lab {fmt$(lab)}</span>
-          <span className="font-bold text-[#002D72]">= {fmt$(mat + lab)}</span>
+          <span className="font-bold text-[#1e3a8a]">= {fmt$(mat + lab)}</span>
         </div>
       </div>
       <button onClick={onDelete} className="p-1.5 text-gray-300 hover:text-red-500 shrink-0">
@@ -130,7 +130,7 @@ function BuilderSection({ title, result, qty, setQty, onAdd, children }: {
 }) {
   return (
     <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
-      <div className="text-sm font-bold text-[#002D72]">{title}</div>
+      <div className="text-sm font-bold text-[#1e3a8a]">{title}</div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {children}
       </div>
@@ -138,12 +138,12 @@ function BuilderSection({ title, result, qty, setQty, onAdd, children }: {
       <div className="flex items-center justify-end gap-3 pt-1">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">Qty:</span>
-          <input type="number" value={qty} min={1} max={20} onChange={e => setQty(Number(e.target.value))} className="w-14 border border-gray-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+          <input type="number" value={qty} min={1} max={20} onChange={e => setQty(Number(e.target.value))} className="w-14 border border-gray-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
         <button
           onClick={onAdd}
           disabled={!result}
-          className="flex items-center gap-1.5 px-4 py-1.5 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Add {qty > 1 ? `${qty} ` : ""}Assembly{qty > 1 ? "ies" : ""}
@@ -669,7 +669,7 @@ export default function AssembliesTab({
             <AsmCard key={asm.id} asm={asm}
               onDelete={() => setAssemblies(assemblies.filter((_, j) => j !== i))} />
           ))}
-          <div className="px-4 py-3 bg-blue-50 rounded-xl text-sm font-semibold text-[#002D72] flex justify-between">
+          <div className="px-4 py-3 bg-blue-50 rounded-xl text-sm font-semibold text-[#1e3a8a] flex justify-between">
             <span>Assembly Totals</span>
             <span className="font-mono">Mat {fmt$(totals.mat)} · Lab {fmt$(totals.lab)} · Total {fmt$(totals.mat + totals.lab)}</span>
           </div>

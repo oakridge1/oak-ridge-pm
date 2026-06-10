@@ -69,31 +69,31 @@ interface PeriodOptions {
 function AdminNav() {
   return (
     <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
-      <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Dashboard
       </a>
-      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Users
       </a>
-      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Receipts
       </a>
-      <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Overhead
       </a>
-      <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Owner Draws
       </a>
-      <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Contractor Pay
       </a>
       <a
         href="/admin/pl"
-        className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5"
+        className="text-sm font-medium text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1 -mb-5"
       >
         P&amp;L
       </a>
-      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Settings
       </a>
     </div>
@@ -152,7 +152,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
             onClick={() => setMode(t.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               mode === t.key
-                ? "bg-[#002D72] text-white"
+                ? "bg-[#1e3a8a] text-white"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -167,7 +167,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
           <select
             value={opts.month}
             onChange={(e) => setOpts({ month: parseInt(e.target.value, 10) })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             {MONTH_NAMES.map((m, i) => (
               <option key={m} value={i + 1}>{m}</option>
@@ -179,7 +179,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
             onChange={(e) => setOpts({ year: parseInt(e.target.value, 10) })}
             min={2020}
             max={2099}
-            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
       )}
@@ -192,7 +192,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
               onClick={() => setOpts({ quarter: q })}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                 opts.quarter === q
-                  ? "bg-[#002D72] text-white border-[#002D72]"
+                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
                   : "border-gray-300 text-gray-600 hover:bg-gray-50"
               }`}
             >
@@ -205,7 +205,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
             onChange={(e) => setOpts({ year: parseInt(e.target.value, 10) })}
             min={2020}
             max={2099}
-            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
       )}
@@ -218,7 +218,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
             onChange={(e) => setOpts({ year: parseInt(e.target.value, 10) })}
             min={2020}
             max={2099}
-            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
       )}
@@ -231,7 +231,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
               type="date"
               value={opts.customStart}
               onChange={(e) => setOpts({ customStart: e.target.value })}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
           <div>
@@ -240,7 +240,7 @@ function PeriodSelector({ mode, opts, onChange }: PeriodSelectorProps) {
               type="date"
               value={opts.customEnd}
               onChange={(e) => setOpts({ customEnd: e.target.value })}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
         </div>
@@ -436,8 +436,8 @@ function marginColor(pct: number) {
 function SortIcon({ col, sortKey, dir }: { col: SortKey; sortKey: SortKey | null; dir: "asc" | "desc" }) {
   if (col !== sortKey) return <ChevronsUpDown className="w-3.5 h-3.5 text-gray-400 inline ml-1" />;
   return dir === "asc"
-    ? <ChevronUp className="w-3.5 h-3.5 text-[#002D72] inline ml-1" />
-    : <ChevronDown className="w-3.5 h-3.5 text-[#002D72] inline ml-1" />;
+    ? <ChevronUp className="w-3.5 h-3.5 text-[#1e3a8a] inline ml-1" />
+    : <ChevronDown className="w-3.5 h-3.5 text-[#1e3a8a] inline ml-1" />;
 }
 
 function JobTable({
@@ -505,7 +505,7 @@ function JobTable({
               {cols.map((c) => (
                 <th
                   key={c.key}
-                  className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap cursor-pointer hover:text-[#002D72] select-none"
+                  className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap cursor-pointer hover:text-[#1e3a8a] select-none"
                   onClick={() => handleSort(c.key)}
                 >
                   {c.label}
@@ -663,7 +663,7 @@ export default function PlClient({ initialData }: { initialData: PlData }) {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002D72]">Profit &amp; Loss</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">Profit &amp; Loss</h1>
         <p className="text-sm text-gray-500 mt-1">Full financial overview by period.</p>
       </div>
 
@@ -685,7 +685,7 @@ export default function PlClient({ initialData }: { initialData: PlData }) {
               )}&body=${encodeURIComponent(
                 `Please find attached the Q${opts.quarter} ${opts.year} financial summary for Oak Ridge Electrical LLC.`
               )}`}
-              className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#002D72] hover:bg-[#003d99] px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-xs font-medium text-white bg-[#1e3a8a] hover:bg-[#003d99] px-3 py-1.5 rounded-lg transition-colors"
             >
               <Mail className="w-3.5 h-3.5" />
               📧 Email Tax Package to Accountant

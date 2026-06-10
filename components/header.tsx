@@ -18,7 +18,7 @@ export function Header({ userName, userRole, userImage, canEstimate }: HeaderPro
   const isAdmin = userRole === "ADMIN";
 
   return (
-    <header className="bg-[#002D72] text-white shadow-md sticky top-0 z-40">
+    <header className="bg-[#1e3a8a] text-white shadow-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
 
         {/* Logo — plain <img> to avoid Next.js image optimization issues with OneDrive */}

@@ -22,7 +22,7 @@ export function AdminNav() {
             href={href}
             className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
               isActive
-                ? "border-[#002D72] text-[#002D72]"
+                ? "border-[#1e3a8a] text-[#1e3a8a]"
                 : "border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300"
             }`}
           >

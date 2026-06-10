@@ -147,7 +147,7 @@ function AssemblyRow({
         <span className="font-mono text-xs text-gray-400 shrink-0 w-14 text-right hidden sm:block">
           {fmtH(item.lab)}
         </span>
-        <span className="font-mono text-sm font-bold text-[#1a3a5c] shrink-0 w-24 text-right">
+        <span className="font-mono text-sm font-bold text-[#1e3a8a] shrink-0 w-24 text-right">
           {fmt$(item.mat + item.lab)}
         </span>
 
@@ -172,7 +172,7 @@ function AssemblyRow({
                 onClick={e => { e.stopPropagation(); setActiveTab(tab); }}
                 className={`px-4 py-2 text-xs font-semibold capitalize border-b-2 transition-colors ${
                   activeTab === tab
-                    ? 'border-[#1a3a5c] text-[#1a3a5c]'
+                    ? 'border-[#1e3a8a] text-[#1e3a8a]'
                     : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
@@ -197,7 +197,7 @@ function AssemblyRow({
               </div>
               <div className="flex justify-between text-sm font-semibold border-t border-gray-100 pt-1.5 mt-0.5">
                 <span className="text-gray-700">Combined</span>
-                <span className="font-mono text-[#1a3a5c]">{fmt$(item.mat + item.lab)}</span>
+                <span className="font-mono text-[#1e3a8a]">{fmt$(item.mat + item.lab)}</span>
               </div>
             </div>
           )}
@@ -332,7 +332,7 @@ function AssemblyRow({
                 </tbody>
 
                 <tfoot>
-                  <tr className="font-bold border-t-2 border-[#1a3a5c]">
+                  <tr className="font-bold border-t-2 border-[#1e3a8a]">
                     <td className="py-1 text-gray-700" colSpan={3}>Total</td>
                     <td className="text-right py-1 font-mono text-gray-800">
                       {fmt$(item.mat)}
@@ -359,21 +359,21 @@ function AssemblyRow({
                       ).slice(0, 6)
                     );
                   }}
-                  className="flex-1 min-w-0 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a3a5c]"
+                  className="flex-1 min-w-0 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
                 />
                 <input
                   type="number"
                   placeholder="Mat $"
                   value={addLineMat}
                   onChange={e => setAddLineMat(e.target.value)}
-                  className="w-20 border border-gray-300 rounded px-2 py-1 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-[#1a3a5c]"
+                  className="w-20 border border-gray-300 rounded px-2 py-1 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
                 />
                 <input
                   type="number"
                   placeholder="Hrs"
                   value={addLineHrs}
                   onChange={e => setAddLineHrs(e.target.value)}
-                  className="w-16 border border-gray-300 rounded px-2 py-1 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-[#1a3a5c]"
+                  className="w-16 border border-gray-300 rounded px-2 py-1 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
                 />
                 <button
                   onClick={() => {
@@ -389,7 +389,7 @@ function AssemblyRow({
                     setAddLineHrs('');
                     setSuggestions([]);
                   }}
-                  className="shrink-0 border border-[#1a3a5c] text-[#1a3a5c] rounded px-2 py-1 text-xs font-medium hover:bg-[#1a3a5c] hover:text-white transition-colors"
+                  className="shrink-0 border border-[#1e3a8a] text-[#1e3a8a] rounded px-2 py-1 text-xs font-medium hover:bg-[#1e3a8a] hover:text-white transition-colors"
                 >
                   + Add
                 </button>
@@ -437,7 +437,7 @@ function AssemblyRow({
                       saveAssemblyToJob(groupKey, idx);
                       showSaveFeedback('Saved to this job');
                     }}
-                    className="px-3 py-1.5 text-xs font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-blue-50"
+                    className="px-3 py-1.5 text-xs font-semibold rounded border border-[#1e3a8a] text-[#1e3a8a] hover:bg-blue-50"
                   >
                     This Job
                   </button>
@@ -448,7 +448,7 @@ function AssemblyRow({
                       saveAssemblyToMaster(groupKey, idx);
                       showSaveFeedback('Saved to master');
                     }}
-                    className="px-3 py-1.5 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]"
+                    className="px-3 py-1.5 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c]"
                   >
                     Master
                   </button>
@@ -500,7 +500,7 @@ export function BidItemsTab() {
           </p>
           <button
             onClick={() => setTab('assemblies')}
-            className="bg-[#002D72] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
+            className="bg-[#1e3a8a] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
           >
             Go to Assembly Library
           </button>
@@ -543,7 +543,7 @@ export function BidItemsTab() {
         return (
           <div key={key} className="mb-2">
             {/* Group header */}
-            <div className="bg-[#eef4ff] px-4 py-2 text-xs font-bold text-[#1a3a5c] border-b border-[#d0dff0] flex justify-between items-center mt-3 rounded-t">
+            <div className="bg-[#eef4ff] px-4 py-2 text-xs font-bold text-[#1e3a8a] border-b border-[#d0dff0] flex justify-between items-center mt-3 rounded-t">
               <span>{label} ({arr.length})</span>
               <span className="font-mono">{fmt$(groupTotal)} total</span>
             </div>

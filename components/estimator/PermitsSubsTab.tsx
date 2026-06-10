@@ -14,11 +14,11 @@ const fmt$ = (n: number) =>
 const CLS = {
   inputText:    'border border-gray-300 rounded px-2 py-1.5 text-sm bg-white flex-1 min-w-[200px]',
   inputAmt:     'border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-32 text-right font-mono',
-  addBtn:       'px-3 py-1.5 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] whitespace-nowrap transition-colors',
+  addBtn:       'px-3 py-1.5 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] whitespace-nowrap transition-colors',
   removeBtn:    'text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50 transition-colors',
   entryRow:     'flex items-center gap-3 py-2 border-b border-gray-100 last:border-0',
   sectionCard:  'bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm',
-  sectionTitle: 'text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3 flex justify-between items-center',
+  sectionTitle: 'text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3 flex justify-between items-center',
   subtotalRow:  'mt-3 pt-2 border-t border-gray-200 text-xs text-gray-600 flex gap-4',
 };
 
@@ -258,7 +258,7 @@ export function PermitsSubsTab() {
       </div>
 
       {/* ── GRAND TOTAL BAR ────────────────────────────────────────────────── */}
-      <div className="bg-[#eef4ff] border border-[#d0dff0] rounded-lg px-4 py-3 text-sm text-[#1a3a5c] flex flex-wrap gap-x-6 gap-y-1 items-center">
+      <div className="bg-[#eef4ff] border border-[#d0dff0] rounded-lg px-4 py-3 text-sm text-[#1e3a8a] flex flex-wrap gap-x-6 gap-y-1 items-center">
         <span><strong>Permits:</strong> {fmt$(permitBase + permitMkup)}</span>
         <span><strong>Subs:</strong> {fmt$(subBase + subMkup)}</span>
         <span><strong>Rental:</strong> {fmt$(rentalBase + rentalMkup)}</span>

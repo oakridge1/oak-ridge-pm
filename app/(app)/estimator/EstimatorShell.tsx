@@ -57,7 +57,7 @@ export function EstimatorShell() {
   return (
     <div className="-mx-4 -my-6 flex flex-col min-h-screen">
       {/* Tool header */}
-      <div className="bg-[#002D72] text-white px-4 py-3">
+      <div className="bg-[#1e3a8a] text-white px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="font-bold text-sm tracking-wide">
             Oak Ridge Electrical — Estimating Tool
@@ -77,7 +77,7 @@ export function EstimatorShell() {
                     'ore_pdf_takeoff',
                     'width=1400,height=900,resizable=yes',
                   )}
-                  className="px-3 py-1.5 text-sm font-semibold rounded border-2 border-white text-white hover:bg-white hover:text-[#1a3a5c] transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                  className="px-3 py-1.5 text-sm font-semibold rounded border-2 border-white text-white hover:bg-white hover:text-[#1e3a8a] transition-colors flex items-center gap-1.5 whitespace-nowrap"
                 >
                   ↗ Takeoff
                 </button>
@@ -108,7 +108,7 @@ export function EstimatorShell() {
               onClick={() => setTab(t.id)}
               className={`shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 tab === t.id
-                  ? 'border-[#002D72] text-[#002D72]'
+                  ? 'border-[#1e3a8a] text-[#1e3a8a]'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -129,7 +129,7 @@ export function EstimatorShell() {
             onClick={() => setCounterOpen(false)}
           />
           <div className="w-full max-w-sm bg-gray-100 flex flex-col h-full shadow-2xl">
-            <div className="bg-[#1a3a5c] text-white px-4 py-2 flex justify-between items-center">
+            <div className="bg-[#1e3a8a] text-white px-4 py-2 flex justify-between items-center">
               <span className="font-bold text-sm">TAKEOFF COUNTER</span>
               <button
                 onClick={() => setCounterOpen(false)}

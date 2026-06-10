@@ -27,10 +27,10 @@ export default async function LoginPage({
     : null;
 
   return (
-    <div className="min-h-screen bg-[#002D72] flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-[#1e3a8a] flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
         {/* Header band */}
-        <div className="bg-[#002D72] px-8 py-8 text-center">
+        <div className="bg-[#1e3a8a] px-8 py-8 text-center">
           <div className="flex justify-center mb-3">
             <div className="w-14 h-14 rounded-xl bg-[#FF5910] flex items-center justify-center shadow-lg">
               <Zap className="w-8 h-8 text-white" />

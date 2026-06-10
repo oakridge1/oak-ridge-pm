@@ -74,7 +74,7 @@ export function LabelSelector() {
   const colClass = 'flex flex-col gap-1 min-w-0';
 
   return (
-    <div className="sticky top-[88px] z-20 bg-[#1a3a5c] text-white rounded-t px-4 py-3 mb-0 shadow-sm">
+    <div className="sticky top-[88px] z-20 bg-[#1e3a8a] text-white rounded-t px-4 py-3 mb-0 shadow-sm">
       <div className="text-[10px] font-bold tracking-widest uppercase text-blue-200 mb-2">
         Active Labels — applies to all assemblies added below
       </div>

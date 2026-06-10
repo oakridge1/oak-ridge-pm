@@ -17,7 +17,7 @@ export default async function SavedTasksPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002D72]">Saved Task Templates</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">Saved Task Templates</h1>
         <p className="text-sm text-gray-500 mt-1">
           These templates can be applied to any job. They appear as a checklist
           on the Notes &amp; Tasks tab.
@@ -26,28 +26,28 @@ export default async function SavedTasksPage() {
 
       {/* Admin nav */}
       <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
-        <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
           Users
         </a>
-        <a href="/admin/saved-tasks" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
+        <a href="/admin/saved-tasks" className="text-sm font-medium text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1 -mb-5">
           Saved Tasks
         </a>
-        <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
           Receipts
         </a>
-        <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
           Settings
         </a>
-        <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
           Overhead
         </a>
-        <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
           Owner Draws
         </a>
-        <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
           Contractor Pay
         </a>
-        <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+        <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
           P&amp;L
         </a>
       </div>
@@ -67,7 +67,7 @@ export default async function SavedTasksPage() {
               name="title"
               required
               placeholder="e.g. Submit permit application"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
           <div>
@@ -78,7 +78,7 @@ export default async function SavedTasksPage() {
               name="description"
               rows={2}
               placeholder="Optional details…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -90,13 +90,13 @@ export default async function SavedTasksPage() {
                 name="sortOrder"
                 type="number"
                 defaultValue={0}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
             </div>
             <div className="flex-1 flex items-end justify-end">
               <button
                 type="submit"
-                className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
+                className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
               >
                 Add Template
               </button>

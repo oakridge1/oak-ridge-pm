@@ -393,7 +393,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
     <div className="space-y-4 pb-12">
       {/* Toast notification */}
       {toast && (
-        <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 9999, background: "#002D72", color: "white", padding: "10px 18px", borderRadius: 8, fontSize: 13, boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}>
+        <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 9999, background: "#1e3a8a", color: "white", padding: "10px 18px", borderRadius: 8, fontSize: 13, boxShadow: "0 4px 16px rgba(0,0,0,0.3)" }}>
           {toast}
         </div>
       )}
@@ -403,7 +403,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-[#002D72] flex items-center gap-2">
+              <h2 className="text-base font-bold text-[#1e3a8a] flex items-center gap-2">
                 <DollarSign className="w-5 h-5" /> Request Deposit
               </h2>
               <button onClick={() => setShowDepositModal(false)} className="p-1 text-gray-400 hover:text-gray-700">
@@ -415,7 +415,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
               {(["fixed", "percentage"] as const).map(t => (
                 <button key={t} onClick={() => setDepositAmountType(t)}
                   className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    depositAmountType === t ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300"
+                    depositAmountType === t ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "bg-white text-gray-600 border-gray-300"
                   }`}>
                   {t === "fixed" ? "Fixed Amount" : "% of Contract"}
                 </button>
@@ -427,7 +427,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
                 <label className="block text-xs font-medium text-gray-600 mb-1">Amount ($) *</label>
                 <input type="number" value={depositFixed} onChange={e => setDepositFixed(e.target.value)}
                   placeholder="0.00" step="0.01" min="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
               </div>
             ) : (
               <div className="space-y-2">
@@ -436,13 +436,13 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
                     <label className="block text-xs font-medium text-gray-600 mb-1">Percentage %</label>
                     <input type="number" value={depositPct} onChange={e => setDepositPct(e.target.value)}
                       placeholder="10" step="0.5" min="0" max="100"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Contract Value ($)</label>
                     <input type="number" value={depositContractValue} onChange={e => setDepositContractValue(e.target.value)}
                       placeholder="0.00" step="0.01" min="0"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
                   </div>
                 </div>
                 {depositPct && depositContractValue && (
@@ -456,20 +456,20 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
               <input type="date" value={depositDueDate} onChange={e => setDepositDueDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
               <input type="text" value={depositDescription} onChange={e => setDepositDescription(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
               <textarea value={depositNotes} onChange={e => setDepositNotes(e.target.value)} rows={3}
                 placeholder="Additional instructions or notes…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none" />
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
@@ -502,7 +502,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              className="text-lg font-bold text-gray-900 border-0 outline-none bg-transparent w-full mt-0.5 focus:ring-2 focus:ring-[#002D72] rounded px-1"
+              className="text-lg font-bold text-gray-900 border-0 outline-none bg-transparent w-full mt-0.5 focus:ring-2 focus:ring-[#1e3a8a] rounded px-1"
               placeholder="Estimate name"
             />
           </div>
@@ -518,7 +518,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
           </button>
           <button
             onClick={() => window.open(`/estimating/${estimate.id}/takeoff`, "_blank", "noopener")}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-[#002D72] text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-[#1e3a8a] text-[#1e3a8a] rounded-lg hover:bg-blue-50 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             Takeoff
@@ -542,7 +542,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
               onClick={() => setActiveTab(id)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === id
-                  ? "border-[#002D72] text-[#002D72]"
+                  ? "border-[#1e3a8a] text-[#1e3a8a]"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
@@ -577,7 +577,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
               </div>
               <button
                 onClick={() => window.open(`/estimating/${estimate.id}/takeoff`, "_blank", "noopener")}
-                className="flex items-center gap-1 text-xs font-medium text-[#002D72] border border-[#002D72] px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                className="flex items-center gap-1 text-xs font-medium text-[#1e3a8a] border border-[#1e3a8a] px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
               >
                 <ExternalLink className="w-3 h-3" /> Open
               </button>
@@ -605,7 +605,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
 
       {/* Scope of Work (Fix 7) */}
       <div className="bg-white border border-gray-200 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-[#002D72] mb-2">Scope of Work</h3>
+        <h3 className="text-sm font-semibold text-[#1e3a8a] mb-2">Scope of Work</h3>
         <textarea
           value={scopeOfWork}
           onChange={e => {
@@ -622,7 +622,7 @@ export function EstimateDetailClient({ estimate, isAdmin, currentUserId, estimat
           }}
           rows={6}
           placeholder="Enter scope of work — each line will appear as a numbered item on invoices…"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-y"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-y"
         />
         <p className="text-xs text-gray-400 mt-1">Auto-saves · each line = one item on invoice PDF</p>
       </div>
@@ -813,7 +813,7 @@ function TakeoffTab({
           <select
             value={conditionMult}
             onChange={e => setConditionMult(Number(e.target.value))}
-            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             {CONDITION_OPTIONS.map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -842,12 +842,12 @@ function TakeoffTab({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search items…"
-            className="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
           <select
             value={catFilter}
             onChange={e => setCatFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             <option value="All">All Categories</option>
             {BOM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -858,9 +858,9 @@ function TakeoffTab({
             <button
               key={bom.id}
               onClick={() => addItem(bom)}
-              className="text-left p-2.5 rounded-lg border border-gray-200 hover:border-[#002D72] hover:bg-blue-50 transition-all text-sm group"
+              className="text-left p-2.5 rounded-lg border border-gray-200 hover:border-[#1e3a8a] hover:bg-blue-50 transition-all text-sm group"
             >
-              <div className="font-medium text-gray-900 group-hover:text-[#002D72] truncate">{bom.name}</div>
+              <div className="font-medium text-gray-900 group-hover:text-[#1e3a8a] truncate">{bom.name}</div>
               <div className="text-xs text-gray-400 mt-0.5">{bom.category} · {fmt$(bom.mat)}/{bom.unit} · {bom.lhr.toFixed(3)} hr/{bom.unit}</div>
             </button>
           ))}
@@ -906,7 +906,7 @@ function TakeoffTab({
                           value={item.qty}
                           min={0}
                           onChange={e => updateQty(item.id, Number(e.target.value))}
-                          className="w-16 border border-gray-300 rounded px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+                          className="w-16 border border-gray-300 rounded px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
                         />
                       </td>
                       <td className="px-3 py-2 text-gray-500 text-xs">{bom.unit}</td>
@@ -976,12 +976,12 @@ function TakeoffTab({
                   );
                 })}
                 {/* Totals */}
-                <tr className="bg-blue-50 border-t-2 border-[#002D72]/20">
-                  <td colSpan={5} className="px-3 py-2 text-xs font-bold text-[#002D72]">SECTION TOTALS</td>
-                  <td className="px-3 py-2 text-right font-bold text-[#002D72] font-mono text-xs">{fmt$(sectionTotals.mat)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-[#002D72] font-mono text-xs">{sectionTotals.lhr.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-[#002D72] font-mono text-xs">{fmt$(sectionTotals.labor)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-[#002D72] font-mono text-xs">{fmt$(sectionTotals.total)}</td>
+                <tr className="bg-blue-50 border-t-2 border-[#1e3a8a]/20">
+                  <td colSpan={5} className="px-3 py-2 text-xs font-bold text-[#1e3a8a]">SECTION TOTALS</td>
+                  <td className="px-3 py-2 text-right font-bold text-[#1e3a8a] font-mono text-xs">{fmt$(sectionTotals.mat)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-[#1e3a8a] font-mono text-xs">{sectionTotals.lhr.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-[#1e3a8a] font-mono text-xs">{fmt$(sectionTotals.labor)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-[#1e3a8a] font-mono text-xs">{fmt$(sectionTotals.total)}</td>
                   <td />
                 </tr>
               </tbody>
@@ -1043,11 +1043,11 @@ function PanelTab({ panelItems, setPanelItems, data }: {
     <div className="space-y-6">
       <div className="flex flex-wrap gap-2">
         {PANEL_BOMS.length > 0 ? PANEL_BOMS.map(bom => (
-          <button key={bom.id} onClick={() => addPanel(bom.id)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-[#002D72]/30 text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors">
+          <button key={bom.id} onClick={() => addPanel(bom.id)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-[#1e3a8a]/30 text-[#1e3a8a] rounded-lg hover:bg-blue-50 transition-colors">
             <Plus className="w-3.5 h-3.5" /> {bom.name}
           </button>
         )) : (
-          <button onClick={() => addPanel("pg1")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-[#002D72]/30 text-[#002D72] rounded-lg hover:bg-blue-50 transition-colors">
+          <button onClick={() => addPanel("pg1")} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-[#1e3a8a]/30 text-[#1e3a8a] rounded-lg hover:bg-blue-50 transition-colors">
             <Plus className="w-3.5 h-3.5" /> Add Panel
           </button>
         )}
@@ -1067,7 +1067,7 @@ function PanelTab({ panelItems, setPanelItems, data }: {
 
         return (
           <div key={panel.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-[#002D72] text-white">
+            <div className="flex items-center justify-between px-4 py-3 bg-[#1e3a8a] text-white">
               <div>
                 <div className="font-semibold text-sm">{panelBom?.name ?? "Panel"}</div>
                 <div className="text-xs text-blue-200 font-mono mt-0.5">Mat: {fmt$(panelMat)} · Hrs: {panelLhr.toFixed(2)} · Labor: {fmt$(panelLhr * data.laborRate)}</div>
@@ -1084,7 +1084,7 @@ function PanelTab({ panelItems, setPanelItems, data }: {
                     <select
                       value={row.bomId}
                       onChange={e => updatePanel(panel.id, p => ({ ...p, breakerRows: p.breakerRows.map((r, i) => i === idx ? { ...r, bomId: e.target.value } : r) }))}
-                      className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                      className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                     >
                       {BREAKER_BOMS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
@@ -1093,14 +1093,14 @@ function PanelTab({ panelItems, setPanelItems, data }: {
                       value={row.qty}
                       min={1}
                       onChange={e => updatePanel(panel.id, p => ({ ...p, breakerRows: p.breakerRows.map((r, i) => i === idx ? { ...r, qty: Number(e.target.value) } : r) }))}
-                      className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                      className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                     />
                     <input
                       type="text"
                       value={row.circuit ?? ""}
                       onChange={e => updatePanel(panel.id, p => ({ ...p, breakerRows: p.breakerRows.map((r, i) => i === idx ? { ...r, circuit: e.target.value } : r) }))}
                       placeholder="Circuit label (optional)"
-                      className="flex-1 min-w-[120px] border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                      className="flex-1 min-w-[120px] border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                     />
                     {brkBom && <span className="text-xs text-gray-400 font-mono">{fmt$(brkBom.mat * row.qty * (1 + data.bulkMarkup))}</span>}
                     <button
@@ -1114,7 +1114,7 @@ function PanelTab({ panelItems, setPanelItems, data }: {
               })}
               <button
                 onClick={() => updatePanel(panel.id, p => ({ ...p, breakerRows: [...p.breakerRows, { bomId: "p20", qty: 1, circuit: "" }] }))}
-                className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium"
+                className="flex items-center gap-1.5 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium"
               >
                 <Plus className="w-3.5 h-3.5" /> Add Breaker
               </button>
@@ -1124,7 +1124,7 @@ function PanelTab({ panelItems, setPanelItems, data }: {
       })}
 
       {panelItems.length > 0 && (
-        <div className="p-3 bg-blue-50 rounded-xl text-sm font-semibold text-[#002D72] flex justify-between">
+        <div className="p-3 bg-blue-50 rounded-xl text-sm font-semibold text-[#1e3a8a] flex justify-between">
           <span>Panel Section Totals</span>
           <span className="font-mono">{fmt$(sectionTotals.mat + sectionTotals.lhr * data.laborRate)}</span>
         </div>
@@ -1159,7 +1159,7 @@ function PermitsSubsTab({ permits, setPermits, subs, setSubs, permitMarkup, subM
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700">Permits</h3>
-          <button onClick={addPermit} className="flex items-center gap-1 text-sm text-[#002D72] hover:text-[#003d99] font-medium">
+          <button onClick={addPermit} className="flex items-center gap-1 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium">
             <Plus className="w-3.5 h-3.5" /> Add
           </button>
         </div>
@@ -1171,7 +1171,7 @@ function PermitsSubsTab({ permits, setPermits, subs, setSubs, permitMarkup, subM
                 value={p.description}
                 onChange={e => setPermits(permits.map(x => x.id === p.id ? { ...x, description: e.target.value } : x))}
                 placeholder="Description"
-                className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
               <input
                 type="number"
@@ -1179,7 +1179,7 @@ function PermitsSubsTab({ permits, setPermits, subs, setSubs, permitMarkup, subM
                 min={0}
                 step={0.01}
                 onChange={e => setPermits(permits.map(x => x.id === p.id ? { ...x, amount: Number(e.target.value) } : x))}
-                className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
               <span className="text-xs text-gray-400 font-mono w-20 text-right">{fmt$(p.amount * (1 + permitMarkup))}</span>
               <button onClick={() => setPermits(permits.filter(x => x.id !== p.id))} className="p-1 text-gray-300 hover:text-red-500">
@@ -1200,7 +1200,7 @@ function PermitsSubsTab({ permits, setPermits, subs, setSubs, permitMarkup, subM
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700">Subcontractors</h3>
-          <button onClick={addSub} className="flex items-center gap-1 text-sm text-[#002D72] hover:text-[#003d99] font-medium">
+          <button onClick={addSub} className="flex items-center gap-1 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium">
             <Plus className="w-3.5 h-3.5" /> Add
           </button>
         </div>
@@ -1212,7 +1212,7 @@ function PermitsSubsTab({ permits, setPermits, subs, setSubs, permitMarkup, subM
                 value={s.description}
                 onChange={e => setSubs(subs.map(x => x.id === s.id ? { ...x, description: e.target.value } : x))}
                 placeholder="Description"
-                className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
               <input
                 type="number"
@@ -1220,7 +1220,7 @@ function PermitsSubsTab({ permits, setPermits, subs, setSubs, permitMarkup, subM
                 min={0}
                 step={0.01}
                 onChange={e => setSubs(subs.map(x => x.id === s.id ? { ...x, amount: Number(e.target.value) } : x))}
-                className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
               <span className="text-xs text-gray-400 font-mono w-20 text-right">{fmt$(s.amount * (1 + subMarkup))}</span>
               <button onClick={() => setSubs(subs.filter(x => x.id !== s.id))} className="p-1 text-gray-300 hover:text-red-500">
@@ -1304,9 +1304,9 @@ function BomReferenceTab({
     <div className="space-y-4">
       <div className="flex gap-2 flex-wrap items-center">
         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search BOM…"
-          className="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+          className="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-          className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]">
+          className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]">
           <option value="All">All Categories</option>
           {BOM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
@@ -1364,7 +1364,7 @@ function BomReferenceTab({
                         onBlur={e => { if ((e.relatedTarget as HTMLElement)?.id === `bom-lhr-est-${b.id}`) return; saveBomOverride(b.id); }}
                         onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveBomOverride(b.id); } if (e.key === "Escape") { e.preventDefault(); setEditing(null); } }}
                         step="0.0001" min="0" autoFocus={editFocus === "mat"}
-                        className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                        className="w-20 border border-[#1e3a8a] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] text-right"
                       />
                     ) : (
                       <span className={ov ? "text-amber-700 font-semibold" : "text-gray-700"}>
@@ -1386,7 +1386,7 @@ function BomReferenceTab({
                         onBlur={() => saveBomOverride(b.id)}
                         onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveBomOverride(b.id); } if (e.key === "Escape") { e.preventDefault(); setEditing(null); } }}
                         step="0.0001" min="0" autoFocus={editFocus === "lhr"}
-                        className="w-20 border border-[#002D72] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right"
+                        className="w-20 border border-[#1e3a8a] rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] text-right"
                       />
                     ) : (
                       <span className={ov ? "text-amber-700 font-semibold" : "text-gray-700"}>
@@ -1462,7 +1462,7 @@ function BidSummaryTab({
     return (
       <div className={`flex justify-between py-1.5 ${indent ? "pl-4" : ""}`}>
         <span className={`text-sm ${bold ? "font-semibold text-gray-900" : "text-gray-600"}`}>{label}</span>
-        <span className={`font-mono text-sm ${bold ? "font-bold text-[#002D72]" : orange ? "text-[#FF5910] font-semibold" : "text-gray-700"}`}>{value}</span>
+        <span className={`font-mono text-sm ${bold ? "font-bold text-[#1e3a8a]" : orange ? "text-[#FF5910] font-semibold" : "text-gray-700"}`}>{value}</span>
       </div>
     );
   }
@@ -1481,7 +1481,7 @@ function BidSummaryTab({
             <button
               key={s}
               onClick={() => setStatus(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${status === s ? "bg-[#002D72] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${status === s ? "bg-[#1e3a8a] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
             >
               {s}
             </button>
@@ -1491,7 +1491,7 @@ function BidSummaryTab({
 
       {/* Bid sheet */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-        <div className="bg-[#002D72] text-white px-6 py-4">
+        <div className="bg-[#1e3a8a] text-white px-6 py-4">
           <div className="text-xs text-blue-200 tracking-widest uppercase">Oak Ridge Electrical LLC</div>
           <div className="text-lg font-bold mt-1">Bid Summary</div>
         </div>
@@ -1513,9 +1513,9 @@ function BidSummaryTab({
           {totals.permitTotal > 0 && <Row label="Permits" value={`+${fmt$(totals.permitTotal)}`} />}
           {totals.subTotal > 0 && <Row label="Subcontractors" value={`+${fmt$(totals.subTotal)}`} />}
         </div>
-        <div className="bg-[#002D72]/5 border-t-2 border-[#002D72] px-6 py-4 flex justify-between items-center">
-          <span className="text-base font-bold text-[#002D72]">GRAND TOTAL BID PRICE</span>
-          <span className="text-xl font-bold text-[#002D72] font-mono">{fmt$(totals.grandWithSubs)}</span>
+        <div className="bg-[#1e3a8a]/5 border-t-2 border-[#1e3a8a] px-6 py-4 flex justify-between items-center">
+          <span className="text-base font-bold text-[#1e3a8a]">GRAND TOTAL BID PRICE</span>
+          <span className="text-xl font-bold text-[#1e3a8a] font-mono">{fmt$(totals.grandWithSubs)}</span>
         </div>
         {totals.designFee > 0 && (
           <div className="px-6 py-3 border-t border-gray-100 flex justify-between text-xs text-gray-400 italic">
@@ -1535,11 +1535,11 @@ function BidSummaryTab({
               value={jobNumberInput}
               onChange={e => setJobNumberInput(e.target.value)}
               placeholder="e.g. 2025-042"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
             <button
               onClick={() => setJobNumberAssigned(jobNumberInput)}
-              className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
+              className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors"
             >
               Assign
             </button>
@@ -1569,7 +1569,7 @@ function BidSummaryTab({
 
       {/* Export buttons */}
       <div className="flex gap-3 flex-wrap">
-        <button onClick={onExportPdf} className="flex items-center gap-2 border border-[#002D72] text-[#002D72] px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
+        <button onClick={onExportPdf} className="flex items-center gap-2 border border-[#1e3a8a] text-[#1e3a8a] px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
           Export PDF
         </button>
         <button onClick={onExportJson} className="flex items-center gap-2 border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
@@ -1641,7 +1641,7 @@ function AuditTrailTab({
 
   function SectionHeader({ title, count }: { title: string; count: number }) {
     return (
-      <div className="flex items-center justify-between px-4 py-3 bg-[#002D72] text-white rounded-t-xl">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#1e3a8a] text-white rounded-t-xl">
         <h3 className="text-sm font-semibold tracking-wide uppercase">{title}</h3>
         <span className="text-xs text-blue-200">{count} item{count !== 1 ? "s" : ""}</span>
       </div>
@@ -1651,7 +1651,7 @@ function AuditTrailTab({
   return (
     <div className="space-y-6">
       {/* Running total banner */}
-      <div className="bg-[#002D72] text-white rounded-xl px-5 py-4 flex items-center justify-between">
+      <div className="bg-[#1e3a8a] text-white rounded-xl px-5 py-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-blue-200 uppercase tracking-widest">Grand Total Bid Price</p>
           <p className="text-2xl font-bold font-mono mt-1">{fmt$(grandTotal)}</p>
@@ -1696,7 +1696,7 @@ function AuditTrailTab({
                     <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">{fmt$(r.total)}</td>
                   </tr>
                 ))}
-                <tr className="bg-blue-50 border-t-2 border-[#002D72]/20 font-bold text-[#002D72]">
+                <tr className="bg-blue-50 border-t-2 border-[#1e3a8a]/20 font-bold text-[#1e3a8a]">
                   <td colSpan={5} className="px-3 py-2 text-xs">TAKEOFF TOTALS</td>
                   <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(takeoffTotals.mat)}</td>
                   <td className="px-3 py-2 text-right font-mono text-xs">{takeoffTotals.lhr.toFixed(2)}</td>
@@ -1736,7 +1736,7 @@ function AuditTrailTab({
                     <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">{fmt$(r.mat + r.lab)}</td>
                   </tr>
                 ))}
-                <tr className="bg-blue-50 border-t-2 border-[#002D72]/20 font-bold text-[#002D72]">
+                <tr className="bg-blue-50 border-t-2 border-[#1e3a8a]/20 font-bold text-[#1e3a8a]">
                   <td colSpan={3} className="px-3 py-2 text-xs">ASSEMBLY TOTALS</td>
                   <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(asmTotals.mat)}</td>
                   <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(asmTotals.lab)}</td>
@@ -1777,7 +1777,7 @@ function AuditTrailTab({
                     <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums">{fmt$(r.total)}</td>
                   </tr>
                 ))}
-                <tr className="bg-blue-50 border-t-2 border-[#002D72]/20 font-bold text-[#002D72]">
+                <tr className="bg-blue-50 border-t-2 border-[#1e3a8a]/20 font-bold text-[#1e3a8a]">
                   <td colSpan={3} className="px-3 py-2 text-xs">PANEL TOTALS</td>
                   <td className="px-3 py-2 text-right font-mono text-xs">{fmt$(panelTotals.mat)}</td>
                   <td className="px-3 py-2 text-right font-mono text-xs">{panelTotals.lhr.toFixed(2)}</td>
@@ -1822,8 +1822,8 @@ function AuditTrailTab({
               </div>
             ))}
             <div className="px-4 py-3 bg-blue-50 flex items-center justify-between">
-              <span className="text-xs font-bold text-[#002D72]">PERMITS & SUBS TOTALS</span>
-              <span className="text-sm font-bold font-mono text-[#002D72]">{fmt$(permitMarkedUp + subMarkedUp)}</span>
+              <span className="text-xs font-bold text-[#1e3a8a]">PERMITS & SUBS TOTALS</span>
+              <span className="text-sm font-bold font-mono text-[#1e3a8a]">{fmt$(permitMarkedUp + subMarkedUp)}</span>
             </div>
           </div>
         </div>
@@ -1891,7 +1891,7 @@ function SettingsTab({
             max={100}
             step={0.1}
             onChange={e => setter(Number(e.target.value) / 100)}
-            className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
           <span className="text-sm text-gray-500">%</span>
         </div>
@@ -1908,12 +1908,12 @@ function SettingsTab({
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Client Name</label>
             <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Optional"
-              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Address</label>
             <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Optional"
-              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
           </div>
         </div>
       </div>
@@ -1925,7 +1925,7 @@ function SettingsTab({
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Labor Rate ($/hr)</label>
             <input type="number" value={laborRate} min={0} step={0.25} onChange={e => setLaborRate(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
           </div>
           <PctInput label="Bulk Markup %" value={bulkMarkup} setter={setBulkMarkup} />
           <PctInput label="Lighting Markup %" value={lightMarkup} setter={setLightMarkup} />
@@ -1944,7 +1944,7 @@ function SettingsTab({
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Design Fee User</label>
             <select value={designFeeUserId} onChange={e => setDesignFeeUserId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]">
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]">
               <option value="">— None —</option>
               {estimatingUsers.map(u => <option key={u.id} value={u.id}>{u.name ?? u.email}</option>)}
             </select>
@@ -1961,7 +1961,7 @@ function SettingsTab({
           onChange={e => setNotes(e.target.value)}
           rows={4}
           placeholder="Internal notes about this estimate…"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none"
         />
       </div>
 

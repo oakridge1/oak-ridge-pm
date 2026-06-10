@@ -115,7 +115,7 @@ export function GearBuilderTab() {
 
       {/* ── BUILDER FORM ────────────────────────────────────────────────────── */}
       <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-        <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+        <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
           Gear Builder
         </div>
 
@@ -168,7 +168,7 @@ export function GearBuilderTab() {
                     onClick={() => updateGearState({ mcb: opt.value })}
                     className={`px-3 py-1.5 text-xs font-semibold rounded border transition-colors ${
                       gearState.mcb === opt.value
-                        ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
+                        ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >{opt.label}</button>
@@ -242,7 +242,7 @@ export function GearBuilderTab() {
               type="checkbox"
               checked={gearState.nema3r}
               onChange={e => updateGearState({ nema3r: e.target.checked })}
-              className="w-4 h-4 accent-[#1a3a5c]"
+              className="w-4 h-4 accent-[#1e3a8a]"
             />
             <span className="text-sm text-gray-700">
               NEMA 3R outdoor enclosure
@@ -258,7 +258,7 @@ export function GearBuilderTab() {
               type="checkbox"
               checked={gearState.fuseInstall}
               onChange={e => updateGearState({ fuseInstall: e.target.checked })}
-              className="w-4 h-4 accent-[#1a3a5c]"
+              className="w-4 h-4 accent-[#1e3a8a]"
             />
             <span className="text-sm text-gray-700">
               Fuse install labor
@@ -277,8 +277,8 @@ export function GearBuilderTab() {
                 onClick={() => updateGearState({ diff: d.value })}
                 className={`px-3 py-1.5 text-xs rounded border transition-colors ${
                   gearState.diff === d.value
-                    ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#1a3a5c]'
+                    ? 'bg-[#1e3a8a] text-white border-[#1e3a8a]'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-[#1e3a8a]'
                 }`}
               >
                 {d.label}
@@ -289,7 +289,7 @@ export function GearBuilderTab() {
 
         <button
           onClick={handleAdd}
-          className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+          className="px-4 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
         >
           + Add to Bid
         </button>
@@ -298,7 +298,7 @@ export function GearBuilderTab() {
       {/* ── LIVE PREVIEW ────────────────────────────────────────────────────── */}
       {preview && (
         <div className="bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm">
-          <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+          <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
             Preview — {preview.label}
           </div>
           <table className="w-full text-xs mb-2">
@@ -327,7 +327,7 @@ export function GearBuilderTab() {
               ))}
             </tbody>
             <tfoot>
-              <tr className="font-bold border-t-2 border-[#1a3a5c]">
+              <tr className="font-bold border-t-2 border-[#1e3a8a]">
                 <td className="py-1 text-gray-700" colSpan={3}>Total</td>
                 <td className="py-1 text-right font-mono">{fmt$(preview.mat)}</td>
                 <td className="py-1 text-right font-mono">
@@ -345,7 +345,7 @@ export function GearBuilderTab() {
       {/* ── SAVED GEAR LIST ──────────────────────────────────────────────────── */}
       {state.savedGear.length > 0 && (
         <div className="bg-white rounded border border-gray-200 p-4 shadow-sm">
-          <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3">
+          <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3">
             Added to Bid ({state.savedGear.length})
           </div>
           {state.savedGear.map((item, idx) => (

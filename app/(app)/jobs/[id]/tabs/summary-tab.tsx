@@ -188,7 +188,7 @@ function SectionCard({ icon, title, children }: {
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 bg-[#002D72] text-white">
+      <div className="flex items-center gap-2 px-4 py-3 bg-[#1e3a8a] text-white">
         {icon}<h3 className="text-sm font-semibold tracking-wide uppercase">{title}</h3>
       </div>
       <div className="px-4">{children}</div>
@@ -206,7 +206,7 @@ function Row({ label, value, sub, accent, negative, bold }: {
         {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
       </div>
       <span className={`text-sm tabular-nums ${bold ? "font-bold" : "font-semibold"} ${
-        accent ? "text-[#002D72]" : negative ? "text-red-600" : "text-gray-900"
+        accent ? "text-[#1e3a8a]" : negative ? "text-red-600" : "text-gray-900"
       }`}>
         {value}
       </span>
@@ -370,7 +370,7 @@ function DirectCostsCard({ job, role, computed }: {
         <div className="flex items-center justify-end gap-2 pt-3 pb-1 border-b border-gray-100 mb-1">
           {!editing ? (
             <button onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
+              className="flex items-center gap-1.5 text-xs font-medium text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
               <Edit2 className="w-3.5 h-3.5" /> Edit Costs &amp; Markup
             </button>
           ) : (
@@ -378,7 +378,7 @@ function DirectCostsCard({ job, role, computed }: {
               <button onClick={() => { setEditing(false); setError(null); }}
                 className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5">Cancel</button>
               <button onClick={handleSave} disabled={pending}
-                className="flex items-center gap-1.5 text-xs font-medium bg-[#002D72] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+                className="flex items-center gap-1.5 text-xs font-medium bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
                 <Save className="w-3.5 h-3.5" />{pending ? "Saving…" : "Save Changes"}
               </button>
             </>
@@ -399,7 +399,7 @@ function DirectCostsCard({ job, role, computed }: {
                 <div className="flex items-center gap-1">
                   <input type="number" value={rateInput} onChange={e => setRateInput(e.target.value)}
                     placeholder="$/hr" step="0.01" min="0"
-                    className="w-24 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    className="w-24 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   <span className="text-xs text-gray-400">/hr rate</span>
                 </div>
                 <MkupInput value={laborMkup} onChange={setLaborMkup} />
@@ -412,7 +412,7 @@ function DirectCostsCard({ job, role, computed }: {
                     value={laborBudgetInput}
                     onChange={e => setLaborBudgetInput(e.target.value)}
                     placeholder="0"
-                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-white w-32 focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-white w-32 focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
                   />
                 </div>
               </div>
@@ -451,7 +451,7 @@ function DirectCostsCard({ job, role, computed }: {
                     value={materialBudgetInput}
                     onChange={e => setMaterialBudgetInput(e.target.value)}
                     placeholder="0"
-                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-white w-32 focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-white w-32 focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
                   />
                 </div>
               </div>
@@ -481,13 +481,13 @@ function DirectCostsCard({ job, role, computed }: {
                 <div className="flex items-center gap-1">
                   <input type="number" value={subInput} onChange={e => setSubInput(e.target.value)}
                     placeholder="0.00" step="0.01" min="0"
-                    className="w-28 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    className="w-28 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   <span className="text-xs text-gray-400">cost</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <input type="number" value={subBillPctInput} onChange={e => setSubBillPctInput(e.target.value)}
                     placeholder="100" step="1" min="0" max="100"
-                    className="w-14 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    className="w-14 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   <span className="text-xs text-gray-400">% bill</span>
                 </div>
                 <MkupInput value={subMkup} onChange={setSubMkup} />
@@ -518,13 +518,13 @@ function DirectCostsCard({ job, role, computed }: {
                 <div className="flex items-center gap-1">
                   <input type="number" value={equipInput} onChange={e => setEquipInput(e.target.value)}
                     placeholder="0.00" step="0.01" min="0"
-                    className="w-28 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    className="w-28 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   <span className="text-xs text-gray-400">total cost</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <input type="number" value={billPctInput} onChange={e => setBillPctInput(e.target.value)}
                     placeholder="100" step="1" min="0" max="100"
-                    className="w-14 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    className="w-14 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   <span className="text-xs text-gray-400">% bill</span>
                 </div>
                 <MkupInput value={equipMkup} onChange={setEquipMkup} />
@@ -592,17 +592,17 @@ function DirectCostsCard({ job, role, computed }: {
             <div className="flex gap-2 flex-wrap">
               <input value={addDesc} onChange={e => setAddDesc(e.target.value)}
                 placeholder="Description (Permits, etc.)"
-                className="flex-1 min-w-[130px] border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                className="flex-1 min-w-[130px] border border-gray-300 rounded px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
               <input type="number" value={addAmt} onChange={e => setAddAmt(e.target.value)}
                 placeholder="Amount" step="0.01" min="0"
-                className="w-24 border border-gray-300 rounded px-2 py-1.5 text-xs text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                className="w-24 border border-gray-300 rounded px-2 py-1.5 text-xs text-right bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
               <MkupInput value={addMkup} onChange={setAddMkup} />
             </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setAddingOther(false); setAddDesc(""); setAddAmt(""); }}
                 className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
               <button onClick={handleAddOther} disabled={addPending || !addDesc.trim() || !addAmt}
-                className="text-xs bg-[#002D72] text-white px-2.5 py-1 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
+                className="text-xs bg-[#1e3a8a] text-white px-2.5 py-1 rounded-lg hover:bg-[#003d99] disabled:opacity-60">
                 {addPending ? "Adding…" : "Add"}
               </button>
             </div>
@@ -610,7 +610,7 @@ function DirectCostsCard({ job, role, computed }: {
         ) : (
           <div className="py-2.5 border-b border-gray-100">
             <button onClick={() => setAddingOther(true)}
-              className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+              className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] font-medium">
               <Plus className="w-3.5 h-3.5" /> Add Other Cost
             </button>
           </div>
@@ -623,7 +623,7 @@ function DirectCostsCard({ job, role, computed }: {
           <p className="text-sm font-bold text-gray-900">Total Direct Costs</p>
           <p className="text-xs text-gray-400">Base costs + all markups</p>
         </div>
-        <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalMarkedUp)}</span>
+        <span className="text-sm font-bold text-[#1e3a8a] tabular-nums">{fmt$(totalMarkedUp)}</span>
       </div>
 
       {/* ── % Complete tracker ── */}
@@ -767,7 +767,7 @@ function DepositRequestCard({ job, role }: {
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                   <input type="number" value={fixedAmount} onChange={e => setFixedAmount(e.target.value)}
                     step="0.01" min="0" placeholder="0.00"
-                    className="w-full border border-gray-300 rounded-lg pl-6 pr-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                    className="w-full border border-gray-300 rounded-lg pl-6 pr-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                 </div>
               </div>
             ) : (
@@ -777,7 +777,7 @@ function DepositRequestCard({ job, role }: {
                   <div className="relative">
                     <input type="number" value={percentage} onChange={e => setPercentage(e.target.value)}
                       step="1" min="0" max="100" placeholder="50"
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
                   </div>
                 </div>
@@ -787,7 +787,7 @@ function DepositRequestCard({ job, role }: {
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                     <input type="number" value={contractValue} onChange={e => setContractValue(e.target.value)}
                       step="0.01" min="0" placeholder="0.00"
-                      className="w-full border border-gray-300 rounded-lg pl-6 pr-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-300 rounded-lg pl-6 pr-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   </div>
                 </div>
               </>
@@ -796,13 +796,13 @@ function DepositRequestCard({ job, role }: {
             <div>
               <label className="block text-xs text-gray-500 mb-1">Due Date</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Description</label>
               <input value={description} onChange={e => setDescription(e.target.value)}
                 placeholder="e.g. Deposit for electrical work"
-                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
             </div>
           </div>
 
@@ -811,12 +811,12 @@ function DepositRequestCard({ job, role }: {
             <textarea value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Optional additional notes…"
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] resize-none" />
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] resize-none" />
           </div>
 
           {depositAmt > 0 && (
             <p className="text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-              Deposit Amount: <span className="font-bold text-[#002D72]">{depositAmt.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>
+              Deposit Amount: <span className="font-bold text-[#1e3a8a]">{depositAmt.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>
               {amountType === "percentage" && parseFloat(contractValue) > 0
                 ? ` (${percentage}% of ${parseFloat(contractValue).toLocaleString("en-US", { style: "currency", currency: "USD" })})`
                 : ""}
@@ -827,7 +827,7 @@ function DepositRequestCard({ job, role }: {
             <button onClick={() => { setShowForm(false); setError(null); }}
               className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
             <a href={mailtoLink}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
               <Mail className="w-3.5 h-3.5" /> Email to GC{emailTo ? ` (${emailTo})` : ""}
             </a>
             <button onClick={handleGenerate} disabled={generating || depositAmt <= 0}
@@ -873,7 +873,7 @@ function numInput(val: string, onChange: (v: string) => void, placeholder = "0")
       placeholder={placeholder}
       step="0.01"
       min="0"
-      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72] text-right tabular-nums"
+      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] text-right tabular-nums"
     />
   );
 }
@@ -1090,18 +1090,18 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Application Date *</label>
             <input type="date" value={appDate} onChange={e => setAppDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Period To</label>
             <input type="date" value={periodTo} onChange={e => setPeriodTo(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Retainage %</label>
             <input type="number" value={retainagePct} onChange={e => setRetainagePct(e.target.value)}
               step="0.5" min="0" max="100" placeholder="10"
-              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+              className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
           </div>
           {lastInvoiceDate && (
             <div className="flex items-end">
@@ -1142,11 +1142,11 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
                 <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 group">
                   <td className="py-1.5 pr-2">
                     <input value={row.itemNo} onChange={e => updateRow(row.id, "itemNo", e.target.value)}
-                      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   </td>
                   <td className="py-1.5 pr-2">
                     <input value={row.description} onChange={e => updateRow(row.id, "description", e.target.value)}
-                      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-200 rounded px-1.5 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   </td>
                   <td className="py-1.5 pr-2">
                     {numInput(String(row.scheduledValue || ""), v => updateRow(row.id, "scheduledValue", parseFloat(v) || 0))}
@@ -1202,7 +1202,7 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
               <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800 tabular-nums">
                 {grandPrev.toLocaleString("en-US", { style: "currency", currency: "USD" })}
               </td>
-              <td className="py-2 pr-2 text-right text-xs font-bold text-[#002D72] tabular-nums">
+              <td className="py-2 pr-2 text-right text-xs font-bold text-[#1e3a8a] tabular-nums">
                 {grandThis.toLocaleString("en-US", { style: "currency", currency: "USD" })}
               </td>
               <td className="py-2 pr-2 text-right text-xs font-bold text-gray-800 tabular-nums">
@@ -1227,7 +1227,7 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
       {role === "ADMIN" && (
         <div className="py-2 border-b border-gray-100">
           <button onClick={addRow}
-            className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+            className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] font-medium">
             <Plus className="w-3.5 h-3.5" /> Add Row
           </button>
         </div>
@@ -1237,7 +1237,7 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
       <div className="py-3 border-b border-gray-100 space-y-1">
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">This Period (gross)</p>
-          <span className="text-sm font-bold text-[#002D72] tabular-nums">
+          <span className="text-sm font-bold text-[#1e3a8a] tabular-nums">
             {grandThis.toLocaleString("en-US", { style: "currency", currency: "USD" })}
           </span>
         </div>
@@ -1263,17 +1263,17 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
       {role === "ADMIN" && (
         <div className="flex flex-wrap gap-2 py-3">
           <button onClick={handleRefresh} disabled={refreshing}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-3 py-1.5 rounded-lg transition-colors bg-white disabled:opacity-60">
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-3 py-1.5 rounded-lg transition-colors bg-white disabled:opacity-60">
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Refreshing…" : "Refresh Auto-fill"}
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 text-xs font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-60">
+            className="flex items-center gap-1.5 text-xs font-medium text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-60">
             <Save className="w-3.5 h-3.5" />
             {saving ? "Saving…" : "Save Schedule"}
           </button>
           <button onClick={() => doGenerate()} disabled={generating || !appDate || grandThis <= 0}
-            className="flex items-center gap-1.5 text-xs font-medium bg-[#002D72] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+            className="flex items-center gap-1.5 text-xs font-medium bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg hover:bg-[#003d99] disabled:opacity-60 transition-colors">
             <FileText className="w-3.5 h-3.5" />
             {generating ? "Generating…" : "Generate AIA Invoice"}
           </button>
@@ -1578,7 +1578,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                   <div className="flex flex-wrap gap-2">
                     {/* PDF download */}
                     <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+                      className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                       <FileText className="w-3.5 h-3.5" /> Download PDF
                     </a>
                     {/* Word doc download (Standard only) */}
@@ -1586,7 +1586,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                       <a href={`/api/jobs/${job.id}/pdf/invoice/${inv.id}/docx`}
                         target="_blank" rel="noopener noreferrer"
                         download={`Invoice_${job.jobNumber}-${String(inv.invoiceNumber).padStart(3, "0")}.docx`}
-                        className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                         <FileText className="w-3.5 h-3.5" /> Download Word
                       </a>
                     )}
@@ -1711,7 +1711,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
               {(["STANDARD", "AIA"] as const).map(t => (
                 <button key={t} onClick={() => setInvType(t)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    invType === t ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300 hover:border-[#002D72]/50"
+                    invType === t ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "bg-white text-gray-600 border-gray-300 hover:border-[#1e3a8a]/50"
                   }`}>
                   {t === "AIA" ? "AIA G702/G703" : "Standard"}
                 </button>
@@ -1734,26 +1734,26 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Invoice Date *</label>
                 <input type="date" value={invDate} onChange={e => setInvDate(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Amount *</label>
                 <input type="number" value={invAmount} onChange={e => setInvAmount(e.target.value)}
                   step="0.01" min="0"
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
               </div>
               {invType === "AIA" && (
                 <>
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Period To</label>
                     <input type="date" value={invPeriodTo} onChange={e => setInvPeriodTo(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Application No.</label>
                     <input type="number" value={invAppNo} onChange={e => setInvAppNo(e.target.value)}
                       placeholder="Auto"
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
                   </div>
                 </>
               )}
@@ -1761,13 +1761,13 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                 <label className="block text-xs text-gray-500 mb-1">Retainage %</label>
                 <input type="number" value={invRetainagePct} onChange={e => setInvRetainagePct(e.target.value)}
                   step="0.1" min="0" max="100" placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
               </div>
               {invType === "STANDARD" && (
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Payment Terms</label>
                   <select value={invPaymentTerms} onChange={e => setInvPaymentTerms(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]">
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]">
                     <option value="due_on_receipt">Due on Receipt</option>
                     <option value="net_10">Net 10</option>
                     <option value="net_15">Net 15</option>
@@ -1781,7 +1781,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                 <label className="block text-xs text-gray-500 mb-1">Notes</label>
                 <input value={invNotes} onChange={e => setInvNotes(e.target.value)}
                   placeholder="Optional notes…"
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
               </div>
             </div>
             {/* ── Scope of Work Section Builder ── */}
@@ -1789,7 +1789,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs text-gray-500">Scope of Work</label>
                 <button type="button" onClick={() => { setShowInvBulletPicker(true); setInvBulletPickerTarget(null); setInvBulletSearch(""); }}
-                  className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+                  className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] font-medium">
                   📚 Library
                 </button>
               </div>
@@ -1803,7 +1803,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                       className="flex-1 bg-transparent text-xs font-semibold text-gray-700 focus:outline-none placeholder-gray-400"
                     />
                     <button type="button" onClick={() => { setShowInvBulletPicker(true); setInvBulletPickerTarget({ sectionId: section.id }); setInvBulletSearch(""); }}
-                      className="text-xs text-[#002D72] hover:text-[#003d99] px-1.5 py-0.5 rounded hover:bg-blue-50">📚</button>
+                      className="text-xs text-[#1e3a8a] hover:text-[#003d99] px-1.5 py-0.5 rounded hover:bg-blue-50">📚</button>
                     <button type="button" onClick={() => removeInvSection(section.id)}
                       className="text-gray-300 hover:text-red-500 px-1"><Trash2 className="w-3 h-3" /></button>
                   </div>
@@ -1818,7 +1818,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                             next[ii] = e.target.value;
                             updateInvSection(section.id, "items", next);
                           }}
-                          className="flex-1 text-xs border-0 border-b border-gray-100 focus:border-[#002D72] focus:outline-none py-0.5 bg-white"
+                          className="flex-1 text-xs border-0 border-b border-gray-100 focus:border-[#1e3a8a] focus:outline-none py-0.5 bg-white"
                         />
                         <button type="button"
                           onClick={() => {
@@ -1839,14 +1839,14 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                     ))}
                     <button type="button"
                       onClick={() => updateInvSection(section.id, "items", [...section.items, ""])}
-                      className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] mt-1">
+                      className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] mt-1">
                       <Plus className="w-3 h-3" /> New bullet
                     </button>
                   </div>
                 </div>
               ))}
               <button type="button" onClick={addInvSection}
-                className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium mt-1">
+                className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] font-medium mt-1">
                 <Plus className="w-3.5 h-3.5" /> Add Section
               </button>
             </div>
@@ -1860,7 +1860,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
               <button onClick={() => { setShowForm(false); setError(null); }}
                 className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
               <button onClick={handleCreate} disabled={pending || !invDate || !invAmount}
-                className="bg-[#002D72] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                className="bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
                 {pending ? "Creating…" : "Create Invoice"}
               </button>
             </div>
@@ -1868,7 +1868,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
         ) : (
           <div className="py-2.5 border-t border-gray-100">
             <button onClick={() => setShowForm(true)}
-              className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+              className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] font-medium">
               <Plus className="w-3.5 h-3.5" /> Create Invoice
             </button>
           </div>
@@ -1879,7 +1879,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
       <div className="border-t border-gray-200 mt-1">
         <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
           <p className="text-sm font-semibold text-gray-700">Total Invoiced</p>
-          <span className="text-sm font-bold text-[#002D72] tabular-nums">{fmt$(totalInvoiced)}</span>
+          <span className="text-sm font-bold text-[#1e3a8a] tabular-nums">{fmt$(totalInvoiced)}</span>
         </div>
         <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
           <p className="text-sm font-semibold text-gray-700">Total Received</p>
@@ -1904,7 +1904,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
             <div className="flex gap-2 px-4 pt-3">
               {(["library", "saved"] as const).map(tab => (
                 <button key={tab} onClick={() => setInvBulletPickerTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${invBulletPickerTab === tab ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300 hover:border-[#002D72]/50"}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${invBulletPickerTab === tab ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "bg-white text-gray-600 border-gray-300 hover:border-[#1e3a8a]/50"}`}>
                   {tab === "library" ? "📚 Library" : `⭐ Saved (${savedBullets.length})`}
                 </button>
               ))}
@@ -1912,7 +1912,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
             <div className="px-4 pt-2">
               <input value={invBulletSearch} onChange={e => setInvBulletSearch(e.target.value)}
                 placeholder="Search bullets…"
-                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#002D72]" />
+                className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
             </div>
             <div className="overflow-y-auto flex-1 px-4 py-3 space-y-4">
               {invBulletPickerTab === "library" ? (
@@ -1984,7 +1984,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
             </div>
             <div className="px-4 py-3 border-t border-gray-100">
               <button onClick={() => setShowInvBulletPicker(false)}
-                className="w-full bg-[#002D72] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#003d99]">Done</button>
+                className="w-full bg-[#1e3a8a] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#003d99]">Done</button>
             </div>
           </div>
         </div>
@@ -2089,14 +2089,14 @@ function PaymentLogCard({ job, role }: {
             <p className="text-xs text-gray-500">Use "Record Payment" on an invoice above to link it, or add a standalone payment here.</p>
             <div className="grid grid-cols-2 gap-2">
               <input type="date" value={dateInput} onChange={e => setDateInput(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
               <input type="number" value={amountInput} onChange={e => setAmountInput(e.target.value)}
                 placeholder="Amount" step="0.01" min="0"
-                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
               <input value={noteInput} onChange={e => setNoteInput(e.target.value)}
-                placeholder="Note (optional)" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                placeholder="Note (optional)" className="col-span-2 border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
             </div>
-            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer border border-dashed border-gray-300 rounded-lg px-3 py-2 hover:border-[#002D72] hover:text-[#002D72] transition-colors bg-white">
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer border border-dashed border-gray-300 rounded-lg px-3 py-2 hover:border-[#1e3a8a] hover:text-[#1e3a8a] transition-colors bg-white">
               <Upload className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{receiptFile ? receiptFile.name : "Attach deposit receipt (optional)"}</span>
               <input type="file" accept="image/*,.pdf" className="sr-only" onChange={e => setReceiptFile(e.target.files?.[0] ?? null)} />
@@ -2104,7 +2104,7 @@ function PaymentLogCard({ job, role }: {
             <div className="flex gap-2 justify-end">
               <button onClick={() => { setShowForm(false); setError(null); setReceiptFile(null); }} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
               <button onClick={handleAdd} disabled={pending || uploading || !amountInput}
-                className="bg-[#002D72] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
+                className="bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60">
                 {uploading ? "Uploading…" : pending ? "Saving…" : "Add Payment"}
               </button>
             </div>
@@ -2112,7 +2112,7 @@ function PaymentLogCard({ job, role }: {
         ) : (
           <div className="py-2.5 border-b border-gray-100">
             <button onClick={() => setShowForm(true)}
-              className="flex items-center gap-1 text-xs text-[#002D72] hover:text-[#003d99] font-medium">
+              className="flex items-center gap-1 text-xs text-[#1e3a8a] hover:text-[#003d99] font-medium">
               <Plus className="w-3.5 h-3.5" /> Add Standalone Payment
             </button>
           </div>
@@ -2223,7 +2223,7 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
     <SectionCard icon={<TrendingUp className="w-4 h-4" />} title="Job Profitability">
       <button
         onClick={() => setShowDetail(v => !v)}
-        className="w-full flex items-center justify-between py-3 text-xs text-gray-500 hover:text-[#002D72] transition-colors"
+        className="w-full flex items-center justify-between py-3 text-xs text-gray-500 hover:text-[#1e3a8a] transition-colors"
       >
         <span className="flex items-center gap-2">
           {profitable
@@ -2245,7 +2245,7 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
           {/* Revenue */}
           <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 mb-3">
             <p className="text-xs font-semibold text-blue-800 mb-1">Revenue (Gross Billing)</p>
-            <p className="text-lg font-bold text-[#002D72] tabular-nums">{fmt$(computed.grossBilling)}</p>
+            <p className="text-lg font-bold text-[#1e3a8a] tabular-nums">{fmt$(computed.grossBilling)}</p>
           </div>
 
           {/* Cost breakdown */}
@@ -2501,7 +2501,7 @@ export function SummaryTab({ job, role, companyRates = null, overheadAllocation 
         </span>
         <button
           onClick={() => router.refresh()}
-          className="flex items-center gap-1 text-gray-400 hover:text-[#002D72] transition-colors"
+          className="flex items-center gap-1 text-gray-400 hover:text-[#1e3a8a] transition-colors"
           title="Refresh data from all tabs"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh

@@ -20,7 +20,7 @@ export default async function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002D72]">My Profile</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">My Profile</h1>
         <p className="text-sm text-gray-500 mt-1">
           Manage your display name and notification preferences.
         </p>

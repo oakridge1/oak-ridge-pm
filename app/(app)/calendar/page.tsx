@@ -137,10 +137,10 @@ export default async function CalendarPage() {
     <div>
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-[#002D72] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-[#1e3a8a] flex items-center justify-center">
             <Calendar className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-[#002D72]">Master Calendar</h1>
+          <h1 className="text-2xl font-bold text-[#1e3a8a]">Master Calendar</h1>
         </div>
         <p className="text-sm text-gray-500">
           All events across all active jobs — milestones, completions, and days

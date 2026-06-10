@@ -94,7 +94,7 @@ function AddRfiForm({
       onSubmit={handleSubmit}
       className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 space-y-3"
     >
-      <h3 className="font-semibold text-[#002D72] text-sm">New RFI</h3>
+      <h3 className="font-semibold text-[#1e3a8a] text-sm">New RFI</h3>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
@@ -106,7 +106,7 @@ function AddRfiForm({
             name="subject"
             required
             placeholder="Brief description of the question"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -118,7 +118,7 @@ function AddRfiForm({
             name="description"
             rows={3}
             placeholder="Detailed description..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 resize-none"
           />
         </div>
 
@@ -131,7 +131,7 @@ function AddRfiForm({
             name="submittedTo"
             defaultValue={job.gcContactName ?? ""}
             placeholder="GC contact name"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -144,7 +144,7 @@ function AddRfiForm({
             name="submittedToEmail"
             defaultValue={job.gcEmail ?? ""}
             placeholder="email@example.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -155,7 +155,7 @@ function AddRfiForm({
           <input
             type="date"
             name="dueDate"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
       </div>
@@ -319,7 +319,7 @@ function RfiCard({
                   name="answer"
                   rows={3}
                   placeholder="Enter the response..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 resize-none"
                 />
               </div>
               <div className="flex gap-2 justify-end">
@@ -340,7 +340,7 @@ function RfiCard({
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             <a
               href={`/api/jobs/${job.id}/pdf/rfi/${rfi.id}`}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-3 py-1.5 rounded-lg transition-colors"
             >
               <FileDown className="w-3.5 h-3.5" /> Download PDF
             </a>
@@ -397,14 +397,14 @@ export function RfiTab({ job, role, currentUserName }: RfiTabProps) {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <HelpCircle className="w-5 h-5 text-[#002D72]" />
-          <h2 className="font-semibold text-[#002D72]">RFI Log</h2>
+          <HelpCircle className="w-5 h-5 text-[#1e3a8a]" />
+          <h2 className="font-semibold text-[#1e3a8a]">RFI Log</h2>
           <span className="text-xs text-gray-400">({job.rfis.length})</span>
         </div>
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 hover:border-[#002D72] px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/30 hover:border-[#1e3a8a] px-3 py-1.5 rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" /> New RFI
           </button>

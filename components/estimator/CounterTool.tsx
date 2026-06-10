@@ -140,7 +140,7 @@ export function CounterTool() {
     <div className="h-full flex flex-col">
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
-      <div className="bg-[#1a3a5c] text-white px-4 py-3 space-y-2 shrink-0">
+      <div className="bg-[#1e3a8a] text-white px-4 py-3 space-y-2 shrink-0">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold tracking-widest text-blue-200">
             OAK RIDGE / TAKEOFF
@@ -233,7 +233,7 @@ export function CounterTool() {
               {/* Count */}
               <span
                 className={`w-10 text-center text-lg font-mono ${
-                  count > 0 ? 'font-bold text-[#1a3a5c]' : 'text-gray-300'
+                  count > 0 ? 'font-bold text-[#1e3a8a]' : 'text-gray-300'
                 }`}
               >
                 {count}
@@ -242,7 +242,7 @@ export function CounterTool() {
               {/* + */}
               <button
                 onClick={() => increment(id, delta)}
-                className="w-9 h-9 rounded-full bg-[#1a3a5c] hover:bg-[#2e5a8c] text-white font-bold text-lg flex items-center justify-center transition-colors"
+                className="w-9 h-9 rounded-full bg-[#1e3a8a] hover:bg-[#2e5a8c] text-white font-bold text-lg flex items-center justify-center transition-colors"
               >
                 +
               </button>
@@ -252,7 +252,7 @@ export function CounterTool() {
       </div>
 
       {/* ── BOTTOM BAR ──────────────────────────────────────────────────────── */}
-      <div className="bg-[#1a3a5c] text-white px-4 py-2 flex items-center justify-between text-xs shrink-0">
+      <div className="bg-[#1e3a8a] text-white px-4 py-2 flex items-center justify-between text-xs shrink-0">
         <span>
           TOTAL THIS TAB: {tabItemCount} item{tabItemCount !== 1 ? 's' : ''} /{' '}
           {tabUnitCount.toLocaleString()} units
@@ -293,7 +293,7 @@ export function CounterTool() {
                 />
                 <button
                   onClick={addArea}
-                  className="px-3 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+                  className="px-3 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
                 >
                   ADD
                 </button>
@@ -317,10 +317,10 @@ export function CounterTool() {
                         className="flex-1 text-left min-w-0"
                         onClick={() => { switchArea(idx); setShowAreas(false); }}
                       >
-                        <div className={`text-sm font-semibold flex items-center gap-2 ${isCurrent ? 'text-[#1a3a5c]' : 'text-gray-800'}`}>
+                        <div className={`text-sm font-semibold flex items-center gap-2 ${isCurrent ? 'text-[#1e3a8a]' : 'text-gray-800'}`}>
                           <span className="truncate">{area.name}</span>
                           {isCurrent && (
-                            <span className="shrink-0 text-xs bg-[#1a3a5c] text-white rounded-full px-2 py-0.5 font-medium leading-none">
+                            <span className="shrink-0 text-xs bg-[#1e3a8a] text-white rounded-full px-2 py-0.5 font-medium leading-none">
                               Current
                             </span>
                           )}
@@ -417,7 +417,7 @@ export function CounterTool() {
                       if (!items || items.length === 0) return null;
                       return (
                         <div key={cat}>
-                          <div className="text-xs font-bold tracking-widest uppercase text-[#1a3a5c] mb-2">
+                          <div className="text-xs font-bold tracking-widest uppercase text-[#1e3a8a] mb-2">
                             {CATEGORY_LABELS[cat] ?? cat}
                           </div>
                           <div className="space-y-1">
@@ -429,7 +429,7 @@ export function CounterTool() {
                                 <span className="text-gray-700 truncate pr-2">
                                   {ITEM_LABELS[id] ?? id}
                                 </span>
-                                <span className="font-mono font-bold text-[#1a3a5c] shrink-0">
+                                <span className="font-mono font-bold text-[#1e3a8a] shrink-0">
                                   {qty.toLocaleString()}{' '}
                                   <span className="font-normal text-gray-400 text-xs">
                                     {FOOTAGE_ITEMS.has(id) ? 'ft' : 'ea'}

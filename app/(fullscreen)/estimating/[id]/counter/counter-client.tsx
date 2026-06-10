@@ -116,7 +116,7 @@ const CATEGORIES = ["Devices", "Fixtures", "Data", "Conduit", "Panels", "Fire Al
 // CSS-in-JS theme constants
 // ─────────────────────────────────────────────────────────────────────────────
 const T = {
-  bg:        "#0a0c0f",
+  bg:        "#0a0f1e",
   surface:   "#111620",
   surface2:  "#1a2030",
   border:    "#2a3448",
@@ -411,7 +411,7 @@ export function CounterClient({ estimate, initialAreas }: Props) {
         gap: 10, flexShrink: 0, position: "sticky", top: 0, zIndex: 10,
       }}>
         {/* Logo / brand mark */}
-        <div style={{ width: 28, height: 28, borderRadius: 6, background: "#002D72", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 6, background: "#1e3a8a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <span style={{ color: "white", fontSize: 11, fontWeight: 800 }}>OR</span>
         </div>
 
@@ -429,7 +429,7 @@ export function CounterClient({ estimate, initialAreas }: Props) {
         {/* Areas button */}
         <button
           onClick={() => setShowAreaPanel(true)}
-          style={{ ...styles.headerBtn, background: "#002D72" }}
+          style={{ ...styles.headerBtn, background: "#1e3a8a" }}
         >
           AREAS
         </button>
@@ -504,7 +504,7 @@ export function CounterClient({ estimate, initialAreas }: Props) {
         </div>
         <button
           onClick={() => { setNewAreaName(`Area ${areas.length + 1}`); setShowAreaPanel(true); }}
-          style={{ ...styles.bottomBtn, background: "#002D72" }}
+          style={{ ...styles.bottomBtn, background: "#1e3a8a" }}
         >
           + NEW AREA
         </button>

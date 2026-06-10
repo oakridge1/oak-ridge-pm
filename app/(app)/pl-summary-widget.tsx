@@ -59,12 +59,12 @@ export default async function PlSummaryWidget() {
 
   return (
     <Link href="/admin/pl" className="block">
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 hover:border-[#002D72] transition-colors">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 hover:border-[#1e3a8a] transition-colors">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             P&amp;L — {monthLabel}
           </h3>
-          <span className="text-xs text-[#002D72]">View Full P&amp;L →</span>
+          <span className="text-xs text-[#1e3a8a]">View Full P&amp;L →</span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div>

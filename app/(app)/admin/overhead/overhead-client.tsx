@@ -135,28 +135,28 @@ function costInMonth(cost: OverheadCost, month: number, year: number): boolean {
 function AdminNav() {
   return (
     <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
-      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Users
       </a>
-      <a href="/admin/saved-tasks" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/saved-tasks" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Saved Tasks
       </a>
-      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Receipts
       </a>
-      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Settings
       </a>
-      <a href="/admin/overhead" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
+      <a href="/admin/overhead" className="text-sm font-medium text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1 -mb-5">
         Overhead
       </a>
-      <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Owner Draws
       </a>
-      <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Contractor Pay
       </a>
-      <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         P&amp;L
       </a>
     </div>
@@ -219,7 +219,7 @@ function CostForm({
           <select
             value={form.category}
             onChange={(e) => set("category", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             required
           >
             {CATEGORIES.map((c) => (
@@ -235,7 +235,7 @@ function CostForm({
             type="date"
             value={form.effectiveDate}
             onChange={(e) => set("effectiveDate", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             required
           />
         </div>
@@ -247,7 +247,7 @@ function CostForm({
             type="text"
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             required
           />
         </div>
@@ -263,7 +263,7 @@ function CostForm({
               min="0"
               value={form.amount}
               onChange={(e) => set("amount", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               required
             />
           </div>
@@ -276,7 +276,7 @@ function CostForm({
             type="date"
             value={form.endDate}
             onChange={(e) => set("endDate", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
       </div>
@@ -301,7 +301,7 @@ function CostForm({
                 <select
                   value={form.recurringFreq}
                   onChange={(e) => set("recurringFreq", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 >
                   {FREQ_OPTIONS.map((f) => (
                     <option key={f} value={f}>{f}</option>
@@ -319,7 +319,7 @@ function CostForm({
                     value={form.recurringDay}
                     onChange={(e) => set("recurringDay", e.target.value)}
                     placeholder="1–31"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   />
                 </div>
               )}
@@ -347,7 +347,7 @@ function CostForm({
                     value={form.increaseRate}
                     onChange={(e) => set("increaseRate", e.target.value)}
                     placeholder="e.g. 3.5"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   />
                 </div>
                 <div>
@@ -355,7 +355,7 @@ function CostForm({
                   <select
                     value={form.increaseMonth}
                     onChange={(e) => set("increaseMonth", e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   >
                     <option value="">— select —</option>
                     {MONTH_NAMES.map((m, i) => (
@@ -403,7 +403,7 @@ function CostForm({
           rows={2}
           value={form.notes}
           onChange={(e) => set("notes", e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72] resize-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none"
         />
       </div>
 
@@ -418,7 +418,7 @@ function CostForm({
         <button
           type="submit"
           disabled={saving || uploading}
-          className="px-4 py-2 text-sm bg-[#002D72] text-white rounded-lg hover:bg-[#003d99] transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-sm bg-[#1e3a8a] text-white rounded-lg hover:bg-[#003d99] transition-colors disabled:opacity-50"
         >
           {saving ? "Saving…" : submitLabel}
         </button>
@@ -562,7 +562,7 @@ export default function OverheadClient({ initialCosts }: { initialCosts: Overhea
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002D72]">Overhead &amp; Fixed Costs</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">Overhead &amp; Fixed Costs</h1>
         <p className="text-sm text-gray-500 mt-1">Track recurring and one-time business overhead costs.</p>
       </div>
 
@@ -592,7 +592,7 @@ export default function OverheadClient({ initialCosts }: { initialCosts: Overhea
 
         <button
           onClick={() => { setShowAddForm((v) => !v); setEditingId(null); }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Cost
@@ -603,11 +603,11 @@ export default function OverheadClient({ initialCosts }: { initialCosts: Overhea
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Total This Month</p>
-          <p className="text-2xl font-bold text-[#002D72]">{formatMoney(monthTotal)}</p>
+          <p className="text-2xl font-bold text-[#1e3a8a]">{formatMoney(monthTotal)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Total This Year</p>
-          <p className="text-2xl font-bold text-[#002D72]">{formatMoney(yearTotal)}</p>
+          <p className="text-2xl font-bold text-[#1e3a8a]">{formatMoney(yearTotal)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Largest Category</p>
@@ -764,7 +764,7 @@ export default function OverheadClient({ initialCosts }: { initialCosts: Overhea
                             <>
                               <button
                                 onClick={() => { setEditingId(cost.id); setShowAddForm(false); }}
-                                className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors"
+                                className="p-1.5 text-gray-400 hover:text-[#1e3a8a] hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Edit"
                               >
                                 <Pencil className="w-4 h-4" />

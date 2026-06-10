@@ -31,7 +31,7 @@ export function TMBuilder() {
     updateTMState({ desc: '', mat: 0, lab: 0, markup: 'bulk' });
   }
 
-  const inp = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]';
+  const inp = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
 
   return (
     <div className="mb-6">
@@ -69,7 +69,7 @@ export function TMBuilder() {
           </div>
           <button
             onClick={handleAdd}
-            className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors pb-1.5">
+            className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors pb-1.5">
             + Add T&amp;M
           </button>
         </div>

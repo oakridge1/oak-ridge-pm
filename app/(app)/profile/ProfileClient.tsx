@@ -107,13 +107,13 @@ export function ProfileClient({ user, canEditNotifications }: ProfileClientProps
                 value={nameValue}
                 onChange={(e) => setNameValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 placeholder="Your name"
               />
               <button
                 onClick={handleSaveName}
                 disabled={namePending || !nameValue.trim()}
-                className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors shrink-0"
+                className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors shrink-0"
               >
                 {namePending ? "Saving…" : "Save"}
               </button>
@@ -174,7 +174,7 @@ export function ProfileClient({ user, canEditNotifications }: ProfileClientProps
                     <button
                       onClick={() => handleTogglePref(key)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-                        enabled ? "bg-[#002D72]" : "bg-gray-200"
+                        enabled ? "bg-[#1e3a8a]" : "bg-gray-200"
                       }`}
                       aria-label={`Toggle ${label}`}
                     >
@@ -193,7 +193,7 @@ export function ProfileClient({ user, canEditNotifications }: ProfileClientProps
               <button
                 onClick={handleSavePrefs}
                 disabled={prefsPending}
-                className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
+                className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
               >
                 {prefsPending ? "Saving…" : "Save Preferences"}
               </button>

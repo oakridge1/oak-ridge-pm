@@ -63,7 +63,7 @@ export function UserTable({
       {/* Desktop table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-[#002D72] text-white text-left">
+          <thead className="bg-[#1e3a8a] text-white text-left">
             <tr>
               <th className="px-4 py-3 font-medium">User</th>
               <th className="px-4 py-3 font-medium">Email</th>
@@ -89,7 +89,7 @@ export function UserTable({
                         className="w-8 h-8 rounded-full"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#002D72] flex items-center justify-center text-white text-xs font-bold">
+                      <div className="w-8 h-8 rounded-full bg-[#1e3a8a] flex items-center justify-center text-white text-xs font-bold">
                         {user.name?.charAt(0)?.toUpperCase() ?? "?"}
                       </div>
                     )}
@@ -109,7 +109,7 @@ export function UserTable({
                       handleRoleChange(user.id, e.target.value as Role)
                     }
                     disabled={isPending || user.id === currentUserId}
-                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] disabled:opacity-50"
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] disabled:opacity-50"
                   >
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
@@ -187,7 +187,7 @@ export function UserTable({
                     className="w-10 h-10 rounded-full"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#002D72] flex items-center justify-center text-white text-sm font-bold">
+                  <div className="w-10 h-10 rounded-full bg-[#1e3a8a] flex items-center justify-center text-white text-sm font-bold">
                     {user.name?.charAt(0)?.toUpperCase() ?? "?"}
                   </div>
                 )}
@@ -223,7 +223,7 @@ export function UserTable({
                   handleRoleChange(user.id, e.target.value as Role)
                 }
                 disabled={isPending || user.id === currentUserId}
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72] disabled:opacity-50"
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] disabled:opacity-50"
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>

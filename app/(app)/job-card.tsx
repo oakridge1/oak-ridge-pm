@@ -56,7 +56,7 @@ export function JobCard({
             <span className="text-xs font-mono text-gray-400">
               #{job.jobNumber}
             </span>
-            <h3 className="font-semibold text-[#002D72] leading-tight truncate text-base flex items-center gap-2">
+            <h3 className="font-semibold text-[#1e3a8a] leading-tight truncate text-base flex items-center gap-2">
               {job.jobName}
               {isSystemJob && (
                 <span className="text-[10px] font-semibold tracking-wider uppercase bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded shrink-0">

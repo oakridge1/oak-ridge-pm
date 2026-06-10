@@ -88,28 +88,28 @@ function fmtNextDue(date: Date): string {
 function AdminNav() {
   return (
     <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
-      <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Dashboard
       </a>
-      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Users
       </a>
-      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Receipts
       </a>
-      <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Overhead
       </a>
-      <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/owner-draws" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Owner Draws
       </a>
-      <a href="/admin/contractor-payments" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
+      <a href="/admin/contractor-payments" className="text-sm font-medium text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1 -mb-5">
         Contractor Pay
       </a>
-      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Settings
       </a>
-      <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         P&amp;L
       </a>
     </div>
@@ -244,7 +244,7 @@ function PaymentForm({
           <select
             value={form.userId}
             onChange={(e) => set("userId", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             required
           >
             {allContractors.map((c) => (
@@ -268,7 +268,7 @@ function PaymentForm({
               step="0.01"
               value={form.amountUSD}
               onChange={(e) => set("amountUSD", e.target.value)}
-              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               required
             />
           </div>
@@ -283,7 +283,7 @@ function PaymentForm({
             step="0.0001"
             value={form.exchangeRate}
             onChange={(e) => set("exchangeRate", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
 
@@ -304,7 +304,7 @@ function PaymentForm({
             type="date"
             value={form.paymentDate}
             onChange={(e) => set("paymentDate", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             required
           />
         </div>
@@ -316,7 +316,7 @@ function PaymentForm({
             type="date"
             value={form.payPeriodStart}
             onChange={(e) => set("payPeriodStart", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
 
@@ -327,7 +327,7 @@ function PaymentForm({
             type="date"
             value={form.payPeriodEnd}
             onChange={(e) => set("payPeriodEnd", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
 
@@ -337,7 +337,7 @@ function PaymentForm({
           <select
             value={form.method}
             onChange={(e) => set("method", e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             {METHODS.map((m) => (
               <option key={m} value={m}>
@@ -355,7 +355,7 @@ function PaymentForm({
             value={form.notes}
             onChange={(e) => set("notes", e.target.value)}
             placeholder="Optional"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
 
@@ -403,7 +403,7 @@ function PaymentForm({
         <button
           type="submit"
           disabled={saving || uploading}
-          className="px-5 py-2 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#002D72]/90 disabled:opacity-50 transition-colors"
+          className="px-5 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#1e3a8a]/90 disabled:opacity-50 transition-colors"
         >
           {saving ? "Saving…" : submitLabel}
         </button>
@@ -634,7 +634,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#002D72]">Contractor Payments</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">Contractor Payments</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
@@ -677,19 +677,19 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Paid YTD</p>
-          <p className="text-2xl font-bold text-[#002D72]">{fmtUSD(totalUSD)}</p>
+          <p className="text-2xl font-bold text-[#1e3a8a]">{fmtUSD(totalUSD)}</p>
           {totalPHP > 0 && (
             <p className="text-xs text-gray-400 mt-0.5">{fmtPHP(totalPHP)} PHP</p>
           )}
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Active Contractors</p>
-          <p className="text-2xl font-bold text-[#002D72]">{activeContractors}</p>
+          <p className="text-2xl font-bold text-[#1e3a8a]">{activeContractors}</p>
           <p className="text-xs text-gray-400 mt-0.5">with payments this year</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Next Payment Due</p>
-          <p className="text-2xl font-bold text-[#002D72]">
+          <p className="text-2xl font-bold text-[#1e3a8a]">
             {nextDue ? fmtNextDue(nextDue) : "—"}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">bi-weekly from last payment</p>
@@ -727,7 +727,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
                   type="text"
                   value={addContractorForm.name}
                   onChange={(e) => setAddContractorForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
               <div>
@@ -735,7 +735,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
                 <select
                   value={addContractorForm.linkedUserId}
                   onChange={(e) => setAddContractorForm((f) => ({ ...f, linkedUserId: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 >
                   <option value="">— None —</option>
                   {users.map((u) => (
@@ -751,7 +751,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
                   type="number"
                   value={addContractorForm.defaultAmount}
                   onChange={(e) => setAddContractorForm((f) => ({ ...f, defaultAmount: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
               <div>
@@ -760,7 +760,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
                   type="text"
                   value={addContractorForm.currency}
                   onChange={(e) => setAddContractorForm((f) => ({ ...f, currency: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
               <div>
@@ -768,7 +768,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
                 <select
                   value={addContractorForm.schedule}
                   onChange={(e) => setAddContractorForm((f) => ({ ...f, schedule: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 >
                   {SCHEDULES.map((s) => (
                     <option key={s} value={s}>
@@ -780,7 +780,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
             </div>
             <button
               onClick={handleAddContractor}
-              className="px-4 py-2 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#002D72]/90 transition-colors"
+              className="px-4 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#1e3a8a]/90 transition-colors"
             >
               Save Contractor
             </button>
@@ -900,7 +900,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => setEditingId(p.id)}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#002D72] transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1e3a8a] transition-colors"
                               title="Edit"
                             >
                               <Pencil size={14} />
@@ -925,7 +925,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
             {!showAll && hiddenCount > 0 && (
               <button
                 onClick={() => setShowAll(true)}
-                className="mt-3 text-sm text-[#002D72] hover:underline"
+                className="mt-3 text-sm text-[#1e3a8a] hover:underline"
               >
                 Show {hiddenCount} more payment{hiddenCount !== 1 ? "s" : ""}
               </button>
@@ -933,7 +933,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
             {showAll && payments.length > SHOW_N && (
               <button
                 onClick={() => setShowAll(false)}
-                className="mt-3 text-sm text-[#002D72] hover:underline"
+                className="mt-3 text-sm text-[#1e3a8a] hover:underline"
               >
                 Show less
               </button>
@@ -946,7 +946,7 @@ export default function ContractorPaymentsClient({ users, initialPayments, curre
       {payments.length > 0 && (
         <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-sm text-gray-700">
           <span className="font-semibold">YTD {year}: </span>
-          <span className="font-bold text-[#002D72]">{fmtUSD(totalUSD)} USD</span>
+          <span className="font-bold text-[#1e3a8a]">{fmtUSD(totalUSD)} USD</span>
           {totalPHP > 0 && (
             <span className="text-gray-500"> ({fmtPHP(totalPHP)} PHP)</span>
           )}

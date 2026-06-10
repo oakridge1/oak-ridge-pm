@@ -90,7 +90,7 @@ function EditableRow({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="border border-gray-300 rounded px-2 py-1 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+            className="border border-gray-300 rounded px-2 py-1 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
           />
           <span className="text-sm text-gray-700 flex-1">{entry.user.name ?? "—"}</span>
           <input
@@ -99,7 +99,7 @@ function EditableRow({
             onChange={(e) => setHours(e.target.value)}
             step="0.25"
             min="0"
-            className="border border-gray-300 rounded px-2 py-1 text-xs w-20 text-right focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+            className="border border-gray-300 rounded px-2 py-1 text-xs w-20 text-right focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
           />
           <span className="text-xs text-gray-400">hrs</span>
           <button onClick={handleSave} className="p-1 text-green-600 hover:bg-green-50 rounded">
@@ -122,7 +122,7 @@ function EditableRow({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => setEditing(true)}
-                className="p-1 text-gray-400 hover:text-[#002D72] hover:bg-gray-100 rounded"
+                className="p-1 text-gray-400 hover:text-[#1e3a8a] hover:bg-gray-100 rounded"
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
@@ -249,7 +249,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
       {duplicates && duplicates.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <h3 className="font-bold text-[#002D72] text-base mb-2">Duplicate Hours Detected</h3>
+            <h3 className="font-bold text-[#1e3a8a] text-base mb-2">Duplicate Hours Detected</h3>
             <p className="text-sm text-gray-600 mb-4">
               The following crew members already have hours logged for this date:
             </p>
@@ -265,7 +265,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
               <button
                 onClick={() => handleDuplicateChoice("add")}
                 disabled={pending}
-                className="w-full bg-[#002D72] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-900 disabled:opacity-60 transition-colors"
+                className="w-full bg-[#1e3a8a] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-900 disabled:opacity-60 transition-colors"
               >
                 Add Hours (keep both)
               </button>
@@ -291,7 +291,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="bg-gray-50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Total Logged</p>
-          <p className="text-xl font-bold text-[#002D72]">{totalHours.toFixed(1)} <span className="text-sm font-normal text-gray-500">hrs</span></p>
+          <p className="text-xl font-bold text-[#1e3a8a]">{totalHours.toFixed(1)} <span className="text-sm font-normal text-gray-500">hrs</span></p>
           {laborCostToDate != null && (
             <p className="text-xs text-gray-500 mt-0.5">{fmt$(laborCostToDate)}</p>
           )}
@@ -323,7 +323,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm text-gray-900 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#002D72]" />
+              <Clock className="w-4 h-4 text-[#1e3a8a]" />
               Log Hours
             </h3>
             <button onClick={() => { setShowForm(false); setError(null); }} className="p-1 text-gray-400 hover:text-gray-700">
@@ -343,7 +343,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
             </div>
             {!individualMode && (
@@ -356,7 +356,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
                   step="0.25"
                   min="0"
                   placeholder="8"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
             )}
@@ -369,7 +369,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
               onClick={() => setIndividualMode((v) => !v)}
               className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                 individualMode
-                  ? "bg-[#002D72] text-white border-[#002D72]"
+                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
                   : "text-gray-500 border-gray-300 hover:border-gray-400"
               }`}
             >
@@ -391,14 +391,14 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
                   <label
                     key={u.id}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-                      checked ? "bg-[#002D72]/10 border border-[#002D72]/20" : "bg-white border border-gray-200 hover:bg-gray-50"
+                      checked ? "bg-[#1e3a8a]/10 border border-[#1e3a8a]/20" : "bg-white border border-gray-200 hover:bg-gray-50"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleMember(u.id)}
-                      className="w-4 h-4 accent-[#002D72] shrink-0"
+                      className="w-4 h-4 accent-[#1e3a8a] shrink-0"
                     />
                     <span className="flex-1 text-sm font-medium text-gray-900">{u.name ?? u.id}</span>
                     <span className="text-xs text-gray-400">{u.role}</span>
@@ -412,7 +412,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
                         step="0.25"
                         min="0"
                         onClick={(e) => e.preventDefault()}
-                        className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+                        className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
                       />
                     )}
                     {individualMode && checked && (
@@ -429,7 +429,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
             <button
               onClick={handleSubmit}
               disabled={pending}
-              className="bg-[#002D72] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
+              className="bg-[#1e3a8a] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
             >
               {pending ? "Saving…" : "Log Hours"}
             </button>
@@ -438,7 +438,7 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium transition-colors mb-6"
+          className="flex items-center gap-1.5 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium transition-colors mb-6"
         >
           <Plus className="w-4 h-4" />
           Log Hours

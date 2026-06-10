@@ -208,7 +208,7 @@ export function LightingScheduleTab() {
       {/* ── HEADER BAR ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-bold text-[#1a3a5c]">Lighting Schedule</h2>
+          <h2 className="text-lg font-bold text-[#1e3a8a]">Lighting Schedule</h2>
           <p className="text-xs text-gray-500 mt-0.5">
             {items.length} fixture types
             {' · '}{itemsWithQty.length} with counts
@@ -218,7 +218,7 @@ export function LightingScheduleTab() {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowAddForm(v => !v)}
-            className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+            className="px-4 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
           >
             + Add Fixture Type
           </button>
@@ -255,7 +255,7 @@ export function LightingScheduleTab() {
       {/* ── ADD FIXTURE FORM ─────────────────────────────────────────────────── */}
       {showAddForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <h3 className="text-sm font-bold text-[#1a3a5c] mb-3">Add Fixture Type</h3>
+          <h3 className="text-sm font-bold text-[#1e3a8a] mb-3">Add Fixture Type</h3>
           <div className="flex gap-3 items-end flex-wrap">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-gray-600">Type Label *</label>
@@ -292,7 +292,7 @@ export function LightingScheduleTab() {
             <button
               onClick={handleAdd}
               disabled={!newType.trim() || !newDesc.trim()}
-              className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Add
             </button>
@@ -315,7 +315,7 @@ export function LightingScheduleTab() {
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="px-4 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+            className="px-4 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
           >
             + Add First Fixture Type
           </button>
@@ -363,11 +363,11 @@ export function LightingScheduleTab() {
                             type="text"
                             defaultValue={item.typeLabel}
                             onBlur={e => handleLabelBlur(item.id, 'typeLabel', e.target.value.trim())}
-                            className="w-full border border-blue-300 rounded px-2 py-1 text-sm font-bold text-[#1a3a5c] focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            className="w-full border border-blue-300 rounded px-2 py-1 text-sm font-bold text-[#1e3a8a] focus:outline-none focus:ring-1 focus:ring-blue-400"
                             autoFocus
                           />
                         ) : (
-                          <span className="font-bold text-[#1a3a5c]">{item.typeLabel}</span>
+                          <span className="font-bold text-[#1e3a8a]">{item.typeLabel}</span>
                         )}
                       </td>
 
@@ -436,7 +436,7 @@ export function LightingScheduleTab() {
                       {/* EXTENDED COST */}
                       <td className="px-4 py-2.5 text-right font-mono font-bold">
                         {extended !== null
-                          ? <span className="text-[#1a3a5c]">{fmt$(extended)}</span>
+                          ? <span className="text-[#1e3a8a]">{fmt$(extended)}</span>
                           : <span className="text-gray-300">—</span>
                         }
                       </td>
@@ -480,10 +480,10 @@ export function LightingScheduleTab() {
               {itemsQuoted.length > 0 && (
                 <tfoot>
                   <tr className="bg-blue-50 border-t-2 border-blue-200">
-                    <td colSpan={5} className="px-4 py-3 text-sm font-bold text-[#1a3a5c]">
+                    <td colSpan={5} className="px-4 py-3 text-sm font-bold text-[#1e3a8a]">
                       Total Lighting Cost (with markup)
                     </td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-[#1a3a5c]">
+                    <td className="px-4 py-3 text-right font-mono font-bold text-[#1e3a8a]">
                       {fmt$(totalQuotedCost)}
                     </td>
                     <td colSpan={2} />
@@ -498,7 +498,7 @@ export function LightingScheduleTab() {
       {/* ── BLENDED QUOTE TOTAL ──────────────────────────────────────────────── */}
       <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-center gap-2 mb-2">
-          <h3 className="text-sm font-bold text-[#1a3a5c]">Blended Quote Total</h3>
+          <h3 className="text-sm font-bold text-[#1e3a8a]">Blended Quote Total</h3>
           <span className="text-xs text-gray-500">
             (optional — use when vendor sends one total price)
           </span>
@@ -535,7 +535,7 @@ export function LightingScheduleTab() {
             <span className="text-xs text-gray-400 ml-1">markup</span>
           </div>
           {state.lightingTotalQuote ? (
-            <div className="text-lg font-bold text-[#1a3a5c]">
+            <div className="text-lg font-bold text-[#1e3a8a]">
               {fmt$(state.lightingTotalQuote * (1 + state.lightingQuoteMarkup))}
               <span className="text-xs font-normal text-green-600 ml-2">
                 ✓ Overrides per-unit pricing in bid
@@ -557,7 +557,7 @@ export function LightingScheduleTab() {
 
             {/* Modal header */}
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0">
-              <h2 className="text-base font-bold text-[#1a3a5c]">
+              <h2 className="text-base font-bold text-[#1e3a8a]">
                 Send Lighting Fixture Quote Request
               </h2>
               <button
@@ -578,7 +578,7 @@ export function LightingScheduleTab() {
                     type="button"
                     onClick={() => setQuoteMode('single')}
                     className={`flex-1 py-2 px-3 text-sm font-semibold transition-colors border-r border-gray-300 ${
-                      quoteMode === 'single' ? 'bg-[#1a3a5c] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                      quoteMode === 'single' ? 'bg-[#1e3a8a] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     Quote Request
@@ -587,7 +587,7 @@ export function LightingScheduleTab() {
                     type="button"
                     onClick={() => setQuoteMode('competitive')}
                     className={`flex-1 py-2 px-3 text-sm font-semibold transition-colors ${
-                      quoteMode === 'competitive' ? 'bg-[#1a3a5c] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                      quoteMode === 'competitive' ? 'bg-[#1e3a8a] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     ⚡ Competitive Quote
@@ -622,7 +622,7 @@ export function LightingScheduleTab() {
                       <tbody className="divide-y divide-gray-100">
                         {itemsWithQty.map(i => (
                           <tr key={i.id}>
-                            <td className="px-3 py-2 font-bold text-[#1a3a5c]">{i.typeLabel}</td>
+                            <td className="px-3 py-2 font-bold text-[#1e3a8a]">{i.typeLabel}</td>
                             <td className="px-3 py-2 text-gray-600">{i.description}</td>
                             <td className="px-3 py-2 text-center font-mono font-bold">{i.qty}</td>
                           </tr>
@@ -701,7 +701,7 @@ export function LightingScheduleTab() {
                             type="checkbox"
                             checked={selectedVendors.includes(s.name)}
                             onChange={() => toggleVendor(s.name)}
-                            className="accent-[#1a3a5c] w-4 h-4 shrink-0"
+                            className="accent-[#1e3a8a] w-4 h-4 shrink-0"
                           />
                           <div className="flex-1 min-w-0">
                             <span className="font-semibold text-sm text-gray-800">{s.name}</span>
@@ -722,7 +722,7 @@ export function LightingScheduleTab() {
                                     type="checkbox"
                                     checked={ccEmails.includes(c.email)}
                                     onChange={() => toggleCcEmail(c.email)}
-                                    className="accent-[#1a3a5c]"
+                                    className="accent-[#1e3a8a]"
                                   />
                                   <span className="text-gray-700">{c.name}</span>
                                   <span className="text-gray-400">({c.email})</span>

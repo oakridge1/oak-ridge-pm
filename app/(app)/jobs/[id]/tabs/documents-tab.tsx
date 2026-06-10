@@ -164,7 +164,7 @@ function UploadForm({
       onSubmit={handleSubmit}
       className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 space-y-3"
     >
-      <h3 className="font-semibold text-[#002D72] text-sm">Upload Document</h3>
+      <h3 className="font-semibold text-[#1e3a8a] text-sm">Upload Document</h3>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -172,7 +172,7 @@ function UploadForm({
           <select
             name="category"
             required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           >
             {allCategories.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
@@ -203,7 +203,7 @@ function UploadForm({
                     onClick={() => setNewCatScope(scope)}
                     className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
                       newCatScope === scope
-                        ? "bg-[#002D72] text-white border-[#002D72]"
+                        ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
                         : "bg-white text-gray-700 border-gray-300"
                     }`}
                   >
@@ -215,7 +215,7 @@ function UploadForm({
                 <button
                   type="button"
                   onClick={handleAddCategory}
-                  className="px-3 py-1.5 text-sm font-semibold rounded bg-[#002D72] text-white hover:bg-[#003d99]"
+                  className="px-3 py-1.5 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#003d99]"
                 >
                   Save Category
                 </button>
@@ -239,7 +239,7 @@ function UploadForm({
             required
             placeholder="e.g. Electrical Plans Rev 2"
             defaultValue={selectedFile?.name.replace(/\.[^.]+$/, "") ?? ""}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -247,7 +247,7 @@ function UploadForm({
           <label className="block text-xs font-medium text-gray-600 mb-1">File *</label>
           {selectedFile ? (
             <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 bg-white">
-              <FileText className="w-4 h-4 text-[#002D72] shrink-0" />
+              <FileText className="w-4 h-4 text-[#1e3a8a] shrink-0" />
               <span className="text-sm text-gray-700 truncate flex-1">{selectedFile.name}</span>
               <span className="text-xs text-gray-400">{fmtSize(selectedFile.size)}</span>
               <button
@@ -259,7 +259,7 @@ function UploadForm({
               </button>
             </div>
           ) : (
-            <label className="flex items-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:border-[#002D72]/50 transition-colors">
+            <label className="flex items-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 cursor-pointer hover:border-[#1e3a8a]/50 transition-colors">
               <Upload className="w-4 h-4 text-gray-400" />
               <span className="text-sm text-gray-500">Choose file…</span>
               <input
@@ -285,7 +285,7 @@ function UploadForm({
         <button
           type="submit"
           disabled={isPending || uploading}
-          className="px-4 py-2 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-50"
+          className="px-4 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-50"
         >
           {uploading ? "Uploading…" : isPending ? "Saving…" : "Upload"}
         </button>
@@ -307,7 +307,7 @@ function DocumentRow({
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-      <FileText className="w-5 h-5 text-[#002D72] shrink-0" />
+      <FileText className="w-5 h-5 text-[#1e3a8a] shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
         <p className="text-xs text-gray-400">
@@ -329,7 +329,7 @@ function DocumentRow({
           target="_blank"
           rel="noopener noreferrer"
           download={doc.fileName}
-          className="flex items-center gap-1 text-xs font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/20 hover:border-[#002D72]/50 px-2.5 py-1.5 rounded-lg transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/20 hover:border-[#1e3a8a]/50 px-2.5 py-1.5 rounded-lg transition-colors"
         >
           <Download className="w-3.5 h-3.5" /> Download
         </a>
@@ -446,8 +446,8 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FolderOpen className="w-5 h-5 text-[#002D72]" />
-          <h2 className="font-semibold text-[#002D72]">Document Vault</h2>
+          <FolderOpen className="w-5 h-5 text-[#1e3a8a]" />
+          <h2 className="font-semibold text-[#1e3a8a]">Document Vault</h2>
           <span className="text-xs text-gray-400">({job.documents.length})</span>
         </div>
         <div className="flex items-center gap-2">
@@ -463,7 +463,7 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 hover:border-[#002D72] px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/30 hover:border-[#1e3a8a] px-3 py-1.5 rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" /> Upload
             </button>
@@ -487,7 +487,7 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
             onClick={() => setActiveCategory("ALL")}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               activeCategory === "ALL"
-                ? "bg-[#002D72] text-white"
+                ? "bg-[#1e3a8a] text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -501,7 +501,7 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
                 onClick={() => setActiveCategory(key)}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   activeCategory === key
-                    ? "bg-[#002D72] text-white"
+                    ? "bg-[#1e3a8a] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -546,7 +546,7 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
             className="bg-white rounded-xl shadow-2xl w-full max-w-md p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="font-bold text-[#002D72] mb-4">Move or Copy Document</h3>
+            <h3 className="font-bold text-[#1e3a8a] mb-4">Move or Copy Document</h3>
 
             <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
               {allCategories.map((cat) => (

@@ -83,11 +83,11 @@ export default async function JobSummaryReportPage({ params }: PageProps) {
 
       <div className="max-w-3xl mx-auto p-8">
         {/* Header */}
-        <div className="border-b-4 border-[#002D72] pb-6 mb-8">
+        <div className="border-b-4 border-[#1e3a8a] pb-6 mb-8">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-semibold text-[#FF5910] uppercase tracking-widest">Oak Ridge Electrical LLC</p>
-              <h1 className="text-3xl font-bold text-[#002D72] mt-1">{job.jobName}</h1>
+              <h1 className="text-3xl font-bold text-[#1e3a8a] mt-1">{job.jobName}</h1>
               <p className="text-gray-500 mt-1 font-mono text-sm">Job #{job.jobNumber}</p>
             </div>
             <div className="text-right text-sm text-gray-500">
@@ -99,7 +99,7 @@ export default async function JobSummaryReportPage({ params }: PageProps) {
 
         {/* Project Info */}
         <section className="mb-8">
-          <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Project Information</h2>
+          <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Project Information</h2>
           <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
             {([
               ["Foreman", job.foreman?.name],
@@ -119,7 +119,7 @@ export default async function JobSummaryReportPage({ params }: PageProps) {
 
         {/* Cost Breakdown */}
         <section className="mb-8">
-          <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Cost Breakdown</h2>
+          <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Cost Breakdown</h2>
           <table className="w-full text-sm">
             <tbody>
               {/* Labor */}
@@ -186,15 +186,15 @@ export default async function JobSummaryReportPage({ params }: PageProps) {
               ))}
             </tbody>
           </table>
-          <div className="flex justify-between items-center pt-3 border-t-2 border-[#002D72] mt-2">
-            <span className="text-sm font-bold text-[#002D72]">Gross Billing Amount</span>
-            <span className="text-lg font-bold text-[#002D72] tabular-nums">{fmt$(grossBilling)}</span>
+          <div className="flex justify-between items-center pt-3 border-t-2 border-[#1e3a8a] mt-2">
+            <span className="text-sm font-bold text-[#1e3a8a]">Gross Billing Amount</span>
+            <span className="text-lg font-bold text-[#1e3a8a] tabular-nums">{fmt$(grossBilling)}</span>
           </div>
         </section>
 
         {/* Contract Summary */}
         <section className="mb-8">
-          <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Contract Summary</h2>
+          <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Contract Summary</h2>
           <table className="w-full text-sm">
             <tbody>
               <tr className="border-b border-gray-100">
@@ -218,7 +218,7 @@ export default async function JobSummaryReportPage({ params }: PageProps) {
         {/* Payment History */}
         {job.payments.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-bold text-[#002D72] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Payment History</h2>
+            <h2 className="text-sm font-bold text-[#1e3a8a] uppercase tracking-widest border-b border-gray-200 pb-1 mb-4">Payment History</h2>
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-gray-400 border-b border-gray-100">
                 <th className="pb-1 font-medium">Date</th><th className="pb-1 font-medium">Note</th><th className="pb-1 font-medium text-right">Amount</th>
@@ -241,11 +241,11 @@ export default async function JobSummaryReportPage({ params }: PageProps) {
         )}
 
         {/* Balance */}
-        <div className={`rounded-xl p-5 mb-8 ${balanceRemaining > 0 ? "bg-blue-50 border border-[#002D72]/20" : balanceRemaining < 0 ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}>
+        <div className={`rounded-xl p-5 mb-8 ${balanceRemaining > 0 ? "bg-blue-50 border border-[#1e3a8a]/20" : balanceRemaining < 0 ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">Balance Remaining to Bill</p>
-              <p className="text-3xl font-bold text-[#002D72] tabular-nums">{fmt$(balanceRemaining)}</p>
+              <p className="text-3xl font-bold text-[#1e3a8a] tabular-nums">{fmt$(balanceRemaining)}</p>
             </div>
             <div className="text-right text-sm text-gray-500">
               <p>{fmt$(totalBilled)} received</p>

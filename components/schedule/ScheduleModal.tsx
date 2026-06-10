@@ -194,7 +194,7 @@ export function ScheduleModal({
                   setPickedJobName(selected ? `${selected.jobNumber} — ${selected.jobName}` : "");
                 }}
                 required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               >
                 <option value="">Select a job…</option>
                 {jobs.map((j) => (
@@ -216,7 +216,7 @@ export function ScheduleModal({
               value={dateVal}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
 
@@ -230,7 +230,7 @@ export function ScheduleModal({
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
             </div>
             <div>
@@ -241,7 +241,7 @@ export function ScheduleModal({
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
             </div>
           </div>
@@ -256,7 +256,7 @@ export function ScheduleModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional notes…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
 
@@ -282,7 +282,7 @@ export function ScheduleModal({
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleUser(u.id)}
-                        className="rounded border-gray-300 text-[#002D72] focus:ring-[#002D72]"
+                        className="rounded border-gray-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
                       />
                       <span className="text-sm text-gray-800">{u.name ?? u.id}</span>
                       <span className="ml-auto text-[10px] text-gray-400 uppercase tracking-wide">
@@ -321,7 +321,7 @@ export function ScheduleModal({
             type="submit"
             form="schedule-form"
             disabled={pending}
-            className="bg-[#002D72] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
+            className="bg-[#1e3a8a] text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors"
           >
             {pending ? "Saving…" : isEdit ? "Save Changes" : "Schedule"}
           </button>

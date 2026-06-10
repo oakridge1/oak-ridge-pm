@@ -777,7 +777,7 @@ export function TakeoffClient({
   function drawEndpoint(ctx: CanvasRenderingContext2D, x: number, y: number, name: string) {
     ctx.save();
     const w = Math.max(32, name.length * 8 + 12);
-    ctx.fillStyle = "#002D72"; ctx.strokeStyle = "#3a8fe8"; ctx.lineWidth = 2;
+    ctx.fillStyle = "#1e3a8a"; ctx.strokeStyle = "#3a8fe8"; ctx.lineWidth = 2;
     ctx.fillRect(x - w / 2, y - 12, w, 24); ctx.strokeRect(x - w / 2, y - 12, w, 24);
     ctx.fillStyle = "#e8eaed";
     ctx.font = 'bold 11px "JetBrains Mono", monospace';

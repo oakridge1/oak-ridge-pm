@@ -231,9 +231,9 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
               <span
                 className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
                   isToday
-                    ? "bg-[#002D72] text-white"
+                    ? "bg-[#1e3a8a] text-white"
                     : isSelected
-                    ? "text-[#002D72] font-bold"
+                    ? "text-[#1e3a8a] font-bold"
                     : "text-gray-700"
                 }`}
               >
@@ -329,7 +329,7 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
         {!showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium transition-colors"
+            className="flex items-center gap-1.5 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Global Event
@@ -340,7 +340,7 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
             className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3"
           >
             <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#002D72]" />
+              <Calendar className="w-4 h-4 text-[#1e3a8a]" />
               Add Global Event
             </h4>
             {error && (
@@ -356,7 +356,7 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
                 <select
                   name="type"
                   defaultValue={role === "TEAMMATE" ? "DAY_OFF" : "MILESTONE"}
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 >
                   {role === "ADMIN" && (
                     <>
@@ -382,7 +382,7 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
                     selectedDay?.toISOString().slice(0, 10) ??
                     new Date().toISOString().slice(0, 10)
                   }
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
               </div>
             </div>
@@ -394,18 +394,18 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
                 name="title"
                 required
                 placeholder="Event title…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Note (optional)</label>
               <input name="note" placeholder="Optional note…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Recurrence</label>
               <select name="recurrence" value={recurrenceType} onChange={e => setRecurrenceType(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]">
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]">
                 <option value="NONE">Does not repeat</option>
                 <option value="WEEKLY">Weekly</option>
                 <option value="BIWEEKLY">Bi-Weekly</option>
@@ -415,14 +415,14 @@ export function MasterCalendar({ events, jobs, role }: MasterCalendarProps) {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">End Date (optional)</label>
                 <input name="recurrenceEndDate" type="date"
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]" />
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
               </div>
             )}
             <div className="flex items-center justify-end gap-2">
               <button type="button" onClick={() => { setShowAddForm(false); setError(null); setRecurrenceType("NONE"); }}
                 className="text-sm text-gray-500 hover:text-gray-700 transition-colors">Cancel</button>
               <button type="submit" disabled={pending}
-                className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+                className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
                 {pending ? "Adding…" : "Add Event"}
               </button>
             </div>

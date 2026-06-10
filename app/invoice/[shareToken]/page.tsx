@@ -106,7 +106,7 @@ export default async function PublicInvoicePage({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Oak Ridge Electrical" className="w-20 h-20 object-contain shrink-0" />
             <div>
-              <p className="text-lg font-bold text-[#002D72] tracking-wide uppercase">{company.name}</p>
+              <p className="text-lg font-bold text-[#1e3a8a] tracking-wide uppercase">{company.name}</p>
               <p className="text-sm text-gray-500 mt-0.5">{company.address} · {company.city}, {company.state} {company.zip}</p>
               <p className="text-sm text-gray-500">{company.phone} · {company.email}</p>
             </div>
@@ -116,7 +116,7 @@ export default async function PublicInvoicePage({
 
         {/* Invoice Title Row */}
         <div className="px-8 py-4 flex items-end justify-between">
-          <h1 className="text-3xl font-extrabold text-[#002D72]">INVOICE</h1>
+          <h1 className="text-3xl font-extrabold text-[#1e3a8a]">INVOICE</h1>
           <div className="text-right">
             <p className="text-sm font-bold text-[#FF5910] uppercase">{invoiceKind}</p>
             <p className="text-sm text-gray-500 mt-0.5">Invoice #{invoiceNumber}</p>
@@ -131,7 +131,7 @@ export default async function PublicInvoicePage({
         {/* From / To */}
         <div className="px-8 pb-6 grid grid-cols-2 gap-6">
           <div>
-            <p className="text-xs font-bold text-[#002D72] uppercase tracking-wider mb-2">From</p>
+            <p className="text-xs font-bold text-[#1e3a8a] uppercase tracking-wider mb-2">From</p>
             <p className="text-sm font-semibold">{company.name}</p>
             <p className="text-sm text-gray-600">{company.address}</p>
             <p className="text-sm text-gray-600">{company.city}, {company.state} {company.zip}</p>
@@ -140,7 +140,7 @@ export default async function PublicInvoicePage({
             <p className="text-sm text-gray-600">{company.email}</p>
           </div>
           <div>
-            <p className="text-xs font-bold text-[#002D72] uppercase tracking-wider mb-2">To / Project</p>
+            <p className="text-xs font-bold text-[#1e3a8a] uppercase tracking-wider mb-2">To / Project</p>
             {job.gcCompany && <p className="text-sm font-semibold">{job.gcCompany}</p>}
             {job.gcContactName && <p className="text-sm text-gray-600">{job.gcContactName}</p>}
             {job.gcEmail && <p className="text-sm text-gray-600">{job.gcEmail}</p>}
@@ -156,7 +156,7 @@ export default async function PublicInvoicePage({
         {/* Scope of Work */}
         {scopeItems.length > 0 && (
           <div className="px-8 pb-6">
-            <p className="text-xs font-bold text-[#002D72] uppercase tracking-wider mb-3">Scope of Work</p>
+            <p className="text-xs font-bold text-[#1e3a8a] uppercase tracking-wider mb-3">Scope of Work</p>
             <ol className="space-y-1.5">
               {scopeItems.map((item, i) => (
                 <li key={i} className="flex gap-3 text-sm text-gray-700">
@@ -199,9 +199,9 @@ export default async function PublicInvoicePage({
           ))}
 
           {/* Invoice Total */}
-          <div className="flex justify-between py-3 border-t-2 border-[#002D72] mt-2">
-            <span className="text-sm font-bold text-[#002D72]">INVOICE TOTAL</span>
-            <span className="text-sm font-bold text-[#002D72]">{fmt$(amount)}</span>
+          <div className="flex justify-between py-3 border-t-2 border-[#1e3a8a] mt-2">
+            <span className="text-sm font-bold text-[#1e3a8a]">INVOICE TOTAL</span>
+            <span className="text-sm font-bold text-[#1e3a8a]">{fmt$(amount)}</span>
           </div>
           {retainageHeld > 0 && (
             <>
@@ -209,9 +209,9 @@ export default async function PublicInvoicePage({
                 <span className="text-sm text-gray-500">Less Retainage ({invoice.retainagePct ?? 0}%)</span>
                 <span className="text-sm font-semibold">({fmt$(retainageHeld)})</span>
               </div>
-              <div className="flex justify-between py-2 border-t-2 border-[#002D72]">
-                <span className="text-sm font-bold text-[#002D72]">CURRENT PAYMENT DUE</span>
-                <span className="text-sm font-bold text-[#002D72]">{fmt$(amount - retainageHeld)}</span>
+              <div className="flex justify-between py-2 border-t-2 border-[#1e3a8a]">
+                <span className="text-sm font-bold text-[#1e3a8a]">CURRENT PAYMENT DUE</span>
+                <span className="text-sm font-bold text-[#1e3a8a]">{fmt$(amount - retainageHeld)}</span>
               </div>
             </>
           )}
@@ -219,7 +219,7 @@ export default async function PublicInvoicePage({
 
         {/* Payment Terms */}
         <div className="px-8 pb-4">
-          <p className="text-xs font-bold text-[#002D72] uppercase tracking-wider mb-1">Payment Terms</p>
+          <p className="text-xs font-bold text-[#1e3a8a] uppercase tracking-wider mb-1">Payment Terms</p>
           <p className="text-xs text-gray-500">
             {PAYMENT_TERMS_TEXT[invoice.paymentTerms ?? "due_on_receipt"] ?? PAYMENT_TERMS_TEXT.due_on_receipt}{" "}
             Past due balances may incur a finance charge of 1.5% per month in accordance with New Hampshire law.
@@ -229,7 +229,7 @@ export default async function PublicInvoicePage({
 
         {/* Warranty */}
         <div className="px-8 pb-4">
-          <p className="text-xs font-bold text-[#002D72] uppercase tracking-wider mb-1">Warranty</p>
+          <p className="text-xs font-bold text-[#1e3a8a] uppercase tracking-wider mb-1">Warranty</p>
           <p className="text-xs text-gray-500">
             Oak Ridge Electrical LLC provides a one-year workmanship warranty from the date of substantial completion.
             All installed equipment carries the applicable manufacturer&apos;s warranty.
@@ -252,7 +252,7 @@ export default async function PublicInvoicePage({
             href={`/api/public/invoice/${shareToken}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-[#002D72] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-blue-900 transition-colors"
+            className="inline-flex items-center gap-2 bg-[#1e3a8a] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-blue-900 transition-colors"
           >
             Download PDF
           </a>

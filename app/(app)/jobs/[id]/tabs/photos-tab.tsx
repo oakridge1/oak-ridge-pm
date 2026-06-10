@@ -127,7 +127,7 @@ function UploadForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
     <form onSubmit={handleSubmit} className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-sm text-gray-900 flex items-center gap-2">
-          <Camera className="w-4 h-4 text-[#002D72]" />
+          <Camera className="w-4 h-4 text-[#1e3a8a]" />
           Upload Photos
         </h3>
         <button type="button" onClick={onDone} className="p-1 text-gray-400 hover:text-gray-700">
@@ -138,10 +138,10 @@ function UploadForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
       {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-1.5 rounded">{error}</p>}
 
       {/* Drop zone */}
-      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-[#002D72] hover:bg-blue-50/30 transition-colors">
+      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-[#1e3a8a] hover:bg-blue-50/30 transition-colors">
         <Upload className="w-8 h-8 text-gray-300" />
         <div className="text-center">
-          <span className="text-sm font-medium text-[#002D72]">Choose photos</span>
+          <span className="text-sm font-medium text-[#1e3a8a]">Choose photos</span>
           <span className="text-sm text-gray-500"> or drag and drop</span>
         </div>
         <span className="text-xs text-gray-400">{files.length > 0 ? `${files.length} file(s) selected` : "JPG, PNG, HEIC up to 16MB each"}</span>
@@ -164,14 +164,14 @@ function UploadForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           placeholder="Describe what's in these photos…"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
         />
       </div>
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onDone} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
         <button type="submit" disabled={pending || uploading || !files.length}
-          className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+          className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
           {uploading ? "Uploading…" : pending ? "Saving…" : `Upload ${files.length || ""} Photo${files.length !== 1 ? "s" : ""}`}
         </button>
       </div>
@@ -205,7 +205,7 @@ export function PhotosTab({ job, role }: PhotosTabProps) {
       ) : (
         <button
           onClick={() => setShowUpload(true)}
-          className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium transition-colors mb-6"
+          className="flex items-center gap-1.5 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium transition-colors mb-6"
         >
           <Plus className="w-4 h-4" />
           Upload Photos

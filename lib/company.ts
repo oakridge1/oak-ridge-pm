@@ -17,9 +17,9 @@ export const COMPANY_PHONE   = '603-660-4651';
 export const COMPANY_EMAIL   = 'Justin@oakridgeelectrical.com';
 export const COMPANY_LICENSE = 'NH Electrical License # 15117';
 
-// Brand colors — values unchanged for now; the rebrand edits this file only
-export const BRAND_BLUE   = '#002D72';  // will update in rebrand
-export const BRAND_ORANGE = '#FF5910';  // stays
+// Brand colors
+export const BRAND_BLUE   = '#1e3a8a';  // Ridgeline blue
+export const BRAND_ORANGE = '#FF5910';
 
 // Logo URL — absolute for PDF/email embeds
 export const LOGO_URL = 'https://oak-ridge-pm.vercel.app/logo.png';

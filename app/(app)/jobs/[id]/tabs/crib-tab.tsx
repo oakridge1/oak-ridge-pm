@@ -147,7 +147,7 @@ function ThhnWireForm({
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Wire Size *</label>
         <select value={size} onChange={e => setVars({ ...vars, size: e.target.value, material: "", orderType: "footage", footage: "", rollSize: "" })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30">
           <option value="">Select size…</option>
           {THHN_ALL_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -155,7 +155,7 @@ function ThhnWireForm({
 
       {/* Multi-conductor toggle */}
       <button type="button" onClick={() => setMultiMode(!multiMode)}
-        className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${multiMode ? "bg-[#002D72] text-white border-[#002D72]" : "border-gray-300 text-gray-600 hover:border-[#002D72]"}`}>
+        className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${multiMode ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "border-gray-300 text-gray-600 hover:border-[#1e3a8a]"}`}>
         <Layers className="w-3 h-3" />
         Multi-Conductor {multiMode ? "ON" : "OFF"}
       </button>
@@ -167,7 +167,7 @@ function ThhnWireForm({
           <div className="flex gap-2">
             {["CU", "AL"].map(m => (
               <button key={m} type="button" onClick={() => setVars({ ...vars, material: m })}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${vars.material === m ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300 hover:border-[#002D72]"}`}>
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${vars.material === m ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "bg-white text-gray-600 border-gray-300 hover:border-[#1e3a8a]"}`}>
                 {m}
               </button>
             ))}
@@ -180,7 +180,7 @@ function ThhnWireForm({
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Color *</label>
           <select value={vars.color ?? ""} onChange={e => setVars({ ...vars, color: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30">
             <option value="">Select color…</option>
             {THHN_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -189,7 +189,7 @@ function ThhnWireForm({
 
       {/* Multi-conductor section */}
       {multiMode && size && (
-        <div className="border border-[#002D72]/20 rounded-lg p-3 bg-blue-50/50">
+        <div className="border border-[#1e3a8a]/20 rounded-lg p-3 bg-blue-50/50">
           <div className="flex items-center gap-2 mb-2">
             <label className="text-xs font-medium text-gray-700">Conductors</label>
             <select value={String(conductors.length)} onChange={e => {
@@ -233,7 +233,7 @@ function ThhnWireForm({
               <div className="flex gap-2">
                 {["footage", "reel"].map(t => (
                   <button key={t} type="button" onClick={() => setVars({ ...vars, orderType: t, footage: "", rollSize: "" })}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${orderType === t ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white text-gray-600 border-gray-300 hover:border-[#002D72]"}`}>
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${orderType === t ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "bg-white text-gray-600 border-gray-300 hover:border-[#1e3a8a]"}`}>
                     {t === "footage" ? "By Footage" : "By Reel"}
                   </button>
                 ))}
@@ -244,20 +244,20 @@ function ThhnWireForm({
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Footage (ft) * <span className="text-gray-400 font-normal">per ft</span></label>
               <input type="text" value={vars.footage ?? ""} onChange={e => setVars({ ...vars, footage: e.target.value })}
-                placeholder="e.g. 250" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                placeholder="e.g. 250" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
             </div>
           )}
           {isLarge && orderType === "reel" && (
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Reel Size * <span className="text-gray-400 font-normal">per roll</span></label>
               <select value={vars.rollSize ?? ""} onChange={e => setVars({ ...vars, rollSize: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30">
                 <option value="">Select…</option>
                 {THHN_REEL_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               {vars.rollSize === "Custom footage" && (
                 <input type="text" value={vars.footage ?? ""} onChange={e => setVars({ ...vars, footage: e.target.value })}
-                  placeholder="Custom footage (ft)" className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                  placeholder="Custom footage (ft)" className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
               )}
             </div>
           )}
@@ -279,7 +279,7 @@ function McRomexWireForm({ vars, setVars }: { vars: Record<string, string>; setV
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Size / Conductors *</label>
         <select value={size} onChange={e => setVars({ ...vars, size: e.target.value, rollSize: "", footage: "" })}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30">
           <option value="">Select size…</option>
           {MC_ALL_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -289,13 +289,13 @@ function McRomexWireForm({ vars, setVars }: { vars: Record<string, string>; setV
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Roll Size * <span className="text-gray-400 font-normal">per roll</span></label>
           <select value={vars.rollSize ?? ""} onChange={e => setVars({ ...vars, rollSize: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30">
             <option value="">Select…</option>
             {MC_ROLL_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {vars.rollSize === "Custom footage" && (
             <input type="text" value={vars.footage ?? ""} onChange={e => setVars({ ...vars, footage: e.target.value })}
-              placeholder="Custom footage (ft)" className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+              placeholder="Custom footage (ft)" className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
           )}
         </div>
       )}
@@ -304,7 +304,7 @@ function McRomexWireForm({ vars, setVars }: { vars: Record<string, string>; setV
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Footage needed (ft) * <span className="text-gray-400 font-normal">per ft</span></label>
           <input type="text" value={vars.footage ?? ""} onChange={e => setVars({ ...vars, footage: e.target.value })}
-            placeholder="e.g. 150" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+            placeholder="e.g. 150" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
         </div>
       )}
     </div>
@@ -404,9 +404,9 @@ function ItemExpandForm({
   }
 
   return (
-    <div className="bg-blue-50 border border-[#002D72]/20 rounded-xl p-3">
+    <div className="bg-blue-50 border border-[#1e3a8a]/20 rounded-xl p-3">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-bold text-[#002D72]">{item.lingo ?? item.name}</p>
+        <p className="text-sm font-bold text-[#1e3a8a]">{item.lingo ?? item.name}</p>
         <button onClick={onCancel} className="text-gray-400 hover:text-gray-700"><X className="w-4 h-4" /></button>
       </div>
 
@@ -429,14 +429,14 @@ function ItemExpandForm({
               <label className="block text-xs font-medium text-gray-700 mb-1">{v.label}{v.required && " *"}</label>
               {v.type === "select" && v.options ? (
                 <select value={formVars[v.key] ?? ""} onChange={e => setFormVars({ ...formVars, [v.key]: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30">
                   <option value="">Select…</option>
                   {v.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : (
                 <input type="text" value={formVars[v.key] ?? ""} onChange={e => setFormVars({ ...formVars, [v.key]: e.target.value })}
                   placeholder={v.placeholder ?? ""}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
               )}
             </div>
           ))
@@ -449,12 +449,12 @@ function ItemExpandForm({
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Qty <span className="text-gray-400 font-normal">({getUnit()})</span></label>
             <input type="number" value={formQty} onChange={e => setFormQty(e.target.value)} min="0.5" step="0.5"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Note</label>
             <input type="text" value={formNote} onChange={e => setFormNote(e.target.value)} placeholder="Optional…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
           </div>
         </div>
       )}
@@ -464,12 +464,12 @@ function ItemExpandForm({
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Footage / Qty <span className="text-gray-400 font-normal">({getUnit()})</span></label>
             <input type="number" value={formQty} onChange={e => setFormQty(e.target.value)} min="1" step="1"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Note</label>
             <input type="text" value={formNote} onChange={e => setFormNote(e.target.value)} placeholder="Optional…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
           </div>
         </div>
       )}
@@ -479,7 +479,7 @@ function ItemExpandForm({
       {hasSpecialForm && !isThhn && !isMcRomex && null}
 
       <button onClick={handleAdd} disabled={adding}
-        className="w-full bg-[#002D72] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
+        className="w-full bg-[#1e3a8a] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors">
         {adding ? "Adding…" : isThhn && multiMode ? `Add ${conductors.filter(c => c.color).length} Conductors to Order` : "Add to Order"}
       </button>
     </div>
@@ -574,7 +574,7 @@ function CategoryCustomAdder({
           </label>
           <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
             <input type="checkbox" checked={saveToMaster} onChange={e => setSaveToMaster(e.target.checked)}
-              className="rounded border-gray-300 text-[#002D72]" />
+              className="rounded border-gray-300 text-[#1e3a8a]" />
             Save to Master
           </label>
         </div>
@@ -703,12 +703,12 @@ function CustomItemForm({
           </label>
           <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
             <input type="checkbox" checked={saveToMaster} onChange={e => setSaveToMaster(e.target.checked)}
-              className="rounded border-gray-300 text-[#002D72]" />
+              className="rounded border-gray-300 text-[#1e3a8a]" />
             Save to Master List
           </label>
         </div>
         {saveToMaster && (
-          <p className="text-xs text-[#002D72] bg-blue-50 rounded px-2 py-1">
+          <p className="text-xs text-[#1e3a8a] bg-blue-50 rounded px-2 py-1">
             This item will be permanently added to the stock list after ordering. Admin will be notified.
           </p>
         )}
@@ -912,7 +912,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
               setCategoryCustomExpanded(null);
             }}
               className={`text-left p-2.5 rounded-xl border text-sm transition-colors ${
-                isLeftExpanded ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white border-gray-200 hover:border-[#002D72]/50 hover:bg-blue-50"
+                isLeftExpanded ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "bg-white border-gray-200 hover:border-[#1e3a8a]/50 hover:bg-blue-50"
               }`}>
               <p className="font-medium leading-tight">{left.name}</p>
               {left.lingo && left.lingo !== left.name && (
@@ -931,7 +931,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
               setCategoryCustomExpanded(null);
             }}
               className={`text-left p-2.5 rounded-xl border text-sm transition-colors ${
-                isRightExpanded ? "bg-[#002D72] text-white border-[#002D72]" : "bg-white border-gray-200 hover:border-[#002D72]/50 hover:bg-blue-50"
+                isRightExpanded ? "bg-[#1e3a8a] text-white border-[#1e3a8a]" : "bg-white border-gray-200 hover:border-[#1e3a8a]/50 hover:bg-blue-50"
               }`}>
               <p className="font-medium leading-tight">{right.name}</p>
               {right.lingo && right.lingo !== right.name && (
@@ -996,7 +996,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-bold text-[#002D72] flex items-center gap-2">
+          <h2 className="text-lg font-bold text-[#1e3a8a] flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-[#FF5910]" />
             The Crib
           </h2>
@@ -1072,7 +1072,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
         <input
           type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or lingo…"
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 focus:border-[#002D72]"
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 focus:border-[#1e3a8a]"
         />
       </div>
 
@@ -1118,7 +1118,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
       {/* Custom item button */}
       {!showCustom && (
         <button onClick={() => { setShowCustom(true); setExpandedItemId(null); setCategoryCustomExpanded(null); }}
-          className="w-full mb-4 flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-[#002D72] hover:text-[#002D72] transition-colors">
+          className="w-full mb-4 flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-[#1e3a8a] hover:text-[#1e3a8a] transition-colors">
           <Plus className="w-4 h-4" /> Add Custom Item
         </button>
       )}
@@ -1140,7 +1140,7 @@ export function CribTab({ job, role, currentUserId }: CribTabProps) {
           const catItems = materialItems.filter(i => i.category === cat);
           return (
             <div key={cat} className="mb-4">
-              <h4 className="text-xs font-semibold text-[#002D72] mb-2 uppercase tracking-wide">
+              <h4 className="text-xs font-semibold text-[#1e3a8a] mb-2 uppercase tracking-wide">
                 {cat} <span className="text-gray-400 font-normal normal-case">({catItems.length})</span>
               </h4>
               {renderCategory(catItems, cat)}
@@ -1201,11 +1201,11 @@ function ConductorGroupCard({ groupId, requests, onDelete }: {
   // suppress unused warning
   void groupId;
   return (
-    <div className="bg-white border border-[#002D72]/20 rounded-xl shadow-sm overflow-hidden">
+    <div className="bg-white border border-[#1e3a8a]/20 rounded-xl shadow-sm overflow-hidden">
       <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-3 py-2.5 text-left">
         <div>
-          <p className="text-sm font-semibold text-[#002D72]">THHN Multi-Conductor Set ({requests.length} conductors)</p>
+          <p className="text-sm font-semibold text-[#1e3a8a]">THHN Multi-Conductor Set ({requests.length} conductors)</p>
           <p className="text-xs text-gray-400">{requests[0]?.variables?.size ?? ""} AWG — {requests[0]?.variables?.footage ? `${requests[0].variables.footage} ft each` : ""}</p>
         </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
@@ -1405,7 +1405,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
   const submitDisabled = sending || (orderType === 'COMPETITIVE_QUOTE' && selectedVendors.length === 0);
   const submitColor = orderType === 'ORDER'
     ? 'bg-[#FF5910] hover:bg-[#e04d0e]'
-    : 'bg-[#1a3a5c] hover:bg-[#2e5a8c]';
+    : 'bg-[#1e3a8a] hover:bg-[#2e5a8c]';
 
   const submitDesc = (orderType === 'ORDER' && isTeammate)
     ? "Your order will be submitted for approval. The Foreman and Admin will be notified to review."
@@ -1415,7 +1415,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-base font-bold text-[#002D72]">Send Order</h2>
+          <h2 className="text-base font-bold text-[#1e3a8a]">Send Order</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
         </div>
 
@@ -1435,18 +1435,18 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                   <button key={opt.value} onClick={() => setDeliveryMethod(opt.value)}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-colors ${
                       deliveryMethod === opt.value
-                        ? "bg-[#002D72]/5 border-[#002D72]"
-                        : "bg-white border-gray-200 hover:border-[#002D72]/40"
+                        ? "bg-[#1e3a8a]/5 border-[#1e3a8a]"
+                        : "bg-white border-gray-200 hover:border-[#1e3a8a]/40"
                     }`}>
-                    <div className={`p-2 rounded-lg ${deliveryMethod === opt.value ? "bg-[#002D72] text-white" : "bg-gray-100 text-gray-500"}`}>
+                    <div className={`p-2 rounded-lg ${deliveryMethod === opt.value ? "bg-[#1e3a8a] text-white" : "bg-gray-100 text-gray-500"}`}>
                       <opt.icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className={`text-sm font-semibold ${deliveryMethod === opt.value ? "text-[#002D72]" : "text-gray-800"}`}>{opt.label}</p>
+                      <p className={`text-sm font-semibold ${deliveryMethod === opt.value ? "text-[#1e3a8a]" : "text-gray-800"}`}>{opt.label}</p>
                       <p className="text-xs text-gray-500">{opt.subtitle}</p>
                     </div>
                     {deliveryMethod === opt.value && (
-                      <div className="ml-auto w-4 h-4 rounded-full bg-[#002D72] flex items-center justify-center">
+                      <div className="ml-auto w-4 h-4 rounded-full bg-[#1e3a8a] flex items-center justify-center">
                         <div className="w-2 h-2 rounded-full bg-white" />
                       </div>
                     )}
@@ -1459,7 +1459,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
             <button
               onClick={() => setStep(2)}
               disabled={!deliveryMethod}
-              className="w-full py-3 bg-[#002D72] text-white rounded-xl text-sm font-medium hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              className="w-full py-3 bg-[#1e3a8a] text-white rounded-xl text-sm font-medium hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
               Continue →
             </button>
           </div>
@@ -1468,7 +1468,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
         {step === 2 && (
           <div className="p-4 space-y-4">
             {orderType === 'ORDER' && (
-              <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-[#002D72] hover:underline">
+              <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-[#1e3a8a] hover:underline">
                 <ChevronLeft className="w-4 h-4" /> Back
               </button>
             )}
@@ -1500,7 +1500,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                       i < arr.length - 1 ? 'border-r border-gray-300' : ''
                     } ${
                       orderType === t.value
-                        ? 'bg-[#1a3a5c] text-white'
+                        ? 'bg-[#1e3a8a] text-white'
                         : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}>
                     {t.label}
@@ -1526,12 +1526,12 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                       const primaryContact = sup?.contacts?.find(c => c.isPrimary);
                       setSupplierEmail(primaryContact?.email ?? sup?.email ?? "");
                       setCcEmails([]);
-                    }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30">
+                    }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30">
                       {electricalSuppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                       <option value="custom">Custom…</option>
                     </select>
                     <input type="email" value={supplierEmail} onChange={e => setSupplierEmail(e.target.value)}
-                      placeholder="Rep email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                      placeholder="Rep email" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
                   </div>
                 </div>
               ) : (
@@ -1552,7 +1552,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                                 : prev.filter(v => v !== s.name)
                             );
                           }}
-                          className="w-4 h-4 accent-[#1a3a5c]"
+                          className="w-4 h-4 accent-[#1e3a8a]"
                         />
                         <span className="text-sm text-gray-800">{s.name}</span>
                       </label>
@@ -1603,7 +1603,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                     onChange={e => {
                       if (e.target.value) setCcEmails(prev => [...prev, e.target.value]);
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                   >
                     <option value="">+ Add contact from {supplierName}…</option>
                     {availableContacts.map(c => (
@@ -1630,7 +1630,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                     }
                   }}
                   placeholder="Add any email address…"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
                 />
                 <button
                   type="button"
@@ -1653,7 +1653,7 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
                   type="checkbox"
                   checked={ccForemanOn}
                   onChange={e => setCcForemanOn(e.target.checked)}
-                  className="w-4 h-4 accent-[#1a3a5c]"
+                  className="w-4 h-4 accent-[#1e3a8a]"
                 />
                 CC job foreman (if assigned)
               </label>
@@ -1665,14 +1665,14 @@ function SendOrderModal({ job, requests, suppliers, role, onClose, onSent }: {
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">PO / Job Number *</label>
               <input type="text" value={poNumber} onChange={e => setPoNumber(e.target.value)} required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30" />
             </div>
 
             {orderType === 'ORDER' && (
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Notes</label>
                 <textarea value={deliveryNotes} onChange={e => setDeliveryNotes(e.target.value)} rows={2} placeholder="Special instructions…"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 resize-none" />
               </div>
             )}
 

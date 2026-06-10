@@ -60,28 +60,28 @@ function todayIso() {
 function AdminNav() {
   return (
     <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4 flex-wrap">
-      <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Dashboard
       </a>
-      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/users" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Users
       </a>
-      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/receipts" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Receipts
       </a>
-      <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/overhead" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Overhead
       </a>
-      <a href="/admin/owner-draws" className="text-sm font-medium text-[#002D72] border-b-2 border-[#002D72] pb-1 -mb-5">
+      <a href="/admin/owner-draws" className="text-sm font-medium text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1 -mb-5">
         Owner Draws
       </a>
-      <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/contractor-payments" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Contractor Pay
       </a>
-      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/settings" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         Settings
       </a>
-      <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#002D72] transition-colors">
+      <a href="/admin/pl" className="text-sm font-medium text-gray-500 hover:text-[#1e3a8a] transition-colors">
         P&amp;L
       </a>
     </div>
@@ -170,7 +170,7 @@ function AddDrawForm({
               onChange={(e) => setAmount(e.target.value)}
               required
               placeholder="0.00"
-              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
         </div>
@@ -183,7 +183,7 @@ function AddDrawForm({
             value={drawDate}
             onChange={(e) => setDrawDate(e.target.value)}
             required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
 
@@ -193,7 +193,7 @@ function AddDrawForm({
           <select
             value={method}
             onChange={(e) => setMethod(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           >
             {METHODS.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -209,7 +209,7 @@ function AddDrawForm({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
       </div>
@@ -245,7 +245,7 @@ function AddDrawForm({
         <button
           type="submit"
           disabled={saving || uploading}
-          className="px-5 py-2 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] transition-colors disabled:opacity-50"
+          className="px-5 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] transition-colors disabled:opacity-50"
         >
           {saving ? "Logging..." : "Log Draw"}
         </button>
@@ -312,7 +312,7 @@ function EditRow({
           type="date"
           value={form.drawDate}
           onChange={(e) => set("drawDate", e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72] w-36"
+          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] w-36"
         />
       </td>
       {/* Amount */}
@@ -325,7 +325,7 @@ function EditRow({
             min="0.01"
             value={form.amount}
             onChange={(e) => set("amount", e.target.value)}
-            className="border border-gray-300 rounded pl-6 pr-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72] w-full"
+            className="border border-gray-300 rounded pl-6 pr-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] w-full"
           />
         </div>
       </td>
@@ -334,7 +334,7 @@ function EditRow({
         <select
           value={form.method}
           onChange={(e) => set("method", e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72]"
+          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]"
         >
           {METHODS.map((m) => (
             <option key={m} value={m}>{m}</option>
@@ -348,7 +348,7 @@ function EditRow({
           value={form.notes}
           onChange={(e) => set("notes", e.target.value)}
           placeholder="Notes"
-          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#002D72] w-36"
+          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] w-36"
         />
       </td>
       {/* Receipt */}
@@ -381,7 +381,7 @@ function EditRow({
           <button
             onClick={handleSave}
             disabled={saving || uploading}
-            className="p-1.5 text-white bg-[#002D72] rounded hover:bg-[#003d99] transition-colors disabled:opacity-50"
+            className="p-1.5 text-white bg-[#1e3a8a] rounded hover:bg-[#003d99] transition-colors disabled:opacity-50"
             title="Save"
           >
             <Check className="w-3.5 h-3.5" />
@@ -450,7 +450,7 @@ function OwnerSection({
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
       {/* Owner header */}
       <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-        <h2 className="text-base font-bold text-[#002D72]">{owner.name ?? owner.email}</h2>
+        <h2 className="text-base font-bold text-[#1e3a8a]">{owner.name ?? owner.email}</h2>
         <p className="text-xs text-gray-400">{owner.email}</p>
       </div>
 
@@ -543,7 +543,7 @@ function OwnerSection({
                           <>
                             <button
                               onClick={() => { setEditingId(draw.id); setDeletingId(null); }}
-                              className="p-1.5 text-gray-400 hover:text-[#002D72] hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-1.5 text-gray-400 hover:text-[#1e3a8a] hover:bg-blue-50 rounded-lg transition-colors"
                               title="Edit"
                             >
                               <Pencil className="w-4 h-4" />
@@ -570,7 +570,7 @@ function OwnerSection({
             <div className="px-4 py-2 border-t border-gray-100">
               <button
                 onClick={() => setShowAll((v) => !v)}
-                className="text-xs text-[#002D72] hover:underline font-medium"
+                className="text-xs text-[#1e3a8a] hover:underline font-medium"
               >
                 {showAll ? "Collapse" : `Show ${hiddenCount} more`}
               </button>
@@ -580,7 +580,7 @@ function OwnerSection({
           {/* Running total */}
           <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-end">
             <span className="text-sm font-semibold text-gray-700">
-              Total: <span className="font-mono text-[#002D72]">{formatMoney(total)}</span>
+              Total: <span className="font-mono text-[#1e3a8a]">{formatMoney(total)}</span>
             </span>
           </div>
         </div>
@@ -663,7 +663,7 @@ export default function OwnerDrawsClient({
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#002D72]">Owner Draws &amp; Distributions</h1>
+        <h1 className="text-2xl font-bold text-[#1e3a8a]">Owner Draws &amp; Distributions</h1>
         <p className="text-sm text-gray-500 mt-1">Track owner draws and distributions by year.</p>
       </div>
 
@@ -695,17 +695,17 @@ export default function OwnerDrawsClient({
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
             {justinOwner?.name ?? "Justin"} YTD
           </p>
-          <p className="text-2xl font-bold text-[#002D72]">{formatMoney(justinTotal)}</p>
+          <p className="text-2xl font-bold text-[#1e3a8a]">{formatMoney(justinTotal)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">
             {bethOwner?.name ?? "Beth"} YTD
           </p>
-          <p className="text-2xl font-bold text-[#002D72]">{formatMoney(bethTotal)}</p>
+          <p className="text-2xl font-bold text-[#1e3a8a]">{formatMoney(bethTotal)}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Combined Total</p>
-          <p className="text-2xl font-bold text-[#002D72]">{formatMoney(combinedTotal)}</p>
+          <p className="text-2xl font-bold text-[#1e3a8a]">{formatMoney(combinedTotal)}</p>
         </div>
       </div>
 

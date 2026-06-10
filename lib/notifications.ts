@@ -128,10 +128,10 @@ export async function notifyTaskAssigned(params: {
     `Task assigned: ${taskTitle}`,
     `Hi ${name},\n\nYou've been assigned "${taskTitle}" on ${jobName}.\n\nAssigned by: ${assignedBy}\n\n${url}`,
     wrap(`
-      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">Task Assigned</h2>
+      <h2 style="font-size:18px;color:#1e3a8a;margin:0 0 12px">Task Assigned</h2>
       <p style="margin:0 0 8px">Hi <strong>${name}</strong>,</p>
       <p style="margin:0 0 16px">You've been assigned a task on <strong>${jobName}</strong>.</p>
-      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+      <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
         <strong>${taskTitle}</strong><br/>
         <span style="font-size:13px;color:#666">Assigned by: ${assignedBy}</span>
       </div>
@@ -215,9 +215,9 @@ export async function notifyCoSubmitted(params: {
     `${label} submitted — ${jobName}`,
     `${label} submitted on ${jobName} by ${submittedBy}.\n\n${description}\n\n${url}`,
     wrap(`
-      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">Change Order Submitted</h2>
+      <h2 style="font-size:18px;color:#1e3a8a;margin:0 0 12px">Change Order Submitted</h2>
       <p style="margin:0 0 16px"><strong>${label}</strong> was submitted on <strong>${jobName}</strong> by ${submittedBy}.</p>
-      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+      <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
         <p style="margin:0;font-size:14px">${description}</p>
       </div>
       ${btn(url, "Review CO →")}
@@ -284,9 +284,9 @@ export async function notifyNewNote(params: {
     `New field note — ${jobName}`,
     `${postedBy} posted a note on ${jobName}:\n\n${preview}\n\n${url}`,
     wrap(`
-      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">New Field Note</h2>
+      <h2 style="font-size:18px;color:#1e3a8a;margin:0 0 12px">New Field Note</h2>
       <p style="margin:0 0 16px"><strong>${postedBy}</strong> posted a note on <strong>${jobName}</strong>.</p>
-      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+      <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
         <p style="margin:0;font-size:14px;line-height:1.6">${preview}</p>
       </div>
       ${btn(url, "View Job →")}
@@ -360,9 +360,9 @@ export async function notifyRfiAnswered(params: {
     `${rfiLabel} answered — ${jobName}`,
     `Hi ${name},\n\n${rfiLabel} "${subject}" on ${jobName} has been answered.\n\n${answer ?? ""}\n\n${url}`,
     wrap(`
-      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">RFI Answered</h2>
+      <h2 style="font-size:18px;color:#1e3a8a;margin:0 0 12px">RFI Answered</h2>
       <p style="margin:0 0 16px">Hi <strong>${name}</strong>, <strong>${rfiLabel}</strong> on <strong>${jobName}</strong> has been answered.</p>
-      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;border-radius:0 6px 6px 0">
+      <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:12px 16px;border-radius:0 6px 6px 0">
         <strong>${subject}</strong>
       </div>
       ${answerHtml}
@@ -397,9 +397,9 @@ export async function notifyCalendarRequestSubmitted(params: {
     `Calendar request — ${jobName}`,
     `${submittedBy} submitted a calendar request for ${jobName} on ${date}.\n\n${description}\n${reason ? `Reason: ${reason}` : ""}\n\n${url}`,
     wrap(`
-      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">📅 Calendar Request</h2>
+      <h2 style="font-size:18px;color:#1e3a8a;margin:0 0 12px">📅 Calendar Request</h2>
       <p style="margin:0 0 16px"><strong>${submittedBy}</strong> submitted a calendar request for <strong>${jobName}</strong>.</p>
-      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+      <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
         <strong>${date}</strong><br/>
         <span style="font-size:13px;color:#444">${description}</span>
         ${reasonHtml}
@@ -433,7 +433,7 @@ export async function notifyPaymentRecorded(params: {
     invoiceLabel ? `Applied to: ${invoiceLabel}` : null,
   ].filter(Boolean).join(" · ");
   const receiptLine = receiptImageUrl
-    ? `<p style="margin:4px 0 0;font-size:13px"><a href="${receiptImageUrl}" style="color:#002D72">View receipt image →</a></p>`
+    ? `<p style="margin:4px 0 0;font-size:13px"><a href="${receiptImageUrl}" style="color:#1e3a8a">View receipt image →</a></p>`
     : "";
   await send(
     "justin@oakridgeelectrical.com",
@@ -471,9 +471,9 @@ export async function notifyScheduleChange(params: {
     `Schedule Update — ${jobName}`,
     `${jobName} has a schedule update:\n\n${changeDesc}\n\nChanged by: ${changedBy}\n\n${url}`,
     wrap(`
-      <h2 style="font-size:18px;color:#002D72;margin:0 0 12px">📅 Schedule Update</h2>
+      <h2 style="font-size:18px;color:#1e3a8a;margin:0 0 12px">📅 Schedule Update</h2>
       <p style="margin:0 0 16px"><strong>${jobName}</strong> has a schedule update.</p>
-      <div style="background:#f0f4ff;border-left:4px solid #002D72;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
+      <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:12px 16px;margin:0 0 16px;border-radius:0 6px 6px 0">
         <p style="margin:0;font-size:14px">${changeDesc}</p>
         <p style="margin:6px 0 0;font-size:13px;color:#666">Changed by: ${changedBy}</p>
       </div>

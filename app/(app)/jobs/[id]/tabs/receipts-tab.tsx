@@ -265,7 +265,7 @@ function UploadForm({
     >
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-sm text-gray-900 flex items-center gap-2">
-          <Receipt className="w-4 h-4 text-[#002D72]" />
+          <Receipt className="w-4 h-4 text-[#1e3a8a]" />
           Upload Receipt
         </h3>
         <button
@@ -288,7 +288,7 @@ function UploadForm({
         <label className="block text-xs font-medium text-gray-600 mb-1">
           Receipt photo (optional)
         </label>
-        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-[#002D72] hover:bg-blue-50/30 transition-colors">
+        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl p-4 cursor-pointer hover:border-[#1e3a8a] hover:bg-blue-50/30 transition-colors">
           {preview ? (
             <img
               src={preview}
@@ -298,7 +298,7 @@ function UploadForm({
           ) : (
             <>
               <Upload className="w-7 h-7 text-gray-300" />
-              <span className="text-sm font-medium text-[#002D72]">
+              <span className="text-sm font-medium text-[#1e3a8a]">
                 Take photo or choose file
               </span>
               <span className="text-xs text-gray-400">
@@ -333,7 +333,7 @@ function UploadForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="border border-gray-300 rounded-lg pl-6 pr-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+            className="border border-gray-300 rounded-lg pl-6 pr-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
           />
         </div>
       </div>
@@ -348,7 +348,7 @@ function UploadForm({
           value={vendor}
           onChange={(e) => setVendor(e.target.value)}
           placeholder="e.g. Home Depot, Shell"
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
         />
       </div>
 
@@ -361,7 +361,7 @@ function UploadForm({
           type="date"
           value={receiptDate}
           onChange={(e) => setReceiptDate(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
         />
       </div>
 
@@ -375,7 +375,7 @@ function UploadForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What was purchased?"
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
         />
       </div>
 
@@ -389,7 +389,7 @@ function UploadForm({
           type="button"
           onClick={() => setIsFuel((v) => !v)}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            isFuel ? "bg-[#002D72]" : "bg-gray-200"
+            isFuel ? "bg-[#1e3a8a]" : "bg-gray-200"
           }`}
         >
           <span
@@ -416,7 +416,7 @@ function UploadForm({
               <select
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#002D72] bg-white"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
               >
                 <option value="">— Select vehicle —</option>
                 {vehicles.map((v) => (
@@ -440,7 +440,7 @@ function UploadForm({
               value={mileage}
               onChange={(e) => setMileage(e.target.value)}
               placeholder="Current odometer reading"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
             />
           </div>
         </div>
@@ -457,7 +457,7 @@ function UploadForm({
         <button
           type="submit"
           disabled={uploading}
-          className="bg-[#002D72] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors flex items-center gap-1.5"
+          className="bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-60 transition-colors flex items-center gap-1.5"
         >
           {uploading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           {uploading ? "Saving…" : "Save Receipt"}
@@ -610,7 +610,7 @@ export function ReceiptsTab({ jobId, userRole }: ReceiptsTabProps) {
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 bg-[#002D72] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors mb-6"
+          className="flex items-center gap-1.5 bg-[#1e3a8a] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors mb-6"
         >
           <Plus className="w-4 h-4" />
           Upload Receipt
@@ -644,7 +644,7 @@ export function ReceiptsTab({ jobId, userRole }: ReceiptsTabProps) {
         <div className="mt-4 pt-4 border-t border-gray-100">
           <a
             href={`/admin/receipts?jobId=${jobId}`}
-            className="flex items-center gap-1.5 text-sm text-[#002D72] hover:text-[#003d99] font-medium transition-colors"
+            className="flex items-center gap-1.5 text-sm text-[#1e3a8a] hover:text-[#003d99] font-medium transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             View all receipts

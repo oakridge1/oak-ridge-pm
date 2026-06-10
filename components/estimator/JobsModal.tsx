@@ -132,11 +132,11 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
         <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200">
           <button
             onClick={handleNew}
-            className="px-3 py-1.5 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors shrink-0"
+            className="px-3 py-1.5 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors shrink-0"
           >
             + New Estimate
           </button>
-          <span className="text-lg font-bold text-[#1a3a5c] flex-1">
+          <span className="text-lg font-bold text-[#1e3a8a] flex-1">
             Saved Estimates
           </span>
           <button
@@ -199,7 +199,7 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
                           </span>
                         )}
                         {isCurrent && (
-                          <span className="shrink-0 text-xs bg-[#1a3a5c] text-white rounded-full px-2 py-0.5 font-medium leading-none">
+                          <span className="shrink-0 text-xs bg-[#1e3a8a] text-white rounded-full px-2 py-0.5 font-medium leading-none">
                             Current
                           </span>
                         )}
@@ -226,7 +226,7 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
                       {!isCurrent && (
                         <button
                           onClick={() => handleLoad(job.jobId)}
-                          className="text-xs px-2 py-1 rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] transition-colors"
+                          className="text-xs px-2 py-1 rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] transition-colors"
                         >
                           Load
                         </button>

@@ -25,7 +25,7 @@ export function StrutRackBuilder() {
   const preview = useMemo(() => calcRack(rackState), [rackState]);
   const R = getRates();
 
-  const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]';
+  const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
 
   return (
     <div className="mb-6">
@@ -74,7 +74,7 @@ export function StrutRackBuilder() {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Qty</label>
             <input type="number" min={1}
-              className="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]"
+              className="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
               value={rackState.qty}
               onChange={e => updateRackState({ qty: Math.max(1, parseInt(e.target.value) || 1) })} />
           </div>
@@ -95,7 +95,7 @@ export function StrutRackBuilder() {
                 onClick={() => updateRackState({ diff: d.value })}
                 className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
                   rackState.diff === d.value
-                    ? 'bg-[#002D72] text-white'
+                    ? 'bg-[#1e3a8a] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
                 {d.label}
@@ -104,7 +104,7 @@ export function StrutRackBuilder() {
           </div>
           <button
             onClick={() => addRack()}
-            className="bg-[#002D72] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors">
+            className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] transition-colors">
             + Add to Bid
           </button>
         </div>

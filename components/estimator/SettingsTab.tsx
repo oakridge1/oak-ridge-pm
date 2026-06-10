@@ -47,7 +47,7 @@ const RATE_FIELDS: RateField[] = [
 
 const CLS = {
   sectionCard:  'bg-white rounded border border-gray-200 p-4 mb-4 shadow-sm',
-  sectionTitle: 'text-xs font-bold tracking-widest uppercase text-[#1a3a5c] border-b border-gray-200 pb-1 mb-3',
+  sectionTitle: 'text-xs font-bold tracking-widest uppercase text-[#1e3a8a] border-b border-gray-200 pb-1 mb-3',
   fieldRow:     'flex items-center justify-between py-2 border-b border-gray-100 last:border-0',
   label:        'text-sm text-gray-700',
   inputAmt:     'border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-28 text-right font-mono',
@@ -459,7 +459,7 @@ export function SettingsTab() {
               setEditingCustomer({ id: crypto.randomUUID(), company: '', contactName: '', phone: '', email: '', type: 'GC' });
               setShowCustomerModal(true);
             }}
-            className="px-3 py-1 text-xs font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]"
+            className="px-3 py-1 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c]"
           >+ New Customer</button>
         </div>
         <div className={CLS.sectionTitle} />
@@ -497,7 +497,7 @@ export function SettingsTab() {
                     : c.type === 'Owner' ? 'bg-green-100 text-green-700'
                     : 'bg-gray-100 text-gray-600'
                   }`}>{c.type}</span>
-                  <button onClick={() => applyCustomer(c)} className="text-xs px-2 py-1 rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] whitespace-nowrap">Apply</button>
+                  <button onClick={() => applyCustomer(c)} className="text-xs px-2 py-1 rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] whitespace-nowrap">Apply</button>
                   <button onClick={() => { setEditingCustomer(c); setShowCustomerModal(true); }} className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100 whitespace-nowrap">Edit</button>
                   <button onClick={() => deleteCustomer(c.id)} className="text-xs px-2 py-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 whitespace-nowrap">✕</button>
                 </div>
@@ -556,7 +556,7 @@ export function SettingsTab() {
           <a
             href="/api/bom/export"
             download
-            className="px-4 py-2 text-sm font-semibold rounded border border-[#1a3a5c] text-[#1a3a5c] hover:bg-[#1a3a5c] hover:text-white transition-colors"
+            className="px-4 py-2 text-sm font-semibold rounded border border-[#1e3a8a] text-[#1e3a8a] hover:bg-[#1e3a8a] hover:text-white transition-colors"
           >
             ↓ Export BOM (Excel)
           </a>
@@ -564,7 +564,7 @@ export function SettingsTab() {
           <label className={`px-4 py-2 text-sm font-semibold rounded cursor-pointer transition-colors ${
             uploading
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-[#1a3a5c] text-white hover:bg-[#2e5a8c]'
+              : 'bg-[#1e3a8a] text-white hover:bg-[#2e5a8c]'
           }`}>
             {uploading ? 'Uploading…' : '↑ Upload Updated BOM'}
             <input
@@ -600,7 +600,7 @@ export function SettingsTab() {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-[#1a3a5c]">
+              <h3 className="text-base font-bold text-[#1e3a8a]">
                 {customers.some(c => c.id === editingCustomer.id) ? 'Edit Customer' : 'New Customer'}
               </h3>
               <button
@@ -618,7 +618,7 @@ export function SettingsTab() {
                   onClick={() => setEditingCustomer({ ...editingCustomer, type: t })}
                   className={`flex-1 py-1.5 text-sm font-semibold rounded transition-colors ${
                     editingCustomer.type === t
-                      ? 'bg-[#1a3a5c] text-white'
+                      ? 'bg-[#1e3a8a] text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >{t}</button>
@@ -678,7 +678,7 @@ export function SettingsTab() {
               <button
                 onClick={() => saveCustomer(editingCustomer)}
                 disabled={!editingCustomer.company.trim()}
-                className="flex-1 py-2 text-sm font-semibold rounded bg-[#1a3a5c] text-white hover:bg-[#2e5a8c] disabled:opacity-40"
+                className="flex-1 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c] disabled:opacity-40"
               >Save Customer</button>
             </div>
           </div>

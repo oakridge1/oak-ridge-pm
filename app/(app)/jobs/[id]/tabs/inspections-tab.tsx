@@ -107,7 +107,7 @@ function AddInspectionForm({
       onSubmit={handleSubmit}
       className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 space-y-3"
     >
-      <h3 className="font-semibold text-[#002D72] text-sm">New Inspection</h3>
+      <h3 className="font-semibold text-[#1e3a8a] text-sm">New Inspection</h3>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2 sm:col-span-1">
@@ -117,7 +117,7 @@ function AddInspectionForm({
           <select
             name="type"
             required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           >
             {INSPECTION_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -133,7 +133,7 @@ function AddInspectionForm({
           </label>
           <select
             name="result"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           >
             <option value="">Pending</option>
             <option value="PASS">Pass</option>
@@ -148,7 +148,7 @@ function AddInspectionForm({
           <input
             type="date"
             name="dateCalled"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -159,7 +159,7 @@ function AddInspectionForm({
           <input
             type="date"
             name="dateScheduled"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -171,7 +171,7 @@ function AddInspectionForm({
             type="text"
             name="inspectorName"
             placeholder="Inspector name"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -183,7 +183,7 @@ function AddInspectionForm({
             type="tel"
             name="inspectorPhone"
             placeholder="Phone number"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -195,7 +195,7 @@ function AddInspectionForm({
             name="correctionNotes"
             rows={2}
             placeholder="Items requiring correction..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 resize-none"
           />
         </div>
 
@@ -206,7 +206,7 @@ function AddInspectionForm({
           <input
             type="date"
             name="reinspectDate"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
 
@@ -218,7 +218,7 @@ function AddInspectionForm({
             name="notes"
             rows={2}
             placeholder="Additional notes..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 resize-none"
           />
         </div>
       </div>
@@ -236,7 +236,7 @@ function AddInspectionForm({
         <button
           type="submit"
           disabled={isPending}
-          className="px-4 py-2 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-50"
+          className="px-4 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-50"
         >
           {isPending ? "Saving…" : "Add Inspection"}
         </button>
@@ -290,7 +290,7 @@ function EditInspectionForm({
           <select
             name="result"
             defaultValue={inspection.result ?? ""}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           >
             <option value="">Pending</option>
             <option value="PASS">Pass</option>
@@ -303,7 +303,7 @@ function EditInspectionForm({
             type="date"
             name="dateCalled"
             defaultValue={toInputDate(inspection.dateCalled)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
         <div>
@@ -312,7 +312,7 @@ function EditInspectionForm({
             type="date"
             name="dateScheduled"
             defaultValue={toInputDate(inspection.dateScheduled)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
         <div>
@@ -321,7 +321,7 @@ function EditInspectionForm({
             type="text"
             name="inspectorName"
             defaultValue={inspection.inspectorName ?? ""}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
         <div>
@@ -330,7 +330,7 @@ function EditInspectionForm({
             type="tel"
             name="inspectorPhone"
             defaultValue={inspection.inspectorPhone ?? ""}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
         <div>
@@ -339,7 +339,7 @@ function EditInspectionForm({
             type="date"
             name="reinspectDate"
             defaultValue={toInputDate(inspection.reinspectDate)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30"
           />
         </div>
         <div className="col-span-2">
@@ -348,7 +348,7 @@ function EditInspectionForm({
             name="correctionNotes"
             rows={2}
             defaultValue={inspection.correctionNotes ?? ""}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 resize-none"
           />
         </div>
         <div className="col-span-2">
@@ -357,7 +357,7 @@ function EditInspectionForm({
             name="notes"
             rows={2}
             defaultValue={inspection.notes ?? ""}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D72]/30 resize-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/30 resize-none"
           />
         </div>
       </div>
@@ -369,7 +369,7 @@ function EditInspectionForm({
         <button
           type="submit"
           disabled={isPending}
-          className="px-4 py-2 bg-[#002D72] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-50"
+          className="px-4 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded-lg hover:bg-[#003d99] disabled:opacity-50"
         >
           {isPending ? "Saving…" : "Save Changes"}
         </button>
@@ -467,7 +467,7 @@ function InspectionCard({
                   <dt className="text-xs text-gray-500">Phone</dt>
                   <dd className="font-medium">
                     {inspection.inspectorPhone ? (
-                      <a href={`tel:${inspection.inspectorPhone}`} className="text-[#002D72] hover:underline">
+                      <a href={`tel:${inspection.inspectorPhone}`} className="text-[#1e3a8a] hover:underline">
                         {inspection.inspectorPhone}
                       </a>
                     ) : "—"}
@@ -505,14 +505,14 @@ function InspectionCard({
               <div className="mt-4 flex items-center gap-2 flex-wrap">
                 <a
                   href={`/api/jobs/${jobId}/pdf/inspection/${inspection.id}`}
-                  className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-3 py-1.5 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-3 py-1.5 rounded-lg transition-colors"
                 >
                   <FileDown className="w-3.5 h-3.5" /> Download PDF
                 </a>
                 {canEdit && (
                   <button
                     onClick={() => setEditing(true)}
-                    className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#002D72] border border-gray-200 hover:border-[#002D72]/30 px-3 py-1.5 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-3 py-1.5 rounded-lg transition-colors"
                   >
                     <Pencil className="w-3.5 h-3.5" /> Edit
                   </button>
@@ -549,14 +549,14 @@ export function InspectionsTab({ job, role, canAddInspections = false }: Inspect
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ClipboardCheck className="w-5 h-5 text-[#002D72]" />
-          <h2 className="font-semibold text-[#002D72]">Inspection Log</h2>
+          <ClipboardCheck className="w-5 h-5 text-[#1e3a8a]" />
+          <h2 className="font-semibold text-[#1e3a8a]">Inspection Log</h2>
           <span className="text-xs text-gray-400">({job.inspections.length})</span>
         </div>
         {canAdd && !showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 text-sm font-medium text-[#002D72] hover:text-[#003d99] border border-[#002D72]/30 hover:border-[#002D72] px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-[#1e3a8a] hover:text-[#003d99] border border-[#1e3a8a]/30 hover:border-[#1e3a8a] px-3 py-1.5 rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" /> Add Inspection
           </button>
