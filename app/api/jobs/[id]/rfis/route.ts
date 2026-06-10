@@ -1,3 +1,4 @@
+import { generateId } from '@/lib/utils/uuid';
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -25,7 +26,7 @@ export async function POST(req: Request, { params }: Params) {
   const rfiNumber = (last?.rfiNumber ?? 0) + 1;
   const rfi = await prisma.rfi.create({
     data: {
-      id: crypto.randomUUID(),
+      id: generateId(),
       jobId: id,
       submittedById: session.user.id,
       rfiNumber,

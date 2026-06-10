@@ -1,3 +1,4 @@
+import { generateId } from '@/lib/utils/uuid';
 import { DEFAULTS, type RateConfig } from './constants';
 import type { SavedAssembly, AssemblyLine } from './constants';
 import type { CounterState } from './counterState';
@@ -441,7 +442,7 @@ export const DEFAULT_ASM_SECTION_ORDER = [
 
 export function createNewState(overrides?: Partial<EstimatorState>): EstimatorState {
   return {
-    jobId:     crypto.randomUUID(),
+    jobId:     generateId(),
     jobName:   'New Job',
     jobNumber: '',
     tab:       'takeoff',

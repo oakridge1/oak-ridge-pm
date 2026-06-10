@@ -1,4 +1,5 @@
 "use server";
+import { generateId } from '@/lib/utils/uuid';
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -134,7 +135,7 @@ export async function addOtherCost(
   const job = await prisma.job.findUnique({ where: { id: jobId }, select: { otherCosts: true } });
   const current = (job?.otherCosts as { id: string; description: string; amount: number; markupPct?: number }[] | null) ?? [];
   current.push({
-    id: crypto.randomUUID(),
+    id: generateId(),
     description: description.trim(),
     amount: parseFloat(amount),
     markupPct: markupPct ? parseFloat(markupPct) : 0,
@@ -229,7 +230,7 @@ export async function createInvoice(jobId: string, data: {
 
   // Generate share token for public link (Standard invoices only)
   const shareToken = data.type !== "AIA"
-    ? crypto.randomUUID().replace(/-/g, "")
+    ? generateId().replace(/-/g, "")
     : null;
   const shareExpiry = shareToken
     ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days

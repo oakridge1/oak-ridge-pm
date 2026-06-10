@@ -234,7 +234,9 @@ export function TakeoffTab() {
                 jobName: (s.jobName === 'New Job' || s.jobName === '')
                   ? (syncPayload.jobName || s.jobName) : s.jobName,
               }));
-              localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
+              try {
+                localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
+              } catch { /* iOS private browsing — ignore */ }
               // Labels carried in the SYNC payload → offer to apply them
               const incomingLabels = {
                 bidPackage: syncPayload.activeBidPackage ?? '',
@@ -252,7 +254,9 @@ export function TakeoffTab() {
           </button>
           <button
             onClick={() => {
-              localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
+              try {
+                localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
+              } catch { /* iOS private browsing — ignore */ }
               setSyncPayload(null);
             }}
             className="text-green-500 hover:text-green-700 text-sm px-1"

@@ -1,4 +1,5 @@
 'use client';
+import { generateId } from '@/lib/utils/uuid';
 
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import {
@@ -70,7 +71,7 @@ export function PanelBuilderTab() {
     if (!def) return;
     const slot = nextSlot();
     const circuit: CircuitSlot = {
-      id:          crypto.randomUUID(),
+      id:          generateId(),
       slot,
       desc:        newDesc || def.label,
       breakerType: newBreaker,

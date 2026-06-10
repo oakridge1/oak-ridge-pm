@@ -1,3 +1,4 @@
+import { generateId } from '@/lib/utils/uuid';
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -23,7 +24,7 @@ export async function POST(req: Request, { params }: Params) {
   const body = await req.json();
   const inspection = await prisma.inspection.create({
     data: {
-      id: crypto.randomUUID(),
+      id: generateId(),
       jobId: id,
       createdById: session.user.id,
       type: body.type,

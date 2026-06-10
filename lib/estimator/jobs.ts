@@ -1,3 +1,4 @@
+import { generateId } from '@/lib/utils/uuid';
 import type { EstimatorState } from './state';
 import { createNewState } from './state';
 import { setRates } from './constants';
@@ -128,7 +129,7 @@ export function importJobJSON(json: string): EstimatorState | null {
     if (!payload.state) return null;
     const state = createNewState({
       ...payload.state,
-      jobId:   crypto.randomUUID(),
+      jobId:   generateId(),
       jobName: (payload.state.jobName ?? 'Imported Job') + ' (imported)',
     });
     saveJob(state);

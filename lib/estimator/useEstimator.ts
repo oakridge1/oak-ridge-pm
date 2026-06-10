@@ -1,4 +1,5 @@
 'use client';
+import { generateId } from '@/lib/utils/uuid';
 
 import {
   useState, useCallback, useEffect, useRef,
@@ -560,7 +561,7 @@ export function useEstimator(): EstimatorActions {
     (item: Omit<LightingItem, 'id'>) => {
       setState(s => ({
         ...s,
-        lightingSchedule: [...s.lightingSchedule, { ...item, id: crypto.randomUUID() }],
+        lightingSchedule: [...s.lightingSchedule, { ...item, id: generateId() }],
       }));
     }, []
   );
@@ -587,7 +588,7 @@ export function useEstimator(): EstimatorActions {
     (item: Omit<GearItem, 'id'>) => {
       setState(s => ({
         ...s,
-        gearSchedule: [...s.gearSchedule, { ...item, id: crypto.randomUUID() }],
+        gearSchedule: [...s.gearSchedule, { ...item, id: generateId() }],
       }));
     }, []
   );

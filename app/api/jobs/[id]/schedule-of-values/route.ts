@@ -1,3 +1,4 @@
+import { generateId } from '@/lib/utils/uuid';
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -30,7 +31,7 @@ function buildRowsFromCostCodes(
   for (const cc of costCodes) {
     if (cc.type === "labor") {
       rows.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         itemNo: cc.code,
         description: cc.description,
         scheduledValue: laborBudget,
@@ -42,7 +43,7 @@ function buildRowsFromCostCodes(
       });
     } else if (cc.type === "material") {
       rows.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         itemNo: cc.code,
         description: cc.description,
         scheduledValue: materialBudget,
@@ -55,7 +56,7 @@ function buildRowsFromCostCodes(
     } else if (cc.type === "co" && cc.coId) {
       const co = approvedCOs.find(c => c.id === cc.coId);
       rows.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         itemNo: cc.code,
         description: co ? coDescription(co) : cc.description,
         scheduledValue: co?.approvedValue ?? 0,
@@ -68,7 +69,7 @@ function buildRowsFromCostCodes(
     } else {
       // subcontractor, equipment, other custom types
       rows.push({
-        id: crypto.randomUUID(),
+        id: generateId(),
         itemNo: cc.code,
         description: cc.description,
         scheduledValue: 0,
@@ -89,7 +90,7 @@ function buildDefaultRows(
 ): SovRow[] {
   const rows: SovRow[] = [
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       itemNo: "16-100",
       description: "Labor",
       scheduledValue: laborBudget,
@@ -100,7 +101,7 @@ function buildDefaultRows(
       autoFilled: true,
     },
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       itemNo: "16-200",
       description: "Material",
       scheduledValue: materialBudget,
@@ -114,7 +115,7 @@ function buildDefaultRows(
 
   for (const co of approvedCOs) {
     rows.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       itemNo: `400-${String(co.coNumber ?? approvedCOs.indexOf(co) + 1).padStart(3, "0")}`,
       description: coDescription(co),
       scheduledValue: co.approvedValue,
@@ -303,7 +304,7 @@ export async function GET(
       for (const co of approvedCOs) {
         if (!existingCoIds.has(co.id)) {
           rows.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             itemNo: `400-${String(co.coNumber ?? 1).padStart(3, "0")}`,
             description: coDescription(co),
             scheduledValue: co.approvedValue,

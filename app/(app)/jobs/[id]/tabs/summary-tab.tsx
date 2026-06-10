@@ -1,4 +1,5 @@
 "use client";
+import { generateId } from '@/lib/utils/uuid';
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -930,7 +931,7 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
   function addRow() {
     const customCount = rows.filter(r => r.type === "custom").length + 1;
     setRows(prev => [...prev, {
-      id: crypto.randomUUID(),
+      id: generateId(),
       itemNo: `500-${String(customCount).padStart(3, "0")}`,
       description: "",
       scheduledValue: 0,
@@ -1338,7 +1339,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   });
 
   function addInvSection() {
-    setInvScopeSections(prev => [...prev, { id: crypto.randomUUID(), title: "", items: [] }]);
+    setInvScopeSections(prev => [...prev, { id: generateId(), title: "", items: [] }]);
   }
   function removeInvSection(id: string) {
     setInvScopeSections(prev => prev.filter(s => s.id !== id));
@@ -1933,7 +1934,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                               } else {
                                 // No target section — add to last section or create one
                                 if (invScopeSections.length === 0) {
-                                  const newId = crypto.randomUUID();
+                                  const newId = generateId();
                                   setInvScopeSections([{ id: newId, title: cat, items: [bullet] }]);
                                 } else {
                                   const lastId = invScopeSections[invScopeSections.length - 1].id;
@@ -1964,7 +1965,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                             insertInvBullet(invBulletPickerTarget.sectionId, bullet);
                           } else {
                             if (invScopeSections.length === 0) {
-                              const newId = crypto.randomUUID();
+                              const newId = generateId();
                               setInvScopeSections([{ id: newId, title: "Scope of Work", items: [bullet] }]);
                             } else {
                               const lastId = invScopeSections[invScopeSections.length - 1].id;

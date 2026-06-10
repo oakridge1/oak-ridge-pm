@@ -1,3 +1,4 @@
+import { generateId } from '@/lib/utils/uuid';
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -53,7 +54,7 @@ export async function PUT(req: Request, { params }: Params) {
   const sov = await prisma.scheduleOfValues.upsert({
     where: { jobId: id },
     update: { rows, updatedAt: new Date(), updatedBy: session.user.id },
-    create: { id: crypto.randomUUID(), jobId: id, rows, updatedAt: new Date(), updatedBy: session.user.id },
+    create: { id: generateId(), jobId: id, rows, updatedAt: new Date(), updatedBy: session.user.id },
   });
   return NextResponse.json(sov);
 }
@@ -74,7 +75,7 @@ export async function POST(req: Request, { params }: Params) {
     const invoiceNumber = (last?.invoiceNumber ?? 0) + 1;
     const invoice = await prisma.invoice.create({
       data: {
-        id: crypto.randomUUID(),
+        id: generateId(),
         jobId: id,
         createdById: session.user.id,
         invoiceNumber,
@@ -97,7 +98,7 @@ export async function POST(req: Request, { params }: Params) {
   if (action === "record_payment") {
     const payment = await prisma.payment.create({
       data: {
-        id: crypto.randomUUID(),
+        id: generateId(),
         jobId: id,
         date: new Date(body.date),
         amount: body.amount,

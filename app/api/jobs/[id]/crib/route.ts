@@ -1,3 +1,4 @@
+import { generateId } from '@/lib/utils/uuid';
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -40,7 +41,7 @@ export async function POST(req: Request, { params }: Params) {
   const body = await req.json();
   const request = await prisma.stockRequest.create({
     data: {
-      id: crypto.randomUUID(),
+      id: generateId(),
       jobId: id,
       userId: session.user.id,
       stockItemId: body.stockItemId || null,
@@ -71,7 +72,7 @@ export async function PUT(req: Request, { params }: Params) {
   // Create stock order
   const order = await prisma.stockOrder.create({
     data: {
-      id: crypto.randomUUID(),
+      id: generateId(),
       jobId: id,
       supplierName: supplierName || null,
       supplierEmail: supplierEmail || null,

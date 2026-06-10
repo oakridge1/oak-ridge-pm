@@ -1,4 +1,5 @@
 "use client";
+import { generateId } from '@/lib/utils/uuid';
 
 import { useState, useEffect, useCallback } from "react";
 import { Search, ShoppingCart, Plus, X, Truck, Store, Package2, Send, CheckCircle2, ChevronDown, ChevronUp, Clock, Layers, ChevronLeft } from "lucide-react";
@@ -366,7 +367,7 @@ function ItemExpandForm({
     try {
       if (isThhn && multiMode) {
         // Multi-conductor: generate N requests with shared conductorGroupId
-        const groupId = crypto.randomUUID();
+        const groupId = generateId();
         const validConductors = conductors.filter(c => c.color);
         if (validConductors.length < 2) { setError("Select color for at least 2 conductors."); setAdding(false); return; }
         if (!formVars.size) { setError("Select wire size."); setAdding(false); return; }

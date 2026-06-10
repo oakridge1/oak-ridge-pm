@@ -1,4 +1,5 @@
 'use client';
+import { generateId } from '@/lib/utils/uuid';
 
 import { useState } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
@@ -47,7 +48,7 @@ export function PermitsSubsTab() {
     setState(s => ({
       ...s,
       permits: [...s.permits, {
-        id:   crypto.randomUUID(),
+        id:   generateId(),
         desc: permitDesc.trim() || 'Permit',
         cost,
       }],
@@ -61,7 +62,7 @@ export function PermitsSubsTab() {
     setState(s => ({
       ...s,
       subs: [...s.subs, {
-        id:   crypto.randomUUID(),
+        id:   generateId(),
         desc: subDesc.trim() || 'Subcontractor',
         cost,
       }],
@@ -75,7 +76,7 @@ export function PermitsSubsTab() {
     setState(s => ({
       ...s,
       permits: [...s.permits, {
-        id:   crypto.randomUUID(),
+        id:   generateId(),
         desc: '[Rental] ' + (rentalDesc.trim() || 'Equipment'),
         cost,
       }],

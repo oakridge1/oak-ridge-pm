@@ -1,4 +1,5 @@
 'use client';
+import { generateId } from '@/lib/utils/uuid';
 
 import { useState, useRef } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
@@ -303,7 +304,7 @@ export function SettingsTab() {
         <button
           onClick={() => {
             setEditingCustomer({
-              id: crypto.randomUUID(),
+              id: generateId(),
               company:     state.jobInfo.gcCompany     || '',
               contactName: state.jobInfo.gcContactName || '',
               phone:       state.jobInfo.gcPhone       || '',
@@ -355,7 +356,7 @@ export function SettingsTab() {
         <button
           onClick={() => {
             setEditingCustomer({
-              id: crypto.randomUUID(),
+              id: generateId(),
               company:     state.jobInfo.ownerName  || '',
               contactName: '',
               phone:       state.jobInfo.ownerPhone || '',
@@ -456,7 +457,7 @@ export function SettingsTab() {
           <h3 className={CLS.sectionTitle} style={{ marginBottom: 0, borderBottom: 'none' }}>Customers</h3>
           <button
             onClick={() => {
-              setEditingCustomer({ id: crypto.randomUUID(), company: '', contactName: '', phone: '', email: '', type: 'GC' });
+              setEditingCustomer({ id: generateId(), company: '', contactName: '', phone: '', email: '', type: 'GC' });
               setShowCustomerModal(true);
             }}
             className="px-3 py-1 text-xs font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c]"

@@ -1,4 +1,5 @@
 'use client';
+import { generateId } from '@/lib/utils/uuid';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
@@ -22,7 +23,7 @@ import {
 const fmt$ = (n: number) =>
   '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const uid = () => crypto.randomUUID();
+const uid = () => generateId();
 
 const sel =
   'border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-full';
