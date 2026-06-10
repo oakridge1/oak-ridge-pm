@@ -195,6 +195,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidde
   </select>
   <button class="dbt gr" onclick="document.getElementById('pdf-inp').click()">+ LOAD NEW</button>
   <button class="dbt da" onclick="clearCurrentDrawing()">🗑 CLEAR</button>
+  <span id="up-status" style="font-size:11px;font-weight:600;margin-left:8px;white-space:nowrap;"></span>
 </div>
 <div id="body">
   <div id="tb">
@@ -639,11 +640,13 @@ var editAi=-1,editRi=-1;
 var SK='ore_pdf_v4';
 var pgSelected={};
 var _reportHTML='';
+var estimateId=(new URLSearchParams(window.location.search)).get('estimateId')||'standalone';
+var pendingPdfFile=null;
 
 // ═══════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════
-function save(){try{var p={assemblies:assemblies,runTypes:runTypes,drawings:{},currentDwgId:currentDwgId};Object.keys(drawings).forEach(function(id){p.drawings[id]={name:drawings[id].name,markups:drawings[id].markups,pxPerFoot:drawings[id].pxPerFoot};});localStorage.setItem(SK,JSON.stringify(p));}catch(e){}}
+function save(){try{var p={assemblies:assemblies,runTypes:runTypes,drawings:{},currentDwgId:currentDwgId};Object.keys(drawings).forEach(function(id){p.drawings[id]={name:drawings[id].name,markups:drawings[id].markups,pxPerFoot:drawings[id].pxPerFoot,pdfUrl:drawings[id].pdfUrl||null,pdfB64:drawings[id].pdfB64||null};});localStorage.setItem(SK,JSON.stringify(p));}catch(e){}}
 function loadSaved(){try{var d=JSON.parse(localStorage.getItem(SK));if(!d)return;if(d.assemblies&&d.assemblies.length)assemblies=d.assemblies;if(d.runTypes&&d.runTypes.length)runTypes=d.runTypes;if(d.drawings)drawings=d.drawings;if(d.currentDwgId&&drawings[d.currentDwgId])currentDwgId=d.currentDwgId;recomputeCounts();rebuildDwgSel();renderAll();if(currentDwgId)updateScaleStatus();}catch(e){}}
 
 function curDwg(){return currentDwgId?drawings[currentDwgId]:null;}
@@ -653,10 +656,61 @@ function curPpf(){var d=curDwg();return d?d.pxPerFoot:null;}
 // ═══════════════════════════════════════
 // DRAWING MANAGEMENT
 // ═══════════════════════════════════════
-function loadPDF(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){pendingPdf=ev.target.result;document.getElementById('dwg-name-inp').value=f.name.replace(/\.pdf$/i,'');document.getElementById('dwg-prompt').classList.add('open');setTimeout(function(){document.getElementById('dwg-name-inp').focus();document.getElementById('dwg-name-inp').select();},100);};r.readAsArrayBuffer(f);e.target.value='';}
-function cancelDwgPrompt(){pendingPdf=null;document.getElementById('dwg-prompt').classList.remove('open');}
-function confirmDwgLoad(){var nm=document.getElementById('dwg-name-inp').value.trim();if(!nm){alert('Enter a drawing name.');return;}document.getElementById('dwg-prompt').classList.remove('open');var id='dwg_'+Date.now();drawings[id]={name:nm,markups:[],pxPerFoot:null};currentDwgId=id;rebuildDwgSel();document.getElementById('no-pdf').style.display='none';renderPage_fromBuf(pendingPdf,1);updateScaleStatus();save();pendingPdf=null;showToast('Loaded: '+nm);}
-function switchDrawing(id){if(!id){currentDwgId=null;return;}currentDwgId=id;updateScaleStatus();renderAll();redrawMarkup();showToast('Switched to: '+drawings[id].name);save();}
+function loadPDF(e){var f=e.target.files[0];if(!f)return;pendingPdfFile=f;var r=new FileReader();r.onload=function(ev){pendingPdf=ev.target.result;document.getElementById('dwg-name-inp').value=f.name.replace(/\.pdf$/i,'');document.getElementById('dwg-prompt').classList.add('open');setTimeout(function(){document.getElementById('dwg-name-inp').focus();document.getElementById('dwg-name-inp').select();},100);};r.readAsArrayBuffer(f);e.target.value='';}
+function cancelDwgPrompt(){pendingPdf=null;pendingPdfFile=null;document.getElementById('dwg-prompt').classList.remove('open');}
+function confirmDwgLoad(){var nm=document.getElementById('dwg-name-inp').value.trim();if(!nm){alert('Enter a drawing name.');return;}document.getElementById('dwg-prompt').classList.remove('open');var id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'dwg_'+Date.now();drawings[id]={name:nm,markups:[],pxPerFoot:null};currentDwgId=id;rebuildDwgSel();document.getElementById('no-pdf').style.display='none';renderPage_fromBuf(pendingPdf,1);updateScaleStatus();save();uploadDrawingPdf(id,pendingPdfFile);pendingPdf=null;pendingPdfFile=null;showToast('Loaded: '+nm);}
+
+// ═══════════════════════════════════════
+// PDF PERSISTENCE (Supabase Storage via /api/takeoff-pdf-upload)
+// ═══════════════════════════════════════
+function setUpStatus(t,color){var el=document.getElementById('up-status');if(!el)return;el.textContent=t;el.style.color=color||'';if(t.indexOf('✓')===0){setTimeout(function(){if(el.textContent===t)el.textContent='';},3000);}}
+function bufToB64(buf){var b='';var u=new Uint8Array(buf);for(var i=0;i<u.length;i+=0x8000){b+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));}return btoa(b);}
+function b64ToBuf(b64){var bin=atob(b64);var u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
+function uploadDrawingPdf(id,file){
+  if(!file||!drawings[id])return;
+  setUpStatus('⬆ Saving drawing...','#999');
+  var fd=new FormData();
+  fd.append('file',file);
+  fd.append('estimateId',estimateId);
+  fd.append('drawingId',id);
+  fetch('/api/takeoff-pdf-upload',{method:'POST',body:fd})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(data){
+      if(!data.url)throw new Error('no url in response');
+      drawings[id].pdfUrl=data.url;
+      delete drawings[id].pdfB64;
+      save();
+      setUpStatus('✓ Drawing saved','#27ae60');
+    })
+    .catch(function(err){
+      console.warn('PDF upload failed, localStorage fallback:',err);
+      // Offline / server-error fallback: keep base64 locally so the tool
+      // still works without server access (may exceed quota for large PDFs)
+      file.arrayBuffer().then(function(buf){
+        try{drawings[id].pdfB64=bufToB64(buf);save();}catch(e){console.warn('localStorage fallback failed:',e);}
+      });
+      setUpStatus('⚠ Local only','#e67e22');
+    });
+}
+function loadPdfFromUrl(url){
+  pdfjsLib.getDocument(url).promise.then(function(doc){
+    pdfDoc=doc;totalPages=doc.numPages;curPage=1;updatePageNav();
+    document.getElementById('no-pdf').style.display='none';
+    renderPage(1);
+  }).catch(function(e){
+    console.error('PDF reload from URL failed:',e);
+    setUpStatus('⚠ PDF reload failed','#e67e22');
+  });
+}
+function reloadDrawingPdf(id){
+  var d=drawings[id];if(!d)return;
+  if(d.pdfUrl){loadPdfFromUrl(d.pdfUrl);}
+  else if(d.pdfB64){
+    try{document.getElementById('no-pdf').style.display='none';renderPage_fromBuf(b64ToBuf(d.pdfB64),1);}
+    catch(e){console.warn('base64 PDF restore failed:',e);}
+  }
+}
+function switchDrawing(id){if(!id){currentDwgId=null;return;}currentDwgId=id;updateScaleStatus();renderAll();redrawMarkup();reloadDrawingPdf(id);showToast('Switched to: '+drawings[id].name);save();}
 function clearCurrentDrawing(){if(!currentDwgId){alert('No drawing selected.');return;}var nm=drawings[currentDwgId].name;if(!confirm('Clear ALL markup from "'+nm+'"?'))return;drawings[currentDwgId].markups=[];drawings[currentDwgId].pxPerFoot=null;recomputeCounts();renderAll();redrawMarkup();save();showToast('Cleared: '+nm);}
 function rebuildDwgSel(){var s=document.getElementById('dwg-select');s.innerHTML='<option value="">&#8212; No drawing selected &#8212;</option>';Object.keys(drawings).forEach(function(id){var o=document.createElement('option');o.value=id;o.textContent=drawings[id].name;if(id===currentDwgId)o.selected=true;s.appendChild(o);});}
 
@@ -1407,7 +1461,7 @@ function showToast(msg){var t=document.getElementById('_t_');if(!t){t=document.c
 document.addEventListener('keydown',function(e){if(['INPUT','SELECT','TEXTAREA'].indexOf(e.target.tagName)>=0)return;if(e.key==='c'||e.key==='C')setMode('count');if(e.key==='r'||e.key==='R')setMode('run');if(e.key==='p'||e.key==='P')setMode('pan');if(e.key==='Escape'){if(drawingRun){drawingRun=false;runPts=[];redrawMarkup();}if(measuring)cancelMeasure();}if(e.key==='Enter'&&mode==='run'&&drawingRun&&runPts.length>=2)finishRun();if(e.key==='+'||e.key==='=')zoom(.15);if(e.key==='-')zoom(-.15);var n=parseInt(e.key);if(!isNaN(n)&&n>=1){if(mode==='count'&&n<=assemblies.length){activeAsmIdx=n-1;renderAsms();}if(mode==='run'&&n<=runTypes.length){activeRtIdx=n-1;renderRts();}}});
 document.getElementById('dwg-name-inp').addEventListener('keydown',function(e){if(e.key==='Enter')confirmDwgLoad();});
 
-window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();};
+window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}};
 </script>
 
 

@@ -72,7 +72,7 @@ export function EstimatorShell() {
             {showTools && (
               <>
                 <button
-                  onClick={() => window.open('/pdf-takeoff.html', '_blank')}
+                  onClick={() => window.open(`/pdf-takeoff.html?estimateId=${state.jobId || ''}`, '_blank')}
                   className="px-3 py-1.5 text-sm font-semibold rounded border-2 border-white text-white hover:bg-white hover:text-[#1a3a5c] transition-colors flex items-center gap-1.5 whitespace-nowrap"
                 >
                   ↗ Takeoff
