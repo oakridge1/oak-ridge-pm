@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
+import type { SavedAssembly } from '@/lib/estimator/constants';
 import { JobsModal } from '@/components/estimator/JobsModal';
 import { ConduitRunBuilder }     from '@/components/estimator/ConduitRunBuilder';
 import { StrutRackBuilder }      from '@/components/estimator/StrutRackBuilder';
@@ -47,12 +48,118 @@ const TABS = [
   { id: 'settings',    label: 'Settings'         },
 ];
 
+// ── Ridge List helpers ─────────────────────────────────────────────────────────
+
+function inferCategory(label: string): string {
+  const l = label.toLowerCase();
+  if (l.includes('receptacle') || l.includes('gfci') ||
+      l.includes('switch')     || l.includes('dimmer')) return 'Devices';
+  if (l.includes('fixture') || l.includes('led') ||
+      l.includes('light')   || l.includes('can')) return 'Fixtures';
+  if (l.includes('emt') || l.includes('conduit') || l.includes('mc ')) return 'Conduit';
+  if (l.includes('smoke') || l.includes('pull') ||
+      l.includes('horn')  || l.includes('alarm')) return 'FA';
+  if (l.includes('camera') || l.includes('data') || l.includes('lv')) return 'LV';
+  if (l.includes('panel')) return 'Gear';
+  return 'Custom';
+}
+
+function categoryColor(label: string): string {
+  const colors: Record<string, string> = {
+    Devices:  '#e03a3a',
+    Fixtures: '#4a9eff',
+    Conduit:  '#888888',
+    FA:       '#ff6b35',
+    LV:       '#9b59b6',
+    Gear:     '#27ae60',
+    Custom:   '#f39c12',
+  };
+  return colors[inferCategory(label)] ?? '#888888';
+}
+
 export function EstimatorShell() {
-  const { state, setTab } = useEstimatorContext();
+  const { state, setTab, addPrebuiltAssembly } = useEstimatorContext();
   const tab = state.tab;
   const [jobsOpen,     setJobsOpen]     = useState(false);
   const [counterOpen,  setCounterOpen]  = useState(false);
   const showTools = !['summary', 'settings'].includes(state.tab);
+
+  // ── Ridge List: live assembly broadcast to the PDF tool ─────────────────────
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  const broadcastRidgeList = useCallback(() => {
+    const channel = channelRef.current;
+    if (!channel) return;
+    const allAsms: SavedAssembly[] = [
+      ...(state.savedRuns      ?? []), ...(state.savedRacks     ?? []),
+      ...(state.savedMCHR      ?? []), ...(state.savedThreeWay  ?? []),
+      ...(state.savedData      ?? []), ...(state.savedFA        ?? []),
+      ...(state.savedCans      ?? []), ...(state.savedGear      ?? []),
+      ...(state.savedCustomDev ?? []), ...(state.savedTM        ?? []),
+      ...(state.savedLV        ?? []), ...(state.savedCustomAsm ?? []),
+      ...(state.savedHAR       ?? []), ...(state.savedFloorBox  ?? []),
+      ...(state.asms           ?? []), ...(state.savedPanels    ?? []),
+    ];
+    // Deduplicate by label — keep first occurrence
+    const seen = new Set<string>();
+    const unique = allAsms.filter(a => {
+      if (seen.has(a.label)) return false;
+      seen.add(a.label);
+      return true;
+    });
+    const items = unique.map((a, i) => ({
+      id:         `rl_${i}_${a.label.replace(/\s+/g, '_')}`,
+      label:      a.label,
+      mat:        a.mat,
+      lab:        a.lab,
+      lines:      a.lines,
+      bidPackage: a.bidPackage || '',
+      area:       a.area       || '',
+      costCode:   a.costCode   || '',
+      category:   inferCategory(a.label),
+      color:      categoryColor(a.label),
+    }));
+    channel.postMessage({
+      type: 'RIDGE_LIST_UPDATE',
+      payload: {
+        assemblies: items,
+        estimateId: state.jobId || '',
+        jobName:    state.jobName || '',
+      },
+    });
+  }, [
+    state.savedRuns, state.savedRacks, state.savedMCHR, state.savedThreeWay,
+    state.savedData, state.savedFA, state.savedCans, state.savedGear,
+    state.savedCustomDev, state.savedTM, state.savedLV, state.savedCustomAsm,
+    state.savedHAR, state.savedFloorBox, state.asms, state.savedPanels,
+    state.jobId, state.jobName,
+  ]);
+
+  // Keep latest callbacks reachable from the long-lived channel listener
+  const broadcastRef = useRef(broadcastRidgeList);
+  broadcastRef.current = broadcastRidgeList;
+  const addPrebuiltRef = useRef(addPrebuiltAssembly);
+  addPrebuiltRef.current = addPrebuiltAssembly;
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('ore_tools');
+    channelRef.current = channel;
+    channel.onmessage = (e) => {
+      const msg = e.data ?? {};
+      if (msg.type === 'ASSEMBLY_PLACED' && msg.payload?.assembly) {
+        addPrebuiltRef.current(msg.payload.assembly as SavedAssembly);
+      }
+      if (msg.type === 'PING' || msg.type === 'PONG') {
+        // Tool (re)connected — send it the current Ridge List
+        broadcastRef.current();
+      }
+    };
+    return () => { channelRef.current = null; channel.close(); };
+  }, []);
+
+  // Broadcast whenever assemblies (or job context) change — and once on mount
+  useEffect(() => { broadcastRidgeList(); }, [broadcastRidgeList]);
 
   return (
     <div className="-mx-4 -my-6 flex flex-col min-h-screen">

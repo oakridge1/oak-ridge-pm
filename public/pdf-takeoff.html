@@ -223,9 +223,41 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidde
         <div id="scale-status" style="margin-top:4px;">No scale set</div>
       </div>
       <div class="tbs" id="asm-section">
-        <div class="tbl">Assemblies — Count Mode</div>
-        <div id="asm-list"><div class="lrow-i active"><canvas width="24" height="24" class="sw18" style="flex-shrink: 0;"></canvas><div class="rn">20A Receptacle</div><div class="rst">0</div><button class="red">e</button></div><div class="lrow-i"><canvas width="24" height="24" class="sw18" style="flex-shrink: 0;"></canvas><div class="rn">2x4 LED Fixture</div><div class="rst">0</div><button class="red">e</button></div><div class="lrow-i"><canvas width="24" height="24" class="sw18" style="flex-shrink: 0;"></canvas><div class="rn">Single Pole Switch</div><div class="rst">0</div><button class="red">e</button></div></div>
-        <button class="addb" onclick="openAsmModal(-1)">+ ADD ASSEMBLY</button>
+
+        <!-- Mode toggle -->
+        <div style="display:flex;gap:4px;padding:0 0 6px;">
+          <button id="btn-ridge-mode" onclick="setAsmMode('ridge')"
+            style="flex:1;padding:4px 8px;font-size:11px;font-weight:700;border-radius:4px;cursor:pointer;background:#FF5910;color:#fff;border:none;">
+            ⚡ RIDGE LIST
+          </button>
+          <button id="btn-legacy-mode" onclick="setAsmMode('legacy')"
+            style="flex:1;padding:4px 8px;font-size:11px;font-weight:600;border-radius:4px;cursor:pointer;background:#2a2a2a;color:#888;border:1px solid #444;">
+            CLASSIC
+          </button>
+        </div>
+
+        <!-- Ridge List panel -->
+        <div id="ridge-list-panel" style="display:block;">
+          <div class="tbl">⚡ Ridge List <span id="ridge-count" style="color:#FF5910;font-weight:700;"></span></div>
+          <div style="padding:0 0 6px;">
+            <input id="ridge-search" type="text" placeholder="Search assemblies..."
+              oninput="renderRidgeList()"
+              style="width:100%;box-sizing:border-box;background:#1a1a2e;border:1px solid #333;color:#e8eaed;padding:5px 8px;border-radius:4px;font-size:11px;"/>
+          </div>
+          <div id="ridge-list" style="overflow-y:auto;max-height:340px;">
+            <div style="padding:16px 8px;color:#555;font-size:11px;text-align:center;">
+              No assemblies yet.<br/>Build assemblies in the Estimator<br/>— they appear here automatically.
+            </div>
+          </div>
+        </div>
+
+        <!-- Classic panel (legacy count-mode assemblies) -->
+        <div id="legacy-asm-panel" style="display:none;">
+          <div class="tbl">Assemblies — Count Mode</div>
+          <div id="asm-list"></div>
+          <button class="addb" onclick="openAsmModal(-1)">+ ADD ASSEMBLY</button>
+        </div>
+
       </div>
       <div class="tbs" id="run-section" style="display:none;">
         <div class="tbl">Run Types — Conduit / MC</div>
@@ -650,6 +682,10 @@ var pendingPdfFile=null;
 var activeBidPackage='';
 var activeArea='';
 var activeCostCode='';
+// ── Ridge List state ──
+var ridgeList=[];        // RidgeListItem[] from the estimator
+var ridgeListActive=-1;  // selected index into ridgeList
+var ridgeListMode=true;  // true = Ridge List placement, false = legacy count
 var oreChannel=null;
 try{
   oreChannel=new BroadcastChannel('ore_tools');
@@ -664,6 +700,11 @@ try{
     if(msg.type==='JOB_CONTEXT'){
       if(msg.payload.estimateId)estimateId=msg.payload.estimateId;
     }
+    if(msg.type==='RIDGE_LIST_UPDATE'){
+      ridgeList=msg.payload.assemblies||[];
+      if(ridgeListActive>=ridgeList.length)ridgeListActive=-1;
+      renderRidgeList();
+    }
     if(msg.type==='PING'){
       oreChannel.postMessage({type:'PONG',payload:{source:'pdf-takeoff'}});
     }
@@ -677,6 +718,133 @@ function updateLabelDisplay(){
   if(activeArea)parts.push(activeArea);
   if(activeCostCode)parts.push(activeCostCode);
   el.textContent=parts.length?'⬡ '+parts.join(' · '):'⬡ No labels active';
+}
+
+// ═══════════════════════════════════════
+// RIDGE LIST — live assemblies from the estimator
+// ═══════════════════════════════════════
+function setAsmMode(mode){
+  ridgeListMode=(mode==='ridge');
+  document.getElementById('ridge-list-panel').style.display=ridgeListMode?'block':'none';
+  document.getElementById('legacy-asm-panel').style.display=ridgeListMode?'none':'block';
+  var rb=document.getElementById('btn-ridge-mode'),lb=document.getElementById('btn-legacy-mode');
+  rb.style.background=ridgeListMode?'#FF5910':'#2a2a2a';
+  rb.style.color=ridgeListMode?'#fff':'#888';
+  lb.style.background=ridgeListMode?'#2a2a2a':'#FF5910';
+  lb.style.color=ridgeListMode?'#888':'#fff';
+}
+
+function renderRidgeList(){
+  var el=document.getElementById('ridge-list');
+  if(!el)return;
+  var search=((document.getElementById('ridge-search')||{}).value||'').toLowerCase();
+  var countEl=document.getElementById('ridge-count');
+  var filtered=ridgeList.filter(function(a){
+    return !search||a.label.toLowerCase().indexOf(search)>=0||(a.category||'').toLowerCase().indexOf(search)>=0;
+  });
+  if(countEl)countEl.textContent=filtered.length>0?'('+filtered.length+')':'';
+  if(filtered.length===0){
+    el.innerHTML=ridgeList.length===0
+      ?'<div style="padding:16px 8px;color:#555;font-size:11px;text-align:center;">No assemblies yet.<br/>Build assemblies in the Estimator<br/>&mdash; they appear here automatically.</div>'
+      :'<div style="padding:12px 8px;color:#555;font-size:11px;text-align:center;">No matches</div>';
+    return;
+  }
+  // Group by category
+  var groups={};
+  filtered.forEach(function(a){var c=a.category||'Custom';if(!groups[c])groups[c]=[];groups[c].push(a);});
+  var html='';
+  Object.keys(groups).forEach(function(cat){
+    html+='<div style="padding:4px 0 2px;font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.08em;">'+cat+'</div>';
+    groups[cat].forEach(function(a){
+      var globalIdx=ridgeList.indexOf(a);
+      var isActive=(globalIdx===ridgeListActive);
+      var matFmt='$'+(a.mat||0).toFixed(0);
+      var hrsFmt=((a.lab||0)/66).toFixed(1)+'h';
+      html+='<div onclick="selectRidgeAsm('+globalIdx+')" style="display:flex;align-items:center;gap:6px;padding:5px 6px;cursor:pointer;border-radius:4px;'
+        +'background:'+(isActive?'rgba(255,89,16,0.15)':'transparent')+';border-left:3px solid '+(isActive?'#FF5910':'transparent')+';">'
+        +'<span style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+(a.color||'#888')+';"></span>'
+        +'<span style="flex:1;font-size:11px;color:'+(isActive?'#FF5910':'#e8eaed')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.label+'</span>'
+        +'<span style="font-size:10px;color:#666;white-space:nowrap;">'+matFmt+' &middot; '+hrsFmt+'</span>'
+        +'</div>';
+    });
+  });
+  el.innerHTML=html;
+}
+
+function selectRidgeAsm(idx){
+  ridgeListActive=idx;
+  renderRidgeList();
+  var a=ridgeList[idx];
+  if(a){
+    var st=document.getElementById('st-active');
+    if(st)st.textContent=a.label;
+  }
+}
+
+function inferSymId(category){
+  // Only ids that exist in this tool's symbol library
+  var map={
+    'Devices':'duplex_recept',
+    'Fixtures':'fluor_fixture',
+    'Conduit':'junction_box',
+    'FA':'smoke_det',
+    'LV':'data_port',
+    'Gear':'panel_box',
+    'Custom':'junction_box',
+  };
+  return map[category]||DEFAULT_SYM;
+}
+
+function hCountRidge(e){
+  if(!currentDwgId){alert('Load a drawing first.');return;}
+  if(ridgeListActive<0||ridgeListActive>=ridgeList.length){
+    showToast('Select an assembly in the Ridge List first');
+    return;
+  }
+  var a=ridgeList[ridgeListActive];
+  var p=cvPos(e);
+  curMs().push({
+    type:'point',
+    asmId:a.id,
+    ridgeAsm:true,
+    label:a.label,
+    page:curPage,
+    x:p.x,y:p.y,
+    color:a.color||'#FF5910',
+    symId:inferSymId(a.category),
+  });
+  save();
+  redrawMarkup();
+  renderAudit();
+  flash(p.x,p.y,a.color||'#FF5910');
+
+  // Send the placement straight to the estimator's Audit Trail
+  if(oreChannel){
+    oreChannel.postMessage({
+      type:'ASSEMBLY_PLACED',
+      payload:{
+        assembly:{
+          label:a.label,
+          mat:a.mat||0,
+          lab:a.lab||0,
+          lines:a.lines||[],
+          bidPackage:activeBidPackage||a.bidPackage||undefined,
+          area:activeArea||a.area||undefined,
+          costCode:activeCostCode||a.costCode||undefined,
+        },
+        placedAt:new Date().toISOString(),
+      },
+    });
+  }
+
+  // Flash confirmation in the status bar
+  var st=document.getElementById('st-active');
+  if(st){
+    var orig=a.label;
+    st.textContent='✓ '+a.label+' added';
+    st.style.color='#4ade80';
+    setTimeout(function(){st.textContent=orig;st.style.color='';},1200);
+  }
 }
 
 // ═══════════════════════════════════════
@@ -802,7 +970,7 @@ function showRtt(e,ft){var t=document.getElementById('rtt');t.style.display='blo
 // ═══════════════════════════════════════
 // COUNT MODE
 // ═══════════════════════════════════════
-function hCount(e){if(!currentDwgId){alert('Load a drawing first.');return;}var a=assemblies[activeAsmIdx];if(!a)return;var p=cvPos(e);curMs().push({type:'point',asmId:a.id,page:curPage,x:p.x,y:p.y,color:a.color,symId:a.symId||DEFAULT_SYM});a.count=(a.count||0)+1;renderAll();redrawMarkup();save();flash(p.x,p.y,a.color);}
+function hCount(e){if(ridgeListMode){hCountRidge(e);return;}if(!currentDwgId){alert('Load a drawing first.');return;}var a=assemblies[activeAsmIdx];if(!a)return;var p=cvPos(e);curMs().push({type:'point',asmId:a.id,page:curPage,x:p.x,y:p.y,color:a.color,symId:a.symId||DEFAULT_SYM});a.count=(a.count||0)+1;renderAll();redrawMarkup();save();flash(p.x,p.y,a.color);}
 function undoLast(){if(!currentDwgId)return;var a=assemblies[activeAsmIdx];if(!a)return;var ms=curMs();for(var i=ms.length-1;i>=0;i--){if(ms[i].type==='point'&&ms[i].page===curPage&&ms[i].asmId===a.id){ms.splice(i,1);recomputeCounts();renderAll();redrawMarkup();save();return;}}}
 
 // ═══════════════════════════════════════
@@ -1188,6 +1356,21 @@ function buildAudit(){
 
 function renderAudit(){
   var d=buildAudit();var h='';
+  // Ridge List placements (markups flagged ridgeAsm:true, grouped by label)
+  var ridgeCounts={};
+  Object.keys(drawings).forEach(function(id){
+    (drawings[id].markups||[]).forEach(function(m){
+      if(m.type==='point'&&m.ridgeAsm){ridgeCounts[m.label||m.asmId]=(ridgeCounts[m.label||m.asmId]||0)+1;}
+    });
+  });
+  var ridgeKeys=Object.keys(ridgeCounts);
+  if(ridgeKeys.length){
+    var rTotal=ridgeKeys.reduce(function(s,k){return s+ridgeCounts[k];},0);
+    h+='<div class="asl" style="color:#FF5910;">⚡ Ridge List <span style="color:var(--text3);font-weight:400;">('+rTotal+')</span></div>';
+    ridgeKeys.forEach(function(k){
+      h+='<div class="arow"><span class="akey">'+k+'</span><span class="aval">'+ridgeCounts[k]+' ea</span></div>';
+    });
+  }
   // Device/fixture categories in order
   CAT_ORDER.forEach(function(cat){
     if(!d.byCat[cat]||!d.byCat[cat].length)return;
@@ -1503,7 +1686,10 @@ function showToast(msg){var t=document.getElementById('_t_');if(!t){t=document.c
 document.addEventListener('keydown',function(e){if(['INPUT','SELECT','TEXTAREA'].indexOf(e.target.tagName)>=0)return;if(e.key==='c'||e.key==='C')setMode('count');if(e.key==='r'||e.key==='R')setMode('run');if(e.key==='p'||e.key==='P')setMode('pan');if(e.key==='Escape'){if(drawingRun){drawingRun=false;runPts=[];redrawMarkup();}if(measuring)cancelMeasure();}if(e.key==='Enter'&&mode==='run'&&drawingRun&&runPts.length>=2)finishRun();if(e.key==='+'||e.key==='=')zoom(.15);if(e.key==='-')zoom(-.15);var n=parseInt(e.key);if(!isNaN(n)&&n>=1){if(mode==='count'&&n<=assemblies.length){activeAsmIdx=n-1;renderAsms();}if(mode==='run'&&n<=runTypes.length){activeRtIdx=n-1;renderRts();}}});
 document.getElementById('dwg-name-inp').addEventListener('keydown',function(e){if(e.key==='Enter')confirmDwgLoad();});
 
-window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();updateLabelDisplay();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}};
+window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();updateLabelDisplay();setAsmMode('ridge');renderRidgeList();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}
+  // Ask the estimator for its current Ridge List (it re-broadcasts on PING)
+  if(oreChannel){setTimeout(function(){oreChannel.postMessage({type:'PING',payload:{source:'pdf-takeoff'}});},500);}
+};
 </script>
 
 

@@ -63,6 +63,7 @@ export interface EstimatorActions {
   addGear:          () => boolean;
   addFloorBox:      () => boolean;
   addHighAmpRecept: () => boolean;
+  addPrebuiltAssembly: (asm: SavedAssembly) => void;
 
   // ── Remove assembly from saved array ───────────────────────────
   removeAssembly: (
@@ -377,6 +378,19 @@ export function useEstimator(): EstimatorActions {
     return true;
   }, [state.harState]);
 
+  // ── Add a pre-built SavedAssembly directly (Ridge List placements) ──
+  const addPrebuiltAssembly = useCallback((asm: SavedAssembly) => {
+    setState(s => ({
+      ...s,
+      savedCustomAsm: [...s.savedCustomAsm, {
+        ...asm,
+        bidPackage: asm.bidPackage || s.activeBidPackage || undefined,
+        area:       asm.area       || s.activeArea       || undefined,
+        costCode:   asm.costCode   || s.activeCostCode   || undefined,
+      }],
+    }));
+  }, []);
+
   // ── Remove assembly ──────────────────────────────────────────────
   const removeAssembly = useCallback(
     (arrayKey: keyof EstimatorState, index: number) => {
@@ -662,6 +676,7 @@ export function useEstimator(): EstimatorActions {
     addConduitRun, addRack, addMCHomeRun, addThreeWay,
     addDataLocation, addFireAlarm, addLVDevice, addGear, addFloorBox,
     addHighAmpRecept,
+    addPrebuiltAssembly,
     removeAssembly,
     updateAssemblyLine, addAssemblyLine, removeAssemblyLine,
     saveAssemblyToJob, saveAssemblyToMaster,
