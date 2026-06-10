@@ -143,7 +143,7 @@ export function CounterTool() {
       <div className="bg-[#1e3a8a] text-white px-4 py-3 space-y-2 shrink-0">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold tracking-widest text-blue-200">
-            OAK RIDGE / TAKEOFF
+            RIDGELINE / TAKEOFF
           </span>
           <span className="text-xs text-blue-300 truncate ml-2 max-w-[160px]">
             {state.jobName || '—'}

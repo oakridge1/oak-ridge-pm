@@ -1492,7 +1492,7 @@ function BidSummaryTab({
       {/* Bid sheet */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div className="bg-[#1e3a8a] text-white px-6 py-4">
-          <div className="text-xs text-blue-200 tracking-widest uppercase">Oak Ridge Electrical LLC</div>
+          <div className="text-xs text-blue-200 tracking-widest uppercase">Ridgeline</div>
           <div className="text-lg font-bold mt-1">Bid Summary</div>
         </div>
         <div className="px-6 py-4 space-y-1">

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
-import { Clock, Zap } from "lucide-react";
+import { Clock } from "lucide-react";
 
 export default async function PendingPage() {
   const session = await auth();
@@ -12,14 +12,13 @@ export default async function PendingPage() {
     <div className="min-h-screen bg-[#1e3a8a] flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden">
         <div className="bg-[#1e3a8a] px-8 py-8 text-center">
-          <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 rounded-xl bg-[#FF5910] flex items-center justify-center shadow-lg">
-              <Zap className="w-8 h-8 text-white" />
-            </div>
+          <div className="flex justify-center">
+            <img
+              src="/White-ridge-logo.png"
+              alt="Ridgeline"
+              style={{ width: '200px', height: 'auto' }}
+            />
           </div>
-          <h1 className="text-white font-bold text-xl tracking-wide">
-            OAK RIDGE ELECTRICAL
-          </h1>
         </div>
 
         <div className="px-8 py-8 text-center flex flex-col items-center gap-4">

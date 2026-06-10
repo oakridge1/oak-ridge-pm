@@ -172,7 +172,7 @@ export function BidSummaryTab() {
     });
 
     const lines: string[] = [
-      `Oak Ridge Electrical — Bid Summary`,
+      `Ridgeline — Bid Summary`,
       `Job: ${state.jobName}`,
       `Date: ${today}`,
       ``,

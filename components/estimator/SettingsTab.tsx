@@ -534,7 +534,7 @@ export function SettingsTab() {
 
         <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
           <span className="text-xs text-gray-400">
-            NECA base · Oak Ridge defaults
+            NECA base · Ridgeline defaults
           </span>
           <button
             onClick={() => updateSettings({ ...DEFAULTS })}

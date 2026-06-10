@@ -1759,7 +1759,7 @@ export function TakeoffClient({
     <div style={S.root}>
       {/* HEADER */}
       <header style={S.header}>
-        <span style={S.logo}>OAK RIDGE <span style={S.logoSub}>/ TAKEOFF</span></span>
+        <span style={S.logo}>RIDGELINE <span style={S.logoSub}>/ TAKEOFF</span></span>
         <div style={S.sep} />
         <span style={S.estName}>{estimate.estimateNumber} — {estimate.name}</span>
 

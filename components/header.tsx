@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, Settings, Zap, Calculator, ClipboardList, User } from "lucide-react";
+import { LogOut, Settings, Calculator, ClipboardList, User } from "lucide-react";
 import type { Role } from "@/app/generated/prisma/client";
 
 interface HeaderProps {
@@ -22,32 +22,12 @@ export function Header({ userName, userRole, userImage, canEstimate }: HeaderPro
       <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
 
         {/* Logo — plain <img> to avoid Next.js image optimization issues with OneDrive */}
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <div className="w-9 h-9 shrink-0 relative">
-            <img
-              src="/logo.png"
-              alt="Oak Ridge Electrical"
-              width={36}
-              height={36}
-              className="object-contain w-9 h-9"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-                const fallback = (e.currentTarget as HTMLImageElement)
-                  .nextElementSibling as HTMLElement | null;
-                if (fallback) fallback.style.display = "flex";
-              }}
-            />
-            <div
-              className="absolute inset-0 w-9 h-9 rounded-md bg-[#FF5910] items-center justify-center"
-              style={{ display: "none" }}
-            >
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <div className="leading-tight hidden sm:block">
-            <div className="font-bold text-sm tracking-wide">OAK RIDGE</div>
-            <div className="text-[10px] text-blue-200 tracking-widest uppercase">Electrical LLC</div>
-          </div>
+        <Link href="/" className="flex items-center shrink-0">
+          <img
+            src="/White-ridge-logo.png"
+            alt="Ridgeline"
+            style={{ width: '160px', height: 'auto' }}
+          />
         </Link>
 
         {/* Right nav */}

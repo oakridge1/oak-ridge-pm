@@ -59,8 +59,13 @@ export function EstimatorShell() {
       {/* Tool header */}
       <div className="bg-[#1e3a8a] text-white px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="font-bold text-sm tracking-wide">
-            Oak Ridge Electrical — Estimating Tool
+          <span className="flex items-center gap-2">
+            <img
+              src="/White-ridge-logo.png"
+              alt="Ridgeline"
+              style={{ height: '32px', width: 'auto' }}
+            />
+            <span className="text-xs text-blue-200 tracking-widest uppercase">Estimator</span>
           </span>
           <span className="text-xs text-blue-200">
             ${state.settings.labor.toFixed(2)}/hr · NECA

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import { COMPANY_NAME, COMPANY_DBA, BRAND_BLUE } from "@/lib/company";
+import { PRODUCT_NAME, BRAND_BLUE } from "@/lib/company";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -9,8 +9,8 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: `${COMPANY_DBA} — Project Management`,
-  description: `Internal project management for ${COMPANY_NAME}`,
+  title: PRODUCT_NAME,
+  description: "The Operating System for Commercial Electrical Contractors",
 };
 
 export const viewport: Viewport = {
