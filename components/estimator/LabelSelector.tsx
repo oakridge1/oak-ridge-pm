@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 
 // ── LabelSelector ─────────────────────────────────────────────────────────────
 // Sticky navy banner shown at the top of each builder tab.
 // Lets the user choose Bid Package / Area / Cost Code before adding assemblies.
+// Broadcasts label + job context changes to the PDF Takeoff and Counter tools
+// over the shared 'ore_tools' BroadcastChannel.
 
 export function LabelSelector() {
   const { state, setActiveLabel, addLabel, removeLabel } = useEstimatorContext();
@@ -13,6 +15,49 @@ export function LabelSelector() {
   const [newBidPackage, setNewBidPackage] = useState('');
   const [newArea,       setNewArea]       = useState('');
   const [newCostCode,   setNewCostCode]   = useState('');
+
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('ore_tools');
+    channelRef.current = channel;
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'PING') {
+        channel.postMessage({ type: 'PONG', payload: { source: 'estimator' } });
+      }
+    };
+    return () => { channelRef.current = null; channel.close(); };
+  }, []);
+
+  // Broadcast label changes (also fires once on mount so tools get current state)
+  useEffect(() => {
+    channelRef.current?.postMessage({
+      type: 'LABELS_CHANGED',
+      payload: {
+        activeBidPackage: state.activeBidPackage,
+        activeArea:       state.activeArea,
+        activeCostCode:   state.activeCostCode,
+        labelsBidPackage: state.labelsBidPackage,
+        labelsArea:       state.labelsArea,
+        labelsCostCode:   state.labelsCostCode,
+      },
+    });
+  }, [
+    state.activeBidPackage, state.activeArea, state.activeCostCode,
+    state.labelsBidPackage, state.labelsArea, state.labelsCostCode,
+  ]);
+
+  // Broadcast job context on mount and when the job changes
+  useEffect(() => {
+    channelRef.current?.postMessage({
+      type: 'JOB_CONTEXT',
+      payload: {
+        estimateId: state.jobId || '',
+        jobName:    state.jobName || '',
+      },
+    });
+  }, [state.jobId, state.jobName]);
 
   function handleAdd(
     dimension: 'bidPackage' | 'area' | 'costCode',

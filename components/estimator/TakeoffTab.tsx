@@ -48,7 +48,7 @@ const DATA_TAKEOFF_MAP: Record<string, number> = {
 // ── TakeoffTab ─────────────────────────────────────────────────────────────────
 
 export function TakeoffTab() {
-  const { state, setState, setTab, updateFAState, updateLVState, updateDataState } = useEstimatorContext();
+  const { state, setState, setTab, setActiveLabel, addLabel, updateFAState, updateLVState, updateDataState } = useEstimatorContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [editingId,   setEditingId]   = useState<string | null>(null);
@@ -58,6 +58,14 @@ export function TakeoffTab() {
     totals: Record<string, number>;
     timestamp: number;
     areas: Array<{ areaName: string; counts: Record<string, number> }>;
+    activeBidPackage?: string;
+    activeArea?:       string;
+    activeCostCode?:   string;
+  } | null>(null);
+  const [labelConfirmPayload, setLabelConfirmPayload] = useState<{
+    bidPackage: string;
+    area:       string;
+    costCode:   string;
   } | null>(null);
 
   useEffect(() => {
@@ -77,6 +85,19 @@ export function TakeoffTab() {
     checkSync();
     const interval = setInterval(checkSync, 3000);
     return () => clearInterval(interval);
+  }, []);
+
+  // BroadcastChannel — instant sync path (localStorage poll above stays as fallback)
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('ore_tools');
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'SYNC_COUNTS') {
+        setSyncPayload(e.data.payload);
+      }
+      // LABELS_CHANGED / JOB_CONTEXT originate from the estimator — no action here
+    };
+    return () => channel.close();
   }, []);
 
   const counts  = state.takeoffCounts;
@@ -176,6 +197,15 @@ export function TakeoffTab() {
                   ? (syncPayload.jobName || s.jobName) : s.jobName,
               }));
               localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
+              // Labels carried in the SYNC payload → offer to apply them
+              const incomingLabels = {
+                bidPackage: syncPayload.activeBidPackage ?? '',
+                area:       syncPayload.activeArea       ?? '',
+                costCode:   syncPayload.activeCostCode   ?? '',
+              };
+              if (incomingLabels.bidPackage || incomingLabels.area || incomingLabels.costCode) {
+                setLabelConfirmPayload(incomingLabels);
+              }
               setSyncPayload(null);
             }}
             className="px-3 py-1.5 text-sm font-semibold rounded bg-green-600 text-white hover:bg-green-700 whitespace-nowrap"
@@ -190,6 +220,49 @@ export function TakeoffTab() {
             className="text-green-500 hover:text-green-700 text-sm px-1"
           >
             ✕
+          </button>
+        </div>
+      )}
+
+      {/* ── LABEL CONFIRMATION BANNER ─────────────────────────────────────── */}
+      {labelConfirmPayload && (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-300 rounded-lg px-4 py-3">
+          <span className="text-green-600 text-lg">⬡</span>
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-green-800">
+              Takeoff labeled:{' '}
+              {[labelConfirmPayload.bidPackage, labelConfirmPayload.area, labelConfirmPayload.costCode]
+                .filter(Boolean).join(' / ')}
+            </div>
+            <div className="text-xs text-green-600">
+              Apply these as the active labels for new assemblies?
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (labelConfirmPayload.bidPackage) {
+                addLabel('bidPackage', labelConfirmPayload.bidPackage);
+                setActiveLabel('bidPackage', labelConfirmPayload.bidPackage);
+              }
+              if (labelConfirmPayload.area) {
+                addLabel('area', labelConfirmPayload.area);
+                setActiveLabel('area', labelConfirmPayload.area);
+              }
+              if (labelConfirmPayload.costCode) {
+                addLabel('costCode', labelConfirmPayload.costCode);
+                setActiveLabel('costCode', labelConfirmPayload.costCode);
+              }
+              setLabelConfirmPayload(null);
+            }}
+            className="px-3 py-1.5 text-sm font-semibold rounded bg-green-600 text-white hover:bg-green-700 whitespace-nowrap"
+          >
+            Apply These Labels
+          </button>
+          <button
+            onClick={() => setLabelConfirmPayload(null)}
+            className="px-3 py-1.5 text-sm rounded border border-green-300 text-green-700 hover:bg-green-100 whitespace-nowrap"
+          >
+            Keep Current
           </button>
         </div>
       )}

@@ -188,6 +188,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidde
   <button class="hb" onclick="showReport()">🖨 REPORT</button>
   <button class="hb a" onclick="openPagePicker()">📷 SAVE DWG</button>
   <button class="hb" onclick="exportJSON()">↓ JSON</button>
+  <span id="active-labels-display" style="font-size:11px;color:#aaa;margin-left:12px;align-self:center;white-space:nowrap;"></span>
 </div>
 <div id="dwg-bar">
   <select id="dwg-select" onchange="switchDrawing(this.value)">
@@ -642,6 +643,41 @@ var pgSelected={};
 var _reportHTML='';
 var estimateId=(new URLSearchParams(window.location.search)).get('estimateId')||'standalone';
 var pendingPdfFile=null;
+
+// ═══════════════════════════════════════
+// BROADCAST CHANNEL — live link to the estimator ('ore_tools')
+// ═══════════════════════════════════════
+var activeBidPackage='';
+var activeArea='';
+var activeCostCode='';
+var oreChannel=null;
+try{
+  oreChannel=new BroadcastChannel('ore_tools');
+  oreChannel.onmessage=function(e){
+    var msg=e.data||{};
+    if(msg.type==='LABELS_CHANGED'){
+      activeBidPackage=msg.payload.activeBidPackage||'';
+      activeArea=msg.payload.activeArea||'';
+      activeCostCode=msg.payload.activeCostCode||'';
+      updateLabelDisplay();
+    }
+    if(msg.type==='JOB_CONTEXT'){
+      if(msg.payload.estimateId)estimateId=msg.payload.estimateId;
+    }
+    if(msg.type==='PING'){
+      oreChannel.postMessage({type:'PONG',payload:{source:'pdf-takeoff'}});
+    }
+  };
+}catch(e){/* BroadcastChannel unsupported — localStorage bridge still works */}
+function updateLabelDisplay(){
+  var el=document.getElementById('active-labels-display');
+  if(!el)return;
+  var parts=[];
+  if(activeBidPackage)parts.push(activeBidPackage);
+  if(activeArea)parts.push(activeArea);
+  if(activeCostCode)parts.push(activeCostCode);
+  el.textContent=parts.length?'⬡ '+parts.join(' · '):'⬡ No labels active';
+}
 
 // ═══════════════════════════════════════
 // STORAGE
@@ -1434,8 +1470,14 @@ function syncToCounter() {
     totals: totals,
     areas: [{ areaName: 'PDF Takeoff', counts: totals }],
     timestamp: Date.now(),
+    activeBidPackage: activeBidPackage || '',
+    activeArea:       activeArea       || '',
+    activeCostCode:   activeCostCode   || '',
   };
   localStorage.setItem('ore_estimator_sync', JSON.stringify(payload));
+
+  // Also broadcast directly (instant — localStorage above is the fallback)
+  if (oreChannel) oreChannel.postMessage({ type: 'SYNC_COUNTS', payload: payload });
 
   // Show feedback
   var btn = document.querySelector('[onclick="syncToCounter()"]');
@@ -1461,7 +1503,7 @@ function showToast(msg){var t=document.getElementById('_t_');if(!t){t=document.c
 document.addEventListener('keydown',function(e){if(['INPUT','SELECT','TEXTAREA'].indexOf(e.target.tagName)>=0)return;if(e.key==='c'||e.key==='C')setMode('count');if(e.key==='r'||e.key==='R')setMode('run');if(e.key==='p'||e.key==='P')setMode('pan');if(e.key==='Escape'){if(drawingRun){drawingRun=false;runPts=[];redrawMarkup();}if(measuring)cancelMeasure();}if(e.key==='Enter'&&mode==='run'&&drawingRun&&runPts.length>=2)finishRun();if(e.key==='+'||e.key==='=')zoom(.15);if(e.key==='-')zoom(-.15);var n=parseInt(e.key);if(!isNaN(n)&&n>=1){if(mode==='count'&&n<=assemblies.length){activeAsmIdx=n-1;renderAsms();}if(mode==='run'&&n<=runTypes.length){activeRtIdx=n-1;renderRts();}}});
 document.getElementById('dwg-name-inp').addEventListener('keydown',function(e){if(e.key==='Enter')confirmDwgLoad();});
 
-window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}};
+window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();updateLabelDisplay();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}};
 </script>
 
 

@@ -581,6 +581,7 @@ body {
     <button class="hdr-btn danger" onclick="openAreas()">AREAS</button>
     <label class="hdr-btn" for="import-file">LOAD</label>
     <input type="file" id="import-file" accept=".json" onchange="importJSON(event)">
+    <span id="active-labels-display" style="font-size:11px;color:#aaa;margin-left:8px;align-self:center;white-space:nowrap;"></span>
   </div>
 </div>
 
@@ -861,6 +862,47 @@ var state = {
 var currentTab = CATEGORIES[0].id;
 
 function currentArea() { return state.areas[state.currentAreaIdx]; }
+
+// ============================================================
+//  BROADCAST CHANNEL — live link to the estimator ('ore_tools')
+// ============================================================
+var activeBidPackage = '';
+var activeArea = '';
+var activeCostCode = '';
+var oreChannel = null;
+try {
+  oreChannel = new BroadcastChannel('ore_tools');
+  oreChannel.onmessage = function(e) {
+    var msg = e.data || {};
+    if (msg.type === 'LABELS_CHANGED') {
+      activeBidPackage = msg.payload.activeBidPackage || '';
+      activeArea       = msg.payload.activeArea       || '';
+      activeCostCode   = msg.payload.activeCostCode   || '';
+      updateLabelDisplay();
+    }
+    if (msg.type === 'JOB_CONTEXT') {
+      // Adopt the job name only when this counter session is still unnamed
+      if (msg.payload.jobName && !state.jobName) {
+        state.jobName = msg.payload.jobName;
+        var inp = document.getElementById('job-name');
+        if (inp) inp.value = state.jobName;
+      }
+    }
+    if (msg.type === 'PING') {
+      oreChannel.postMessage({ type: 'PONG', payload: { source: 'counter' } });
+    }
+  };
+} catch(e) { /* BroadcastChannel unsupported — localStorage bridge still works */ }
+
+function updateLabelDisplay() {
+  var el = document.getElementById('active-labels-display');
+  if (!el) return;
+  var parts = [];
+  if (activeBidPackage) parts.push(activeBidPackage);
+  if (activeArea)       parts.push(activeArea);
+  if (activeCostCode)   parts.push(activeCostCode);
+  el.textContent = parts.length ? '⬡ ' + parts.join(' · ') : '⬡ No labels active';
+}
 
 // ============================================================
 //  PERSIST
@@ -1401,8 +1443,14 @@ function syncToEstimator() {
       return { areaName: a.name, counts: cleaned };
     }),
     timestamp: Date.now(),
+    activeBidPackage: activeBidPackage || '',
+    activeArea:       activeArea       || '',
+    activeCostCode:   activeCostCode   || '',
   };
   localStorage.setItem('ore_estimator_sync', JSON.stringify(payload));
+
+  // Also broadcast directly (instant — localStorage above is the fallback)
+  if (oreChannel) oreChannel.postMessage({ type: 'SYNC_COUNTS', payload: payload });
 
   // Visual feedback
   var btn = document.getElementById('sync-btn');
@@ -1465,6 +1513,7 @@ window.addEventListener('load', function() {
   buildUI();
   autoLoad();
   renderAll();
+  updateLabelDisplay();
 
   // enter key on new area input
   document.getElementById('new-area-inp').addEventListener('keydown', function(e) {
