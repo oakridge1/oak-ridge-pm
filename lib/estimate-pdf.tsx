@@ -1,8 +1,12 @@
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { BidTotals, EstimateData } from "./estimating";
+import {
+  COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE,
+  COMPANY_EMAIL, BRAND_BLUE, BRAND_ORANGE,
+} from "./company";
 
-const NAVY = "#002D72";
-const ORANGE = "#FF5910";
+const NAVY = BRAND_BLUE;
+const ORANGE = BRAND_ORANGE;
 const GRAY = "#555555";
 const LIGHT = "#999999";
 const BORDER = "#e0e0e0";
@@ -121,9 +125,9 @@ export function EstimatePdfDoc({ estimate, totals, data }: EstimatePdfProps) {
         {/* Header */}
         <View style={S.headerRow}>
           <View>
-            <Text style={S.companyName}>OAK RIDGE ELECTRICAL LLC</Text>
-            <Text style={S.companyAddr}>209 W. River Rd, Hooksett, NH 03106</Text>
-            <Text style={S.companyAddr}>Justin Marceau | 603-660-4651 | Justin@oakridgeelectrical.com</Text>
+            <Text style={S.companyName}>{COMPANY_NAME.toUpperCase()}</Text>
+            <Text style={S.companyAddr}>{COMPANY_ADDRESS}</Text>
+            <Text style={S.companyAddr}>{`Justin Marceau | ${COMPANY_PHONE} | ${COMPANY_EMAIL}`}</Text>
           </View>
           <View style={S.headerRight}>
             <Text style={S.bidLabel}>BID SUMMARY</Text>
@@ -252,7 +256,7 @@ export function EstimatePdfDoc({ estimate, totals, data }: EstimatePdfProps) {
 
         {/* Footer */}
         <View style={S.footer} fixed>
-          <Text style={S.footerText}>Oak Ridge Electrical LLC — 209 W. River Rd, Hooksett NH 03106</Text>
+          <Text style={S.footerText}>{`${COMPANY_NAME} — ${COMPANY_ADDRESS}`}</Text>
           <Text style={S.footerText}>{estimate.estimateNumber} — {estimate.name}</Text>
         </View>
       </Page>

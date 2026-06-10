@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import { COMPANY_NAME, COMPANY_DBA, BRAND_BLUE } from "@/lib/company";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -8,15 +9,15 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Oak Ridge Electrical — Project Management",
-  description: "Internal project management for Oak Ridge Electrical LLC",
+  title: `${COMPANY_DBA} — Project Management`,
+  description: `Internal project management for ${COMPANY_NAME}`,
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#002D72",
+  themeColor: BRAND_BLUE,
 };
 
 export default function RootLayout({

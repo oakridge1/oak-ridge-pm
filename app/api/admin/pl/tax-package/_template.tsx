@@ -1,8 +1,9 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { BRAND_BLUE, BRAND_ORANGE } from "@/lib/company";
 
-const NAVY = "#002D72";
-const ORANGE = "#FF5910";
+const NAVY = BRAND_BLUE;
+const ORANGE = BRAND_ORANGE;
 const GRAY_BG = "#F3F4F6";
 const GRAY_BORDER = "#E5E7EB";
 

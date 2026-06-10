@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { APP_URL } from "@/lib/app-url";
+import { COMPANY_NAME, COMPANY_DBA, BRAND_BLUE, BRAND_ORANGE } from "@/lib/company";
 
 const FROM = process.env.EMAIL_FROM;
 const PASS = process.env.GMAIL_APP_PASSWORD;
@@ -97,15 +98,15 @@ function wrap(body: string) {
   return `
 <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#1a1a1a">
   <div style="margin-bottom:20px">
-    <span style="font-size:13px;font-weight:700;color:#FF5910;text-transform:uppercase;letter-spacing:0.1em">Oak Ridge Electrical LLC</span>
+    <span style="font-size:13px;font-weight:700;color:${BRAND_ORANGE};text-transform:uppercase;letter-spacing:0.1em">${COMPANY_NAME}</span>
   </div>
   ${body}
   <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb" />
-  <p style="font-size:11px;color:#aaa;margin:0">Oak Ridge Electrical Project Management</p>
+  <p style="font-size:11px;color:#aaa;margin:0">${COMPANY_DBA} Project Management</p>
 </div>`;
 }
 
-function btn(url: string, label: string, color = "#002D72") {
+function btn(url: string, label: string, color = BRAND_BLUE) {
   return `<a href="${url}" style="display:inline-block;background:${color};color:#fff;font-weight:600;font-size:14px;padding:10px 20px;border-radius:8px;text-decoration:none">${label}</a>`;
 }
 

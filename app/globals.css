@@ -3,15 +3,15 @@
 :root {
   --background: #f8f9fa;
   --foreground: #1a1a1a;
-  --or-blue: #002D72;
-  --or-orange: #FF5910;
+  --rl-blue: #002D72;
+  --rl-orange: #FF5910;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-or-blue: var(--or-blue);
-  --color-or-orange: var(--or-orange);
+  --color-rl-blue: var(--rl-blue);
+  --color-rl-orange: var(--rl-orange);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

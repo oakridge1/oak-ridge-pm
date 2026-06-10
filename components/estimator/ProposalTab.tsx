@@ -16,6 +16,10 @@ import {
 import { fmt$ } from '@/lib/estimator/format';
 import { getRates } from '@/lib/estimator/constants';
 import { calcLabelTotals } from '@/lib/estimator/labelTotals';
+import {
+  COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE,
+  COMPANY_EMAIL, COMPANY_LICENSE, LOGO_URL,
+} from '@/lib/company';
 import type { ProposalPdfData } from '@/app/api/jobs/[id]/pdf/_templates';
 
 // ─────────────────────────────────────
@@ -24,15 +28,12 @@ import type { ProposalPdfData } from '@/app/api/jobs/[id]/pdf/_templates';
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
-// Oak Ridge company header constants
-const CO_NAME    = 'Oak Ridge Electrical LLC';
-const CO_ADDR    = '209 W. River Rd, Hooksett, NH 03106';
-const CO_PHONE   = '603-660-4651';
-const CO_EMAIL   = 'Justin@oakridgeelectrical.com';
-const CO_LICENSE = 'NH Electrical License # 0069M';
-
-// Absolute URL for logo so it resolves correctly in the blank print window
-const LOGO_URL = 'https://oak-ridge-pm.vercel.app/logo.png';
+// Company header constants — single source of truth in lib/company.ts
+const CO_NAME    = COMPANY_NAME;
+const CO_ADDR    = COMPANY_ADDRESS;
+const CO_PHONE   = COMPANY_PHONE;
+const CO_EMAIL   = COMPANY_EMAIL;
+const CO_LICENSE = COMPANY_LICENSE;
 
 // ─────────────────────────────────────
 // Scope bullet library

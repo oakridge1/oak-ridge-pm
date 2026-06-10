@@ -1,7 +1,11 @@
 import { Document, Page, View, Text, StyleSheet, Image } from "@react-pdf/renderer";
+import {
+  COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE,
+  COMPANY_EMAIL, COMPANY_LICENSE, BRAND_BLUE, BRAND_ORANGE,
+} from "@/lib/company";
 
-const NAVY = "#002D72";
-const ORANGE = "#FF5910";
+const NAVY = BRAND_BLUE;
+const ORANGE = BRAND_ORANGE;
 const GRAY = "#555555";
 const LIGHT = "#999999";
 const BORDER = "#e0e0e0";
@@ -172,7 +176,7 @@ export function FullReportDoc({ data }: { data: FullReportData }) {
       <Page size="LETTER" style={S.page}>
         <View style={S.headerRow}>
           <View>
-            <Text style={S.brandLabel}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={S.brandLabel}>{COMPANY_NAME.toUpperCase()}</Text>
             <Text style={S.jobName}>{data.jobName}</Text>
             <Text style={S.jobNum}>Job #{data.jobNumber}</Text>
           </View>
@@ -358,7 +362,7 @@ export function SummaryDoc({ data }: { data: SummaryData }) {
       <Page size="LETTER" style={S.page}>
         <View style={S.headerRow}>
           <View>
-            <Text style={S.brandLabel}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={S.brandLabel}>{COMPANY_NAME.toUpperCase()}</Text>
             <Text style={S.jobName}>{data.jobName}</Text>
             <Text style={S.jobNum}>Job #{data.jobNumber}</Text>
           </View>
@@ -593,7 +597,7 @@ export function ChangeOrderDoc({ data }: { data: ChangeOrderDocData }) {
       <Page size="LETTER" style={S.page}>
         <View style={S.headerRow}>
           <View>
-            <Text style={S.brandLabel}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={S.brandLabel}>{COMPANY_NAME.toUpperCase()}</Text>
             <Text style={S.jobName}>{data.jobName}</Text>
             <Text style={S.jobNum}>Job #{data.jobNumber}</Text>
           </View>
@@ -760,7 +764,7 @@ export function InspectionDoc({ data }: { data: InspectionDocData }) {
       <Page size="LETTER" style={S.page}>
         <View style={S.headerRow}>
           <View>
-            <Text style={S.brandLabel}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={S.brandLabel}>{COMPANY_NAME.toUpperCase()}</Text>
             <Text style={S.jobName}>{data.jobName}</Text>
             <Text style={S.jobNum}>Job #{data.jobNumber}</Text>
           </View>
@@ -892,7 +896,7 @@ export function RfiDoc({ data }: { data: RfiDocData }) {
       <Page size="LETTER" style={S.page}>
         <View style={S.headerRow}>
           <View>
-            <Text style={S.brandLabel}>OAK RIDGE ELECTRICAL LLC</Text>
+            <Text style={S.brandLabel}>{COMPANY_NAME.toUpperCase()}</Text>
             <Text style={S.jobName}>{data.jobName}</Text>
             <Text style={S.jobNum}>Job #{data.jobNumber}</Text>
           </View>
@@ -1107,13 +1111,13 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
   const invoiceKind = data.invoiceKind === "FINAL_INVOICE" ? "FINAL INVOICE" : "PROGRESS PAYMENT";
 
   // Company settings with fallbacks
-  const co_name = data.companyName ?? "Oak Ridge Electrical LLC";
+  const co_name = data.companyName ?? COMPANY_NAME;
   const co_address = data.companyAddress ?? "209 W. River Rd";
   const co_city = data.companyCity ?? "Hooksett";
   const co_state = data.companyState ?? "NH";
   const co_zip = data.companyZip ?? "03106";
-  const co_phone = data.companyPhone ?? "603-660-4651";
-  const co_email = data.companyEmail ?? "Justin@oakridgeelectrical.com";
+  const co_phone = data.companyPhone ?? COMPANY_PHONE;
+  const co_email = data.companyEmail ?? COMPANY_EMAIL;
   const co_cityState = `${co_city}, ${co_state} ${co_zip}`;
 
   // Parse scope of work into numbered items
@@ -1136,7 +1140,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
             <Text style={IS.contactInfo}>
               {'209 W. River Rd, Hooksett, NH 03106\n'}
               {'603-660-4651 · Justin@oakridgeelectrical.com\n'}
-              {'NH Electrical License # 0069M'}
+              {COMPANY_LICENSE}
             </Text>
           </View>
           <View style={IS.invoiceNumDate}>
@@ -1262,7 +1266,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
         <View style={IS.invFooter} fixed>
           <View style={IS.invFooterLine} />
           <Text style={IS.invFooterText}>
-            {'Oak Ridge Electrical LLC · 209 W. River Rd, Hooksett, NH 03106 · 603-660-4651 · Justin@oakridgeelectrical.com · NH Electrical License # 0069M'}
+            {`${COMPANY_NAME} · ${COMPANY_ADDRESS} · ${COMPANY_PHONE} · ${COMPANY_EMAIL} · ${COMPANY_LICENSE}`}
           </Text>
           <Text
             style={IS.invFooterPage}
@@ -1387,8 +1391,8 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
         {/* Header */}
         <View style={SS.headerRow}>
           <View>
-            <Text style={SS.coName}>OAK RIDGE ELECTRICAL LLC</Text>
-            <Text style={SS.coInfo}>209 W. River Rd, Hooksett, NH 03106 | 603-660-4651 | Justin@oakridgeelectrical.com</Text>
+            <Text style={SS.coName}>{COMPANY_NAME.toUpperCase()}</Text>
+            <Text style={SS.coInfo}>{`${COMPANY_ADDRESS} | ${COMPANY_PHONE} | ${COMPANY_EMAIL}`}</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={{ fontSize: 8, color: GRAY }}>{data.orderDate}</Text>
@@ -1587,7 +1591,7 @@ export function AiaDoc({ data }: { data: AiaData }) {
           <View style={{ flex: 1 }}>
             <Text style={AS.title}>AIA Document G702</Text>
             <Text style={AS.subtitle}>Application and Certificate for Payment</Text>
-            <Text style={{ fontSize: 7, color: LIGHT }}>Oak Ridge Electrical LLC · 76 Oak Ridge Rd, Weare NH 03281</Text>
+            <Text style={{ fontSize: 7, color: LIGHT }}>{`${COMPANY_NAME} · ${COMPANY_ADDRESS}`}</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: NAVY }}>Application No: {data.applicationNo}</Text>
@@ -1613,7 +1617,7 @@ export function AiaDoc({ data }: { data: AiaData }) {
           <View style={AS.aiaBox}>
             <Text style={AS.aiaBoxTitle}>FROM CONTRACTOR</Text>
             <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold" }}>Oak Ridge Electrical LLC</Text>
-            <Text style={{ fontSize: 8, color: GRAY }}>76 Oak Ridge Road, Weare NH 03281</Text>
+            <Text style={{ fontSize: 8, color: GRAY }}>{COMPANY_ADDRESS}</Text>
             {data.contractStartDate ? <Text style={{ fontSize: 8, color: GRAY }}>Contract: {fmtDate(data.contractStartDate)}</Text> : null}
           </View>
         </View>
@@ -2054,7 +2058,7 @@ export function ProposalDoc({ data }: { data: ProposalPdfData }) {
             <Text style={PS.companyInfo}>
               {'209 W. River Rd, Hooksett, NH 03106\n'}
               {'603-660-4651 · Justin@oakridgeelectrical.com\n'}
-              {'NH Electrical License # 0069M'}
+              {COMPANY_LICENSE}
             </Text>
           </View>
           <View>
@@ -2219,7 +2223,7 @@ export function ProposalDoc({ data }: { data: ProposalPdfData }) {
         <View style={PS.footer} fixed>
           <View style={PS.footerLine} />
           <Text style={PS.footerText}>
-            {'Oak Ridge Electrical LLC · 209 W. River Rd, Hooksett, NH 03106 · 603-660-4651 · Justin@oakridgeelectrical.com · NH Electrical License # 0069M'}
+            {`${COMPANY_NAME} · ${COMPANY_ADDRESS} · ${COMPANY_PHONE} · ${COMPANY_EMAIL} · ${COMPANY_LICENSE}`}
           </Text>
           <Text
             style={PS.footerPage}

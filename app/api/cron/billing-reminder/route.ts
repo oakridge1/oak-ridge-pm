@@ -4,9 +4,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 import { APP_URL } from "@/lib/app-url";
+import { BRAND_BLUE, BRAND_ORANGE } from "@/lib/company";
 
-const NAVY = "#002D72";
-const ORANGE = "#FF5910";
+const NAVY = BRAND_BLUE;
+const ORANGE = BRAND_ORANGE;
 
 function fmt$(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });

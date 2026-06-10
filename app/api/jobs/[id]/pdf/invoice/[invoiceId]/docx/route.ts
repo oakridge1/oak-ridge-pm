@@ -7,6 +7,7 @@ import {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, WidthType, HeadingLevel, BorderStyle, ShadingType,
 } from "docx";
+import { BRAND_BLUE, BRAND_ORANGE } from "@/lib/company";
 
 function fmt$(n: number) {
   return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -77,8 +78,9 @@ export async function GET(
       ? job.scopeOfWork.split(/\n+/).map(s => s.trim()).filter(Boolean)
       : [];
 
-    const NAVY = "002D72";
-    const ORANGE = "FF5910";
+    // docx colors are hex without '#' — derive from the shared brand constants
+    const NAVY = BRAND_BLUE.replace("#", "");
+    const ORANGE = BRAND_ORANGE.replace("#", "");
     const GRAY = "555555";
     const LIGHT_GRAY = "999999";
 

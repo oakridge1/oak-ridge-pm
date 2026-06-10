@@ -1,3 +1,5 @@
+import { COMPANY_NAME, COMPANY_DBA } from '@/lib/company';
+
 export interface ScopeSection {
   id:    string;
   title: string;
@@ -65,7 +67,7 @@ export const DEFAULT_EXCLUSIONS = [
 ];
 
 export const DEFAULT_WARRANTY =
-  'Oak Ridge Electrical LLC provides a one (1) year warranty on ' +
+  `${COMPANY_NAME} provides a one (1) year warranty on ` +
   'workmanship from the date of substantial completion. ' +
   'Manufacturer warranties apply to all equipment and materials.';
 
@@ -85,7 +87,7 @@ export function getPaymentParagraph(terms: PaymentTerms): string {
     `Progress billing will be utilized based on project milestones, ` +
     `materials purchased, or percent complete. Invoices not paid within ` +
     `${daysOverdue} are subject to a finance charge of 1.5% per month ` +
-    `(18% annually). Oak Ridge Electrical reserves the right to suspend ` +
+    `(18% annually). ${COMPANY_DBA} reserves the right to suspend ` +
     `work on any invoice more than ${daysPast} days past due. Customer ` +
     `agrees to pay all collection costs including attorney's fees, court ` +
     `costs, lien filing fees, and administrative expenses.\n\n` +
@@ -112,7 +114,7 @@ export function createProposalState(
     validDays:      30,
     workingHours:   'Normal Working Hours',
     scopeIntro:
-      'Oak Ridge Electrical LLC shall provide all labor, materials, ' +
+      `${COMPANY_NAME} shall provide all labor, materials, ` +
       'equipment, and supervision necessary to complete the electrical ' +
       `scope of work for the ${jobName ?? '[Project Name]'} in ` +
       'accordance with applicable codes and project requirements.',

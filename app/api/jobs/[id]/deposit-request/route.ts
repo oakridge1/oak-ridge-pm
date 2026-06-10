@@ -7,9 +7,10 @@ import { renderToBuffer, Document, Page, View, Text, StyleSheet, Image } from "@
 import React from "react";
 import fs from "fs";
 import path from "path";
+import { BRAND_BLUE, BRAND_ORANGE } from "@/lib/company";
 
-const NAVY = "#002D72";
-const ORANGE = "#FF5910";
+const NAVY = BRAND_BLUE;
+const ORANGE = BRAND_ORANGE;
 const GRAY = "#555555";
 const BORDER = "#e0e0e0";
 

@@ -8,6 +8,7 @@ import React from "react";
 import { StockOrderPdf } from "../pdf/_templates";
 import { Document as DocxDocument, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, Packer } from "docx";
 import type { StockOrderPdfData } from "../pdf/_templates";
+import { COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE, COMPANY_EMAIL, BRAND_BLUE } from "@/lib/company";
 
 const FROM = process.env.EMAIL_FROM;
 const PASS = process.env.GMAIL_APP_PASSWORD;
@@ -60,11 +61,11 @@ async function generateOrderDocx(data: StockOrderPdfData): Promise<Buffer> {
       properties: {},
       children: [
         new Paragraph({
-          children: [new TextRun({ text: "OAK RIDGE ELECTRICAL LLC", bold: true, size: 28, color: "002D72" })],
+          children: [new TextRun({ text: COMPANY_NAME.toUpperCase(), bold: true, size: 28, color: BRAND_BLUE.replace("#", "") })],
           alignment: AlignmentType.CENTER,
         }),
         new Paragraph({
-          children: [new TextRun({ text: "209 W. River Rd, Hooksett, NH 03106  |  603-660-4651  |  Justin@oakridgeelectrical.com", size: 18, color: "555555" })],
+          children: [new TextRun({ text: `${COMPANY_ADDRESS}  |  ${COMPANY_PHONE}  |  ${COMPANY_EMAIL}`, size: 18, color: "555555" })],
           alignment: AlignmentType.CENTER,
         }),
         new Paragraph({ children: [new TextRun("")] }),
