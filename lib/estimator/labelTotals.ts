@@ -44,7 +44,7 @@ export function calcLabelTotals(state: EstimatorState): LabelTotals {
   const rawByPkg: Record<string, number> = {};
   for (const asm of allAsms) {
     const bp = asm.bidPackage || 'Base Bid';
-    rawByPkg[bp] = (rawByPkg[bp] ?? 0) + asm.mat + asm.lab * condMult * heightMult;
+    rawByPkg[bp] = (rawByPkg[bp] ?? 0) + (asm.mat ?? 0) + (asm.lab ?? 0) * condMult * heightMult;
   }
 
   const totalRaw = Object.values(rawByPkg).reduce((s, v) => s + v, 0);

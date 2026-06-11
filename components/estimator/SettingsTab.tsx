@@ -9,8 +9,10 @@ import { invalidateBomCache } from '@/lib/estimator/bom';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+const fmt$ = (n: number | null | undefined) => {
+  const safe = (n == null || !isFinite(n)) ? 0 : n;
+  return '$' + safe.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+};
 
 // ── Customer type ─────────────────────────────────────────────────────────────
 

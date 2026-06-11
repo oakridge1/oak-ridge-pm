@@ -1,4 +1,5 @@
 'use client';
+import { fmt$ } from '@/lib/estimator/format';
 
 import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
@@ -8,8 +9,6 @@ import { LabelSelector } from '@/components/estimator/LabelSelector';
 
 // ── Format helpers ─────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ── Gear groups (display-order dropdown with optgroups) ────────────────────────
 

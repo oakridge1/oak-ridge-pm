@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { getRates } from '@/lib/estimator/constants';
 import { createJob } from '@/app/(app)/actions';
+import { fmt$ } from '@/lib/estimator/format';
 
 // ── Format helpers ─────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const fmtH = (n: number) => n.toFixed(2) + ' hrs';
+const fmtH = (n: number | null | undefined) =>
+  ((n == null || !isFinite(n)) ? 0 : n).toFixed(2) + ' hrs';
 
 // ── Job condition options ──────────────────────────────────────────────────────
 
@@ -219,8 +218,10 @@ export function BidSummaryTab() {
     const today = new Date().toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
     });
-    const fmt = (n: number) =>
-      '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmt = (n: number | null | undefined) => {
+      const safe = (n == null || !isFinite(n)) ? 0 : n;
+      return '$' + safe.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
     // ── Assembly breakdown rows ──
     const breakdownRows = Object.entries(result.breakdown)

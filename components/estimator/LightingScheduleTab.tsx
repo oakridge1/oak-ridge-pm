@@ -1,4 +1,5 @@
 'use client';
+import { fmt$ } from '@/lib/estimator/format';
 
 import { useState, useEffect, useRef } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
@@ -22,8 +23,6 @@ interface Supplier {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ── LightingScheduleTab ───────────────────────────────────────────────────────
 

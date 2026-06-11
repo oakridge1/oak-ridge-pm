@@ -1,4 +1,5 @@
 'use client';
+import { fmt$ } from '@/lib/estimator/format';
 
 import { useState } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
@@ -39,11 +40,6 @@ const GROUPS: Array<{ key: AsmKey; label: string }> = [
 
 // ── Format helpers ─────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 
 // ── Inline-edit cell style ─────────────────────────────────────────────────────
 

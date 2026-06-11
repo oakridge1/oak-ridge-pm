@@ -1,4 +1,5 @@
 'use client';
+import { fmt$ } from '@/lib/estimator/format';
 import { generateId } from '@/lib/utils/uuid';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -20,8 +21,6 @@ import {
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const uid = () => generateId();
 

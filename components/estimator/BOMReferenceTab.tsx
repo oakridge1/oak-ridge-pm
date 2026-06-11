@@ -1,4 +1,5 @@
 'use client';
+import { fmt$ } from '@/lib/estimator/format';
 
 import { useState, useMemo, useEffect } from 'react';
 import { getRates, applyMarkup } from '@/lib/estimator/constants';
@@ -6,8 +7,6 @@ import type { BomItem } from '@/lib/estimator/bom';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const PAGE_SIZE = 100;
 

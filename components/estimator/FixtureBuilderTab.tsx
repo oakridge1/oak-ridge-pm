@@ -1,4 +1,5 @@
 'use client';
+import { fmt$ } from '@/lib/estimator/format';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
@@ -9,8 +10,6 @@ import { getBomItem, BOM } from '@/lib/estimator/bom';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ── Assembly definition types ──────────────────────────────────────────────────
 

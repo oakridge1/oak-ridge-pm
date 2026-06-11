@@ -1106,8 +1106,9 @@ export function calcBid(input: BidInput): BidResult {
     let gMat = 0;
     let gLab = 0;
     for (const asm of asms) {
-      gMat += asm.mat;
-      gLab += asm.lab * input.condMult;
+      // null guards: old localStorage state may carry null/undefined fields
+      gMat += asm.mat ?? 0;
+      gLab += (asm.lab ?? 0) * (input.condMult ?? 1);
     }
     breakdown[key] = { mat: gMat, lab: gLab };
     matTotal   += gMat;

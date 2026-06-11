@@ -1,4 +1,5 @@
 'use client';
+import { fmt$ } from '@/lib/estimator/format';
 import { generateId } from '@/lib/utils/uuid';
 
 import { useState } from 'react';
@@ -7,8 +8,6 @@ import { getRates } from '@/lib/estimator/constants';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
-const fmt$ = (n: number) =>
-  '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ── Shared className constants (per spec) ──────────────────────────────────────
 
