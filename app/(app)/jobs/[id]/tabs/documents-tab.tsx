@@ -12,7 +12,6 @@ import {
   FileText,
 } from "lucide-react";
 import { createDocument, deleteDocument } from "./documents-tab-actions";
-import { useUpload } from "@/lib/use-upload";
 import type { Role, DocumentCategory } from "@/app/generated/prisma/client";
 
 const CATEGORIES: { value: DocumentCategory; label: string }[] = [
@@ -83,7 +82,6 @@ function UploadForm({
   onCategoryAdded: (cat: CustomCategory) => void;
   onClose: () => void;
 }) {
-  const { startUpload } = useUpload("jobDocument");
   const [isPending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,21 +113,52 @@ function UploadForm({
     const category = (isCustomCat ? "OTHER" : rawCategory) as DocumentCategory;
     const customCategory = isCustomCat ? rawCategory : null;
 
+    // 100MB limit — Supabase free tier max
+    if (selectedFile.size > 100 * 1024 * 1024) {
+      setError("File too large. Maximum size is 100MB.");
+      return;
+    }
+
     setError(null);
     setUploading(true);
 
     try {
-      const results = await startUpload([selectedFile]);
-      const uploaded = results[0];
+      // 1. Get a signed direct-upload URL (bypasses Vercel's ~4.5MB body limit)
+      const prep = await fetch(`/api/jobs/${jobId}/documents/upload-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          fileSize: selectedFile.size,
+        }),
+      });
+      if (!prep.ok) {
+        const body = await prep.json().catch(() => ({ error: null }));
+        throw new Error(body.error ?? "Failed to prepare upload");
+      }
+      const { signedUrl, publicUrl } = (await prep.json()) as {
+        signedUrl: string;
+        publicUrl: string;
+      };
 
+      // 2. PUT the file directly to Supabase Storage
+      const put = await fetch(signedUrl, {
+        method: "PUT",
+        body: selectedFile,
+        headers: { "Content-Type": selectedFile.type || "application/octet-stream" },
+      });
+      if (!put.ok) throw new Error("Upload failed — please retry");
+
+      // 3. Save metadata (same as before, URL now from the signed-URL flow)
       startTransition(async () => {
         try {
           await createDocument(jobId, {
             category,
             customCategory: customCategory ?? undefined,
             name,
-            fileUrl: uploaded.ufsUrl,
-            fileName: uploaded.name,
+            fileUrl: publicUrl,
+            fileName: selectedFile.name,
             fileSize: selectedFile.size,
           });
           onClose();
