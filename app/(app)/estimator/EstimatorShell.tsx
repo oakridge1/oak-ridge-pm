@@ -77,7 +77,7 @@ function categoryColor(label: string): string {
   return colors[inferCategory(label)] ?? '#888888';
 }
 
-export function EstimatorShell() {
+export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
   const { state, setTab, addPrebuiltAssembly } = useEstimatorContext();
   const tab = state.tab;
   const [jobsOpen,     setJobsOpen]     = useState(false);
@@ -293,7 +293,7 @@ export function EstimatorShell() {
         ) : tab === 'permits' ? (
           <PermitsSubsTab />
         ) : tab === 'bom' ? (
-          <BOMReferenceTab />
+          <BOMReferenceTab isAdmin={isAdmin} />
         ) : tab === 'lighting' ? (
           <LightingScheduleTab />
         ) : tab === 'gear_sched' ? (

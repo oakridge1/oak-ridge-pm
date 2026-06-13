@@ -1,10 +1,13 @@
 import { EstimatorProvider } from '@/lib/estimator/EstimatorContext';
 import { EstimatorShell } from './EstimatorShell';
+import { auth } from '@/auth';
 
-export default function EstimatorPage() {
+export default async function EstimatorPage() {
+  const session = await auth();
+  const isAdmin = session?.user?.role === 'ADMIN';
   return (
     <EstimatorProvider>
-      <EstimatorShell />
+      <EstimatorShell isAdmin={isAdmin} />
     </EstimatorProvider>
   );
 }

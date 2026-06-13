@@ -3,7 +3,9 @@ import { fmt$ } from '@/lib/estimator/format';
 
 import { useState, useMemo, useEffect } from 'react';
 import { getRates, applyMarkup } from '@/lib/estimator/constants';
+import type { SavedAssembly } from '@/lib/estimator/constants';
 import type { BomItem } from '@/lib/estimator/bom';
+import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
@@ -12,8 +14,9 @@ const PAGE_SIZE = 100;
 
 // ── BOMReferenceTab ────────────────────────────────────────────────────────────
 
-export function BOMReferenceTab() {
+export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
   const R = getRates();
+  const { state, addPrebuiltAssembly } = useEstimatorContext();
 
   const [items,      setItems]      = useState<BomItem[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -22,6 +25,62 @@ export function BOMReferenceTab() {
   const [unitFilter, setUnitFilter] = useState<'All' | 'EA' | 'FT'>('All');
   const [gcOnly,     setGcOnly]     = useState(false);
   const [page,       setPage]       = useState(0);
+
+  // ── Add Item form (admin) ──────────────────────────────────────────────────
+  const [newItem, setNewItem] = useState({
+    id: '', name: '', cat: '', unit: 'EA', mat: 0, lhr: 0,
+  });
+  const [addingItem, setAddingItem] = useState(false);
+  const [addError,   setAddError]   = useState('');
+
+  // ── Quick Add to bid ───────────────────────────────────────────────────────
+  const [quickAddId,      setQuickAddId]      = useState<string | null>(null);
+  const [quickAddQty,     setQuickAddQty]     = useState(1);
+  const [quickAddSuccess, setQuickAddSuccess] = useState<string | null>(null);
+
+  const handleAddBomItem = async () => {
+    if (!newItem.id.trim() || !newItem.name.trim() || !newItem.cat.trim()) {
+      setAddError('ID, Name and Category are required.');
+      return;
+    }
+    setAddingItem(true);
+    setAddError('');
+    try {
+      const res = await fetch('/api/bom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newItem, id: newItem.id.trim() }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      const updated = await fetch('/api/bom');
+      setItems(await updated.json());
+      setNewItem({ id: '', name: '', cat: '', unit: 'EA', mat: 0, lhr: 0 });
+    } catch {
+      setAddError('Failed to add item. Check that the ID is unique.');
+    } finally {
+      setAddingItem(false);
+    }
+  };
+
+  const handleQuickAdd = (item: BomItem) => {
+    const qty       = Math.max(1, quickAddQty);
+    const matTotal  = applyMarkup(item.mat * qty, item.mk);
+    const labTotal  = item.lhr * qty * R.labor;
+    const asm: SavedAssembly = {
+      label: `${item.name} x${qty}`,
+      mat:   matTotal,
+      lab:   labTotal,
+      lines: [{ name: item.name, qty, unit: item.unit, mat: matTotal, lab: labTotal }],
+      bidPackage: state.activeBidPackage || undefined,
+      area:       state.activeArea       || undefined,
+      costCode:   state.activeCostCode   || undefined,
+    };
+    addPrebuiltAssembly(asm);
+    setQuickAddId(null);
+    setQuickAddQty(1);
+    setQuickAddSuccess(item.id);
+    setTimeout(() => setQuickAddSuccess(null), 2000);
+  };
 
   useEffect(() => {
     fetch('/api/bom')
@@ -64,6 +123,84 @@ export function BOMReferenceTab() {
 
   return (
     <div className="max-w-6xl">
+
+      {/* Add BOM Item (admin only) */}
+      {isAdmin && (
+        <div className="border border-[#1e3a8a] rounded-lg p-4 mb-4 bg-blue-50">
+          <h3 className="font-semibold text-sm text-[#1e3a8a] mb-3">+ Add BOM Item</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Item ID *</label>
+              <input
+                value={newItem.id}
+                onChange={e => setNewItem(p => ({ ...p, id: e.target.value }))}
+                placeholder="e.g. w_600cu"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Name *</label>
+              <input
+                value={newItem.name}
+                onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))}
+                placeholder="e.g. 600kcmil THHN Cu"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Category *</label>
+              <input
+                value={newItem.cat}
+                onChange={e => setNewItem(p => ({ ...p, cat: e.target.value }))}
+                placeholder="e.g. Wire & Cable"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Unit *</label>
+              <select
+                value={newItem.unit}
+                onChange={e => setNewItem(p => ({ ...p, unit: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white"
+              >
+                <option value="EA">EA</option>
+                <option value="FT">FT</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Base $ *</label>
+              <input
+                type="number"
+                step="0.01"
+                value={newItem.mat}
+                onChange={e => setNewItem(p => ({ ...p, mat: parseFloat(e.target.value) || 0 }))}
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Labor hrs *</label>
+              <input
+                type="number"
+                step="0.001"
+                value={newItem.lhr}
+                onChange={e => setNewItem(p => ({ ...p, lhr: parseFloat(e.target.value) || 0 }))}
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+              />
+            </div>
+          </div>
+          {addError && <p className="text-red-500 text-xs mt-2">{addError}</p>}
+          <p className="text-xs text-gray-500 mt-2">
+            New items default to bulk markup, not GC-stocked. Use the Excel upload in Settings for those.
+          </p>
+          <button
+            onClick={handleAddBomItem}
+            disabled={addingItem}
+            className="mt-3 px-4 py-2 bg-[#1e3a8a] text-white text-sm font-semibold rounded-lg hover:bg-blue-800 disabled:opacity-50"
+          >
+            {addingItem ? 'Saving...' : '+ Add to BOM'}
+          </button>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="flex flex-wrap gap-3 mb-4">
@@ -116,6 +253,7 @@ export function BOMReferenceTab() {
                 <th className="text-right px-3 py-2 w-24">Marked-Up $</th>
                 <th className="text-right px-3 py-2 w-16">Labor hrs</th>
                 <th className="text-center px-2 py-2 w-8">GC</th>
+                <th className="text-left px-3 py-2 w-28">Add to Bid</th>
               </tr>
             </thead>
             <tbody>
@@ -140,12 +278,41 @@ export function BOMReferenceTab() {
                     <td className="px-2 py-1.5 text-center text-green-600">
                       {item.gc ? '✓' : ''}
                     </td>
+                    <td className="px-3 py-1.5 whitespace-nowrap">
+                      {quickAddSuccess === item.id ? (
+                        <span className="text-green-600 text-xs font-semibold">✓ Added</span>
+                      ) : quickAddId === item.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="1"
+                            value={quickAddQty}
+                            onChange={e => setQuickAddQty(parseInt(e.target.value) || 1)}
+                            className="w-14 border border-gray-300 rounded px-1 py-0.5 text-sm text-center"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleQuickAdd(item)}
+                            className="px-2 py-0.5 bg-[#1e3a8a] text-white text-xs rounded hover:bg-blue-800"
+                          >✓</button>
+                          <button
+                            onClick={() => { setQuickAddId(null); setQuickAddQty(1); }}
+                            className="px-2 py-0.5 text-gray-400 text-xs hover:text-red-500"
+                          >✕</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setQuickAddId(item.id); setQuickAddQty(1); }}
+                          className="px-2 py-1 text-xs border border-[#1e3a8a] text-[#1e3a8a] rounded hover:bg-blue-50"
+                        >+ Bid</button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
               {pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={10} className="px-3 py-8 text-center text-gray-400">
                     No items match the current filters.
                   </td>
                 </tr>
