@@ -634,7 +634,14 @@ export function calcFireAlarm(p: FireAlarmParams): SavedAssembly | null {
       addItem(acc, 'bs1', p.qty, 'C23 Metal Stud Bracket');
       addItem(acc, 'mr1', p.qty, 'SG 3/4" Mud Ring');
       addItem(acc, 'bs2', p.qty * 2, 'CJ6 Colorado Jim');
-      if (p.frameType !== 'pipe') {
+      if (p.frameType === 'pipe') {
+        // Pipe/MC: 3/4" 1-hole EMT straps at 1 per 10ft per NEC 300.11
+        const straps = Math.ceil(p.whipFt / 10) * p.qty;
+        if (straps > 0) {
+          addItem(acc, 'sp_emt34', straps, `3/4" 1-Hole Strap (${straps})`);
+        }
+      } else {
+        // Metal/MC: CJ6 cable clips at 1 per 4ft
         const clips = Math.ceil(p.whipFt / 4) * p.qty;
         addItem(acc, 'bs2', clips, `CJ6 cable clips (${clips})`);
       }
