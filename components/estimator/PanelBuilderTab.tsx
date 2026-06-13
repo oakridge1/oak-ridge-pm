@@ -425,7 +425,12 @@ export function PanelBuilderTab() {
                   if (!result) return;
                   setState(s => ({
                     ...s,
-                    savedPanels: [...s.savedPanels, result],
+                    savedPanels: [...s.savedPanels, {
+                      ...result,
+                      bidPackage: s.activeBidPackage || undefined,
+                      area:       s.activeArea       || undefined,
+                      costCode:   s.activeCostCode   || undefined,
+                    }],
                     panelState:  createPanelState(),
                   }));
                 }}
