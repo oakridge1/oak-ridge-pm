@@ -32,6 +32,8 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
   });
   const [addingItem, setAddingItem] = useState(false);
   const [addError,   setAddError]   = useState('');
+  const [customCat,     setCustomCat]     = useState('');
+  const [showCustomCat, setShowCustomCat] = useState(false);
 
   // ── Quick Add to bid ───────────────────────────────────────────────────────
   const [quickAddId,      setQuickAddId]      = useState<string | null>(null);
@@ -39,8 +41,9 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
   const [quickAddSuccess, setQuickAddSuccess] = useState<string | null>(null);
 
   // ── Inline edit (admin) ────────────────────────────────────────────────────
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editRow,   setEditRow]   = useState<{
+  const [editingId,     setEditingId]     = useState<string | null>(null);
+  const [editCustomCat, setEditCustomCat] = useState(false);
+  const [editRow,       setEditRow]        = useState<{
     name: string; cat: string; unit: string; mat: number; lhr: number;
   } | null>(null);
 
@@ -57,6 +60,7 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
       setItems(await updated.json());
       setEditingId(null);
       setEditRow(null);
+      setEditCustomCat(false);
     } catch {
       alert('Failed to save changes.');
     }
@@ -95,6 +99,8 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
       const updated = await fetch('/api/bom');
       setItems(await updated.json());
       setNewItem({ id: '', name: '', cat: '', unit: 'EA', mat: 0, lhr: 0 });
+      setCustomCat('');
+      setShowCustomCat(false);
     } catch {
       setAddError('Failed to add item. Check that the ID is unique.');
     } finally {
@@ -132,6 +138,11 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
 
   const categories = useMemo(() =>
     ['All Categories', ...Array.from(new Set(items.map(b => b.cat)))],
+  [items]);
+
+  // Unique categories for the add/edit form dropdowns (no 'All' sentinel)
+  const bomCategories = useMemo(() =>
+    [...new Set(items.map(i => i.cat))].filter(Boolean).sort(),
   [items]);
 
   const filtered = useMemo(() => {
@@ -189,12 +200,38 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Category *</label>
-              <input
-                value={newItem.cat}
-                onChange={e => setNewItem(p => ({ ...p, cat: e.target.value }))}
-                placeholder="e.g. Wire & Cable"
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
-              />
+              <select
+                value={showCustomCat ? '__new__' : newItem.cat}
+                onChange={e => {
+                  if (e.target.value === '__new__') {
+                    setShowCustomCat(true);
+                    setCustomCat('');
+                    setNewItem(p => ({ ...p, cat: '' }));
+                  } else {
+                    setShowCustomCat(false);
+                    setNewItem(p => ({ ...p, cat: e.target.value }));
+                  }
+                }}
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white"
+              >
+                <option value="">— Select category —</option>
+                {bomCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+                <option value="__new__">+ Add new category...</option>
+              </select>
+              {showCustomCat && (
+                <input
+                  value={customCat}
+                  onChange={e => {
+                    setCustomCat(e.target.value);
+                    setNewItem(p => ({ ...p, cat: e.target.value }));
+                  }}
+                  placeholder="New category name..."
+                  className="w-full border border-blue-400 rounded px-2 py-1.5 text-sm mt-1"
+                  autoFocus
+                />
+              )}
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Unit *</label>
@@ -312,9 +349,34 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
                     <tr key={item.id} className="bg-blue-50">
                       <td className="px-3 py-2 text-xs text-gray-400 font-mono">{item.id}</td>
                       <td className="px-3 py-2">
-                        <input value={editRow.cat}
-                          onChange={e => setEditRow(p => ({ ...p!, cat: e.target.value }))}
-                          className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm" />
+                        <select
+                          value={editCustomCat ? '__new__' : editRow.cat}
+                          onChange={e => {
+                            if (e.target.value === '__new__') {
+                              setEditCustomCat(true);
+                              setEditRow(p => ({ ...p!, cat: '' }));
+                            } else {
+                              setEditCustomCat(false);
+                              setEditRow(p => ({ ...p!, cat: e.target.value }));
+                            }
+                          }}
+                          className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm bg-white"
+                        >
+                          <option value="">— Select —</option>
+                          {bomCategories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                          <option value="__new__">+ Add new...</option>
+                        </select>
+                        {editCustomCat && (
+                          <input
+                            value={editRow.cat}
+                            onChange={e => setEditRow(p => ({ ...p!, cat: e.target.value }))}
+                            placeholder="New category…"
+                            className="w-full border border-blue-400 rounded px-1 py-0.5 text-sm mt-1"
+                            autoFocus
+                          />
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <input value={editRow.name}
@@ -347,7 +409,7 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
                             className="px-2 py-1 text-xs bg-[#1e3a8a] text-white rounded hover:bg-blue-800">
                             Save
                           </button>
-                          <button onClick={() => { setEditingId(null); setEditRow(null); }}
+                          <button onClick={() => { setEditingId(null); setEditRow(null); setEditCustomCat(false); }}
                             className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 text-gray-600">
                             Cancel
                           </button>
@@ -409,6 +471,7 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
                           <button
                             onClick={() => {
                               setEditingId(item.id);
+                              setEditCustomCat(false);
                               setEditRow({ name: item.name, cat: item.cat, unit: item.unit, mat: item.mat, lhr: item.lhr });
                             }}
                             className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 text-gray-600"
