@@ -38,6 +38,46 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
   const [quickAddQty,     setQuickAddQty]     = useState(1);
   const [quickAddSuccess, setQuickAddSuccess] = useState<string | null>(null);
 
+  // ── Inline edit (admin) ────────────────────────────────────────────────────
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editRow,   setEditRow]   = useState<{
+    name: string; cat: string; unit: string; mat: number; lhr: number;
+  } | null>(null);
+
+  const handleSaveBomEdit = async (id: string) => {
+    if (!editRow) return;
+    try {
+      const res = await fetch('/api/bom', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...editRow }),
+      });
+      if (!res.ok) throw new Error();
+      const updated = await fetch('/api/bom');
+      setItems(await updated.json());
+      setEditingId(null);
+      setEditRow(null);
+    } catch {
+      alert('Failed to save changes.');
+    }
+  };
+
+  const handleDeleteBomItem = async (id: string) => {
+    if (!window.confirm(`Delete BOM item "${id}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch('/api/bom', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error();
+      const updated = await fetch('/api/bom');
+      setItems(await updated.json());
+    } catch {
+      alert('Failed to delete item.');
+    }
+  };
+
   const handleAddBomItem = async () => {
     if (!newItem.id.trim() || !newItem.name.trim() || !newItem.cat.trim()) {
       setAddError('ID, Name and Category are required.');
@@ -254,6 +294,11 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
                 <th className="text-right px-3 py-2 w-16">Labor hrs</th>
                 <th className="text-center px-2 py-2 w-8">GC</th>
                 <th className="text-left px-3 py-2 w-28">Add to Bid</th>
+                {isAdmin && (
+                  <th className="text-left px-3 py-2 w-32 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -261,6 +306,57 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
                 const mkLabel = item.mk === 'bulk'
                   ? bulkPct
                   : item.mk === 'light' ? lightPct : '—';
+
+                if (isAdmin && editingId === item.id && editRow) {
+                  return (
+                    <tr key={item.id} className="bg-blue-50">
+                      <td className="px-3 py-2 text-xs text-gray-400 font-mono">{item.id}</td>
+                      <td className="px-3 py-2">
+                        <input value={editRow.cat}
+                          onChange={e => setEditRow(p => ({ ...p!, cat: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input value={editRow.name}
+                          onChange={e => setEditRow(p => ({ ...p!, name: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-1 py-0.5 text-sm" />
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <select value={editRow.unit}
+                          onChange={e => setEditRow(p => ({ ...p!, unit: e.target.value }))}
+                          className="border border-gray-300 rounded px-1 py-0.5 text-sm bg-white">
+                          <option value="EA">EA</option>
+                          <option value="FT">FT</option>
+                        </select>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <input type="number" step="0.01" value={editRow.mat}
+                          onChange={e => setEditRow(p => ({ ...p!, mat: parseFloat(e.target.value) || 0 }))}
+                          className="w-20 border border-gray-300 rounded px-1 py-0.5 text-sm text-right" />
+                      </td>
+                      <td colSpan={3} />
+                      <td className="px-3 py-2 text-right">
+                        <input type="number" step="0.001" value={editRow.lhr}
+                          onChange={e => setEditRow(p => ({ ...p!, lhr: parseFloat(e.target.value) || 0 }))}
+                          className="w-20 border border-gray-300 rounded px-1 py-0.5 text-sm text-right" />
+                      </td>
+                      <td />
+                      <td className="px-3 py-2">
+                        <div className="flex gap-1">
+                          <button onClick={() => handleSaveBomEdit(item.id)}
+                            className="px-2 py-1 text-xs bg-[#1e3a8a] text-white rounded hover:bg-blue-800">
+                            Save
+                          </button>
+                          <button onClick={() => { setEditingId(null); setEditRow(null); }}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 text-gray-600">
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
                   <tr key={item.id} className={i % 2 === 0 ? '' : 'bg-gray-50'}>
                     <td className="px-3 py-1.5 font-mono text-gray-400 whitespace-nowrap">{item.id}</td>
@@ -307,12 +403,29 @@ export function BOMReferenceTab({ isAdmin = false }: { isAdmin?: boolean }) {
                         >+ Bid</button>
                       )}
                     </td>
+                    {isAdmin && (
+                      <td className="px-3 py-1.5 whitespace-nowrap">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(item.id);
+                              setEditRow({ name: item.name, cat: item.cat, unit: item.unit, mat: item.mat, lhr: item.lhr });
+                            }}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 text-gray-600"
+                          >Edit</button>
+                          <button
+                            onClick={() => handleDeleteBomItem(item.id)}
+                            className="px-2 py-1 text-xs border border-red-200 text-red-500 rounded hover:bg-red-50"
+                          >Delete</button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
               {pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-3 py-8 text-center text-gray-400">
+                  <td colSpan={isAdmin ? 11 : 10} className="px-3 py-8 text-center text-gray-400">
                     No items match the current filters.
                   </td>
                 </tr>
