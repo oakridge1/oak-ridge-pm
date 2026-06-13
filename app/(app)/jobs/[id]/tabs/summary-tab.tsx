@@ -1456,7 +1456,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   }
 
   function handleDelete(invoiceId: string) {
-    if (!confirm("Delete this draft invoice?")) return;
+    if (!confirm("Delete this invoice? This cannot be undone.")) return;
     startTransition(async () => {
       try {
         await deleteInvoice(invoiceId, job.id);
@@ -1617,8 +1617,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                       </button>
                     )}
 
-                    {/* Delete draft */}
-                    {role === "ADMIN" && inv.status === "DRAFT" && (
+                    {/* Delete (any unpaid invoice; server blocks if payments exist) */}
+                    {role === "ADMIN" && inv.status !== "PAID" && (
                       <button onClick={() => handleDelete(inv.id)} disabled={pending}
                         className="flex items-center gap-1.5 text-xs font-medium text-red-600 border border-red-200 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-60">
                         <Trash2 className="w-3.5 h-3.5" /> Delete

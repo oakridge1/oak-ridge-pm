@@ -278,13 +278,13 @@ export async function updateInvoiceStatus(
 
 export async function deleteInvoice(invoiceId: string, jobId: string) {
   await requireAdmin();
-  // Only allow deleting DRAFT invoices that have no payments
+  // Allow deleting any unpaid invoice that has no payments recorded against it
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: { payments: { select: { id: true } } },
   });
-  if (!invoice) throw new Error("Invoice not found.");
-  if (invoice.status !== "DRAFT") throw new Error("Only DRAFT invoices can be deleted.");
+  if (!invoice || invoice.jobId !== jobId) throw new Error("Invoice not found.");
+  if (invoice.status === "PAID") throw new Error("Cannot delete a paid invoice.");
   if (invoice.payments.length > 0) throw new Error("Cannot delete an invoice with recorded payments.");
 
   await prisma.invoice.delete({ where: { id: invoiceId } });
