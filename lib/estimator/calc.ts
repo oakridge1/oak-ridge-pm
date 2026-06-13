@@ -111,7 +111,11 @@ function condMapKey(condType: string, condSize: string): string {
 
 // wireSize '#12' + wireMat 'Cu' → WIRE_MAP key 'thhn_12'
 function wireMapKey(wireMat: string, wireSize: string): string {
-  const sz = wireSize.replace('#', '');
+  // Strip '#' (e.g. '#12') and 'kcmil' (e.g. '500kcmil') so the key matches
+  // WIRE_MAP, whose large-conductor keys use plain numbers (thhn_500, al_250).
+  // NOTE: only normalize for the WIRE_MAP lookup — WIRE_PULL_LHR / NEC_HINT /
+  // NEC_GND_SIZE are keyed by the original 'kcmil' form and must stay as-is.
+  const sz = wireSize.replace('#', '').replace('kcmil', '').trim();
   return wireMat === 'Al' ? `al_${sz}` : `thhn_${sz}`;
 }
 
