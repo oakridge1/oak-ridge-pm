@@ -9,6 +9,7 @@ import {
 } from '@/lib/estimator/panelBuilder';
 import { getRates } from '@/lib/estimator/constants';
 import { fmt$ } from '@/lib/estimator/format';
+import { LabelSelector } from './LabelSelector';
 import { useMemo, useState } from 'react';
 
 // ── Button group helper ────────────────────────────────────────────────────────
@@ -117,6 +118,7 @@ export function PanelBuilderTab() {
 
   return (
     <div className="max-w-5xl">
+      <LabelSelector />
       <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-4 lg:space-y-0">
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────────────── */}
