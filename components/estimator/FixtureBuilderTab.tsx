@@ -71,6 +71,7 @@ const ASMS: AsmDef[] = [
   { id:'fan48',    grp:'Fixture', lbl:'Ceiling Fan 48"',              fixId:'lc15', iHr:N5.fan48        },
   { id:'fan55',    grp:'Fixture', lbl:'Ceiling Fan 55"',              fixId:'lc15', iHr:N5.fan55        },
   { id:'fan60',    grp:'Fixture', lbl:'Ceiling Fan 60"',              fixId:'lc15', iHr:N5.fan60        },
+  { id:'rec_can',  grp:'Fixture', lbl:'Recessed Can',                 fixId:'lc16', iHr:0.70            },
 ];
 
 const WHIP_OPTIONS = [
