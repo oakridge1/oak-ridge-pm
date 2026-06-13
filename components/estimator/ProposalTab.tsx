@@ -936,7 +936,7 @@ export function ProposalTab() {
               <span className="text-gray-500 text-sm">$</span>
               <input
                 type="number"
-                value={(baseBidOverride ?? baseBidTotal).toFixed(2)}
+                value={Number((baseBidOverride ?? baseBidTotal).toFixed(2))}
                 onChange={e =>
                   setBaseBidOverride(
                     e.target.value === '' ? null : parseFloat(e.target.value),
