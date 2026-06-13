@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { calcData, type DataParams } from '@/lib/estimator/calc';
-import { getRates } from '@/lib/estimator/constants';
+import { EditablePreview } from './EditablePreview';
 
 const DIFF_OPTIONS = [
   { label: 'Normal',      value: 1.0  },
@@ -22,11 +22,10 @@ const MAKEUP_OPTIONS = [
 ];
 
 export function DataBuilder() {
-  const { state, updateDataState, addDataLocation } = useEstimatorContext();
+  const { state, updateDataState, setState } = useEstimatorContext();
   const { dataState } = state;
 
   const preview = useMemo(() => calcData(dataState as DataParams), [dataState]);
-  const R = getRates();
 
   const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
   const inp = 'w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
@@ -105,57 +104,22 @@ export function DataBuilder() {
             {dataState.feet <= 0 && (
               <span className="text-xs text-red-500">Footage required</span>
             )}
-            <button
-              onClick={() => addDataLocation()}
-              disabled={dataState.feet <= 0}
-              className="bg-[#1e3a8a] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-              + Add to Bid
-            </button>
           </div>
         </div>
 
-        {preview && dataState.feet > 0 && (
-          <div className="border-t border-gray-100 pt-3">
-            <p className="text-xs font-medium text-gray-500 mb-2">
-              Preview: {dataState.ports}-port Cat6 — {dataState.feet}ft — {dataState.support}
-            </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-gray-400 border-b border-gray-100">
-                    <th className="text-left py-1 font-medium pr-2">Item</th>
-                    <th className="text-right py-1 font-medium w-10">Qty</th>
-                    <th className="text-right py-1 font-medium w-10">Unit</th>
-                    <th className="text-right py-1 font-medium w-20">Mat $</th>
-                    <th className="text-right py-1 font-medium w-16">Hrs</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.lines.map((line, i) => (
-                    <tr key={i} className="border-b border-gray-50">
-                      <td className="py-0.5 text-gray-700 pr-2">{line.name}</td>
-                      <td className="text-right py-0.5 text-gray-600">{line.qty}</td>
-                      <td className="text-right py-0.5 text-gray-400">{line.unit}</td>
-                      <td className="text-right py-0.5 text-gray-700">
-                        {line.mat > 0 ? `$${line.mat.toFixed(2)}` : ''}
-                      </td>
-                      <td className="text-right py-0.5 text-gray-700">
-                        {line.lab > 0 ? `${(line.lab / R.labor).toFixed(2)} h` : ''}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="font-semibold text-gray-800 border-t border-gray-200">
-                    <td className="py-1" colSpan={3}>Total</td>
-                    <td className="text-right py-1">${preview.mat.toFixed(2)}</td>
-                    <td className="text-right py-1">{(preview.lab / R.labor).toFixed(2)} h</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        )}
+        <EditablePreview
+          assembly={dataState.feet > 0 ? preview : null}
+          storageKey="rl_default_data"
+          onAdd={asm => setState(s => ({
+            ...s,
+            savedData: [...s.savedData, {
+              ...asm,
+              bidPackage: s.activeBidPackage || undefined,
+              area:       s.activeArea       || undefined,
+              costCode:   s.activeCostCode   || undefined,
+            }],
+          }))}
+        />
       </div>
     </div>
   );
