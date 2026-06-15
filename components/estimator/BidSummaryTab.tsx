@@ -135,7 +135,11 @@ export function BidSummaryTab() {
       `with the estimate financials pre-filled.\n\n` +
       `Job #: ${state.jobNumber}\n` +
       `Grand Total: ${grandTotal.toFixed(2)}\n` +
-      `Total Hours: ${totalHrs.toFixed(1)}`
+      `Total Hours: ${totalHrs.toFixed(1)}` +
+      (state.jobInfo.gcCompany ? `\nGC: ${state.jobInfo.gcCompany}` : '') +
+      (state.jobInfo.address
+        ? `\nSite: ${state.jobInfo.address}, ${state.jobInfo.city} ${state.jobInfo.state}`
+        : '')
     );
     if (!ok) return;
     setConverting(true);
@@ -150,6 +154,28 @@ export function BidSummaryTab() {
       fd.append('materialBudget',   result.matTotal.toFixed(2));
       fd.append('laborBudgetDollars', effectiveLaborTotal.toFixed(2));
       fd.append('blendedLaborRate', state.settings.labor.toFixed(2));
+      // Site address
+      fd.append('address', state.jobInfo.address || '');
+      fd.append('city',    state.jobInfo.city    || '');
+      fd.append('state',   state.jobInfo.state   || '');
+      fd.append('zip',     state.jobInfo.zip     || '');
+      // GC info
+      fd.append('gcCompany',     state.jobInfo.gcCompany     || '');
+      fd.append('gcContactName', state.jobInfo.gcContactName || '');
+      fd.append('gcPhone',       state.jobInfo.gcPhone       || '');
+      fd.append('gcEmail',       state.jobInfo.gcEmail       || '');
+      // Owner info
+      fd.append('ownerName',  state.jobInfo.ownerName  || '');
+      fd.append('ownerPhone', state.jobInfo.ownerPhone || '');
+      fd.append('ownerEmail', state.jobInfo.ownerEmail || '');
+      // Scope and schedule
+      fd.append('scopeOfWork',       state.jobInfo.scopeOfWork       || '');
+      fd.append('contractStartDate', state.jobInfo.contractStartDate || '');
+      fd.append('completionDate',    state.jobInfo.completionDate    || '');
+      // Permit / inspection
+      fd.append('permitNumber',      state.jobInfo.permitNumber      || '');
+      fd.append('inspectionContact', state.jobInfo.inspectionContact || '');
+      fd.append('inspectionPhone',   state.jobInfo.inspectionPhone   || '');
       const response = await createJob(fd);
       if ('jobId' in response && response.jobId) {
         setConvertSuccess(true);

@@ -28,6 +28,25 @@ export async function createJob(formData: FormData) {
     ? parseFloat(formData.get("blendedLaborRate") as string)
     : null;
 
+  // Job info (site / GC / owner / scope / permit) — carried from estimator
+  const address           = (formData.get("address")           as string) || "";
+  const city              = (formData.get("city")              as string) || "";
+  const state_            = (formData.get("state")             as string) || "";
+  const zip               = (formData.get("zip")               as string) || "";
+  const gcCompany         = (formData.get("gcCompany")         as string) || "";
+  const gcContactName     = (formData.get("gcContactName")     as string) || "";
+  const gcPhone           = (formData.get("gcPhone")           as string) || "";
+  const gcEmail           = (formData.get("gcEmail")           as string) || "";
+  const ownerName         = (formData.get("ownerName")         as string) || "";
+  const ownerPhone        = (formData.get("ownerPhone")        as string) || "";
+  const ownerEmail        = (formData.get("ownerEmail")        as string) || "";
+  const scopeOfWork       = (formData.get("scopeOfWork")       as string) || "";
+  const contractStartDate = (formData.get("contractStartDate") as string) || "";
+  const completionDate    = (formData.get("completionDate")    as string) || "";
+  const permitNumber      = (formData.get("permitNumber")      as string) || "";
+  const inspectionContact = (formData.get("inspectionContact") as string) || "";
+  const inspectionPhone   = (formData.get("inspectionPhone")   as string) || "";
+
   if (!jobNumber || !jobName) {
     return { error: "Job number and name are required" };
   }
@@ -43,6 +62,23 @@ export async function createJob(formData: FormData) {
         materialBudget,
         contractValue,
         blendedLaborRate,
+        address:           address           || null,
+        city:              city              || null,
+        state:             state_            || null,
+        zip:               zip               || null,
+        gcCompany:         gcCompany         || null,
+        gcContactName:     gcContactName     || null,
+        gcPhone:           gcPhone           || null,
+        gcEmail:           gcEmail           || null,
+        ownerName:         ownerName         || null,
+        ownerPhone:        ownerPhone        || null,
+        ownerEmail:        ownerEmail        || null,
+        scopeOfWork:       scopeOfWork       || null,
+        contractStartDate: contractStartDate ? new Date(contractStartDate) : null,
+        completionDate:    completionDate    ? new Date(completionDate)    : null,
+        permitNumber:      permitNumber      || null,
+        inspectionContact: inspectionContact || null,
+        inspectionPhone:   inspectionPhone   || null,
       },
     });
 
