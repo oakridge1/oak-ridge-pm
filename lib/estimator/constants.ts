@@ -14,6 +14,7 @@ export const DEFAULTS = {
   overhead: 0.10,
   profit:   0.12,
   nonProd:  0.0,
+  designFee: 0,   // design fee % (0-5) — internal commission, not shown to customer
 };
 
 export type RateConfig = typeof DEFAULTS;

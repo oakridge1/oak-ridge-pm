@@ -535,6 +535,26 @@ export function SettingsTab() {
           </div>
         ))}
 
+        {/* Design Fee — stored as a literal percent (0-5), not a fraction */}
+        <div className={CLS.fieldRow}>
+          <div>
+            <div className="text-sm text-gray-700">Design Fee (%)</div>
+            <div className="text-xs text-gray-500">Internal commission — not shown to customer</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">%</span>
+            <input
+              type="number"
+              min={0}
+              max={5}
+              step={0.5}
+              value={state.settings.designFee ?? 0}
+              onChange={e => updateSettings({ designFee: parseFloat(e.target.value) || 0 })}
+              className={CLS.inputAmt}
+            />
+          </div>
+        </div>
+
         <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
           <span className="text-xs text-gray-400">
             NECA base · Ridgeline defaults

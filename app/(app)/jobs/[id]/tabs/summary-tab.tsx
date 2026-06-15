@@ -17,6 +17,7 @@ import {
   createInvoice, updateInvoiceStatus, deleteInvoice,
 } from "./summary-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
+import { ApproveDesignFeeButton, DesignFeePaymentButton } from "./DesignFeeButtons";
 
 // ── Scope section builder (mirrors ProposalTab) ────────────────────────────────
 interface ScopeSection { id: string; title: string; items: string[] }
@@ -151,6 +152,10 @@ interface SummaryTabProps {
     laborBudgetDollars: number | null;
     materialBudget: number | null;
     blendedLaborRate: number | null;
+    designFeePct: number | null;
+    designFeeAmount: number | null;
+    designFeeApproved: boolean;
+    designFeePaid: number | null;
     subcontractorCost: number | null;
     subcontractorBillPct: number | null;
     equipmentCost: number | null;
@@ -2511,6 +2516,44 @@ export function SummaryTab({ job, role, companyRates = null, overheadAllocation 
 
       {/* Direct Costs — includes inline markup % per line */}
       <DirectCostsCard job={job} role={role} computed={{ totalHours, laborCost, materialsCost }} />
+
+      {/* Design Fee — internal commission carried from estimator */}
+      {job.designFeeAmount != null && Number(job.designFeeAmount) > 0 && (
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2 flex justify-between items-center border-b">
+            <span className="font-semibold text-sm text-gray-700">Design Fee</span>
+            <span className={`text-sm font-mono font-semibold ${job.designFeeApproved ? 'text-green-600' : 'text-red-500'}`}>
+              {fmt$(Number(job.designFeeAmount))}
+            </span>
+          </div>
+          <div className="px-4 py-3 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Rate</span>
+              <span>{job.designFeePct ?? 0}% of contract value</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Status</span>
+              <span className={job.designFeeApproved ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+                {job.designFeeApproved
+                  ? `Approved${job.designFeePaid ? ` — ${fmt$(Number(job.designFeePaid))} paid` : ' — unpaid'}`
+                  : Number(job.designFeeAmount) > 1000
+                    ? '⚠ Requires approval'
+                    : 'Pending'}
+              </span>
+            </div>
+            {role === 'ADMIN' && !job.designFeeApproved && Number(job.designFeeAmount) > 1000 && (
+              <ApproveDesignFeeButton jobId={job.id} amount={Number(job.designFeeAmount)} />
+            )}
+            {role === 'ADMIN' && job.designFeeApproved && (
+              <DesignFeePaymentButton
+                jobId={job.id}
+                amount={Number(job.designFeeAmount)}
+                paid={Number(job.designFeePaid || 0)}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Schedule of Values — AIA G703 */}
       <ScheduleOfValuesCard job={job} role={role} grossBilling={grossBilling} computed={{ laborCost, materialsCost, subCost, equipmentCost, otherTotal, laborMarkup, subMarkup, equipMarkup, materialMarkup, otherMarkup }} />

@@ -117,6 +117,11 @@ export function BidSummaryTab() {
   const profit     = subtotal * R.profit;
   const grandTotal = subtotal + profit;
 
+  // Design fee — internal commission, carved from the customer-facing total
+  const designFeePct = R.designFee ?? 0;
+  const designFeeAmt = grandTotal * (designFeePct / 100);
+  const grandWithFee = grandTotal + designFeeAmt;
+
   const totalHrs   = effectiveLaborTotal / R.labor;
   // Base labor hours before condMult (for reference display)
   const laborBaseHrs = state.jobCondMult !== 1.0
@@ -134,8 +139,9 @@ export function BidSummaryTab() {
       `This will create a new job in the project manager ` +
       `with the estimate financials pre-filled.\n\n` +
       `Job #: ${state.jobNumber}\n` +
-      `Grand Total: ${grandTotal.toFixed(2)}\n` +
+      `Grand Total: ${grandWithFee.toFixed(2)}\n` +
       `Total Hours: ${totalHrs.toFixed(1)}` +
+      (designFeePct > 0 ? `\nDesign Fee: ${designFeePct}% ($${designFeeAmt.toFixed(2)})` : '') +
       (state.jobInfo.gcCompany ? `\nGC: ${state.jobInfo.gcCompany}` : '') +
       (state.jobInfo.address
         ? `\nSite: ${state.jobInfo.address}, ${state.jobInfo.city} ${state.jobInfo.state}`
@@ -150,7 +156,9 @@ export function BidSummaryTab() {
       fd.append('jobName',          state.jobName);
       fd.append('jobType',          'BID');
       fd.append('status',           'ACTIVE');
-      fd.append('contractValue',    grandTotal.toFixed(2));
+      fd.append('contractValue',    grandWithFee.toFixed(2));
+      fd.append('designFeePct',     designFeePct.toFixed(2));
+      fd.append('designFeeAmount',  designFeeAmt.toFixed(2));
       fd.append('materialBudget',   result.matTotal.toFixed(2));
       fd.append('laborBudgetDollars', effectiveLaborTotal.toFixed(2));
       fd.append('blendedLaborRate', state.settings.labor.toFixed(2));
@@ -216,7 +224,8 @@ export function BidSummaryTab() {
       `── TOTALS ─────────────────────────────`,
       `  Subtotal:       ${fmt$(subtotal)}`,
       `  Profit (${(R.profit * 100).toFixed(0)}%):   ${fmt$(profit)}`,
-      `  Grand Total:    ${fmt$(grandTotal)}`,
+      ...(designFeePct > 0 ? [`  Design Fee (${designFeePct}%): ${fmt$(designFeeAmt)}`] : []),
+      `  Grand Total:    ${fmt$(grandWithFee)}`,
       ``,
       `── JOB CONDITIONS ─────────────────────`,
       `  Condition mult: ${state.jobCondMult.toFixed(2)}x`,
@@ -367,11 +376,12 @@ export function BidSummaryTab() {
       ${gearCost    > 0 ? `<tr><td>Electrical Gear</td><td class="r">${fmt(gearCost)}</td></tr>` : ''}
       <tr style="background:#f5f5f5;font-weight:600"><td>Subtotal</td><td class="r">${fmt(subtotal)}</td></tr>
       <tr><td>Profit (${(R.profit * 100).toFixed(0)}%)</td><td class="r">${fmt(profit)}</td></tr>
+      ${designFeePct > 0 ? `<tr><td>Design Fee (${designFeePct}%)</td><td class="r">${fmt(designFeeAmt)}</td></tr>` : ''}
     </tbody>
   </table>
   <table>
     <tbody>
-      <tr class="grand"><td class="b">GRAND TOTAL</td><td class="r b">${fmt(grandTotal)}</td></tr>
+      <tr class="grand"><td class="b">GRAND TOTAL</td><td class="r b">${fmt(grandWithFee)}</td></tr>
     </tbody>
   </table>
 
@@ -761,12 +771,18 @@ export function BidSummaryTab() {
               <span>Profit ({(R.profit * 100).toFixed(0)}%)</span>
               <span className="font-mono">{fmt$(profit)}</span>
             </div>
+            {designFeePct > 0 && (
+              <div className="flex justify-between py-1 text-sm">
+                <span className="text-red-500 font-medium">Design Fee ({designFeePct}%)</span>
+                <span className="text-red-500 font-medium font-mono">{fmt$(designFeeAmt)}</span>
+              </div>
+            )}
           </div>
 
           {/* Grand total */}
           <div className="mt-3 pt-3 border-t-2 border-[#1e3a8a] flex justify-between items-baseline">
             <span className="text-base font-bold text-[#1e3a8a]">Grand Total</span>
-            <span className="text-xl font-bold text-[#1e3a8a] font-mono">{fmt$(grandTotal)}</span>
+            <span className="text-xl font-bold text-[#1e3a8a] font-mono">{fmt$(grandWithFee)}</span>
           </div>
         </div>
       )}

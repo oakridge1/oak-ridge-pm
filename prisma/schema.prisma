@@ -232,6 +232,11 @@ model Job {
   calendarColor     String?
   // Summary tab settings
   blendedLaborRate   Decimal?  @db.Decimal(10, 2)
+  // Design fee (internal commission carried from estimator)
+  designFeePct       Float?
+  designFeeAmount    Decimal?  @db.Decimal(12, 2)
+  designFeeApproved  Boolean   @default(false)
+  designFeePaid      Decimal?  @db.Decimal(12, 2)
   // Direct cost fields (Summary tab)
   subcontractorCost  Decimal?  @db.Decimal(12, 2)
   subcontractorBillPct Float?

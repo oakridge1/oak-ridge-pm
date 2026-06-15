@@ -142,6 +142,8 @@ export default async function JobPage({ params }: PageProps) {
     laborBudgetDollars: job.laborBudgetDollars?.toNumber() ?? null,
     materialBudget: job.materialBudget?.toNumber() ?? null,
     blendedLaborRate: job.blendedLaborRate?.toNumber() ?? null,
+    designFeeAmount: job.designFeeAmount?.toNumber() ?? null,
+    designFeePaid: job.designFeePaid?.toNumber() ?? null,
     subcontractorCost: job.subcontractorCost?.toNumber() ?? null,
     equipmentCost: job.equipmentCost?.toNumber() ?? null,
     materials: job.materials.map((m) => ({ ...m, amount: m.amount.toNumber() })),

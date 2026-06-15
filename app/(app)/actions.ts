@@ -46,6 +46,8 @@ export async function createJob(formData: FormData) {
   const permitNumber      = (formData.get("permitNumber")      as string) || "";
   const inspectionContact = (formData.get("inspectionContact") as string) || "";
   const inspectionPhone   = (formData.get("inspectionPhone")   as string) || "";
+  const designFeePct_     = parseFloat((formData.get("designFeePct")    as string) || "0");
+  const designFeeAmount_  = parseFloat((formData.get("designFeeAmount") as string) || "0");
 
   if (!jobNumber || !jobName) {
     return { error: "Job number and name are required" };
@@ -79,6 +81,9 @@ export async function createJob(formData: FormData) {
         permitNumber:      permitNumber      || null,
         inspectionContact: inspectionContact || null,
         inspectionPhone:   inspectionPhone   || null,
+        designFeePct:      designFeePct_     || null,
+        designFeeAmount:   designFeeAmount_  || null,
+        designFeeApproved: false,
       },
     });
 
@@ -105,4 +110,26 @@ export async function createJob(formData: FormData) {
     }
     return { error: "Failed to create job" };
   }
+}
+
+// ── Design fee approval / payment (ADMIN only) ──────────────────────────────────
+
+export async function approveDesignFee(jobId: string) {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") throw new Error("Unauthorized");
+  await prisma.job.update({
+    where: { id: jobId },
+    data: { designFeeApproved: true },
+  });
+  revalidatePath(`/jobs/${jobId}`);
+}
+
+export async function recordDesignFeePayment(jobId: string, amount: number) {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") throw new Error("Unauthorized");
+  await prisma.job.update({
+    where: { id: jobId },
+    data: { designFeePaid: amount },
+  });
+  revalidatePath(`/jobs/${jobId}`);
 }
