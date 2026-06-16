@@ -155,7 +155,7 @@ export function BidSummaryTab() {
       fd.append('jobNumber',        state.jobNumber);
       fd.append('jobName',          state.jobName);
       fd.append('jobType',          'BID');
-      fd.append('status',           'ACTIVE');
+      fd.append('status',           'IN_PROGRESS');
       fd.append('contractValue',    grandWithFee.toFixed(2));
       fd.append('designFeePct',     designFeePct.toFixed(2));
       fd.append('designFeeAmount',  designFeeAmt.toFixed(2));

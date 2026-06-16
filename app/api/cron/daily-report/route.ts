@@ -138,7 +138,7 @@ export async function GET(request: Request) {
 
       // Calendar events today
       prisma.calendarEvent.findMany({
-        where: { date: { gte: startOfToday, lte: endOfToday }, job: { status: { in: ["ACTIVE", "ON_HOLD"] } } },
+        where: { date: { gte: startOfToday, lte: endOfToday }, job: { status: { in: ["IN_PROGRESS", "ON_HOLD"] } } },
         include: { job: { select: { id: true, jobName: true, jobNumber: true } } },
       }),
 
@@ -151,7 +151,7 @@ export async function GET(request: Request) {
 
       // Active/on-hold jobs with financial data
       prisma.job.findMany({
-        where: { status: { in: ["ACTIVE", "ON_HOLD"] }, archived: false },
+        where: { status: { in: ["IN_PROGRESS", "ON_HOLD"] }, archived: false },
         select: {
           id: true, jobName: true, jobNumber: true,
           laborBudgetDollars: true, blendedLaborRate: true, materialBudget: true,
@@ -484,7 +484,7 @@ export async function GET(request: Request) {
       select: {
         id: true, name: true, email: true,
         foremanJobs: {
-          where: { status: { in: ["ACTIVE", "ON_HOLD"] }, archived: false },
+          where: { status: { in: ["IN_PROGRESS", "ON_HOLD"] }, archived: false },
           select: {
             id: true, jobName: true, jobNumber: true,
             contractValue: true, blendedLaborRate: true, laborBudgetDollars: true,

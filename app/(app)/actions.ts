@@ -13,7 +13,7 @@ export async function createJob(formData: FormData) {
 
   const jobNumber = (formData.get("jobNumber") as string)?.trim();
   const jobName = (formData.get("jobName") as string)?.trim();
-  const status = (formData.get("status") as string) || "ACTIVE";
+  const status = (formData.get("status") as string) || "IN_PROGRESS";
   const jobType = (formData.get("jobType") as string) || "BID";
   const laborBudgetDollars = formData.get("laborBudgetDollars")
     ? parseFloat(formData.get("laborBudgetDollars") as string)
@@ -58,7 +58,7 @@ export async function createJob(formData: FormData) {
       data: {
         jobNumber,
         jobName,
-        status: status as "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED",
+        status: status as "ESTIMATING" | "SUBMITTED" | "IN_PROGRESS" | "BILLED" | "COMPLETED" | "ON_HOLD" | "CANCELLED",
         jobType: jobType as "BID" | "TIME_AND_MATERIALS" | "ESTIMATE",
         laborBudgetDollars,
         materialBudget,

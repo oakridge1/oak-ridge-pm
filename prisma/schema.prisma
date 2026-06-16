@@ -23,7 +23,10 @@ enum CalendarRequestStatus {
 }
 
 enum JobStatus {
-  ACTIVE
+  ESTIMATING
+  SUBMITTED
+  IN_PROGRESS
+  BILLED
   COMPLETED
   ON_HOLD
   CANCELLED
@@ -224,7 +227,7 @@ model Job {
   permitNumber      String?
   inspectionContact String?
   inspectionPhone   String?
-  status            JobStatus @default(ACTIVE)
+  status            JobStatus @default(IN_PROGRESS)
   jobType           JobType   @default(BID)
   contractValue     Decimal?  @db.Decimal(12, 2)
   laborBudgetDollars  Decimal?  @db.Decimal(12, 2)

@@ -99,7 +99,7 @@ export default async function JobPage({ params }: PageProps) {
       orderBy: { name: "asc" },
     }),
     prisma.calendarEvent.findMany({
-      where: { job: { status: { in: ["ACTIVE", "ON_HOLD"] } } },
+      where: { job: { status: { in: ["IN_PROGRESS", "ON_HOLD"] } } },
       orderBy: { date: "asc" },
       include: {
         user: { select: { name: true } },
@@ -126,7 +126,7 @@ export default async function JobPage({ params }: PageProps) {
       _sum: { amount: true },
     }),
     prisma.job.count({
-      where: { status: "ACTIVE", isSystemJob: false },
+      where: { status: "IN_PROGRESS", isSystemJob: false },
     }),
   ]);
   const overheadAllocAmount = (() => {

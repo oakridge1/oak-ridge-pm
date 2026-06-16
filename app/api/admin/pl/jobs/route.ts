@@ -137,7 +137,7 @@ export async function GET(req: NextRequest) {
 
   // Count active non-system, non-excluded jobs for overhead allocation
   const activeJobCount = jobs.filter(
-    (j) => !j.isSystemJob && !j.excludeFromPL && (j.status === "ACTIVE" || j.status === "COMPLETED")
+    (j) => !j.isSystemJob && !j.excludeFromPL && (j.status === "IN_PROGRESS" || j.status === "COMPLETED")
   ).length;
 
   const overheadAllocation =

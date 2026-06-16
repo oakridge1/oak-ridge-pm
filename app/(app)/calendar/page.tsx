@@ -24,7 +24,7 @@ export default async function CalendarPage() {
       },
     }),
     prisma.job.findMany({
-      where: { status: { in: ["ACTIVE", "ON_HOLD"] } },
+      where: { status: { in: ["IN_PROGRESS", "ON_HOLD"] } },
       select: {
         id: true,
         jobName: true,
@@ -46,7 +46,7 @@ export default async function CalendarPage() {
       },
     }),
     prisma.inspection.findMany({
-      where: { dateScheduled: { not: null }, job: { status: { in: ["ACTIVE", "ON_HOLD"] } } },
+      where: { dateScheduled: { not: null }, job: { status: { in: ["IN_PROGRESS", "ON_HOLD"] } } },
       select: {
         id: true,
         dateScheduled: true,

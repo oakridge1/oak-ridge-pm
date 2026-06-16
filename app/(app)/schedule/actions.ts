@@ -309,7 +309,7 @@ export async function getActiveJobs() {
   return prisma.job.findMany({
     where: {
       archived: false,
-      status:   { in: ["ACTIVE", "ON_HOLD"] },
+      status:   { in: ["IN_PROGRESS", "ON_HOLD"] },
       jobType:  { notIn: ["ESTIMATE", "SYSTEM"] },
     },
     select:  { id: true, jobName: true, jobNumber: true },

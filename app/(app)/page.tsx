@@ -4,13 +4,14 @@ import { JobCard } from "./job-card";
 import { CreateJobButton } from "./create-job-button";
 import { ArchivedJobsSection } from "./archived-jobs-section";
 import { ShopExpenseButton } from "./shop-expense-button";
+import { JobsSearchClient } from "./jobs-search-client";
 import PlSummaryWidget from "./pl-summary-widget";
 import Link from "next/link";
 import { Calculator, ChevronRight } from "lucide-react";
 import { WeekBanner } from "@/components/schedule/WeekBanner";
 import type { JobStatus } from "@/app/generated/prisma/client";
 
-const statusOrder: JobStatus[] = ["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"];
+const statusOrder: JobStatus[] = ["ESTIMATING", "SUBMITTED", "IN_PROGRESS", "BILLED", "COMPLETED", "ON_HOLD", "CANCELLED"];
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-600",
@@ -81,8 +82,8 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#1e3a8a]">Jobs</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {jobs.filter((j) => j.status === "ACTIVE").length} active job
-            {jobs.filter((j) => j.status === "ACTIVE").length !== 1 ? "s" : ""}
+            {jobs.filter((j) => j.status === "IN_PROGRESS").length} active job
+            {jobs.filter((j) => j.status === "IN_PROGRESS").length !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -102,22 +103,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {statusOrder.map((status) => {
-        const group = grouped[status];
-        if (!group?.length) return null;
-        return (
-          <div key={status} className="mb-8">
-            <h2 className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-3">
-              {status === "ON_HOLD" ? "On Hold" : status.charAt(0) + status.slice(1).toLowerCase()}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {group.map((job) => (
-                <JobCard key={job.id} job={job} excludeFromPL={job.excludeFromPL} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      <JobsSearchClient grouped={grouped} statusOrder={statusOrder} />
 
       {/* Estimates quick-access panel */}
       {canEstimate && (

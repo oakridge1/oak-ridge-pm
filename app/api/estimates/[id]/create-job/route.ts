@@ -47,7 +47,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       jobNumber: estimate.jobNumberAssigned,
       jobName: estimate.name,
       address: estimate.address ?? undefined,
-      status: "ACTIVE",
+      status: "IN_PROGRESS",
       jobType: "BID",
       contractValue: totals.grandWithSubs,
       laborBudgetDollars: totals.rawLabor,

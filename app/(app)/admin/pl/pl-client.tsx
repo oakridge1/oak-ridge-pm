@@ -541,7 +541,7 @@ function JobTable({
                   <td className="px-4 py-3">
                     <span
                       className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        job.status === "ACTIVE"
+                        job.status === "IN_PROGRESS"
                           ? "bg-green-100 text-green-700"
                           : job.status === "COMPLETED"
                           ? "bg-blue-100 text-blue-700"

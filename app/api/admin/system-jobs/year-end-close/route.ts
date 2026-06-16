@@ -32,7 +32,7 @@ export async function POST() {
 
   // Find all current active system jobs
   const currentSystemJobs = await prisma.job.findMany({
-    where: { isSystemJob: true, status: "ACTIVE" },
+    where: { isSystemJob: true, status: "IN_PROGRESS" },
     select: { id: true, jobNumber: true, jobName: true },
   });
 
@@ -68,7 +68,7 @@ export async function POST() {
         jobNumber: nextOffice,
         jobName: "Office & Overhead",
         isSystemJob: true,
-        status: "ACTIVE",
+        status: "IN_PROGRESS",
         jobType: "SYSTEM",
       },
     }),
@@ -77,7 +77,7 @@ export async function POST() {
         jobNumber: nextShop,
         jobName: "Shop & Equipment",
         isSystemJob: true,
-        status: "ACTIVE",
+        status: "IN_PROGRESS",
         jobType: "SYSTEM",
       },
     }),

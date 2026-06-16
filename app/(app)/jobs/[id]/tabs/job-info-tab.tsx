@@ -153,9 +153,12 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
               defaultValue={job.status}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
             >
-              <option value="ACTIVE">Active</option>
-              <option value="ON_HOLD">On Hold</option>
+              <option value="ESTIMATING">Estimating</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="BILLED">Billed</option>
               <option value="COMPLETED">Completed</option>
+              <option value="ON_HOLD">On Hold</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
           </div>

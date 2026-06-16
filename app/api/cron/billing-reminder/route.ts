@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   try {
     // Query all active jobs with billing data
     const jobs = await prisma.job.findMany({
-      where: { status: { in: ["ACTIVE", "ON_HOLD"] }, archived: false },
+      where: { status: { in: ["IN_PROGRESS", "ON_HOLD"] }, archived: false },
       select: {
         id: true,
         jobNumber: true,

@@ -9,27 +9,49 @@ type JobWithRelations = Job & {
 
 const statusConfig: Record<
   JobStatus,
-  { label: string; dot: string; border: string }
+  { label: string; dot: string; border: string; bg: string }
 > = {
-  ACTIVE: {
-    label: "Active",
+  ESTIMATING: {
+    label: "Estimating",
+    dot: "bg-blue-600",
+    border: "border-l-blue-600",
+    bg: "bg-blue-50",
+  },
+  SUBMITTED: {
+    label: "Submitted",
+    dot: "bg-orange-500",
+    border: "border-l-orange-500",
+    bg: "bg-orange-50",
+  },
+  IN_PROGRESS: {
+    label: "In Progress",
     dot: "bg-green-500",
     border: "border-l-green-500",
+    bg: "bg-green-50",
+  },
+  BILLED: {
+    label: "Billed",
+    dot: "bg-purple-600",
+    border: "border-l-purple-600",
+    bg: "bg-purple-50",
   },
   COMPLETED: {
     label: "Completed",
     dot: "bg-gray-400",
     border: "border-l-gray-400",
+    bg: "bg-gray-50",
   },
   ON_HOLD: {
     label: "On Hold",
     dot: "bg-amber-500",
     border: "border-l-amber-500",
+    bg: "bg-amber-50",
   },
   CANCELLED: {
     label: "Cancelled",
     dot: "bg-red-400",
     border: "border-l-red-400",
+    bg: "bg-red-50",
   },
 };
 

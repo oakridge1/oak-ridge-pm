@@ -10,7 +10,7 @@ export async function GET() {
   if (session.user.role !== "ADMIN") return new NextResponse("Forbidden", { status: 403 });
 
   const jobs = await prisma.job.findMany({
-    where: { isSystemJob: true, status: "ACTIVE" },
+    where: { isSystemJob: true, status: "IN_PROGRESS" },
     orderBy: { jobNumber: "asc" },
     select: { id: true, jobNumber: true, jobName: true },
   });
