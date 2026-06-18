@@ -296,24 +296,24 @@ export function LaborTab({ job, role, fieldUsers, currentUserId }: LaborTabProps
             <p className="text-xs text-gray-500 mt-0.5">{fmt$(laborCostToDate)}</p>
           )}
         </div>
-        {(role === "ADMIN" || role === "OFFICE") && budgetDollars != null && (
+        {(role === "ADMIN" || role === "OFFICE") && (
           <>
             <div className="bg-gray-50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
               <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Budget</p>
-              <p className="text-xl font-bold text-gray-700">{fmt$(budgetDollars)}</p>
-              {budgetHours != null && (
-                <p className="text-xs text-gray-500 mt-0.5">{budgetHours.toFixed(0)} hrs</p>
-              )}
+              <p className="text-xl font-bold text-gray-700">{budgetDollars != null ? fmt$(budgetDollars) : "—"}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{budgetHours != null ? `${budgetHours.toFixed(0)} hrs` : "Not set"}</p>
             </div>
-            <div className={`rounded-xl px-4 py-3 flex-1 min-w-[120px] ${remainingDollars != null && remainingDollars < 0 ? "bg-red-50" : "bg-gray-50"}`}>
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Remaining</p>
-              <p className={`text-xl font-bold ${remainingDollars != null && remainingDollars < 0 ? "text-red-600" : "text-green-700"}`}>
-                {fmt$(remainingDollars)}
-              </p>
-              {remainingHours != null && (
-                <p className="text-xs text-gray-500 mt-0.5">{remainingHours.toFixed(1)} hrs</p>
-              )}
-            </div>
+            {budgetDollars != null && (
+              <div className={`rounded-xl px-4 py-3 flex-1 min-w-[120px] ${remainingDollars != null && remainingDollars < 0 ? "bg-red-50" : "bg-gray-50"}`}>
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Remaining</p>
+                <p className={`text-xl font-bold ${remainingDollars != null && remainingDollars < 0 ? "text-red-600" : "text-green-700"}`}>
+                  {fmt$(remainingDollars)}
+                </p>
+                {remainingHours != null && (
+                  <p className="text-xs text-gray-500 mt-0.5">{remainingHours.toFixed(1)} hrs</p>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
