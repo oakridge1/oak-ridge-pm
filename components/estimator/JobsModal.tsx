@@ -2,7 +2,10 @@
 
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { useState, useRef, useEffect } from 'react';
-import { listJobsFromCloud, loadJobFromCloud, type JobMeta } from '@/lib/estimator/jobs';
+import {
+  listJobsFromCloud, loadJobFromCloud, getIndex,
+  loadJob as loadJobData, type JobMeta,
+} from '@/lib/estimator/jobs';
 
 // ── Relative time helper ───────────────────────────────────────────────────────
 
@@ -39,6 +42,8 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
   const [renameValue, setRenameValue] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [cloudJobs,   setCloudJobs]   = useState<JobMeta[]>([]);
+  const [syncing,     setSyncing]     = useState(false);
+  const [syncResult,  setSyncResult]  = useState<{ done: number; total: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Fetch cloud jobs whenever the modal opens.
@@ -62,6 +67,41 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
   const isOnlyJob = jobs.length <= 1;
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
+
+  const handleSyncAll = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+
+    const index = getIndex(); // all local jobIds
+    let done = 0;
+
+    for (const jobId of index) {
+      const jobState = loadJobData(jobId);
+      if (!jobState) continue;
+      try {
+        await fetch('/api/estimator-jobs', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobId:     jobState.jobId,
+            jobName:   jobState.jobName   || '',
+            jobNumber: jobState.jobNumber || '',
+            data:      jobState,
+          }),
+        });
+        done++;
+      } catch {
+        // skip failed, continue with rest
+      }
+    }
+
+    setSyncing(false);
+    setSyncResult({ done, total: index.length });
+
+    // Refresh cloud list so newly synced estimates appear.
+    const cloud = await listJobsFromCloud();
+    setCloudJobs(cloud);
+  };
 
   function handleNew() {
     if (window.confirm('Start a new estimate? Current job is auto-saved.')) {
@@ -166,6 +206,29 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
 
         {/* ── BODY ────────────────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* Sync all to cloud */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-gray-400">
+              {syncResult
+                ? `☁ Synced ${syncResult.done} of ${syncResult.total} estimates`
+                : 'Sync estimates across devices'}
+            </span>
+            <button
+              onClick={handleSyncAll}
+              disabled={syncing}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#1e3a8a] text-[#1e3a8a] hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {syncing ? (
+                <>
+                  <span className="animate-spin">⟳</span>
+                  Syncing...
+                </>
+              ) : (
+                <>☁ Sync All to Cloud</>
+              )}
+            </button>
+          </div>
+
           {jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-center text-gray-400">
               <p className="text-sm font-medium">No saved estimates yet.</p>

@@ -20,7 +20,7 @@ function isClient(): boolean {
   return typeof window !== 'undefined';
 }
 
-function getIndex(): string[] {
+export function getIndex(): string[] {
   if (!isClient()) return [];
   try {
     return JSON.parse(localStorage.getItem(JOBS_INDEX_KEY) ?? '[]') as string[];
