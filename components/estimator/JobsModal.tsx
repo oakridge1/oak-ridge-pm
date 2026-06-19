@@ -1,8 +1,8 @@
 'use client';
 
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
-import { useState, useRef } from 'react';
-import type { JobMeta } from '@/lib/estimator/jobs';
+import { useState, useRef, useEffect } from 'react';
+import { listJobsFromCloud, loadJobFromCloud, type JobMeta } from '@/lib/estimator/jobs';
 
 // ── Relative time helper ───────────────────────────────────────────────────────
 
@@ -38,14 +38,26 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
   const [renamingId,  setRenamingId]  = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
+  const [cloudJobs,   setCloudJobs]   = useState<JobMeta[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Fetch cloud jobs whenever the modal opens.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    listJobsFromCloud().then(cj => { if (!cancelled) setCloudJobs(cj); });
+    return () => { cancelled = true; };
+  }, [open]);
 
   if (!open) return null;
 
-  // Re-compute on every render (listJobs reads localStorage)
-  const jobs: JobMeta[] = listJobs().sort(
-    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
-  );
+  // Local jobs (source of truth on this device) merged with cloud-only jobs.
+  const localJobs = listJobs();
+  const localIds  = new Set(localJobs.map(j => j.jobId));
+  const jobs: JobMeta[] = [
+    ...localJobs,
+    ...cloudJobs.filter(c => !localIds.has(c.jobId)),
+  ].sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
 
   const isOnlyJob = jobs.length <= 1;
 
@@ -58,8 +70,13 @@ export function JobsModal({ open, onClose }: JobsModalProps) {
     }
   }
 
-  function handleLoad(jobId: string) {
-    loadJob(jobId);
+  async function handleLoad(jobId: string) {
+    if (localIds.has(jobId)) {
+      loadJob(jobId);            // fast path — already on this device
+    } else {
+      const loaded = await loadJobFromCloud(jobId);
+      if (loaded) setState(loaded);
+    }
     onClose();
   }
 

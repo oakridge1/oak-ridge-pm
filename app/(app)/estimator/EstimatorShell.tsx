@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
+import {
+  loadJobFromCloud, listJobsFromCloud, hasLocalJobs,
+  type SyncStatus,
+} from '@/lib/estimator/jobs';
 import type { SavedAssembly } from '@/lib/estimator/constants';
 import { JobsModal } from '@/components/estimator/JobsModal';
 import { ConduitRunBuilder }     from '@/components/estimator/ConduitRunBuilder';
@@ -78,11 +82,50 @@ function categoryColor(label: string): string {
 }
 
 export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
-  const { state, setTab, addPrebuiltAssembly } = useEstimatorContext();
+  const { state, setState, setTab, addPrebuiltAssembly } = useEstimatorContext();
   const tab = state.tab;
   const [jobsOpen,     setJobsOpen]     = useState(false);
   const [counterOpen,  setCounterOpen]  = useState(false);
+  const [syncStatus,   setSyncStatus]   = useState<SyncStatus>('idle');
+  const [cloudLoading, setCloudLoading] = useState(false);
   const showTools = !['summary', 'settings'].includes(state.tab);
+
+  // ── Cloud hydrate on mount ──────────────────────────────────────────────────
+  // localStorage is the fast path (already loaded by useEstimator). If this
+  // device has no local estimates, pull the most recent one from the cloud.
+  useEffect(() => {
+    if (hasLocalJobs()) return;
+    let cancelled = false;
+    setCloudLoading(true);
+    (async () => {
+      const cloudJobs = await listJobsFromCloud();
+      if (cancelled || cloudJobs.length === 0) {
+        if (!cancelled) setCloudLoading(false);
+        return;
+      }
+      const loaded = await loadJobFromCloud(cloudJobs[0].jobId);
+      if (!cancelled) {
+        if (loaded) setState(loaded);
+        setCloudLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [setState]);
+
+  // ── Cloud sync status indicator ─────────────────────────────────────────────
+  // saveJob() broadcasts a window event on every cloud save (incl. autosave).
+  useEffect(() => {
+    function onStatus(e: Event) {
+      const status = (e as CustomEvent<{ status: SyncStatus }>).detail?.status;
+      if (!status) return;
+      setSyncStatus(status);
+      if (status === 'saved') {
+        setTimeout(() => setSyncStatus('idle'), 2000);
+      }
+    }
+    window.addEventListener('estimator-sync-status', onStatus);
+    return () => window.removeEventListener('estimator-sync-status', onStatus);
+  }, []);
 
   // ── Ridge List: live assembly broadcast to the PDF tool ─────────────────────
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -179,7 +222,18 @@ export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
           </span>
         </div>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-sm text-blue-100 truncate mr-2">{state.jobName}</span>
+          <span className="flex items-center gap-2 min-w-0 mr-2">
+            <span className="text-sm text-blue-100 truncate">{state.jobName}</span>
+            {cloudLoading ? (
+              <span className="shrink-0 text-xs text-blue-200">☁ Loading…</span>
+            ) : syncStatus === 'saving' ? (
+              <span className="shrink-0 text-xs text-blue-200">☁ Syncing…</span>
+            ) : syncStatus === 'saved' ? (
+              <span className="shrink-0 text-xs text-green-300">☁ Saved</span>
+            ) : syncStatus === 'error' ? (
+              <span className="shrink-0 text-xs text-orange-300" title="Saved locally — will retry next save">☁ Offline</span>
+            ) : null}
+          </span>
           <div className="flex items-center gap-2 shrink-0">
             {showTools && (
               <>

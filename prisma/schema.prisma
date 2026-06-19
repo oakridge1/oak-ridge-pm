@@ -165,6 +165,22 @@ model User {
   schedulesCreated         Schedule[]             @relation("ScheduleCreatedBy")
   scheduleAssignments      ScheduleAssignment[]
   clockEntries             ClockEntry[]
+  estimatorJobs            EstimatorJob[]         @relation("UserEstimatorJobs")
+}
+
+model EstimatorJob {
+  id        String   @id @default(cuid())
+  jobId     String                        // the client UUID from state.jobId
+  userId    String
+  user      User     @relation("UserEstimatorJobs", fields: [userId], references: [id], onDelete: Cascade)
+  jobName   String   @default("")
+  jobNumber String   @default("")
+  data      Json                          // full EstimatorState blob
+  savedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, jobId])
+  @@index([userId])
 }
 
 model Account {

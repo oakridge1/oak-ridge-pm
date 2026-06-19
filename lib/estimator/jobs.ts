@@ -32,8 +32,25 @@ function setIndex(ids: string[]): void {
   localStorage.setItem(JOBS_INDEX_KEY, JSON.stringify(ids));
 }
 
-export function saveJob(state: EstimatorState): void {
+export type SyncStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+// Notify listeners (e.g. EstimatorShell) of cloud sync status. Fires the
+// optional callback AND a window event so the autosave path — which calls
+// saveJob without a callback — still drives the UI indicator.
+function emitSync(status: SyncStatus, cb?: (s: SyncStatus) => void): void {
+  cb?.(status);
+  if (isClient()) {
+    window.dispatchEvent(new CustomEvent('estimator-sync-status', { detail: { status } }));
+  }
+}
+
+export function saveJob(
+  state: EstimatorState,
+  onSyncStatus?: (status: SyncStatus) => void,
+): void {
   if (!isClient()) return;
+
+  // 1. localStorage — primary, fast, source of truth on this device.
   const key     = JOB_PREFIX + state.jobId;
   const payload = {
     version: SCHEMA_VERSION,
@@ -49,6 +66,21 @@ export function saveJob(state: EstimatorState): void {
   }
 
   localStorage.setItem(CURRENT_JOB_KEY, state.jobId);
+
+  // 2. Cloud sync — background, best-effort. Never blocks the local save.
+  emitSync('saving', onSyncStatus);
+  fetch('/api/estimator-jobs', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jobId:     state.jobId,
+      jobName:   state.jobName   || '',
+      jobNumber: state.jobNumber || '',
+      data:      state,
+    }),
+  })
+    .then((res) => emitSync(res.ok ? 'saved' : 'error', onSyncStatus))
+    .catch(() => emitSync('error', onSyncStatus)); // offline — localStorage already holds it
 }
 
 export function loadJob(jobId: string): EstimatorState | null {
@@ -63,6 +95,58 @@ export function loadJob(jobId: string): EstimatorState | null {
   } catch {
     return null;
   }
+}
+
+// Fetch a single job from the cloud, hydrate it, and cache to localStorage.
+export async function loadJobFromCloud(jobId: string): Promise<EstimatorState | null> {
+  if (!isClient()) return null;
+  try {
+    const res = await fetch(`/api/estimator-jobs/${jobId}`);
+    if (!res.ok) return null;
+    const record = await res.json();
+    if (!record?.data) return null;
+    const state = createNewState(record.data as Partial<EstimatorState>);
+    if (state.settings) setRates(state.settings);
+    // Cache locally for fast subsequent access.
+    const payload = {
+      version: SCHEMA_VERSION,
+      savedAt: record.savedAt,
+      state,
+    };
+    localStorage.setItem(JOB_PREFIX + jobId, JSON.stringify(payload));
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+// List the current user's jobs from the cloud as JobMeta[].
+export async function listJobsFromCloud(): Promise<JobMeta[]> {
+  if (!isClient()) return [];
+  try {
+    const res = await fetch('/api/estimator-jobs');
+    if (!res.ok) return [];
+    const records = await res.json();
+    return (records as Array<{
+      jobId:     string;
+      jobName:   string;
+      jobNumber: string;
+      updatedAt: string;
+    }>).map((r) => ({
+      jobId:     r.jobId,
+      jobName:   r.jobName,
+      jobNumber: r.jobNumber,
+      savedAt:   r.updatedAt,
+      version:   SCHEMA_VERSION,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// True when this device already has at least one estimate in localStorage.
+export function hasLocalJobs(): boolean {
+  return getIndex().length > 0;
 }
 
 export function loadCurrentJob(): EstimatorState | null {
@@ -107,6 +191,9 @@ export function deleteJob(jobId: string): void {
   if (localStorage.getItem(CURRENT_JOB_KEY) === jobId) {
     localStorage.removeItem(CURRENT_JOB_KEY);
   }
+
+  // Delete from cloud too — best-effort, non-blocking.
+  fetch(`/api/estimator-jobs/${jobId}`, { method: 'DELETE' }).catch(() => {});
 }
 
 export function newJob(): EstimatorState {
