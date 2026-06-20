@@ -1121,9 +1121,31 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
   const co_email = data.companyEmail ?? COMPANY_EMAIL;
   const co_cityState = `${co_city}, ${co_state} ${co_zip}`;
 
-  // Parse scope of work into numbered items
-  const scopeItems: string[] = data.scopeOfWork
-    ? data.scopeOfWork.split(/\n+/).map(s => s.trim()).filter(Boolean)
+  // Parse scope of work into typed lines (headers keep their own numbering,
+  // bullets stay bullets — no blanket re-numbering).
+  type ScopeLine =
+    | { type: 'header'; text: string }
+    | { type: 'bullet'; text: string }
+    | { type: 'text';   text: string };
+
+  const scopeLines: ScopeLine[] = data.scopeOfWork
+    ? data.scopeOfWork
+        .split('\n')
+        .map(s => s.trimEnd())
+        .filter(s => s.trim().length > 0)
+        .map(line => {
+          const trimmed = line.trim();
+          // Already-numbered header: "1. Title"
+          if (/^\d+\./.test(trimmed)) {
+            return { type: 'header' as const, text: trimmed.replace(/^\d+\.\s*/, '').trim() };
+          }
+          // Bullet point: "  • item" or "• item"
+          if (trimmed.startsWith('•')) {
+            return { type: 'bullet' as const, text: trimmed.replace(/^•\s*/, '').trim() };
+          }
+          // Plain text
+          return { type: 'text' as const, text: trimmed };
+        })
     : [];
 
   const projectAddress = [data.address, data.city, data.state].filter(Boolean).join(", ");
@@ -1179,16 +1201,38 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
 
         <View style={IS.thinDivider} />
 
-        {/* ── Scope of Work as numbered items ── */}
-        {scopeItems.length > 0 ? (
+        {/* ── Scope of Work — headers numbered, bullets indented ── */}
+        {scopeLines.length > 0 ? (
           <View style={{ marginBottom: 8 }}>
             <Text style={IS.scopeLabel}>Scope of Work</Text>
-            {scopeItems.map((item, i) => (
-              <View key={i} style={IS.scopeRow}>
-                <Text style={IS.scopeNum}>{i + 1}.</Text>
-                <Text style={IS.scopeText}>{item}</Text>
-              </View>
-            ))}
+            {(() => {
+              let headerCount = 0;
+              return scopeLines.map((line, i) => {
+                if (line.type === 'header') {
+                  headerCount++;
+                  return (
+                    <View key={i} style={[IS.scopeRow, { marginTop: i === 0 ? 0 : 6 }]}>
+                      <Text style={IS.scopeNum}>{headerCount}.</Text>
+                      <Text style={[IS.scopeText, { fontFamily: 'Helvetica-Bold' }]}>{line.text}</Text>
+                    </View>
+                  );
+                }
+                if (line.type === 'bullet') {
+                  return (
+                    <View key={i} style={[IS.scopeRow, { paddingLeft: 12 }]}>
+                      <Text style={IS.scopeNum}>•</Text>
+                      <Text style={IS.scopeText}>{line.text}</Text>
+                    </View>
+                  );
+                }
+                // plain text
+                return (
+                  <View key={i} style={IS.scopeRow}>
+                    <Text style={[IS.scopeText, { marginLeft: 0 }]}>{line.text}</Text>
+                  </View>
+                );
+              });
+            })()}
           </View>
         ) : null}
 
