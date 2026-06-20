@@ -38,7 +38,12 @@ export async function GET(request: Request) {
   try {
     // Query all active jobs with billing data
     const jobs = await prisma.job.findMany({
-      where: { status: { in: ["IN_PROGRESS", "ON_HOLD"] }, archived: false },
+      where: {
+        status: { in: ["IN_PROGRESS", "SUBMITTED", "BILLED", "ON_HOLD"] },
+        archived:      false,
+        excludeFromPL: false,
+        isSystemJob:   false,
+      },
       select: {
         id: true,
         jobNumber: true,
@@ -263,8 +268,8 @@ export async function GET(request: Request) {
     const FROM = process.env.EMAIL_FROM;
     const PASS = process.env.GMAIL_APP_PASSWORD;
     if (!FROM || !PASS) {
-      console.error("[billing-reminder] Email env vars not set.");
-      return NextResponse.json({ ok: false, error: "Email not configured." });
+      console.error("[billing-reminder] FATAL: EMAIL_FROM or GMAIL_APP_PASSWORD not set in environment variables.");
+      return NextResponse.json({ ok: false, error: "Email not configured." }, { status: 500 });
     }
 
     const transport = nodemailer.createTransport({

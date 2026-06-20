@@ -4,6 +4,8 @@
     { "path": "/api/cron/billing-reminder",    "schedule": "0 9 * * *" },
     { "path": "/api/cron/reset-stock-orders",  "schedule": "0 5 * * *" },
     { "path": "/api/cron/generate-overhead",   "schedule": "0 11 1 * *" },
-    { "path": "/api/cron/auto-archive",         "schedule": "0 2 * * *" }
+    { "path": "/api/cron/auto-archive",         "schedule": "0 2 * * *" },
+    { "path": "/api/cron/receipt-reminder",     "schedule": "0 11 * * 1" },
+    { "path": "/api/cron/receipt-reminder",     "schedule": "0 19 * * 5" }
   ]
 }
