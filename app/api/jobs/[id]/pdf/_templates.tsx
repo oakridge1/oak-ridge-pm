@@ -1108,6 +1108,7 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
   const approvedCOs = data.approvedCOs ?? [];
   const contractValue = data.contractValue ?? 0;
   const coTotal = approvedCOs.reduce((s, co) => s + co.approvedValue, 0);
+  const revisedTotal = contractValue + coTotal;
   const invoiceKind = data.invoiceKind === "FINAL_INVOICE" ? "FINAL INVOICE" : "PROGRESS PAYMENT";
 
   // Company settings with fallbacks
@@ -1214,6 +1215,27 @@ export function StandardInvoiceDoc({ data }: { data: StandardInvoiceData }) {
               <Text style={IS.finLabel}>Revised Contract Total</Text>
               <Text style={IS.finValue}>{fmt$(contractValue + coTotal)}</Text>
             </View>
+          ) : null}
+
+          {data.previouslyInvoiced > 0 ? (
+            <>
+              <View style={IS.finRow}>
+                <Text style={IS.finLabel}>Previously Invoiced</Text>
+                <Text style={IS.finValue}>{fmt$(data.previouslyInvoiced)}</Text>
+              </View>
+              <View style={IS.finRow}>
+                <Text style={IS.finLabel}>This Invoice</Text>
+                <Text style={IS.finValue}>{fmt$(data.amount)}</Text>
+              </View>
+              <View style={[IS.finRow, { borderTopWidth: 0.5, borderTopColor: "#e5e7eb", borderTopStyle: "solid", paddingTop: 4 }]}>
+                <Text style={[IS.finLabel, { fontFamily: "Helvetica-Bold" }]}>Total Billed to Date</Text>
+                <Text style={[IS.finValue, { fontFamily: "Helvetica-Bold" }]}>{fmt$(data.previouslyInvoiced + data.amount)}</Text>
+              </View>
+              <View style={IS.finRow}>
+                <Text style={IS.finLabel}>Remaining Balance</Text>
+                <Text style={IS.finValue}>{fmt$(revisedTotal - data.previouslyInvoiced - data.amount)}</Text>
+              </View>
+            </>
           ) : null}
 
           <View style={IS.totalRow}>
