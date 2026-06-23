@@ -91,6 +91,26 @@ export default async function JobPage({ params }: PageProps) {
           orderBy: { createdAt: "desc" },
           include: { uploadedBy: { select: { name: true } } },
         },
+        reports: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            reportType: true,
+            title: true,
+            status: true,
+            certNumber: true,
+            overallResult: true,
+            inspectionDate: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: {
+              select: {
+                findings: true,
+                fixtures: true,
+              },
+            },
+          },
+        },
       },
     }),
     prisma.user.findMany({
