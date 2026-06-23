@@ -64,6 +64,7 @@ enum InspectionType {
 enum InspectionResult {
   PASS
   FAIL
+  CONDITIONAL
 }
 
 enum RfiStatus {
@@ -166,6 +167,8 @@ model User {
   scheduleAssignments      ScheduleAssignment[]
   clockEntries             ClockEntry[]
   estimatorJobs            EstimatorJob[]         @relation("UserEstimatorJobs")
+  libraryFindings          LibraryFinding[]       @relation("UserLibraryFindings")
+  jobReports               JobReport[]            @relation("UserJobReports")
 }
 
 model EstimatorJob {
@@ -304,6 +307,144 @@ model Job {
   schedules             Schedule[]
   lightingSchedule      LightingScheduleItem[]
   gearSchedule          GearScheduleItem[]
+  reports               JobReport[]
+}
+
+// ── Reports module ────────────────────────────────────────────────────────────
+
+model LibraryFinding {
+  id            String   @id @default(cuid())
+  title         String
+  body          String   @db.Text
+  necReferences String   @default("")
+  hazardNote    String   @default("")
+  tags          String[] @default([])
+  reportType    String   @default("field_investigation")
+  isSeeded      Boolean  @default(false)
+  useCount      Int      @default(0)
+  createdById   String?
+  createdBy     User?    @relation("UserLibraryFindings", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([reportType])
+  @@index([useCount])
+}
+
+model IssueCode {
+  id                    String   @id @default(cuid())
+  code                  String   @unique
+  description           String
+  correctiveCode        String
+  correctiveDescription String
+  category              String   @default("general")
+  isSeeded              Boolean  @default(false)
+  createdAt             DateTime @default(now())
+}
+
+enum ReportType {
+  FIELD_INVESTIGATION
+  EMERGENCY_LIGHTING
+  INFRARED_THERMAL
+}
+
+enum ReportStatus {
+  DRAFT
+  FINAL
+}
+
+model JobReport {
+  id                 String            @id @default(cuid())
+  jobId              String
+  job                Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reportType         ReportType
+  title              String
+  status             ReportStatus      @default(DRAFT)
+  certNumber         String?           @unique
+  projectInfo        Json              @default("{}")
+  background         String            @default("") @db.Text
+  analysisSections   Json              @default("[]")
+  correctiveAction   String            @default("") @db.Text
+  closingParagraph   String            @default("") @db.Text
+  inspectorName      String            @default("")
+  inspectionDate     DateTime?
+  nextInspectionDate DateTime?
+  overallResult      InspectionResult?
+  findings           ReportFindingEntry[]
+  fixtures           ReportFixture[]
+  summaryRows        ReportSummaryRow[]
+  createdById        String?
+  createdBy          User?             @relation("UserJobReports", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([jobId])
+  @@index([reportType])
+}
+
+model ReportFindingEntry {
+  id               String    @id @default(cuid())
+  reportId         String
+  report           JobReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  sortOrder        Int       @default(0)
+  title            String
+  body             String    @db.Text
+  necReferences    String    @default("")
+  hazardNote       String    @default("")
+  libraryFindingId String?
+  createdAt        DateTime  @default(now())
+
+  @@index([reportId])
+}
+
+enum FixtureType {
+  EMERGENCY_LIGHT
+  EXIT_SIGN
+  COMBO
+}
+
+enum TestResult {
+  PASS
+  FAIL
+  NOT_TESTED
+}
+
+model ReportFixture {
+  id          String      @id @default(cuid())
+  reportId    String
+  report      JobReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  sortOrder   Int         @default(0)
+  location    String
+  fixtureTag  String      @default("")
+  fixtureType FixtureType @default(EMERGENCY_LIGHT)
+  test30sec   TestResult  @default(NOT_TESTED)
+  test90min   TestResult  @default(NOT_TESTED)
+  visualPass  TestResult  @default(NOT_TESTED)
+  issueCodes  String[]    @default([])
+  notes       String      @default("")
+  createdAt   DateTime    @default(now())
+
+  @@index([reportId])
+}
+
+enum SummaryStatus {
+  NOT_MET
+  PENDING
+  MET
+  NA
+}
+
+model ReportSummaryRow {
+  id          String        @id @default(cuid())
+  reportId    String
+  report      JobReport     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  sortOrder   Int           @default(0)
+  necArticle  String
+  requirement String
+  status      SummaryStatus @default(NOT_MET)
+  createdAt   DateTime      @default(now())
+
+  @@index([reportId])
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
