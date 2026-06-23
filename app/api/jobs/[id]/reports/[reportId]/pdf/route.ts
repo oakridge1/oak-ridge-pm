@@ -16,7 +16,7 @@ import {
 
 function getLogoSrc(): string | undefined {
   try {
-    const logoPath = path.join(process.cwd(), "public", "Blue-ridge-logo.png");
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
     if (fs.existsSync(logoPath)) {
       const buf = fs.readFileSync(logoPath);
       return `data:image/png;base64,${buf.toString("base64")}`;

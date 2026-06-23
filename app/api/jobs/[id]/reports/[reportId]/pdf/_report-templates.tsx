@@ -136,7 +136,7 @@ const S = StyleSheet.create({
     marginBottom: 2,
   },
   findingTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: TEXT, marginBottom: 6 },
-  findingBody: { fontSize: 9, color: TEXT, lineHeight: 1.5, marginBottom: 6 },
+  findingBody: { fontSize: 9, color: TEXT, lineHeight: 1.5, marginBottom: 6, textAlign: "justify" },
   hazardNote: { fontSize: 8, fontStyle: "italic", color: "#b45309", marginBottom: 4 },
   necRef: { fontSize: 8, fontFamily: "Helvetica-Bold", color: NAVY },
   tableHeader: { flexDirection: "row", backgroundColor: NAVY },
@@ -241,8 +241,12 @@ export function FieldInvestigationDoc({
             </View>
             {report.findings.map((finding, idx) => (
               <View key={finding.id} style={S.findingCard} wrap={false}>
-                <Text style={S.findingLabel}>Finding {idx + 1}</Text>
-                <Text style={S.findingTitle}>{finding.title}</Text>
+                <View style={{ flexDirection: "row", alignItems: "baseline", marginBottom: 6, flexWrap: "wrap" }}>
+                  <Text style={{ fontSize: 8, color: ORANGE, fontFamily: "Helvetica-Bold", marginRight: 6 }}>
+                    Finding {idx + 1}
+                  </Text>
+                  <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: TEXT }}>{finding.title}</Text>
+                </View>
                 <Text style={S.findingBody}>{finding.body}</Text>
                 {finding.hazardNote ? <Text style={S.hazardNote}>Hazard: {finding.hazardNote}</Text> : null}
                 {finding.necReferences ? (
