@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   Receipt,
   FileText,
+  LayoutGrid,
 } from "lucide-react";
 import { JobInfoTab } from "./tabs/job-info-tab";
 import { LaborTab } from "./tabs/labor-tab";
@@ -29,6 +30,7 @@ import { DocumentsTab } from "./tabs/documents-tab";
 import { CribTab } from "./tabs/crib-tab";
 import { ReceiptsTab } from "./tabs/receipts-tab";
 import { ReportsTab } from "./tabs/reports-tab";
+import { PanelsTab } from "./tabs/panels-tab";
 import type { Role } from "@/app/generated/prisma/client";
 
 type Tab = {
@@ -69,6 +71,11 @@ const TABS: Tab[] = [
     id: "reports",
     label: "Reports",
     icon: <FileText className="w-4 h-4" />,
+  },
+  {
+    id: "panels",
+    label: "Panels",
+    icon: <LayoutGrid className="w-4 h-4" />,
   },
   {
     id: "documents",
@@ -207,6 +214,9 @@ export function JobTabs({
         )}
         {activeTab === "reports" && (
           <ReportsTab job={job} reports={job.reports ?? []} role={role} />
+        )}
+        {activeTab === "panels" && (
+          <PanelsTab job={job} panels={job.panelSchedules ?? []} role={role} />
         )}
         {activeTab === "documents" && (
           <DocumentsTab job={job} role={role} />

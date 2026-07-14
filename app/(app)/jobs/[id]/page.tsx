@@ -111,6 +111,21 @@ export default async function JobPage({ params }: PageProps) {
             },
           },
         },
+        panelSchedules: {
+          orderBy: { name: "asc" },
+          select: {
+            id: true,
+            name: true,
+            panelType: true,
+            system: true,
+            busAmps: true,
+            mainType: true,
+            mainAmps: true,
+            circuitCount: true,
+            updatedAt: true,
+            _count: { select: { circuits: true } },
+          },
+        },
       },
     }),
     prisma.user.findMany({
