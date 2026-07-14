@@ -111,6 +111,12 @@ export function PanelEditor({ panel, libraryEntries, role }: PanelEditorProps) {
   sheetOpenRef.current = editCkt !== null;
 
   const [specOpen, setSpecOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+
+  function openPdf(sleeve: "6x9" | "7x7") {
+    window.open(`${apiBase}/pdf?sleeve=${sleeve}`, "_blank", "noopener,noreferrer");
+    setPrintOpen(false);
+  }
 
   const refetch = useCallback(async () => {
     try {
@@ -284,14 +290,30 @@ export function PanelEditor({ panel, libraryEntries, role }: PanelEditorProps) {
               {jobAddress && <p className="text-[11px] text-gray-400">{jobAddress}</p>}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
-              {canManage && (
-                <button
-                  onClick={() => setSpecOpen(true)}
-                  className="px-3 py-1.5 text-xs font-semibold border border-[#1e3a8a] text-[#1e3a8a] rounded-lg hover:bg-blue-50"
-                >
-                  Edit specs
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <button
+                    onClick={() => setPrintOpen((v) => !v)}
+                    className="px-3 py-1.5 text-xs font-semibold bg-[#1e3a8a] text-white rounded-lg hover:bg-blue-800"
+                  >
+                    ↓ PDF
+                  </button>
+                  {printOpen && (
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                      <button onClick={() => openPdf("6x9")} className="block w-full text-left px-4 py-2 text-xs hover:bg-gray-50 whitespace-nowrap">6×9 sleeve</button>
+                      <button onClick={() => openPdf("7x7")} className="block w-full text-left px-4 py-2 text-xs hover:bg-gray-50 whitespace-nowrap border-t border-gray-100">7×7 sleeve</button>
+                    </div>
+                  )}
+                </div>
+                {canManage && (
+                  <button
+                    onClick={() => setSpecOpen(true)}
+                    className="px-3 py-1.5 text-xs font-semibold border border-[#1e3a8a] text-[#1e3a8a] rounded-lg hover:bg-blue-50"
+                  >
+                    Edit specs
+                  </button>
+                )}
+              </div>
               <span className="text-[11px] text-gray-400">Updated {updatedLabel}</span>
             </div>
           </div>
