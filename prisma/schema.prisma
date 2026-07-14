@@ -169,6 +169,8 @@ model User {
   estimatorJobs            EstimatorJob[]         @relation("UserEstimatorJobs")
   libraryFindings          LibraryFinding[]       @relation("UserLibraryFindings")
   jobReports               JobReport[]            @relation("UserJobReports")
+  panelSchedules           PanelSchedule[]        @relation("UserPanelSchedules")
+  circuitLibraryEntries    CircuitLibrary[]       @relation("UserCircuitLibrary")
 }
 
 model EstimatorJob {
@@ -308,6 +310,7 @@ model Job {
   lightingSchedule      LightingScheduleItem[]
   gearSchedule          GearScheduleItem[]
   reports               JobReport[]
+  panelSchedules        PanelSchedule[]
 }
 
 // ── Reports module ────────────────────────────────────────────────────────────
@@ -340,6 +343,75 @@ model IssueCode {
   category              String   @default("general")
   isSeeded              Boolean  @default(false)
   createdAt             DateTime @default(now())
+}
+
+// ── Panel Schedules module ────────────────────────────────────────────────────
+
+model PanelSchedule {
+  id            String          @id @default(cuid())
+  jobId         String
+  job           Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  name          String          // e.g. "PP1", "LP1", "MDP"
+  panelType     String          // "MDP" | "MB_PANELBOARD" | "MLO_PANELBOARD" | "LOAD_CENTER"
+  system        String          // "120/208V 3PH 4W" | "277/480V 3PH 4W" | "120/240V 1PH 3W" | "120/208V 1PH 3W"
+  phases        Int             // 1 or 3
+  busAmps       Int
+  mainType      String          // "MLO" | "MB"
+  mainAmps      Int?            // null when MLO
+  fedAmps       Int?            // optional "fed @ X amps" note
+  fedFrom       String?         // NEC 408.4(B) supply source marking
+  location      String?
+  breakerType   String?
+  catalogNumber String?
+  circuitCount  Int             // even, typically 12–84
+  afc           String?         // available fault current, free text
+  aicRating     String?         // breaker interrupting rating
+  enclosure     String?         // "NEMA 1" | "NEMA 3R", null = don't print
+  integralTVSS  Boolean         @default(false)
+  notes         String?
+  circuits      PanelCircuit[]
+  createdById   String?
+  createdBy     User?           @relation("UserPanelSchedules", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([jobId])
+}
+
+model PanelCircuit {
+  id              String        @id @default(cuid())
+  panelScheduleId String
+  panelSchedule   PanelSchedule @relation(fields: [panelScheduleId], references: [id], onDelete: Cascade)
+  ckt             Int           // 1-based; odd = left, even = right
+  status          String        // "ASSIGNED" | "SPARE" | "OPEN" | "SPACE" | "DEVICE"
+  description     String?       // null/blank for OPEN and SPACE
+  poles           Int           @default(1)   // 1, 2, or 3
+  amps            Int?          @default(20)   // null for SPACE and DEVICE
+  flags           String[]      @default([])   // subset of "LO", "GFI", "E"
+  updatedByName   String?       // who last edited (field accountability)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([panelScheduleId, ckt])
+  @@index([panelScheduleId])
+}
+
+model CircuitLibrary {
+  id            String   @id @default(cuid())
+  label         String   @unique
+  defaultPoles  Int      @default(1)
+  defaultAmps   Int      @default(20)
+  defaultFlags  String[] @default([])
+  defaultStatus String   @default("ASSIGNED")
+  tags          String[] @default([])
+  isSeeded      Boolean  @default(false)
+  useCount      Int      @default(0)
+  createdById   String?
+  createdBy     User?    @relation("UserCircuitLibrary", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([useCount])
 }
 
 enum ReportType {
