@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
-import { buildOpenCircuitRows, phasesFromSystem } from "../route";
+import { buildOpenCircuitRows, phasesFromSystem } from "@/lib/panel-schedules";
 
 function canManage(role?: string) {
   return role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";

@@ -3,28 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-
-// Single source of truth for a circuit row's status-dependent defaults.
-// Rule: amps is null for SPACE and DEVICE rows; otherwise defaults to 20.
-export function circuitDefaults(status: string): { poles: number; amps: number | null } {
-  const ampsNull = status === "SPACE" || status === "DEVICE";
-  return { poles: 1, amps: ampsNull ? null : 20 };
-}
-
-// Build the full grid of OPEN circuit rows for a panel (ckt start..end inclusive).
-export function buildOpenCircuitRows(panelScheduleId: string, start: number, end: number) {
-  const rows = [];
-  for (let ckt = start; ckt <= end; ckt++) {
-    const { poles, amps } = circuitDefaults("OPEN");
-    rows.push({ panelScheduleId, ckt, status: "OPEN", poles, amps, flags: [] as string[] });
-  }
-  return rows;
-}
-
-// Phases derive from the voltage system: "3PH" → 3, otherwise 1.
-export function phasesFromSystem(system: string): number {
-  return /3PH/i.test(system) ? 3 : 1;
-}
+import { buildOpenCircuitRows, phasesFromSystem } from "@/lib/panel-schedules";
 
 function canManage(role?: string) {
   return role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
