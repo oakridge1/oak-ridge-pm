@@ -1,4 +1,26 @@
 // Shared panel-schedule helpers (used by API routes and create/edit flows).
+import { prisma } from "@/lib/prisma";
+
+// Effective "can create/edit panels" check. ADMIN/OFFICE/FOREMAN keep built-in
+// access (short-circuit before any DB hit); any other role is elevated only by a
+// MANAGE_PANELS grant (GLOBAL, or JOB-scoped to this job). Mirrors the ORDERING
+// precedent in stock-orders. Grants add access — they never remove built-in access.
+export async function canManagePanels(
+  user: { id?: string | null; role?: string | null } | null | undefined,
+  jobId: string
+): Promise<boolean> {
+  const role = user?.role;
+  if (role === "ADMIN" || role === "OFFICE" || role === "FOREMAN") return true;
+  if (!user?.id) return false;
+  const perm = await prisma.userPermission.findFirst({
+    where: {
+      userId: user.id,
+      permission: "MANAGE_PANELS",
+      OR: [{ scope: "GLOBAL" }, { scope: "JOB", jobId }],
+    },
+  });
+  return perm !== null;
+}
 
 export const CIRCUIT_STATUSES = ["ASSIGNED", "SPARE", "OPEN", "SPACE", "DEVICE"] as const;
 export const CIRCUIT_FLAGS = ["LO", "GFI", "E"] as const;

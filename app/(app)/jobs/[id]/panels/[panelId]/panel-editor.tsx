@@ -59,6 +59,7 @@ interface PanelEditorProps {
   };
   libraryEntries: LibraryEntry[];
   role: string;
+  canManage: boolean;
   currentUserName: string;
 }
 
@@ -85,9 +86,8 @@ function claimedSlots(anchorCkt: number, poles: number): number[] {
   return out;
 }
 
-export function PanelEditor({ panel, libraryEntries, role }: PanelEditorProps) {
+export function PanelEditor({ panel, libraryEntries, role, canManage }: PanelEditorProps) {
   const apiBase = `/api/jobs/${panel.job.id}/panel-schedules/${panel.id}`;
-  const canManage = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
 
   const [circuits, setCircuits] = useState<Circuit[]>(panel.circuits);
   const [library, setLibrary] = useState<LibraryEntry[]>(libraryEntries);

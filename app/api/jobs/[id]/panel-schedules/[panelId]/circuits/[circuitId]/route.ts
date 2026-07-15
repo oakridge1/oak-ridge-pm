@@ -5,7 +5,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sanitizeCircuitInput, computeClaim } from "@/lib/panel-schedules";
 
-// PATCH — update a circuit. ANY active user (crew tag circuits in the field).
+// PATCH — update a circuit. ANY active user (crew tag circuits in the field) —
+// this openness is the product. The EDIT_CIRCUITS permission key exists in the
+// catalog/admin grid for a possible future lockout model; it is intentionally
+// NOT enforced here today. To gate later, add a canEditCircuits(user, jobId)
+// check mirroring canManagePanels.
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string; panelId: string; circuitId: string }> }

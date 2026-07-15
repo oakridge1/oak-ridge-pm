@@ -27,6 +27,7 @@ interface PanelsTabProps {
   };
   panels: PanelSummary[];
   role: string;
+  canManage: boolean;
 }
 
 const PANEL_TYPES: { value: string; label: string }[] = [
@@ -70,8 +71,8 @@ function relTime(d: Date | string): string {
   return new Date(d).toLocaleDateString();
 }
 
-export function PanelsTab({ job, panels, role }: PanelsTabProps) {
-  const canCreate = role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
+export function PanelsTab({ job, panels, canManage }: PanelsTabProps) {
+  const canCreate = canManage;
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);

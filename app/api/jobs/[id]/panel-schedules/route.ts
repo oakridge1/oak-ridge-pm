@@ -3,11 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { buildOpenCircuitRows, phasesFromSystem, validateFedAmps } from "@/lib/panel-schedules";
-
-function canManage(role?: string) {
-  return role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
-}
+import { buildOpenCircuitRows, phasesFromSystem, validateFedAmps, canManagePanels } from "@/lib/panel-schedules";
 
 // GET — list panels for a job, ordered by name, with circuit counts.
 export async function GET(
@@ -36,9 +32,10 @@ export async function POST(
   const session = await auth();
   const u = session?.user;
   if (!u?.active) return new NextResponse("Unauthorized", { status: 401 });
-  if (!canManage(u.role)) return new NextResponse("Forbidden", { status: 403 });
 
   const { id: jobId } = await params;
+  if (!(await canManagePanels(u, jobId))) return new NextResponse("Forbidden", { status: 403 });
+
   const body = await req.json();
 
   const name = (body.name as string)?.trim().toUpperCase();

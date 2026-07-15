@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canManagePanels } from "@/lib/panel-schedules";
 import { PanelEditor } from "./panel-editor";
 
 interface PageProps {
@@ -8,9 +9,11 @@ interface PageProps {
 }
 
 export default async function PanelPage({ params }: PageProps) {
-  const { panelId } = await params;
+  const { id: jobId, panelId } = await params;
   const session = await auth();
   if (!session?.user?.active) redirect("/login");
+
+  const canManage = await canManagePanels(session.user, jobId);
 
   const [panel, libraryEntries] = await Promise.all([
     prisma.panelSchedule.findUnique({
@@ -30,6 +33,7 @@ export default async function PanelPage({ params }: PageProps) {
       panel={panel}
       libraryEntries={libraryEntries}
       role={session.user.role}
+      canManage={canManage}
       currentUserName={session.user.name ?? session.user.email ?? "Unknown"}
     />
   );

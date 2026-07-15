@@ -22,6 +22,8 @@ export const PERMISSION_KEYS = [
   "MANAGE_CALENDAR",
   "SUBMIT_RFIS",
   "NOTIFICATION_SETTINGS",
+  "MANAGE_PANELS",
+  "EDIT_CIRCUITS",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
@@ -45,6 +47,8 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   MANAGE_CALENDAR:       "Manage Calendar",
   SUBMIT_RFIS:           "Submit RFIs",
   NOTIFICATION_SETTINGS: "Edit Notification Settings",
+  MANAGE_PANELS:         "Create & edit panel schedules",
+  EDIT_CIRCUITS:         "Edit panel circuits",
 };
 
 // Roles that implicitly hold every permission — no DB record needed

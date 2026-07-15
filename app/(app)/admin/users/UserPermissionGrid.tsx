@@ -24,6 +24,8 @@ const PERMISSION_ROWS: { key: string; label: string }[] = [
   { key: "MANAGE_CALENDAR",       label: "Manage Calendar" },
   { key: "SUBMIT_RFIS",           label: "Submit RFIs" },
   { key: "NOTIFICATION_SETTINGS", label: "Edit Notification Settings" },
+  { key: "MANAGE_PANELS",         label: "Create & edit panel schedules" },
+  { key: "EDIT_CIRCUITS",         label: "Edit panel circuits" },
   { key: "ESTIMATING",            label: "Estimating Access" },
 ];
 

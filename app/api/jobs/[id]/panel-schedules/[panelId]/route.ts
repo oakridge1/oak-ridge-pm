@@ -4,11 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
-import { buildOpenCircuitRows, phasesFromSystem, validateFedAmps } from "@/lib/panel-schedules";
-
-function canManage(role?: string) {
-  return role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
-}
+import { buildOpenCircuitRows, phasesFromSystem, validateFedAmps, canManagePanels } from "@/lib/panel-schedules";
 
 // PATCH — update panel specs; handle circuit-count grow/shrink.
 export async function PATCH(
@@ -18,9 +14,10 @@ export async function PATCH(
   const session = await auth();
   const u = session?.user;
   if (!u?.active) return new NextResponse("Unauthorized", { status: 401 });
-  if (!canManage(u.role)) return new NextResponse("Forbidden", { status: 403 });
 
-  const { panelId } = await params;
+  const { id: jobId, panelId } = await params;
+  if (!(await canManagePanels(u, jobId))) return new NextResponse("Forbidden", { status: 403 });
+
   const body = await req.json();
 
   const panel = await prisma.panelSchedule.findUnique({

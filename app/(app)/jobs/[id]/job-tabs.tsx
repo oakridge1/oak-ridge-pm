@@ -100,6 +100,7 @@ interface JobTabsProps {
   allCalendarEvents?: any[];
   canViewSummary?: boolean;
   canAddInspections?: boolean;
+  canManagePanels?: boolean;
   orderingPermissions?: { scope: string; jobId: string | null }[];
   companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
   overheadAllocation?: number;
@@ -115,6 +116,7 @@ export function JobTabs({
   allCalendarEvents = [],
   canViewSummary = false,
   canAddInspections = false,
+  canManagePanels = false,
   orderingPermissions = [],
   companyRates = null,
   overheadAllocation = 0,
@@ -216,7 +218,7 @@ export function JobTabs({
           <ReportsTab job={job} reports={job.reports ?? []} role={role} />
         )}
         {activeTab === "panels" && (
-          <PanelsTab job={job} panels={job.panelSchedules ?? []} role={role} />
+          <PanelsTab job={job} panels={job.panelSchedules ?? []} role={role} canManage={canManagePanels} />
         )}
         {activeTab === "documents" && (
           <DocumentsTab job={job} role={role} />
