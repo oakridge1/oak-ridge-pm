@@ -68,6 +68,28 @@ export function sanitizeCircuitInput(input: {
   return { status, description, poles, amps, flags };
 }
 
+// Validate the optional "fed @ X amps" note. Fed amps must be strictly below the
+// panel's protective rating: main breaker rating for MB, bus rating for MLO.
+// Returns an error message, or null if valid (or fedAmps not set).
+export function validateFedAmps(p: {
+  mainType: string;
+  mainAmps: number | null;
+  busAmps: number;
+  fedAmps: number | null;
+}): string | null {
+  if (p.fedAmps == null) return null;
+  if (p.mainType === "MB") {
+    if (p.mainAmps != null && p.fedAmps >= p.mainAmps) {
+      return "Fed amps must be less than the main breaker rating";
+    }
+  } else {
+    if (p.fedAmps >= p.busAmps) {
+      return "Fed amps must be less than the bus rating";
+    }
+  }
+  return null;
+}
+
 // Given a multi-pole anchor circuit, compute which same-side circuits it claims.
 // A poles=N breaker on circuit C claims C, C+2, ... C+2(N-1) (same parity/side).
 // Returns the claimed continuation ckts (EXCLUDING the anchor) and whether the

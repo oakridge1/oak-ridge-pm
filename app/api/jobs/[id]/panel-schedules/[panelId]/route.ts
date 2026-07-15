@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
-import { buildOpenCircuitRows, phasesFromSystem } from "@/lib/panel-schedules";
+import { buildOpenCircuitRows, phasesFromSystem, validateFedAmps } from "@/lib/panel-schedules";
 
 function canManage(role?: string) {
   return role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
@@ -25,12 +25,12 @@ export async function PATCH(
 
   const panel = await prisma.panelSchedule.findUnique({
     where: { id: panelId },
-    select: { id: true, circuitCount: true },
+    select: { id: true, circuitCount: true, mainType: true, mainAmps: true, busAmps: true, fedAmps: true },
   });
   if (!panel) return new NextResponse("Panel not found", { status: 404 });
 
   const data: Prisma.PanelScheduleUpdateInput = {};
-  if (body.name !== undefined) data.name = body.name.trim();
+  if (body.name !== undefined) data.name = body.name.trim().toUpperCase();
   if (body.panelType !== undefined) data.panelType = body.panelType;
   if (body.system !== undefined) {
     data.system = body.system;
@@ -49,6 +49,14 @@ export async function PATCH(
   if (body.enclosure !== undefined) data.enclosure = body.enclosure?.trim() || null;
   if (body.integralTVSS !== undefined) data.integralTVSS = !!body.integralTVSS;
   if (body.notes !== undefined) data.notes = body.notes?.trim() || null;
+
+  // Fed-amps validation against the effective (merged) values.
+  const effMainType = body.mainType !== undefined ? body.mainType : panel.mainType;
+  const effMainAmps = body.mainAmps !== undefined ? (body.mainAmps === null || body.mainAmps === "" ? null : Number(body.mainAmps)) : panel.mainAmps;
+  const effBusAmps = body.busAmps !== undefined ? Number(body.busAmps) : panel.busAmps;
+  const effFedAmps = body.fedAmps !== undefined ? (body.fedAmps === null || body.fedAmps === "" ? null : Number(body.fedAmps)) : panel.fedAmps;
+  const fedErr = validateFedAmps({ mainType: effMainType, mainAmps: effMainAmps, busAmps: effBusAmps, fedAmps: effFedAmps });
+  if (fedErr) return NextResponse.json({ error: fedErr }, { status: 400 });
 
   // Circuit count change — grow appends OPEN rows; shrink requires the removed rows to be empty.
   let newCount: number | undefined;

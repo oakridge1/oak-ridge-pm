@@ -112,10 +112,51 @@ export function PanelEditor({ panel, libraryEntries, role }: PanelEditorProps) {
 
   const [specOpen, setSpecOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [customW, setCustomW] = useState("6");
+  const [customH, setCustomH] = useState("9");
+
+  const canManageLib = role === "ADMIN" || role === "OFFICE";
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("panel_custom_sleeve");
+      if (saved) {
+        const { w, h } = JSON.parse(saved);
+        if (w) setCustomW(String(w));
+        if (h) setCustomH(String(h));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   function openPdf(sleeve: "6x9" | "7x7") {
     window.open(`${apiBase}/pdf?sleeve=${sleeve}`, "_blank", "noopener,noreferrer");
     setPrintOpen(false);
+  }
+
+  function openCustomPdf() {
+    const w = parseFloat(customW);
+    const h = parseFloat(customH);
+    if (!(w >= 4 && w <= 12 && h >= 4 && h <= 12)) {
+      alert("Width and height must be between 4 and 12 inches.");
+      return;
+    }
+    try {
+      localStorage.setItem("panel_custom_sleeve", JSON.stringify({ w: customW, h: customH }));
+    } catch {
+      /* ignore */
+    }
+    window.open(`${apiBase}/pdf?w=${w}&h=${h}`, "_blank", "noopener,noreferrer");
+    setPrintOpen(false);
+    setCustomMode(false);
+  }
+
+  async function deleteLibraryEntry(entry: LibraryEntry) {
+    if (!confirm(`Delete '${entry.label}' from the library for everyone?`)) return;
+    const res = await fetch(`/api/circuit-library/${entry.id}`, { method: "DELETE" });
+    if (res.ok) setLibrary((prev) => prev.filter((e) => e.id !== entry.id));
   }
 
   const refetch = useCallback(async () => {
@@ -268,7 +309,7 @@ export function PanelEditor({ panel, libraryEntries, role }: PanelEditorProps) {
   const secondsAgo = Math.max(0, Math.floor((nowMs - lastSyncMs) / 1000));
   const updatedLabel = secondsAgo < 5 ? "just now" : secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`;
 
-  const specSummary = `${panel.system} · ${panel.busAmps}A ${panel.mainType === "MB" ? (panel.mainAmps ? `${panel.mainAmps}A MB` : "MB") : "MLO"}`;
+  const specSummary = `${panel.system} · ${panel.busAmps}A Bus · ${panel.mainType === "MB" ? (panel.mainAmps ? `${panel.mainAmps}A MB` : "MB") : "MLO"}`;
   const jobAddress = [panel.job.address, panel.job.city, panel.job.state, panel.job.zip].filter(Boolean).join(", ");
 
   // Multi-pole claim hint for the sheet.
@@ -299,9 +340,23 @@ export function PanelEditor({ panel, libraryEntries, role }: PanelEditorProps) {
                     ↓ PDF
                   </button>
                   {printOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden min-w-[160px]">
                       <button onClick={() => openPdf("6x9")} className="block w-full text-left px-4 py-2 text-xs hover:bg-gray-50 whitespace-nowrap">6×9 sleeve</button>
                       <button onClick={() => openPdf("7x7")} className="block w-full text-left px-4 py-2 text-xs hover:bg-gray-50 whitespace-nowrap border-t border-gray-100">7×7 sleeve</button>
+                      <button onClick={() => setCustomMode((v) => !v)} className="block w-full text-left px-4 py-2 text-xs hover:bg-gray-50 whitespace-nowrap border-t border-gray-100">Custom…</button>
+                      {customMode && (
+                        <div className="px-3 py-2 border-t border-gray-100 space-y-2">
+                          <div className="flex items-center gap-1">
+                            <input type="number" step="0.5" value={customW} onChange={(e) => setCustomW(e.target.value)}
+                              className="w-14 border border-gray-300 rounded px-1.5 py-1 text-xs" />
+                            <span className="text-xs text-gray-400">in ×</span>
+                            <input type="number" step="0.5" value={customH} onChange={(e) => setCustomH(e.target.value)}
+                              className="w-14 border border-gray-300 rounded px-1.5 py-1 text-xs" />
+                            <span className="text-xs text-gray-400">in</span>
+                          </div>
+                          <button onClick={openCustomPdf} className="w-full bg-[#1e3a8a] text-white rounded px-2 py-1 text-xs font-semibold hover:bg-blue-800">Generate</button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -353,13 +408,26 @@ export function PanelEditor({ panel, libraryEntries, role }: PanelEditorProps) {
                 {libFiltered.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {libFiltered.map((e) => (
-                      <button
+                      <span
                         key={e.id}
-                        onClick={() => applyLibrary(e)}
-                        className="text-xs px-2 py-1 rounded-full border border-gray-200 bg-gray-50 hover:border-[#1e3a8a] hover:bg-blue-50 text-gray-700"
+                        className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 overflow-hidden"
                       >
-                        {e.label}
-                      </button>
+                        <button
+                          onClick={() => applyLibrary(e)}
+                          className="text-xs pl-2 pr-1.5 py-1 hover:bg-blue-50 text-gray-700"
+                        >
+                          {e.label}
+                        </button>
+                        {canManageLib && (
+                          <button
+                            onClick={() => deleteLibraryEntry(e)}
+                            title="Delete from library"
+                            className="pr-2 pl-0.5 py-1 text-gray-300 hover:text-red-500 text-xs"
+                          >
+                            🗑
+                          </button>
+                        )}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -582,6 +650,17 @@ function SpecEditor({
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
+    // Fed-amps must be below the protective rating.
+    const fa = fedAmps === "" ? null : Number(fedAmps);
+    if (fa != null) {
+      if (mainType === "MB") {
+        const ma = mainAmps === "" ? null : Number(mainAmps);
+        if (ma != null && fa >= ma) { setError("Fed amps must be less than the main breaker rating"); return; }
+      } else if (fa >= Number(busAmps)) {
+        setError("Fed amps must be less than the bus rating");
+        return;
+      }
+    }
     setSaving(true);
     setError(null);
     try {

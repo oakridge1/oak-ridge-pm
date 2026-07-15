@@ -7,7 +7,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import fs from "fs";
 import path from "path";
-import { PanelSchedulePdf, type Sleeve } from "./_panel-templates";
+import { PanelSchedulePdf, SLEEVE_DIMS, type Sleeve } from "./_panel-templates";
 
 function getLogoSrc(): string | undefined {
   try {
@@ -31,8 +31,26 @@ export async function GET(
     if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
 
     const { panelId } = await params;
-    const sleeveParam = new URL(req.url).searchParams.get("sleeve");
-    const sleeve: Sleeve = sleeveParam === "7x7" ? "7x7" : "6x9";
+    const sp = new URL(req.url).searchParams;
+
+    // Determine page dimensions: preset sleeve, or custom w/h in inches.
+    let dims: [number, number];
+    let sizeLabel: string;
+    const wIn = sp.get("w");
+    const hIn = sp.get("h");
+    if (wIn != null && hIn != null) {
+      const w = Number(wIn);
+      const h = Number(hIn);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w < 4 || w > 12 || h < 4 || h > 12) {
+        return new NextResponse("Custom sleeve dimensions must be between 4 and 12 inches.", { status: 400 });
+      }
+      dims = [w * 72, h * 72];
+      sizeLabel = `${wIn}x${hIn}`;
+    } else {
+      const sleeve: Sleeve = sp.get("sleeve") === "7x7" ? "7x7" : "6x9";
+      dims = SLEEVE_DIMS[sleeve];
+      sizeLabel = sleeve;
+    }
 
     const panel = await prisma.panelSchedule.findUnique({
       where: { id: panelId },
@@ -74,13 +92,13 @@ export async function GET(
       })),
       job: panel.job,
       logoSrc,
-      sleeve,
+      dims,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buf = await renderToBuffer(doc as any);
 
-    const filename = `${panel.name.replace(/\s+/g, "_")}_Panel_Schedule_${sleeve}.pdf`;
+    const filename = `${panel.name.replace(/\s+/g, "_")}_Panel_Schedule_${sizeLabel}.pdf`;
 
     return new NextResponse(new Uint8Array(buf), {
       headers: {

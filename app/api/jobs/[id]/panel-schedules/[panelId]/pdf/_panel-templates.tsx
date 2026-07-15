@@ -48,7 +48,7 @@ export interface PanelPdfJob {
 
 export type Sleeve = "6x9" | "7x7";
 
-const SLEEVE_DIMS: Record<Sleeve, [number, number]> = {
+export const SLEEVE_DIMS: Record<Sleeve, [number, number]> = {
   "6x9": [432, 648],
   "7x7": [504, 504],
 };
@@ -133,15 +133,15 @@ export function PanelSchedulePdf({
   circuits,
   job,
   logoSrc,
-  sleeve,
+  dims,
 }: {
   panel: PanelPdfPanel;
   circuits: PanelPdfCircuit[];
   job: PanelPdfJob;
   logoSrc?: string;
-  sleeve: Sleeve;
+  dims: [number, number];
 }) {
-  const [pageW, pageH] = SLEEVE_DIMS[sleeve];
+  const [pageW, pageH] = dims;
   const contentW = pageW - MARGIN.left - MARGIN.right;
   const contentH = pageH - MARGIN.top - MARGIN.bottom;
 
@@ -253,7 +253,7 @@ export function PanelSchedulePdf({
 
   return (
     <Document>
-      <Page size={SLEEVE_DIMS[sleeve]} style={S.page}>
+      <Page size={dims} style={S.page}>
         {/* Header */}
         <View style={S.header}>
           {logoSrc ? (

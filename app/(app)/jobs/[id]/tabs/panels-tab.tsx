@@ -147,6 +147,16 @@ export function PanelsTab({ job, panels, role }: PanelsTabProps) {
       setError("Circuit count must be an even number between 12 and 84.");
       return;
     }
+    const fa = fedAmps ? Number(fedAmps) : null;
+    if (fa != null) {
+      if (mainType === "MB") {
+        const ma = mainAmps ? Number(mainAmps) : null;
+        if (ma != null && fa >= ma) { setError("Fed amps must be less than the main breaker rating."); return; }
+      } else if (fa >= Number(busAmps)) {
+        setError("Fed amps must be less than the bus rating.");
+        return;
+      }
+    }
     setCreating(true);
     try {
       const res = await fetch(`/api/jobs/${job.id}/panel-schedules`, {

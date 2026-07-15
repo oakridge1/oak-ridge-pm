@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { buildOpenCircuitRows, phasesFromSystem } from "@/lib/panel-schedules";
+import { buildOpenCircuitRows, phasesFromSystem, validateFedAmps } from "@/lib/panel-schedules";
 
 function canManage(role?: string) {
   return role === "ADMIN" || role === "OFFICE" || role === "FOREMAN";
@@ -41,7 +41,7 @@ export async function POST(
   const { id: jobId } = await params;
   const body = await req.json();
 
-  const name = (body.name as string)?.trim();
+  const name = (body.name as string)?.trim().toUpperCase();
   const circuitCount = Number(body.circuitCount);
 
   if (!name) return new NextResponse("Panel name is required", { status: 400 });
@@ -66,6 +66,10 @@ export async function POST(
 
   const mainType = body.mainType as string;
   const mainAmps = mainType === "MB" && body.mainAmps != null ? Number(body.mainAmps) : null;
+  const fedAmps = body.fedAmps != null && body.fedAmps !== "" ? Number(body.fedAmps) : null;
+
+  const fedErr = validateFedAmps({ mainType, mainAmps, busAmps: Number(body.busAmps) || 0, fedAmps });
+  if (fedErr) return NextResponse.json({ error: fedErr }, { status: 400 });
 
   const panel = await prisma.$transaction(async (tx) => {
     const created = await tx.panelSchedule.create({
@@ -78,7 +82,7 @@ export async function POST(
         busAmps: Number(body.busAmps) || 0,
         mainType,
         mainAmps,
-        fedAmps: body.fedAmps != null && body.fedAmps !== "" ? Number(body.fedAmps) : null,
+        fedAmps,
         fedFrom: body.fedFrom?.trim() || null,
         location: body.location?.trim() || null,
         breakerType: body.breakerType?.trim() || null,
