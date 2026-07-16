@@ -110,8 +110,11 @@ async function generateOrderDocx(data: StockOrderPdfData): Promise<Buffer> {
         new Paragraph({ children: [new TextRun(`Total: ${data.items.length} line item${data.items.length !== 1 ? "s" : ""}`)] }),
         new Paragraph({ children: [new TextRun("")] }),
         new Paragraph({
-          children: [new TextRun({ text: "Thank you for your business! Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com", italics: true, size: 16 })],
+          children: [new TextRun({ text: `Thank you for your business! ${COMPANY_NAME} — ${COMPANY_PHONE}`, italics: true, size: 16 })],
         }),
+        ...(data.orderedByName ? [new Paragraph({
+          children: [new TextRun({ text: `Ordered by: ${data.orderedByName}${data.orderedByTitle ? `, ${data.orderedByTitle}` : ""}${data.orderedByEmail ? ` — ${data.orderedByEmail}` : ""}`, italics: true, size: 16 })],
+        })] : []),
       ],
     }],
   });
@@ -133,6 +136,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     select: { jobName: true, jobNumber: true, address: true, city: true, state: true, foreman: { select: { email: true, name: true } } },
   });
   if (!job) return new NextResponse("Job not found", { status: 404 });
+
+  // Resolve the actual submitter for document/body attribution (never "Owner").
+  const submitter = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, email: true, wage: { select: { title: true } } },
+  });
+  const orderedByName = submitter?.name ?? session.user.name ?? "Unknown";
+  const orderedByEmail = submitter?.email ?? session.user.email ?? "";
+  const orderedByTitle = submitter?.wage?.title ?? null;
+  const submitterLine = `Ordered by: ${orderedByName}${orderedByTitle ? `, ${orderedByTitle}` : ""}${orderedByEmail ? ` — ${orderedByEmail}` : ""}`;
 
   const jobAddress = [job.address, job.city, job.state].filter(Boolean).join(", ");
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
@@ -302,7 +315,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             : "",
           "",
           "Thank you,",
-          "Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com",
+          `${COMPANY_NAME} — ${COMPANY_PHONE}`,
+          submitterLine,
         ].filter(s => s !== undefined && s !== "").join("\n")
       : [
           deliveryHeader,
@@ -312,7 +326,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           `PO/Job: ${poNumber ?? job.jobNumber}`,
           "",
           "Thank you,",
-          "Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com",
+          `${COMPANY_NAME} — ${COMPANY_PHONE}`,
+          submitterLine,
         ].filter(Boolean).join("\n");
 
     // Build PDF data
@@ -336,6 +351,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       notes: deliveryNotes ?? null,
       title: isConsumables ? "PICKUP LIST" : "MATERIAL ORDER",
       orderType: (groupOrderType ?? 'ORDER') as 'ORDER' | 'QUOTE' | 'COMPETITIVE_QUOTE',
+      orderedByName,
+      orderedByTitle,
+      orderedByEmail,
     };
 
     // Generate PDF (for both electrical and consumables)

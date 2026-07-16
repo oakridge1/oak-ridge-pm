@@ -1367,6 +1367,9 @@ export type StockOrderPdfData = {
   notes?: string | null;
   title?: string | null;
   orderType?: 'ORDER' | 'QUOTE' | 'COMPETITIVE_QUOTE';
+  orderedByName?: string | null;
+  orderedByTitle?: string | null;
+  orderedByEmail?: string | null;
 };
 
 const DARK_RED = "#8B0000";
@@ -1566,7 +1569,14 @@ export function StockOrderPdf({ data }: { data: StockOrderPdfData }) {
 
         {/* Footer */}
         <View style={SS.footer} fixed>
-          <Text style={SS.footerText}>Thank you for your business! Oak Ridge Electrical LLC — Justin Marceau, Owner — 603-660-4651 | Justin@oakridgeelectrical.com</Text>
+          <View>
+            <Text style={SS.footerText}>Thank you for your business! Oak Ridge Electrical LLC — 603-660-4651</Text>
+            {data.orderedByName ? (
+              <Text style={SS.footerText}>
+                Ordered by: {data.orderedByName}{data.orderedByTitle ? `, ${data.orderedByTitle}` : ""}{data.orderedByEmail ? ` — ${data.orderedByEmail}` : ""}
+              </Text>
+            ) : null}
+          </View>
           <Text style={SS.footerText}>{data.orderDate}</Text>
         </View>
       </Page>
