@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react";
 import { createJob } from "./actions";
 import { useRouter } from "next/navigation";
 
-export function CreateJobButton() {
+export function CreateJobButton({ suggestedJobNumber = "" }: { suggestedJobNumber?: string }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,8 @@ export function CreateJobButton() {
                   <input
                     name="jobNumber"
                     required
-                    placeholder="e.g. 2025-042"
+                    defaultValue={suggestedJobNumber}
+                    placeholder="e.g. 26-190"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                   />
                 </div>

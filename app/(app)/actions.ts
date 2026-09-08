@@ -2,12 +2,12 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canCreateJobs } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 
 export async function createJob(formData: FormData) {
   const session = await auth();
-  const role = session?.user?.role;
-  if (!session?.user?.active || (role !== "ADMIN" && role !== "OFFICE")) {
+  if (!session?.user?.active || !(await canCreateJobs(session.user))) {
     return { error: "Unauthorized" };
   }
 
@@ -84,6 +84,7 @@ export async function createJob(formData: FormData) {
         designFeePct:      designFeePct_     || null,
         designFeeAmount:   designFeeAmount_  || null,
         designFeeApproved: false,
+        createdById:       session.user.id,
       },
     });
 

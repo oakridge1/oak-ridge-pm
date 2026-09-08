@@ -24,6 +24,7 @@ export const PERMISSION_KEYS = [
   "NOTIFICATION_SETTINGS",
   "MANAGE_PANELS",
   "EDIT_CIRCUITS",
+  "CREATE_JOBS",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
@@ -49,6 +50,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   NOTIFICATION_SETTINGS: "Edit Notification Settings",
   MANAGE_PANELS:         "Create & edit panel schedules",
   EDIT_CIRCUITS:         "Edit panel circuits",
+  CREATE_JOBS:           "Create new jobs",
 };
 
 // Roles that implicitly hold every permission — no DB record needed
@@ -75,6 +77,22 @@ export async function hasPermission(
 ): Promise<boolean> {
   if (alwaysGranted(role)) return true;
   const perm = await prisma.userPermission.findFirst({ where: { userId, permission } });
+  return perm !== null;
+}
+
+// Effective "can create jobs" check, mirroring the MANAGE_PANELS pattern.
+// ADMIN/OFFICE keep built-in access (short-circuit before any DB hit); any other
+// role is elevated only by a CREATE_JOBS grant. Job creation is not job-scoped,
+// so a GLOBAL grant (what the admin grid writes) is what applies.
+export async function canCreateJobs(
+  user: { id?: string | null; role?: string | null } | null | undefined
+): Promise<boolean> {
+  const role = user?.role;
+  if (role === "ADMIN" || role === "OFFICE") return true;
+  if (!user?.id) return false;
+  const perm = await prisma.userPermission.findFirst({
+    where: { userId: user.id, permission: "CREATE_JOBS" },
+  });
   return perm !== null;
 }
 

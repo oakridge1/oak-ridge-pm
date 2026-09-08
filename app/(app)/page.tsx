@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canCreateJobs } from "@/lib/permissions";
+import { getNextJobNumber } from "@/lib/jobs";
 import { JobCard } from "./job-card";
 import { CreateJobButton } from "./create-job-button";
 import { ArchivedJobsSection } from "./archived-jobs-section";
@@ -25,6 +27,8 @@ export default async function DashboardPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
   const isOffice = session?.user?.role === "OFFICE";
+  const canCreate = await canCreateJobs(session?.user);
+  const suggestedJobNumber = canCreate ? await getNextJobNumber() : "";
   const canEstimate =
     session?.user?.role === "ADMIN" ||
     (session?.user as any)?.estimatingPermission === true;
@@ -88,7 +92,7 @@ export default async function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           {isAdmin && <ShopExpenseButton />}
-          {(isAdmin || isOffice) && <CreateJobButton />}
+          {canCreate && <CreateJobButton suggestedJobNumber={suggestedJobNumber} />}
         </div>
       </div>
 
