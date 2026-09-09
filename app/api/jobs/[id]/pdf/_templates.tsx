@@ -2109,7 +2109,7 @@ export function ProposalDoc({ data }: { data: ProposalPdfData }) {
     month: 'long', day: 'numeric', year: 'numeric',
   });
 
-  const depositAmount = data.grandTotal * (data.depositPercent / 100);
+  const depositAmount = Math.round(data.grandTotal * (data.depositPercent / 100));
 
   const getPaymentText = (terms: string): string => {
     const map: Record<string, string> = {

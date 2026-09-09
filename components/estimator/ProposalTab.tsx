@@ -315,7 +315,7 @@ function buildPrintHtml(
   <!-- Deposit Request -->
   <div style="background:#e8f0fe;border:1px solid #4a7bc8;border-radius:6px;padding:10px 14px;margin-top:12px;margin-bottom:4px">
     <div style="font-weight:600;color:#1e3a8a;font-size:13px">Deposit Request</div>
-    <p style="margin:4px 0">A deposit of <strong>${p.depositPercent}% (${fmt$(baseTotal * p.depositPercent / 100)})</strong> is required to schedule and begin work.</p>
+    <p style="margin:4px 0">A deposit of <strong>${p.depositPercent}% (${fmt$(Math.round(baseTotal * p.depositPercent / 100))})</strong> is required to schedule and begin work.</p>
   </div>
   ` : ''}
 
@@ -440,11 +440,17 @@ export function ProposalTab() {
 
   // ── Per-label proportional totals (for alternates and Base Bid row) ─────────
   const labelTotals  = useMemo(() => calcLabelTotals(state), [state]);
-  // If assemblies are labeled, Base Bid row = labeled Base Bid share; else full total
-  const baseBidTotal = Math.round((labelTotals['Base Bid']?.total ?? correctGrandTotal) * 100) / 100;
+  // If assemblies are labeled, Base Bid row = labeled Base Bid share; else full total.
+  // Customer-facing proposal prices are whole dollars.
+  const baseBidTotal = Math.round(labelTotals['Base Bid']?.total ?? correctGrandTotal);
 
-  // ── Base Bid manual override (for T&M / legacy unlabeled adjustments) ───────
-  const [baseBidOverride, setBaseBidOverride] = useState<number | null>(null);
+  // ── Base Bid manual override — persisted in proposal state (localStorage +
+  //    cloud sync). When set it is the FINAL customer price; no further markup. ──
+  const baseBidOverride = p.baseBidOverride ?? null;
+  const setBaseBidOverride = useCallback(
+    (v: number | null) => patch('baseBidOverride', v),
+    [patch],
+  );
   const displayBaseBid = baseBidOverride ?? baseBidTotal;
 
   // ── Smart scope detection ───────────────────────────────────────
@@ -693,7 +699,9 @@ export function ProposalTab() {
         validityNote:   p.validityNote,
         depositEnabled: p.depositEnabled,
         depositPercent: p.depositPercent,
-        grandTotal:     correctGrandTotal,
+        // Base Bid line = the same split/override-aware value shown on screen,
+        // NOT the all-packages grand total (which double-counts alternates).
+        grandTotal:     displayBaseBid,
       };
 
       const res = await fetch('/api/pdf/proposal', {
@@ -929,9 +937,23 @@ export function ProposalTab() {
         {/* Base Bid pricing override */}
         <Card title="Pricing">
           <div className="mb-1">
-            <label className="text-xs font-semibold text-[#1e3a8a] uppercase tracking-wide block mb-1">
-              Base Bid Total
-            </label>
+            <div className="flex items-center gap-2 mb-1">
+              <label className="text-xs font-semibold text-[#1e3a8a] uppercase tracking-wide">
+                Base Bid Total
+              </label>
+              {baseBidOverride !== null && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  manual price
+                  <button
+                    onClick={() => setBaseBidOverride(null)}
+                    title="Clear manual price — back to computed"
+                    className="leading-none hover:text-amber-900"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-gray-500 text-sm">$</span>
               <input
@@ -1126,7 +1148,7 @@ export function ProposalTab() {
                 key={p.depositPercent}
               />
               <span className="text-xs text-gray-500">
-                = {fmt$(displayBaseBid * p.depositPercent / 100)}
+                = {fmt$(Math.round(displayBaseBid * p.depositPercent / 100))}
               </span>
             </div>
           )}
@@ -1337,7 +1359,7 @@ export function ProposalTab() {
               </div>
               <div className="mt-1">
                 A deposit of{' '}
-                <strong>{p.depositPercent}% ({fmt$(displayBaseBid * p.depositPercent / 100)})</strong>{' '}
+                <strong>{p.depositPercent}% ({fmt$(Math.round(displayBaseBid * p.depositPercent / 100))})</strong>{' '}
                 is required to schedule and begin work.
               </div>
             </div>

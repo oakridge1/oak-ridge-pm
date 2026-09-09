@@ -46,6 +46,11 @@ export interface ProposalState {
   validityNote:    string;   // e.g. "This proposal is valid for 30 days"
   depositEnabled:  boolean;
   depositPercent:  number;   // 1–100
+
+  // Manual base-bid price override. When set, this IS the final customer base
+  // price — markups/overhead/profit are considered already baked in; no further
+  // calculation applies. null = use the computed Base Bid share.
+  baseBidOverride: number | null;
 }
 
 export const DEFAULT_INCLUSIONS = [
@@ -128,5 +133,6 @@ export function createProposalState(
     validityNote:   'This proposal is valid for 30 days from the date of issue.',
     depositEnabled: false,
     depositPercent: 30,
+    baseBidOverride: null,
   };
 }
