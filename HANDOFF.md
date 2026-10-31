@@ -121,7 +121,8 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 ### Known security gaps (not fixed yet)
 
 - `/api/takeoff-pdf-upload` — **FIXED (merged 2026-10-31).** Both handlers (POST and GET) now require an active user via `auth()`. Before the fix, `proxy.ts` only checked that a session cookie existed, so a made-up cookie value got through with no server-side validation and no active-user check. There is still **no ownership check**: any active user who knows an estimate id and drawing id can read or overwrite that PDF.
-- `POST /api/bom` has **no role check**. Any active user can overwrite any BOM item's price. (`PATCH`, `DELETE` and `/api/bom/upload` are admin only.)
+- `POST /api/bom` — **FIXED (branch `fix/bom-post-admin-only`, 2026-10-31):** POST /api/bom is now admin-only (403 for non-admins). Custom Assembly Builder warns non-admins that new items weren't added to the shared BOM.
+- `/estimator` page itself has no role check. Only the header link is hidden. Not fixed yet.
 - `/api/pdf/proposal` checks that a session exists but **not that the user is active**.
 - `allowDangerousEmailAccountLinking` is **on** in `auth.ts`.
 - New Google sign-ins start inactive until an admin activates them, and I saw no email-domain restriction.

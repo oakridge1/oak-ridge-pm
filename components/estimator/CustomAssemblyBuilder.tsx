@@ -213,6 +213,7 @@ export function CustomAssemblyBuilder() {
     // 1. Write any NEW items back to the BOM
     const newItems = lines.filter(l => l.isNew);
     let updatedLines = lines;
+    let bomWarning = '';
     if (newItems.length > 0) {
       const payload = newItems.map(l => ({
         id:   `cust_${l.id.slice(0, 8)}`,
@@ -236,6 +237,10 @@ export function CustomAssemblyBuilder() {
           });
           setLines(updatedLines);
           initBomCache();
+        } else if (res.status === 403) {
+          bomWarning = ' New items were NOT added to the shared BOM (admin only). Ask an admin to add them.';
+        } else {
+          bomWarning = ' Warning: new items were NOT added to the shared BOM (server error). Ask an admin to add them.';
         }
       } catch {
         // network failure — save locally anyway, items stay flagged NEW
@@ -252,7 +257,7 @@ export function CustomAssemblyBuilder() {
 
     // 3. Also add to this job
     pushToJob(def);
-    showToast('✓ Saved to library + added to bid');
+    showToast(bomWarning ? `⚠ Saved to library + added to bid.${bomWarning}` : '✓ Saved to library + added to bid');
     resetForm();
   }
 
