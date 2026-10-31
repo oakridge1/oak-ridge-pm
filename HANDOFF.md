@@ -120,7 +120,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 
 ### Known security gaps (not fixed yet)
 
-- `/api/takeoff-pdf-upload` requires a session cookie only because `proxy.ts` checks that the cookie exists. The route itself had **no server-side validation and no active-user check**, so a made-up cookie value got through, and the estimate id was the only other protection. (Fix in progress on branch `fix/takeoff-upload-auth`: both handlers now call `auth()` and require an active user. No ownership check yet.)
+- `/api/takeoff-pdf-upload` — **FIXED (merged 2026-10-31).** Both handlers (POST and GET) now require an active user via `auth()`. Before the fix, `proxy.ts` only checked that a session cookie existed, so a made-up cookie value got through with no server-side validation and no active-user check. There is still **no ownership check**: any active user who knows an estimate id and drawing id can read or overwrite that PDF.
 - `POST /api/bom` has **no role check**. Any active user can overwrite any BOM item's price. (`PATCH`, `DELETE` and `/api/bom/upload` are admin only.)
 - `/api/pdf/proposal` checks that a session exists but **not that the user is active**.
 - `allowDangerousEmailAccountLinking` is **on** in `auth.ts`.
