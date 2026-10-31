@@ -17,6 +17,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
+  if (session.user.role !== "ADMIN") return new NextResponse("Forbidden", { status: 403 });
 
   const body = await req.json();
   const items: { id: string; cat: string; name: string; unit: string; mat: number; lhr: number }[] =
