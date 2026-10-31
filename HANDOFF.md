@@ -1,6 +1,149 @@
 # Oak Ridge PM — Session Handoff Document
 
-**Last updated:** 2026-06-01
+> **Note:** `SETUP.md` is outdated (it still mentions `middleware.ts`, the removed `FIELD` role and `prisma migrate`). Use this file instead.
+
+---
+
+## Current State (2026-10-31)
+
+This section was written on 2026-10-31 from a read-only review of the repo. Everything below the next `---` line is the original handoff from 2026-06-01 and is kept for reference. Where the two disagree, this section wins. The old "Pending work" list further down is **STALE (as of 2026-06-01)**.
+
+### Where the code is
+
+- Branch `main`, latest commit `cdfd088` (2026-09-09): "Estimator: proposal PDF uses split/override-aware base bid; persist manual price override; whole-dollar rounding".
+- That is **129 commits after `3bf65ff`**, the commit this document used to describe. The old text below describes the app as of June 1, so it is out of date.
+- The latest Vercel production deployment (`oak-ridge-8uz5y38bd`, created 2026-09-16) has no Git commit or branch recorded. It was probably deployed with `vercel --prod` from a local folder, not by pushing to GitHub. Do not assume that pushing to `main` deploys. Confirm in the Vercel dashboard (Deployments, then Settings, then Git).
+
+### What changed since 3bf65ff (129 commits), by month
+
+**June 1–3: estimator and takeoff rebuild**
+- The takeoff tool got a new symbol library, flagged items, drawing notes, a quote export, a right-click menu and a fixture schedule.
+- The estimator was rebuilt from scratch in 15 phases: data layer, calculators, tabs, a jobs modal, a convert-to-PM-project button and a counter tool port.
+- New tabs and tools: Panel Builder, Proposal Builder, PDF takeoff and counter.
+- Crew scheduling (week banner, schedule modal) and a full 18-permission toggle matrix were added.
+- A user profile page, notifications for all roles, and calendar, inspection and timezone fixes.
+
+**June 4–9: ordering, proposals and documents**
+- The Crib got quote requests, competitive quotes, supplier contacts and a CC selector.
+- The estimator BOM moved into the database, with Excel export and upload.
+- Lighting and gear schedules were added, plus fire alarm, data and low-voltage builders.
+- Proposals gained a server-side PDF, a deposit request, scope bullet libraries and navy-and-orange styling. Invoice PDFs were restyled to match, with a section-based scope builder.
+- Document management got custom categories, move/copy and ZIP download.
+- Job budgets changed from labor hours to labor dollars, with a percent-complete tracker.
+- The estimator got three-column labels, proposal alternates, a base bid override and a bid summary PDF.
+
+**June 10–16: rebrand and polish**
+- The "Ridgeline" rebrand (blue `#1e3a8a`, new logos and display names).
+- Custom assembly builder, Ridge List live sync to the PDF tool, takeoff drawings saved to Supabase Storage.
+- Mobile crash fixes, direct signed-URL document uploads (removes the size limit), delete-invoice button, BOM reference editing, design fee tracking from estimator to PM, and a dashboard status overhaul with search and auto-archive.
+
+**June 19–23: sync, billing and reports**
+- Estimator cloud sync across devices (`EstimatorJob`).
+- A receipt reminder cron, billing reminder fixes, and a progress billing breakdown on invoice PDFs.
+- A new reports module (field investigation and emergency lighting) with an editor, PDFs and a seeded library.
+
+**July 14–16: panel schedules**
+- New panel schedules feature: schema and circuit library, a job tab, a circuit editor with polling, and exact-size sleeve PDFs (6x9, 7x7).
+- A punch-list pass and an admin-managed `MANAGE_PANELS` permission.
+- Crib order emails and documents now show who actually submitted the order.
+
+**August:** no commits.
+
+**September 8–9: latest work**
+- A `CREATE_JOBS` permission, suggested job numbers and a `createdById` stamp.
+- Estimator proposal PDF now uses a split/override-aware base bid, saves manual price overrides and rounds to whole dollars.
+
+### Old /estimating vs new /estimator
+
+- The old **/estimating** section is still live next to the new **/estimator**. Both are linked from the header, and the dashboard "Estimates" panel still reads the old `Estimate` table.
+- **Decision: keep the old section. Hide its link later. Do not delete it.**
+- Old code that still exists: pages under `app/(app)/estimating/` and `app/(fullscreen)/estimating/`, API routes under `app/api/estimates/` and `app/api/takeoff-drawings/`, libraries `lib/estimating.ts`, `lib/bom.ts`, `lib/estimate-pdf.tsx`, `lib/takeoff-items.ts`, `lib/takeoff-symbols.ts`, and the tables `Estimate`, `TakeoffDrawing` and `CounterArea`. The `BomPricing` table is used by the old section and Admin Settings, not by the new estimator.
+- The old and new estimators share nothing except the `createJob` action used by "Convert to PM project".
+- Row counts in the database (checked 2026-10-31): **7** `Estimate`, **7** `TakeoffDrawing`, **3** `CounterArea`. The new estimator has **39** `EstimatorJob` rows.
+
+### Estimator recon findings (2026-10-31)
+
+**File map**
+- Page: `app/(app)/estimator/page.tsx` (small wrapper) and `EstimatorShell.tsx` (tabs, header, cloud load, sync indicator, Ridge List broadcast).
+- Logic in `lib/estimator/`: `constants.ts` (rates, labor-hour tables, markup helper, `SavedAssembly` type), `bom.ts` (built-in BOM of about 400 items, lookup maps, database cache), `calc.ts` (one calculator per assembly type plus `calcBid`), `state.ts` (the whole `EstimatorState`), `useEstimator.ts` and `EstimatorContext.tsx` (state hook and context), `jobs.ts` (browser and cloud save/load), `labelTotals.ts` (per bid package totals), plus `proposalState.ts`, `counterState.ts`, `panelBuilder.ts`, `customAssembly.ts`, `takeoffConstants.ts` and `format.ts`.
+- UI in `components/estimator/`: Takeoff, Counter, the assembly builders, Fixture, Lighting and Gear schedules, Panel Builder, Bid Items (audit trail), Permits/Subs, Bid Summary, Proposal, Settings, BOM Reference, Jobs modal and Label selector.
+- Standalone tools: `public/pdf-takeoff.html` (about 1,700 lines) and `public/counter.html` (about 1,400 lines).
+- API: `/api/estimator-jobs` (cloud save/load), `/api/bom` with `/export` and `/upload`, `/api/takeoff-pdf-upload`, `/api/pdf/proposal`.
+
+**Data flow**
+- Each job is one JSON blob (`EstimatorState`) holding takeoff counts, every saved assembly, rates, permits, subs, schedules, labels and the proposal. It is saved in the browser and to the cloud (`EstimatorJob`: `jobId`, `userId`, `jobName`, `jobNumber`, `data`).
+- Takeoff counts become assemblies mostly by hand. A "→ Build" button prefills the builder for fire alarm, low voltage, data, fixtures and 3-way. Other counts are shown only.
+- A calculator turns BOM lines into material dollars (price × qty × markup) and labor dollars (hours × qty × labor rate) and stores a **frozen** assembly. Changing a BOM price later does not update assemblies already built.
+- `calcBid` sums the assemblies. The Bid Summary and the Proposal then add the rest (height adder, permits, subs, rental, lighting and gear quotes, overhead, profit). The Proposal PDF route only prints the totals the browser sends.
+
+**Three BOM sources, no single source of truth**
+1. `lib/bom.ts` is the old BOM, used by `/estimating` and the Admin Settings pricing screen.
+2. `lib/estimator/bom.ts` is the built-in BOM, used as a fallback.
+3. The `BomItem` table is the live source for the new estimator. It is loaded once when the estimator opens, and it replaces the built-in list completely. If the table is empty, every item becomes a `[MISSING BOM: id]` line at $0.
+- The wire, conduit and support maps point at fixed BOM ids. Deleting or renaming an item silently breaks them.
+- Edits made in the BOM tab or by upload do not refresh a page that is already open.
+- Excel upload (admin only) upserts by id with columns `ID, Category, Name, Unit, Base $, Labor hrs, Markup, GC`. It never deletes, and a blank price becomes $0.
+
+**NECA labor units**
+- They live in code only: `constants.ts` (N4 breakers, N5 fixtures, N6 devices, wire-pull hours) and `bom.ts` (hours per item and per-foot conduit hours in `COND_MAP`). They drive real calculations.
+- The database `BomItem.lhr` holds per-item hours only. Fixture install hours, wire pull, breaker hours and conduit per-foot hours do not come from the database, so editing the BOM in the app does not change them.
+
+**Three copies of the grand total**
+- The formula exists separately in `BidSummaryTab.tsx`, `ProposalTab.tsx` and `labelTotals.ts`. Comments say they "mirror" each other. Change one and they silently drift apart.
+- `calcBid`'s own `grandTotal` is misleading: its permits and subs are rate constants, not dollars, and it skips the height adder. Callers ignore it by design.
+- The Proposal rounds the base bid to whole dollars and the Bid Summary does not. A manual base bid override exists only in the Proposal.
+- Alternates get a proportional share of the whole total, including overhead, permits, subs and lighting.
+
+**Data that lives only in one browser**
+- Not in the cloud: the custom assembly library (`ore_custom_asm_library`), master templates (`ore_master_templates`), scope bullets (`ore_scope_bullets`), the customer list (`ore_customers`), edited preview lines, and the PDF tool's markups and drawings.
+- Ridge List, takeoff count sync (`ore_estimator_sync`) and the `ore_tools` channel work only inside the same browser.
+- Cloud saves are per user and last-write-wins, with no conflict check. A device that already has local jobs does not auto-pull newer cloud copies.
+
+**Panel Builder is not linked to job panel schedules**
+- The estimator's Panel Builder (`panelBuilder.ts`) prices a panel from the BOM and stores it in `savedPanels` inside the job blob.
+- Job panel schedules use `lib/panel-schedules.ts` and the `PanelSchedule` and `CircuitLibrary` tables. Nothing in the estimator references them.
+
+### Business rule: per-quote pricing
+
+- **Lighting fixtures and distribution gear have no stock prices. They are quoted per job.** Their $0.01 BOM prices (`lc1`–`lc15`, `fad17` and the "PER QUOTE" lines in the fire alarm, low voltage, gear, floor box and high-amp receptacle calculators) are intentional placeholders.
+- The real cost comes from the Lighting Schedule and Gear Schedule tabs.
+- A future check should warn **only** when a per-quote item has no quote entered on the Lighting or Gear Schedule. It should not flag every $0.01 line.
+- Today's warning is weak: `BidItemsTab` flags lines whose material total is under $0.10, so it disappears at 10 or more units. Nothing blocks the proposal download.
+
+### Known security gaps (not fixed yet)
+
+- `/api/takeoff-pdf-upload` has **no login check**. The estimate id is the only protection.
+- `POST /api/bom` has **no role check**. Any active user can overwrite any BOM item's price. (`PATCH`, `DELETE` and `/api/bom/upload` are admin only.)
+- `/api/pdf/proposal` checks that a session exists but **not that the user is active**.
+- `allowDangerousEmailAccountLinking` is **on** in `auth.ts`.
+- New Google sign-ins start inactive until an admin activates them, and I saw no email-domain restriction.
+
+### If Ridgeline is sold to other contractors
+
+- **Hard-coded Oak Ridge values:** `lib/company.ts` (name, address, phone, email, NH license number), the `CompanySettings` defaults, proposal wording and PDF filenames, logos, `oakridge_` browser storage keys, the $41.50 default labor rate, built-in BOM prices and labor tables, crew wages, Sam Cosme's locked CC, billing-reminder recipients, the AIA template id and the supplier list.
+- **No company or tenant separation:** there is no company id on any table. The BOM, company settings and rates, suppliers, stock items, the Google connection (one per app) and the single Gmail sender are all global. Estimator jobs separate by user only.
+- Selling to others would need a tenant id on every table, per-company settings and branding, per-company email and Google connections, and fixes for the security gaps above.
+
+### Recovery
+
+- Git tag **`recovery-2026-10-31`** on commit **`cdfd088`** (lightweight tag, pushed to GitHub).
+- Supabase has nightly backups, which cover the **database only, not Storage files**. That includes the takeoff PDFs in the `takeoff-pdfs` bucket.
+- To roll back: in Vercel, promote an older production deployment (instant). In git, check out the tag onto a new branch and use `git revert` on bad commits rather than rewriting history.
+
+### Working rule
+
+Read-only recon first. Then one small change at a time, each on its own branch, with a recovery point before it. Never merge or deploy without an explicit go-ahead.
+
+### Planned fix order
+
+1. This documentation update.
+2. Add a login check to `/api/takeoff-pdf-upload` and an admin check to BOM edits (`POST /api/bom`).
+3. Keep the built-in BOM as a fallback when the database BOM is empty.
+4. Warn before proposal download when a per-quote item has no quote entered on the Lighting or Gear Schedule.
+
+---
+
+**Last updated:** 2026-06-01 (everything below this line is the original handoff and is partly stale; see Current State above)
 **Deployed at:** https://oak-ridge-pm.vercel.app
 **GitHub repo:** https://github.com/oakridge1/oak-ridge-pm
 **Owner:** Justin Marceau, Oak Ridge Electrical LLC
@@ -1043,6 +1186,8 @@ Both owner draws and contractor payments feed into the **Distributions** section
 
 ## Current State & Pending Work
 
+> **STALE (as of 2026-06-01).** This section and the "Pending work" list below describe the app as it was on June 1, 2026. See "Current State (2026-10-31)" at the top of this file for the real status.
+
 **As of 2026-06-01** — App is live at https://oak-ridge-pm.vercel.app at commit `3bf65ff` (e5b974d + route fixes). Build is clean, TypeScript passes.
 
 ### What's working
@@ -1055,7 +1200,9 @@ Both owner draws and contractor payments feed into the **Distributions** section
 - Email: daily report cron, billing reminder, stock orders (SAM_CC locked)
 - Google integration: Calendar sync, AIA → Sheets
 
-### Pending work
+### Pending work — STALE (as of 2026-06-01)
+
+> This list is out of date. The takeoff symbol update and the estimator port were worked on in early June, and panel schedules, reports and scheduling shipped afterwards. Kept for history only.
 
 #### 1. Takeoff tool — symbol set update (HIGH PRIORITY)
 
