@@ -2,10 +2,12 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { auth } from "@/auth";
 
-// Unauthenticated upload/download endpoint for the standalone PDF takeoff
-// tool (public/pdf-takeoff.html). The tool has no session context, so this
-// route is intentionally not auth-gated — the estimateId scopes access.
+// Upload/download endpoint for the standalone PDF takeoff tool
+// (public/pdf-takeoff.html). The tool is served from the same origin, so its
+// requests carry the login cookie. proxy.ts only checks that a session cookie
+// exists; both handlers below validate the session and require an active user.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -24,6 +26,9 @@ function storageClient() {
 // same-origin URL (this route's GET) so the link never expires — the bucket
 // is private and signed URLs would die after their expiry window.
 export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
+
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return new NextResponse("Storage not configured", { status: 500 });
   }
@@ -69,6 +74,9 @@ export async function POST(req: Request) {
 
 // GET — ?estimateId=..&drawingId=.. → streams the PDF back from storage
 export async function GET(req: Request) {
+  const session = await auth();
+  if (!session?.user?.active) return new NextResponse("Unauthorized", { status: 401 });
+
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return new NextResponse("Storage not configured", { status: 500 });
   }

@@ -120,7 +120,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 
 ### Known security gaps (not fixed yet)
 
-- `/api/takeoff-pdf-upload` has **no login check**. The estimate id is the only protection.
+- `/api/takeoff-pdf-upload` requires a session cookie only because `proxy.ts` checks that the cookie exists. The route itself had **no server-side validation and no active-user check**, so a made-up cookie value got through, and the estimate id was the only other protection. (Fix in progress on branch `fix/takeoff-upload-auth`: both handlers now call `auth()` and require an active user. No ownership check yet.)
 - `POST /api/bom` has **no role check**. Any active user can overwrite any BOM item's price. (`PATCH`, `DELETE` and `/api/bom/upload` are admin only.)
 - `/api/pdf/proposal` checks that a session exists but **not that the user is active**.
 - `allowDangerousEmailAccountLinking` is **on** in `auth.ts`.
