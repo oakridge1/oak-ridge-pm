@@ -12,7 +12,15 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 
 - Branch `main`, latest commit `cdfd088` (2026-09-09): "Estimator: proposal PDF uses split/override-aware base bid; persist manual price override; whole-dollar rounding".
 - That is **129 commits after `3bf65ff`**, the commit this document used to describe. The old text below describes the app as of June 1, so it is out of date.
-- The latest Vercel production deployment (`oak-ridge-8uz5y38bd`, created 2026-09-16) has no Git commit or branch recorded. It was probably deployed with `vercel --prod` from a local folder, not by pushing to GitHub. Do not assume that pushing to `main` deploys. Confirm in the Vercel dashboard (Deployments, then Settings, then Git).
+- Production is the commit above (`cdfd088`). The newest production deployment (2026-09-16) has no Git info only because it was a dashboard "Redeploy" of that same commit. See "How deploys work" below.
+
+### How deploys work (checked 2026-10-31)
+
+- The Vercel project `oak-ridge-pm` is connected to GitHub `oakridge1/oak-ridge-pm`. The production branch is `main`, and deployments from Git are enabled.
+- **Merging to `main` auto-deploys to production in about 1–2 minutes.** The live app updates by itself and nobody has to deploy by hand. If the build fails, the previous version stays live.
+- **Database schema changes are NOT applied automatically.** Prisma migrations or `prisma db push` do not run on Vercel. A schema change needs a separate, deliberate step against the database, and the order matters: the database must be ready for the code before (or together with) the merge. Take a Supabase backup first.
+- **Preview deployments share the production database and can send real emails. Treat preview links as live.** Every push to a non-`main` branch builds a Preview deployment. Preview and Production use the same `DATABASE_URL`, `DIRECT_URL`, Supabase keys and Gmail credentials (each is a single environment entry shared by both). Anything done in a preview reads and writes real data and can send real emails, including the CC to Sam. Previews sit behind Vercel login protection, but that is not a reason to test destructive actions in them.
+- Only a few recent deployments are kept. Production deployments seen on 2026-10-31: 2026-09-08 (`f9d9537`, Git push), 2026-09-09 (`cdfd088`, Git push) and 2026-09-16 (`cdfd088`, redeploy).
 
 ### What changed since 3bf65ff (129 commits), by month
 
