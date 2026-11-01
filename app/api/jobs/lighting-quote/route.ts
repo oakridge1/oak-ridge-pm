@@ -23,6 +23,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  const FROM = process.env.EMAIL_FROM;
+  const PASS = process.env.GMAIL_APP_PASSWORD;
+  if (!FROM || !PASS) {
+    return NextResponse.json({ error: 'Email is not configured' }, { status: 503 });
+  }
+
   const fd = await req.formData();
 
   const jobId       = fd.get('jobId')       as string;
@@ -30,11 +36,18 @@ export async function POST(req: NextRequest) {
   const jobName     = fd.get('jobName')     as string;
   const vendorName  = fd.get('vendorName')  as string;
   const vendorEmail = fd.get('vendorEmail') as string;
-  const items       = JSON.parse(fd.get('items')    as string) as QuoteItem[];
   const notes       = (fd.get('notes')      as string) ?? '';
-  const ccEmails    = JSON.parse((fd.get('ccEmails') as string) ?? '[]') as string[];
   const drawings    = fd.getAll('drawings') as File[];
   const quoteMode   = (fd.get('quoteMode') as string) ?? 'single';
+
+  let items: QuoteItem[];
+  let ccEmails: string[];
+  try {
+    items    = JSON.parse(fd.get('items') as string) as QuoteItem[];
+    ccEmails = JSON.parse((fd.get('ccEmails') as string) ?? '[]') as string[];
+  } catch {
+    return NextResponse.json({ error: 'Invalid quote data' }, { status: 500 });
+  }
 
   if (!vendorEmail || !items?.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -53,8 +66,9 @@ export async function POST(req: NextRequest) {
   `).join('');
 
   const today = new Date().toLocaleDateString('en-US', {
-    month: 'long', day: 'numeric', year: 'numeric',
+    month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/New_York',
   });
+  const hasDrawings = drawings.some(f => f.size > 0);
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
@@ -68,7 +82,7 @@ export async function POST(req: NextRequest) {
       <div style="background:#eff6ff;padding:14px 20px;border:1px solid #bfdbfe;border-top:none;">
         <p style="margin:0;color:#1d4ed8;font-size:14px;">
           Please provide your best unit pricing for the fixtures listed below.
-          Project drawings are attached for reference.
+          ${hasDrawings ? 'Project drawings are attached for reference.' : ''}
         </p>
       </div>
 
@@ -138,19 +152,16 @@ export async function POST(req: NextRequest) {
   );
 
   // ── Send email ────────────────────────────────────────────────────────────
-  const FROM = process.env.EMAIL_FROM;
-  const PASS = process.env.GMAIL_APP_PASSWORD;
+  const transport = nodemailer.createTransport({
+    host: 'smtp.gmail.com', port: 587, secure: false,
+    auth: { user: FROM, pass: PASS },
+  });
 
-  if (FROM && PASS) {
-    const transport = nodemailer.createTransport({
-      host: 'smtp.gmail.com', port: 587, secure: false,
-      auth: { user: FROM, pass: PASS },
-    });
+  const ccList = [SAM, JUSTIN, ...ccEmails].filter(
+    (e, i, arr) => e && e !== vendorEmail && arr.indexOf(e) === i
+  );
 
-    const ccList = [SAM, JUSTIN, ...ccEmails].filter(
-      (e, i, arr) => e && e !== vendorEmail && arr.indexOf(e) === i
-    );
-
+  try {
     await transport.sendMail({
       from:        `"Oak Ridge Electrical" <${FROM}>`,
       to:          vendorEmail,
@@ -159,6 +170,9 @@ export async function POST(req: NextRequest) {
       html,
       attachments: emailAttachments,
     });
+  } catch (err) {
+    console.error('[lighting-quote] sendMail failed:', err);
+    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
   }
 
   // ── Mark pending items as QUOTED ──────────────────────────────────────────
