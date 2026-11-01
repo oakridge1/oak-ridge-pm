@@ -122,6 +122,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 
 - `/api/takeoff-pdf-upload` — **FIXED (merged 2026-10-31).** Both handlers (POST and GET) now require an active user via `auth()`. Before the fix, `proxy.ts` only checked that a session cookie existed, so a made-up cookie value got through with no server-side validation and no active-user check. There is still **no ownership check**: any active user who knows an estimate id and drawing id can read or overwrite that PDF.
 - `POST /api/bom` — **FIXED (branch `fix/bom-post-admin-only`, 2026-10-31):** POST /api/bom is now admin-only (403 for non-admins). Custom Assembly Builder warns non-admins that new items weren't added to the shared BOM.
+- `/api/bom` empty/failed — **FIXED (branch `fix/bom-empty-fallback`, 2026-10-31):** If /api/bom fails or returns empty, the estimator uses the built-in BOM (`lib/estimator/bom.ts`, 340 items) and shows a yellow warning banner. Remaining gap: if the DB BOM is only partly filled, missing ids still become silent $0 `[MISSING BOM: id]` lines.
 - `/estimator` page itself has no role check. Only the header link is hidden. Not fixed yet.
 - `/api/pdf/proposal` checks that a session exists but **not that the user is active**.
 - `allowDangerousEmailAccountLinking` is **on** in `auth.ts`.

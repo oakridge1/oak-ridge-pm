@@ -7,6 +7,7 @@ import {
   type SyncStatus,
 } from '@/lib/estimator/jobs';
 import type { SavedAssembly } from '@/lib/estimator/constants';
+import { getBomStatus, type BomStatus } from '@/lib/estimator/bom';
 import { JobsModal } from '@/components/estimator/JobsModal';
 import { ConduitRunBuilder }     from '@/components/estimator/ConduitRunBuilder';
 import { StrutRackBuilder }      from '@/components/estimator/StrutRackBuilder';
@@ -88,6 +89,7 @@ export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
   const [counterOpen,  setCounterOpen]  = useState(false);
   const [syncStatus,   setSyncStatus]   = useState<SyncStatus>('idle');
   const [cloudLoading, setCloudLoading] = useState(false);
+  const [bomStatus,    setBomStatus]    = useState<BomStatus>({ source: 'live' });
   const showTools = !['summary', 'settings'].includes(state.tab);
 
   // ── Cloud hydrate on mount ──────────────────────────────────────────────────
@@ -125,6 +127,19 @@ export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
     }
     window.addEventListener('estimator-sync-status', onStatus);
     return () => window.removeEventListener('estimator-sync-status', onStatus);
+  }, []);
+
+  // ── BOM source indicator ────────────────────────────────────────────────────
+  // initBomCache() broadcasts whether prices come from the live DB or the
+  // built-in BOM. Read the current value too, in case it fired before mount.
+  useEffect(() => {
+    setBomStatus(getBomStatus());
+    function onBomStatus(e: Event) {
+      const status = (e as CustomEvent<BomStatus>).detail;
+      if (status) setBomStatus(status);
+    }
+    window.addEventListener('estimator-bom-status', onBomStatus);
+    return () => window.removeEventListener('estimator-bom-status', onBomStatus);
   }, []);
 
   // ── Ridge List: live assembly broadcast to the PDF tool ─────────────────────
@@ -264,6 +279,16 @@ export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
           </div>
         </div>
       </div>
+
+      {bomStatus.source === 'builtin' && (
+        <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-300 rounded-lg px-4 py-2 text-sm text-yellow-800 m-4 mb-0">
+          <span className="text-lg">⚠</span>
+          <span>
+            Live BOM didn&apos;t load. Using built-in prices, which may be out of date.
+            Assemblies you build now keep these prices. Reload to retry.
+          </span>
+        </div>
+      )}
 
       {/* Tab bar */}
       <div className="border-b border-gray-200 bg-white sticky top-0 z-10">

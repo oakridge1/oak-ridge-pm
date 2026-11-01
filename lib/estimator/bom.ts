@@ -456,14 +456,43 @@ const BOM_MAP = new Map<string, BomItem>(BOM.map(b => [b.id, b]));
 // Falls back to static BOM_MAP when cache is not yet populated.
 let _bomCache: Map<string, BomItem> | null = null;
 
+export type BomStatus =
+  | { source: 'live' }
+  | { source: 'builtin'; reason: string };
+
+let _bomStatus: BomStatus = { source: 'live' };
+
+export function getBomStatus(): BomStatus {
+  return _bomStatus;
+}
+
+function setBomStatus(status: BomStatus): void {
+  _bomStatus = status;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('estimator-bom-status', { detail: status }));
+  }
+}
+
 export async function initBomCache(): Promise<void> {
   try {
     const res = await fetch('/api/bom');
-    if (!res.ok) return;
-    const items = (await res.json()) as BomItem[];
-    _bomCache = new Map(items.map(item => [item.id, item]));
+    if (!res.ok) {
+      _bomCache = null;
+      setBomStatus({ source: 'builtin', reason: `HTTP ${res.status}` });
+      return;
+    }
+    const items = (await res.json()) as unknown;
+    if (!Array.isArray(items) || items.length === 0) {
+      _bomCache = null;
+      setBomStatus({ source: 'builtin', reason: Array.isArray(items) ? 'empty' : 'bad response' });
+      return;
+    }
+    _bomCache = new Map((items as BomItem[]).map(item => [item.id, item]));
+    setBomStatus({ source: 'live' });
   } catch {
-    // network unavailable — keep using static BOM_MAP
+    // network unavailable or bad JSON — use static BOM_MAP
+    _bomCache = null;
+    setBomStatus({ source: 'builtin', reason: 'network error' });
   }
 }
 
