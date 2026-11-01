@@ -129,7 +129,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 - Opening the Proposal tab can still trigger a save if its client-name or alternates auto-fill effects really change state.
 - Per-quote placeholders for fire alarm, data, floor boxes and receptacles are not covered by the proposal warning.
 - `/estimator` page itself has no role check. Only the header link is hidden. Not fixed yet.
-- `/api/pdf/proposal` checks that a session exists but **not that the user is active**.
+- `/api/pdf/proposal` — **FIXED (branch `fix/pdf-proposal-active-check`, 2026-10-31):** `/api/pdf/proposal` (and any other `/api/pdf` routes listed in the commit) require an active user (401). It was the only route under `app/api/pdf/`.
 - `allowDangerousEmailAccountLinking` is **on** in `auth.ts`.
 - New Google sign-ins start inactive until an admin activates them, and I saw no email-domain restriction.
 

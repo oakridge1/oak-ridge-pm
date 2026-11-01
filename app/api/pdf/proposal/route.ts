@@ -21,7 +21,7 @@ function getLogoSrc(): string | undefined {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !session.user.active) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
