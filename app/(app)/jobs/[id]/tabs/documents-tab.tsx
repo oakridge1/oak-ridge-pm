@@ -12,6 +12,7 @@ import {
   FileText,
 } from "lucide-react";
 import { createDocument, deleteDocument } from "./documents-tab-actions";
+import { buildDocumentZip } from "@/lib/document-zip";
 import type { Role, DocumentCategory } from "@/app/generated/prisma/client";
 
 const CATEGORIES: { value: DocumentCategory; label: string }[] = [
@@ -67,7 +68,7 @@ type Document = {
 };
 
 interface DocumentsTabProps {
-  job: { id: string; jobNumber: string; documents: Document[] };
+  job: { id: string; jobNumber: string; jobName: string; documents: Document[] };
   role: Role;
 }
 
@@ -327,15 +328,26 @@ function DocumentRow({
   doc,
   role,
   onMove,
+  selected,
+  onToggle,
 }: {
   doc: Document;
   role: Role;
   onMove: () => void;
+  selected: boolean;
+  onToggle: () => void;
 }) {
   const [isDeleting, startDelete] = useTransition();
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        aria-label={`Select ${doc.name}`}
+        className="w-4 h-4 shrink-0 accent-[#1e3a8a] cursor-pointer"
+      />
       <FileText className="w-5 h-5 text-[#1e3a8a] shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
@@ -389,6 +401,10 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [movingDocId, setMovingDocId] = useState<string | null>(null);
   const [zipDownloading, setZipDownloading] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selZipBusy, setSelZipBusy] = useState(false);
+  const [selZipStatus, setSelZipStatus] = useState<string | null>(null);
+  const [selZipError, setSelZipError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/jobs/${job.id}/documents/categories`)
@@ -443,6 +459,66 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
     });
     setShowMoveModal(false);
     router.refresh();
+  }
+
+  // ── Selection (for Download Selected) ────────────────────────────────────────
+  function toggleDoc(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleGroup(docs: Document[]) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allIn = docs.every((d) => next.has(d.id));
+      for (const d of docs) { if (allIn) next.delete(d.id); else next.add(d.id); }
+      return next;
+    });
+  }
+
+  // Only count documents that still exist.
+  const selectedDocs = job.documents.filter((d) => selected.has(d.id));
+  const selectedCount = selectedDocs.length;
+
+  async function handleSelectedZip() {
+    if (!selectedCount || selZipBusy) return;
+    setSelZipBusy(true);
+    setSelZipError(null);
+    setSelZipStatus(`Preparing 0 of ${selectedCount}…`);
+    try {
+      const result = await buildDocumentZip({
+        docs: selectedDocs,
+        jobNumber: job.jobNumber,
+        jobName: job.jobName,
+        onProgress: (done, total) => setSelZipStatus(`Preparing ${done} of ${total}…`),
+      });
+      if (result.failed >= result.total) {
+        setSelZipError("None of the selected files could be downloaded. Please try again.");
+        return;
+      }
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (result.failed > 0) {
+        setSelZipError(
+          `${result.failed} of ${result.total} file${result.total !== 1 ? "s" : ""} could not be downloaded and ${result.failed !== 1 ? "were" : "was"} left out. The rest are in the ZIP (the Document List lists what is missing).`,
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      setSelZipError("Could not build the ZIP. Please try again.");
+    } finally {
+      setSelZipBusy(false);
+      setSelZipStatus(null);
+    }
   }
 
   async function handleZipDownload() {
@@ -541,6 +617,44 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
         </div>
       )}
 
+      {/* Selection controls + Download Selected */}
+      {job.documents.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-gray-400 mr-auto">{selectedCount} selected</p>
+            <button
+              onClick={() => setSelected((prev) => {
+                const next = new Set(prev);
+                for (const d of filteredDocs) next.add(d.id);
+                return next;
+              })}
+              disabled={filteredDocs.length === 0}
+              className="text-xs text-[#1e3a8a] hover:underline disabled:opacity-40"
+            >
+              Select all
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              disabled={selectedCount === 0}
+              className="text-xs text-gray-500 hover:underline disabled:opacity-40"
+            >
+              Clear
+            </button>
+            <button
+              onClick={handleSelectedZip}
+              disabled={selZipBusy || selectedCount === 0}
+              className="flex items-center gap-1.5 text-xs font-medium bg-[#1e3a8a] text-white rounded-lg px-2.5 py-1.5 hover:bg-[#003d99] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download className="w-3.5 h-3.5" /> Download Selected ({selectedCount})
+            </button>
+          </div>
+          {selZipStatus && <p className="text-xs text-gray-500">{selZipStatus}</p>}
+          {selZipError && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-1.5 rounded">{selZipError}</p>
+          )}
+        </div>
+      )}
+
       {filteredDocs.length === 0 && !showForm && (
         <p className="text-sm text-gray-400 py-6 text-center">
           {job.documents.length === 0
@@ -549,21 +663,46 @@ export function DocumentsTab({ job, role }: DocumentsTabProps) {
         </p>
       )}
 
-      {filteredDocs.length > 0 && (
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
-          {filteredDocs.map((doc) => (
-            <DocumentRow
-              key={doc.id}
-              doc={doc}
-              role={role}
-              onMove={() => {
-                setMovingDocId(doc.id);
-                setShowMoveModal(true);
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Documents, grouped by folder (category) so a folder can be selected whole */}
+      {usedCategoryKeys
+        .map((key) => ({ key, docs: filteredDocs.filter((d) => docCatKey(d) === key) }))
+        .filter((g) => g.docs.length > 0)
+        .map((g) => {
+          const selInGroup = g.docs.filter((d) => selected.has(d.id)).length;
+          const allSelected = selInGroup === g.docs.length;
+          return (
+            <div key={g.key} className="border border-gray-200 rounded-xl overflow-hidden">
+              <label className="flex items-center gap-3 px-4 py-2 bg-gray-50 border-b border-gray-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => { if (el) el.indeterminate = selInGroup > 0 && !allSelected; }}
+                  onChange={() => toggleGroup(g.docs)}
+                  aria-label={`Select all in ${catLabelForKey(g.key)}`}
+                  className="w-4 h-4 shrink-0 accent-[#1e3a8a] cursor-pointer"
+                />
+                <FolderOpen className="w-4 h-4 text-gray-400 shrink-0" />
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  {catLabelForKey(g.key)}
+                </span>
+                <span className="text-xs text-gray-400">({g.docs.length})</span>
+              </label>
+              {g.docs.map((doc) => (
+                <DocumentRow
+                  key={doc.id}
+                  doc={doc}
+                  role={role}
+                  selected={selected.has(doc.id)}
+                  onToggle={() => toggleDoc(doc.id)}
+                  onMove={() => {
+                    setMovingDocId(doc.id);
+                    setShowMoveModal(true);
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
 
       {/* Move / Copy modal */}
       {showMoveModal && movingDocId && (
