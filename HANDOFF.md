@@ -141,7 +141,8 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 - Future fix: other server-side dates use UTC (Vercel) and roll to tomorrow in the evening in New Hampshire: `jobs/[id]/deposit-request`, `estimates/[id]/deposit-request`, crons `daily-report`, `billing-reminder`, `generate-overhead`, `jobs/[id]/stock-orders` (locked file, leave alone), `admin/pl`, `admin/pl/tax-package`, `google/sheets/[invoiceId]`, `jobs/[id]/pdf/invoice/[invoiceId]/docx`. Add `timeZone: 'America/New_York'` to their date formatting.
 - cron `daily-report`, `billing-reminder`, `receipt-reminder` skip the secret check if CRON_SECRET is unset (fail-open). CRON_SECRET is currently set for Production and Preview.
 - cron `generate-overhead` exports only POST; Vercel cron calls GET, so monthly overhead likely never runs automatically.
-- `jobs/[id]/crib` DELETE has no owner check (sibling `stock-requests/[requestId]` does).
+- `jobs/[id]/crib` — **FIXED (branch `fix/crib-route-admin-only`, 2026-10-31):** all four handlers (GET, POST, PUT, DELETE) are locked to ADMIN (403). Nothing in the app calls this route (the Crib tab uses `stock-requests`, `stock-approval` and `stock-orders`), so it is a legacy route and a candidate for removal after engineer review. The file was not deleted. This also covers the missing owner check on its DELETE.
+- **Open (UX):** the Crib tab shows the ✕ delete button on conductor sets to every role, but `stock-requests/[requestId]` DELETE only allows the creator, FOREMAN or ADMIN, and the tab ignores the response, so a non-owner's click silently does nothing (no message). OFFICE is not in that override list. Needs a UI fix later.
 - `upload` POST accepts any file type into public buckets.
 - No job-level access control; `foremanId` is unused by API routes.
 - `allowDangerousEmailAccountLinking` is **on** in `auth.ts`.
