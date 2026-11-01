@@ -24,6 +24,8 @@ type JobInfoTabProps = {
   job: Job & { foreman: { id: string; name: string | null } | null; archived: boolean };
   role: Role;
   fieldUsers: { id: string; name: string | null; role: Role }[];
+  // False for crew (no Summary access): the contract value input is not rendered.
+  canViewMoney?: boolean;
 };
 
 function Field({
@@ -96,7 +98,7 @@ function InputField({
   );
 }
 
-export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
+export function JobInfoTab({ job, role, fieldUsers, canViewMoney = false }: JobInfoTabProps) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -180,19 +182,23 @@ export function JobInfoTab({ job, role, fieldUsers }: JobInfoTabProps) {
             </select>
           </div>
 
-          <div className="col-span-full">
-            <hr className="border-gray-100 my-1" />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mt-3 mb-3">
-              Financial
-            </p>
-          </div>
-          <InputField
-            label="Contract Value $"
-            name="contractValue"
-            type="number"
-            defaultValue={job.contractValue ? job.contractValue.toString() : ""}
-            placeholder="0.00"
-          />
+          {canViewMoney && (
+            <>
+              <div className="col-span-full">
+                <hr className="border-gray-100 my-1" />
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mt-3 mb-3">
+                  Financial
+                </p>
+              </div>
+              <InputField
+                label="Contract Value $"
+                name="contractValue"
+                type="number"
+                defaultValue={job.contractValue ? job.contractValue.toString() : ""}
+                placeholder="0.00"
+              />
+            </>
+          )}
 
           <div className="col-span-full">
             <hr className="border-gray-100 my-1" />
