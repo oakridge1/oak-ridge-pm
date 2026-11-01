@@ -142,14 +142,27 @@ export function useEstimator(): EstimatorActions {
 
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Save only after a real edit. Opening or switching a job (job id changes,
+  // incl. first mount, cloud hydrate, import) just records a baseline, and a
+  // tab switch alone is not an edit, so neither rewrites the saved copy.
+  // No cleanup on purpose: a pending save must survive a later no-edit state
+  // change (e.g. a tab switch within the debounce window).
+  const savedJobIdRef = useRef<string | null>(null);
+  const baselineRef   = useRef('');
+
   useEffect(() => {
+    const snapshot = JSON.stringify({ ...state, tab: undefined });
+    if (state.jobId !== savedJobIdRef.current) {
+      savedJobIdRef.current = state.jobId;
+      baselineRef.current   = snapshot;
+      return;
+    }
+    if (snapshot === baselineRef.current) return;
+    baselineRef.current = snapshot;
     if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
     autoSaveRef.current = setTimeout(() => {
       saveJob(state);
     }, 1500);
-    return () => {
-      if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
-    };
   }, [state]);
 
   useEffect(() => { initBomCache(); }, []);
