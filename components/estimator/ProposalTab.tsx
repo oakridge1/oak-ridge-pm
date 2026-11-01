@@ -16,6 +16,7 @@ import {
 import { fmt$ } from '@/lib/estimator/format';
 import { getRates } from '@/lib/estimator/constants';
 import { calcLabelTotals } from '@/lib/estimator/labelTotals';
+import { getUnquotedWarnings } from '@/lib/estimator/quoteCheck';
 import {
   COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE,
   COMPANY_EMAIL, COMPANY_LICENSE, LOGO_URL,
@@ -668,7 +669,16 @@ export function ProposalTab() {
 
   const [downloading, setDownloading] = useState(false);
 
+  const confirmQuotes = () => {
+    const warnings = getUnquotedWarnings(state);
+    if (warnings.length === 0) return true;
+    return window.confirm(
+      `These items still need a quote:\n\n${warnings.map(w => `- ${w}`).join('\n')}\n\nContinue anyway?`,
+    );
+  };
+
   const handlePrint = () => {
+    if (!confirmQuotes()) return;
     const win = window.open('', '_blank');
     if (!win) return;
     win.document.write(buildPrintHtml(p, state.jobName, displayBaseBid));
@@ -678,6 +688,7 @@ export function ProposalTab() {
   };
 
   const handleDownloadPdf = async () => {
+    if (!confirmQuotes()) return;
     setDownloading(true);
     try {
       const payload: ProposalPdfData = {
