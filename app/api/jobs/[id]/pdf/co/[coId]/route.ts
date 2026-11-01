@@ -19,7 +19,7 @@ export async function GET(
   const [job, co] = await Promise.all([
     prisma.job.findUnique({
       where: { id },
-      select: { jobNumber: true, jobName: true },
+      select: { jobNumber: true, jobName: true, foremanId: true, createdById: true },
     }),
     prisma.changeOrder.findUnique({
       where: { id: coId, jobId: id },
@@ -28,6 +28,19 @@ export async function GET(
   ]);
 
   if (!job || !co) return new NextResponse("Not found", { status: 404 });
+
+  // The PDF contains the CO's dollars, so it follows the same rule as the job
+  // page: ADMIN, OFFICE, or the job's foreman/creator always; everyone else only
+  // while the CO is not yet APPROVED and only if they wrote it or can estimate.
+  const user = session.user;
+  const isMoneyUser =
+    user.role === "ADMIN" ||
+    user.role === "OFFICE" ||
+    (user.role === "FOREMAN" && (job.foremanId === user.id || job.createdById === user.id));
+  const isEstimator = user.role === "ADMIN" || user.estimatingPermission === true;
+  const allowed =
+    isMoneyUser || (co.status !== "APPROVED" && (co.requestedById === user.id || isEstimator));
+  if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 
   const data = {
     jobNumber: job.jobNumber,

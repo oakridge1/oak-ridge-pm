@@ -68,6 +68,9 @@ type ChangeOrder = {
   status: "PENDING" | "APPROVED" | "REJECTED";
   adminNotes: string | null;
   approvedValue: number | null;
+  // Set by the server: false when this user may not see this CO's dollars
+  // (the amount fields are then null). Undefined is treated as false.
+  canSeeAmounts?: boolean;
   createdAt: Date | string;
 };
 
@@ -603,22 +606,24 @@ function ChangeOrderCard({
         </span>
 
         {/* Estimated total */}
-        {estimatedTotal > 0 && (
+        {co.canSeeAmounts && estimatedTotal > 0 && (
           <span className="text-xs font-medium text-gray-600 shrink-0">
             {fmt$(estimatedTotal)}
           </span>
         )}
 
-        {/* PDF download */}
-        <a
-          href={`/api/jobs/${jobId}/pdf/co/${co.id}`}
-          download
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 p-1 text-gray-400 hover:text-[#1e3a8a] hover:bg-blue-50 rounded transition-colors"
-          title="Download CO PDF"
-        >
-          <FileDown className="w-4 h-4" />
-        </a>
+        {/* PDF download (the PDF contains dollars, so it follows the same rule) */}
+        {co.canSeeAmounts && (
+          <a
+            href={`/api/jobs/${jobId}/pdf/co/${co.id}`}
+            download
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 p-1 text-gray-400 hover:text-[#1e3a8a] hover:bg-blue-50 rounded transition-colors"
+            title="Download CO PDF"
+          >
+            <FileDown className="w-4 h-4" />
+          </a>
+        )}
 
         {/* Chevron */}
         {expanded ? (
