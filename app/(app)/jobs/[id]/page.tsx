@@ -186,7 +186,7 @@ export default async function JobPage({ params }: PageProps) {
   // Serialize Prisma Decimal objects — they can't be passed to Client Components
   const serializedJob = {
     ...job,
-    contractValue: job.contractValue?.toNumber() ?? null,
+    contractValue: canViewSummary ? (job.contractValue?.toNumber() ?? null) : null,
     // Crew (no Summary access) don't get the labor rate or budgets. The Labor
     // and Purchase Orders tabs treat null as "not set", so they still show hours.
     laborBudgetDollars: canViewSummary ? (job.laborBudgetDollars?.toNumber() ?? null) : null,
@@ -272,6 +272,7 @@ export default async function JobPage({ params }: PageProps) {
         savedTasks={savedTasks}
         allCalendarEvents={allCalendarEvents}
         canViewSummary={canViewSummary}
+        canViewMoney={canViewSummary}
         canAddInspections={canAddInspections}
         canManagePanels={canManagePanelsFlag}
         companyRates={canViewSummary && companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}

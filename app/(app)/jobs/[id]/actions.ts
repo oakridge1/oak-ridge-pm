@@ -14,6 +14,18 @@ export async function updateJobInfo(jobId: string, fd: FormData) {
     throw new Error("Unauthorized");
   }
 
+  // Money fields may only be changed by ADMIN, OFFICE, or the job's foreman or
+  // creator (the same people who can view Summary). Everyone else's values for
+  // these fields are ignored, leaving the database value untouched.
+  let canEditMoney = session.user.role === "ADMIN" || session.user.role === "OFFICE";
+  if (!canEditMoney && session.user.role === "FOREMAN") {
+    const owner = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { foremanId: true, createdById: true },
+    });
+    canEditMoney = !!owner && (owner.foremanId === session.user.id || owner.createdById === session.user.id);
+  }
+
   const getString = (key: string) =>
     (fd.get(key) as string | null)?.trim() || null;
   const getDate = (key: string) => {
@@ -59,9 +71,9 @@ export async function updateJobInfo(jobId: string, fd: FormData) {
       inspectionContact: getString("inspectionContact"),
       inspectionPhone: getString("inspectionPhone"),
       status: (getString("status") as any) || undefined,
-      contractValue: optDecimal("contractValue"),
-      laborBudgetDollars: optDecimal("laborBudgetDollars"),
-      materialBudget: optDecimal("materialBudget"),
+      contractValue: canEditMoney ? optDecimal("contractValue") : undefined,
+      laborBudgetDollars: canEditMoney ? optDecimal("laborBudgetDollars") : undefined,
+      materialBudget: canEditMoney ? optDecimal("materialBudget") : undefined,
       calendarColor: getString("calendarColor"),
       ...(fd.get("excludeFromPL") !== null && session.user.role === "ADMIN"
         ? { excludeFromPL: fd.get("excludeFromPL") === "true" }

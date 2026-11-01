@@ -99,6 +99,7 @@ interface JobTabsProps {
   savedTasks: { id: string; title: string; description: string | null; sortOrder: number }[];
   allCalendarEvents?: any[];
   canViewSummary?: boolean;
+  canViewMoney?: boolean;
   canAddInspections?: boolean;
   canManagePanels?: boolean;
   orderingPermissions?: { scope: string; jobId: string | null }[];
@@ -115,6 +116,7 @@ export function JobTabs({
   savedTasks,
   allCalendarEvents = [],
   canViewSummary = false,
+  canViewMoney = false,
   canAddInspections = false,
   canManagePanels = false,
   orderingPermissions = [],
@@ -164,7 +166,7 @@ export function JobTabs({
       {/* Tab content */}
       <div className="bg-white rounded-b-xl rounded-tr-xl border border-t-0 border-gray-200 shadow-sm">
         {activeTab === "info" && (
-          <JobInfoTab job={job} role={role} fieldUsers={fieldUsers} />
+          <JobInfoTab job={job} role={role} fieldUsers={fieldUsers} canViewMoney={canViewMoney} />
         )}
         {activeTab === "labor" && (
           <LaborTab
