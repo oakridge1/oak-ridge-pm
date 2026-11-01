@@ -154,6 +154,9 @@ export default async function JobPage({ params }: PageProps) {
     role === "FOREMAN" &&
     (job.foremanId === session.user.id || job.createdById === session.user.id);
   const canViewSummary = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
+  // Estimating access: ADMIN, or the estimatingPermission flag (same rule as the
+  // Estimator link in app/(app)/layout.tsx).
+  const isEstimator = role === "ADMIN" || session.user.estimatingPermission === true;
 
   const savedTasks = await prisma.savedTask.findMany({
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -202,12 +205,20 @@ export default async function JobPage({ params }: PageProps) {
         ? { ...m, amount: m.amount.toNumber() }
         : { ...m, amount: null, markupPct: null },
     ),
-    changeOrders: job.changeOrders.map((co) => ({
-      ...co,
-      estimatedLaborCost: co.estimatedLaborCost?.toNumber() ?? null,
-      estimatedMaterials: co.estimatedMaterials?.toNumber() ?? null,
-      approvedValue: co.approvedValue?.toNumber() ?? null,
-    })),
+    // Money users see every CO's dollars. Crew see them only while the CO is not
+    // yet APPROVED, and only if they wrote it or have estimating access.
+    changeOrders: job.changeOrders.map((co) => {
+      const canSeeAmounts =
+        canViewSummary ||
+        (co.status !== "APPROVED" && (co.requestedById === session.user.id || isEstimator));
+      return {
+        ...co,
+        canSeeAmounts,
+        estimatedLaborCost: canSeeAmounts ? (co.estimatedLaborCost?.toNumber() ?? null) : null,
+        estimatedMaterials: canSeeAmounts ? (co.estimatedMaterials?.toNumber() ?? null) : null,
+        approvedValue: canSeeAmounts ? (co.approvedValue?.toNumber() ?? null) : null,
+      };
+    }),
     // Worker wages/burden are only used by the Summary tab; everyone else gets
     // just id + name. Invoices and payments are likewise Summary-only.
     laborEntries: canViewSummary
