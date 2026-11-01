@@ -163,12 +163,18 @@ export function GearScheduleTab() {
         qty:         i.qty,
       }));
 
+      const sent:    string[] = [];
+      const notSent: string[] = [];
+
       for (const vendorName of selectedVendors) {
         const supplier = suppliers.find(s => s.name === vendorName);
         const vendorEmail = supplier?.email ||
           supplier?.contacts?.find(c => c.isPrimary)?.email ||
           supplier?.contacts?.[0]?.email;
-        if (!vendorEmail) continue;
+        if (!vendorEmail) {
+          notSent.push(`${vendorName} (no email)`);
+          continue;
+        }
 
         const fd = new FormData();
         fd.append('jobId',       state.jobId);
@@ -187,6 +193,14 @@ export function GearScheduleTab() {
           setSendResult('✗ Only estimators can send quote requests.');
           return;
         }
+        if (res.ok) sent.push(vendorName);
+        else notSent.push(`${vendorName} (error ${res.status})`);
+      }
+
+      if (sent.length === 0) {
+        setSendResult(`✗ No quote requests sent: ${notSent.join(', ') || 'no vendors selected'}.`);
+        setShowQuoteModal(false);   // selections stay, so the user can reopen and retry
+        return;
       }
 
       // Mark PENDING items as QUOTED in local state
@@ -195,7 +209,10 @@ export function GearScheduleTab() {
         .forEach(i => updateGearItem(i.id, { quoteStatus: 'QUOTED' }));
 
       setSendResult(
-        `✓ Quote request sent to ${selectedVendors.length} vendor${selectedVendors.length !== 1 ? 's' : ''}`
+        `✓ Quote request sent to ${sent.length} vendor${sent.length !== 1 ? 's' : ''}` +
+        (notSent.length > 0
+          ? `. Sent to ${sent.length} of ${selectedVendors.length}. Not sent: ${notSent.join(', ')}.`
+          : '')
       );
       setShowQuoteModal(false);
       setSelectedVendors([]);
