@@ -179,6 +179,51 @@ Read-only recon first. Then one small change at a time, each on its own branch, 
 3. Keep the built-in BOM as a fallback when the database BOM is empty.
 4. Warn before proposal download when a per-quote item has no quote entered on the Lighting or Gear Schedule.
 
+## AUTO-LOG SCHEDULED HOURS — RULES (decided 2026-11-01)
+
+**Status: rules only. No code and no schema exist for this yet.** Do not build it without following the rules and the order below.
+
+**Purpose:** job costing only. Payroll is a separate app, so these hours are not used for pay.
+
+**When it runs**
+- Nightly at 06:00 UTC (2 am Eastern in summer, 1 am in winter), via a new cron route.
+- It processes the previous day, computed in `America/New_York` (never from the server clock).
+- **Never backfill.** Only shifts on or after `AUTO_LOG_START_DATE` are processed.
+
+**Default OFF.** Env flags:
+- `AUTO_LOG_JOB_NUMBERS`: comma list of job numbers. Empty means off. Start with `training123` only.
+- `AUTO_LOG_START_DATE`: `YYYY-MM-DD`; nothing before this date is processed.
+
+**Which shifts**
+- Jobs: In Progress only. Skip archived jobs and inactive users.
+- Skip a shift and person that already has a completed clock entry, or any labor entry on the same job, person and Eastern day.
+
+**Hours**
+- Hours = scheduled end minus scheduled start. If the start or end time is missing, use 8 hours.
+- No lunch deduction.
+- Round to the nearest quarter hour.
+- Tapped Arrive but never Departed: finish the shift at the scheduled end time (marked AUTO).
+
+**How it stays safe**
+- The run writes a `ClockEntry` linked to the new `LaborEntry`, so a shift can't be processed twice. It is safe to re-run.
+- New entries are marked `source = AUTO` and show an "Auto" badge on the Labor tab. An admin edits or deletes them for call-outs.
+- A nightly summary email lists what was logged and what was skipped, to Justin with Sam CC'd. It must NOT modify `lib/notifications.ts`; use a new helper that adds the Sam CC itself.
+- The new cron route checks `CRON_SECRET` strictly (fail-closed: reject if the secret is unset or doesn't match).
+
+**Schema order rule:** any new column is applied to the live database (after a Supabase backup) BEFORE the code that uses it is merged. The job page loads labor entries with all columns, so code that arrives before its column breaks every job page.
+
+**Planned steps (one branch each)**
+1. Rules documented (this section).
+2. Additive schema: `LaborEntry.source` (default `MANUAL`), optional `LaborEntry.scheduleId`, unique `(scheduleId, userId)`. Applied to the database first.
+3. Dry-run function and an admin-only dry-run endpoint (writes nothing).
+4. Writes behind the flag.
+5. Cron route and `vercel.json` entry.
+6. "Auto" badge on the Labor tab and the nightly summary email.
+7. Tidy-ups: clock-out date in Eastern time, active-user checks on the schedule actions, forgotten-Depart handling.
+8. Rollout: `training123`, then one real job, then everyone.
+
+**Open check before testing:** confirm `training123` is excluded from P&L (`excludeFromPL`), since auto hours flow into job costing, P&L and the foreman daily emails.
+
 ---
 
 **Last updated:** 2026-06-01 (everything below this line is the original handoff and is partly stale; see Current State above)
