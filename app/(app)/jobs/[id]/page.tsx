@@ -147,6 +147,14 @@ export default async function JobPage({ params }: PageProps) {
 
   if (!job) notFound();
 
+  // Who may see the Summary tab (and the financial data behind it). Computed
+  // before serializing so everyone else never receives that data.
+  const role = session.user.role;
+  const isForemanOnThisJob =
+    role === "FOREMAN" &&
+    (job.foremanId === session.user.id || job.createdById === session.user.id);
+  const canViewSummary = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
+
   const savedTasks = await prisma.savedTask.findMany({
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
@@ -156,20 +164,24 @@ export default async function JobPage({ params }: PageProps) {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  const [monthlyOverhead, activeJobCount] = await Promise.all([
-    prisma.overheadCost.aggregate({
-      where: { effectiveDate: { gte: monthStart, lte: monthEnd }, isRecurring: false },
-      _sum: { amount: true },
-    }),
-    prisma.job.count({
-      where: { status: "IN_PROGRESS", isSystemJob: false },
-    }),
-  ]);
-  const overheadAllocAmount = (() => {
-    const raw = monthlyOverhead._sum.amount;
-    const total = (raw as { toNumber?: () => number } | null)?.toNumber?.() ?? (typeof raw === "number" ? raw : 0);
-    return activeJobCount > 0 ? total / activeJobCount : 0;
-  })();
+  // Only the Summary tab uses this, so skip the queries for everyone else.
+  let overheadAllocAmount = 0;
+  if (canViewSummary) {
+    const [monthlyOverhead, activeJobCount] = await Promise.all([
+      prisma.overheadCost.aggregate({
+        where: { effectiveDate: { gte: monthStart, lte: monthEnd }, isRecurring: false },
+        _sum: { amount: true },
+      }),
+      prisma.job.count({
+        where: { status: "IN_PROGRESS", isSystemJob: false },
+      }),
+    ]);
+    overheadAllocAmount = (() => {
+      const raw = monthlyOverhead._sum.amount;
+      const total = (raw as { toNumber?: () => number } | null)?.toNumber?.() ?? (typeof raw === "number" ? raw : 0);
+      return activeJobCount > 0 ? total / activeJobCount : 0;
+    })();
+  }
 
   // Serialize Prisma Decimal objects — they can't be passed to Client Components
   const serializedJob = {
@@ -189,20 +201,24 @@ export default async function JobPage({ params }: PageProps) {
       estimatedMaterials: co.estimatedMaterials?.toNumber() ?? null,
       approvedValue: co.approvedValue?.toNumber() ?? null,
     })),
-    payments: job.payments.map((p) => ({ ...p, amount: p.amount.toNumber() })),
-    invoices: job.invoices.map((inv) => ({
-      ...inv,
-      amount: inv.amount.toNumber(),
-      retainageHeld: inv.retainageHeld?.toNumber() ?? null,
-      payments: inv.payments.map((p) => ({ ...p, amount: p.amount.toNumber() })),
-    })),
+    // Worker wages/burden are only used by the Summary tab; everyone else gets
+    // just id + name. Invoices and payments are likewise Summary-only.
+    laborEntries: canViewSummary
+      ? job.laborEntries
+      : job.laborEntries.map((e) => ({ ...e, user: { id: e.user.id, name: e.user.name } })),
+    payments: canViewSummary
+      ? job.payments.map((p) => ({ ...p, amount: p.amount.toNumber() }))
+      : [],
+    invoices: canViewSummary
+      ? job.invoices.map((inv) => ({
+          ...inv,
+          amount: inv.amount.toNumber(),
+          retainageHeld: inv.retainageHeld?.toNumber() ?? null,
+          payments: inv.payments.map((p) => ({ ...p, amount: p.amount.toNumber() })),
+        }))
+      : [],
   };
 
-  const role = session.user.role;
-  const isForemanOnThisJob =
-    role === "FOREMAN" &&
-    (job.foremanId === session.user.id || job.createdById === session.user.id);
-  const canViewSummary = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
   const canAddInspections = await hasPermission(session.user.id!, role, "ADD_INSPECTIONS");
   const canManagePanelsFlag = await canManagePanels(session.user, id);
   const canViewReports = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
@@ -256,7 +272,7 @@ export default async function JobPage({ params }: PageProps) {
         canViewSummary={canViewSummary}
         canAddInspections={canAddInspections}
         canManagePanels={canManagePanelsFlag}
-        companyRates={companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
+        companyRates={canViewSummary && companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
         overheadAllocation={overheadAllocAmount}
       />
     </div>
