@@ -187,9 +187,11 @@ export default async function JobPage({ params }: PageProps) {
   const serializedJob = {
     ...job,
     contractValue: job.contractValue?.toNumber() ?? null,
-    laborBudgetDollars: job.laborBudgetDollars?.toNumber() ?? null,
-    materialBudget: job.materialBudget?.toNumber() ?? null,
-    blendedLaborRate: job.blendedLaborRate?.toNumber() ?? null,
+    // Crew (no Summary access) don't get the labor rate or budgets. The Labor
+    // and Purchase Orders tabs treat null as "not set", so they still show hours.
+    laborBudgetDollars: canViewSummary ? (job.laborBudgetDollars?.toNumber() ?? null) : null,
+    materialBudget: canViewSummary ? (job.materialBudget?.toNumber() ?? null) : null,
+    blendedLaborRate: canViewSummary ? (job.blendedLaborRate?.toNumber() ?? null) : null,
     designFeeAmount: job.designFeeAmount?.toNumber() ?? null,
     designFeePaid: job.designFeePaid?.toNumber() ?? null,
     subcontractorCost: job.subcontractorCost?.toNumber() ?? null,
