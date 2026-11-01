@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { Camera, Plus, Trash2, X, Upload, ChevronLeft, ChevronRight } from "lucide-react";
+import { Camera, Plus, Trash2, X, Upload, ChevronLeft, ChevronRight, Download, Check } from "lucide-react";
 import { addPhotos, deletePhoto } from "./photos-tab-actions";
 import { useUpload } from "@/lib/use-upload";
+import { buildPhotoZip } from "@/lib/photo-zip";
 import type { Role } from "@/app/generated/prisma/client";
 
 type Photo = {
@@ -15,7 +16,7 @@ type Photo = {
 };
 
 interface PhotosTabProps {
-  job: { id: string; photos: Photo[] };
+  job: { id: string; jobNumber: string; jobName: string; photos: Photo[] };
   role: Role;
 }
 
@@ -184,6 +185,11 @@ export function PhotosTab({ job, role }: PhotosTabProps) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [zipping, setZipping] = useState(false);
+  const [zipStatus, setZipStatus] = useState<string | null>(null);
+  const [zipError, setZipError] = useState<string | null>(null);
 
   const photos = job.photos.map((p) => ({ ...p, createdAt: new Date(p.createdAt) }));
 
@@ -191,6 +197,56 @@ export function PhotosTab({ job, role }: PhotosTabProps) {
     if (confirmDelete !== id) { setConfirmDelete(id); return; }
     startTransition(() => deletePhoto(id, job.id));
     setConfirmDelete(null);
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  // Count only photos that still exist (a deleted photo can't stay selected).
+  const selectedCount = photos.filter((p) => selected.has(p.id)).length;
+
+  async function handleDownload(which: "all" | "selected") {
+    const list = which === "all" ? photos : photos.filter((p) => selected.has(p.id));
+    if (!list.length || zipping) return;
+    setZipping(true);
+    setZipError(null);
+    setZipStatus(`Preparing 0 of ${list.length}…`);
+    try {
+      const result = await buildPhotoZip({
+        photos: list,
+        jobNumber: job.jobNumber,
+        jobName: job.jobName,
+        onProgress: (done, total) => setZipStatus(`Preparing ${done} of ${total}…`),
+      });
+      if (result.failed >= result.total) {
+        setZipError("None of the photos could be downloaded. Please try again.");
+        return;
+      }
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (result.failed > 0) {
+        setZipError(
+          `${result.failed} of ${result.total} photo${result.total !== 1 ? "s" : ""} could not be downloaded and ${result.failed !== 1 ? "were" : "was"} left out. The rest are in the ZIP (the notes file lists what is missing).`,
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      setZipError("Could not build the ZIP. Please try again.");
+    } finally {
+      setZipping(false);
+      setZipStatus(null);
+    }
   }
 
   return (
@@ -212,9 +268,56 @@ export function PhotosTab({ job, role }: PhotosTabProps) {
         </button>
       )}
 
-      {/* Photo count */}
+      {/* Photo count + download / select controls */}
       {photos.length > 0 && (
-        <p className="text-xs text-gray-400 mb-4">{photos.length} photo{photos.length !== 1 ? "s" : ""}</p>
+        <div className="mb-4 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-gray-400 mr-auto">
+              {photos.length} photo{photos.length !== 1 ? "s" : ""}
+              {selectMode && ` · ${selectedCount} selected`}
+            </p>
+            {selectMode && (
+              <>
+                <button
+                  onClick={() => setSelected(new Set(photos.map((p) => p.id)))}
+                  className="text-xs text-[#1e3a8a] hover:underline"
+                >
+                  Select all
+                </button>
+                <button
+                  onClick={() => setSelected(new Set())}
+                  className="text-xs text-gray-500 hover:underline"
+                >
+                  Clear
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => { setSelectMode((v) => !v); setSelected(new Set()); }}
+              className="text-xs font-medium border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 hover:bg-gray-50"
+            >
+              {selectMode ? "Done" : "Select"}
+            </button>
+            <button
+              onClick={() => handleDownload("selected")}
+              disabled={zipping || selectedCount === 0}
+              className="flex items-center gap-1.5 text-xs font-medium border border-[#1e3a8a]/30 rounded-lg px-2.5 py-1.5 text-[#1e3a8a] hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download className="w-3.5 h-3.5" /> Download Selected ({selectedCount})
+            </button>
+            <button
+              onClick={() => handleDownload("all")}
+              disabled={zipping}
+              className="flex items-center gap-1.5 text-xs font-medium bg-[#1e3a8a] text-white rounded-lg px-2.5 py-1.5 hover:bg-[#003d99] disabled:opacity-60"
+            >
+              <Download className="w-3.5 h-3.5" /> Download All
+            </button>
+          </div>
+          {zipStatus && <p className="text-xs text-gray-500">{zipStatus}</p>}
+          {zipError && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-1.5 rounded">{zipError}</p>
+          )}
+        </div>
       )}
 
       {/* Grid */}
@@ -229,7 +332,7 @@ export function PhotosTab({ job, role }: PhotosTabProps) {
             <div key={photo.id} className="relative group">
               <button
                 className="w-full aspect-square overflow-hidden rounded-xl border border-gray-200 shadow-sm block"
-                onClick={() => setLightboxIdx(idx)}
+                onClick={() => (selectMode ? toggleSelected(photo.id) : setLightboxIdx(idx))}
               >
                 <img
                   src={photo.url}
@@ -245,12 +348,28 @@ export function PhotosTab({ job, role }: PhotosTabProps) {
                 </div>
               )}
 
+              {/* Select-mode checkbox (clicking the tile toggles it) */}
+              {selectMode && (
+                <div
+                  className={`absolute top-1.5 left-1.5 w-6 h-6 rounded-md border-2 flex items-center justify-center pointer-events-none ${
+                    selected.has(photo.id)
+                      ? "bg-[#1e3a8a] border-[#1e3a8a] text-white"
+                      : "bg-white/80 border-gray-400"
+                  }`}
+                  aria-hidden
+                >
+                  {selected.has(photo.id) && <Check className="w-4 h-4" />}
+                </div>
+              )}
+
               {/* Uploader + date on hover */}
-              <div className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span className="bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-                  {photo.user.name ?? "?"}
-                </span>
-              </div>
+              {!selectMode && (
+                <div className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <span className="bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                    {photo.user.name ?? "?"}
+                  </span>
+                </div>
+              )}
 
               {/* Delete button — ADMIN only */}
               {role === "ADMIN" && (
