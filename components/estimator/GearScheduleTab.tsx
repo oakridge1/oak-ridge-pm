@@ -182,7 +182,11 @@ export function GearScheduleTab() {
         fd.append('quoteMode',   quoteMode);
         attachments.forEach(file => fd.append('drawings', file));
 
-        await fetch('/api/jobs/gear-quote', { method: 'POST', body: fd });
+        const res = await fetch('/api/jobs/gear-quote', { method: 'POST', body: fd });
+        if (res.status === 403) {
+          setSendResult('✗ Only estimators can send quote requests.');
+          return;
+        }
       }
 
       // Mark PENDING items as QUOTED in local state
