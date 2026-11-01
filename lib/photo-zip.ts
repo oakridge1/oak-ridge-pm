@@ -76,6 +76,9 @@ export async function buildPhotoZip(opts: {
   const today = nyDate(new Date());
   const zip = new JSZip();
   const entries: { name: string; photo: ZipPhoto; ok: boolean }[] = new Array(total);
+  // Downloads finish in any order, so hold the files and add them to the ZIP in
+  // numbered order afterwards.
+  const blobs: (Blob | null)[] = new Array(total).fill(null);
 
   let done = 0;
   onProgress?.(0, total);
@@ -92,7 +95,7 @@ export async function buildPhotoZip(opts: {
       const blob = await res.blob();
       const ext = extensionFor(photo.url, blob.type || "");
       name = name.replace(/\.jpg$/, `.${ext}`);
-      zip.file(name, blob);
+      blobs[i] = blob;
       ok = true;
     } catch {
       // leave ok = false; counted as failed and listed in the notes file
@@ -111,6 +114,12 @@ export async function buildPhotoZip(opts: {
     }
   });
   await Promise.all(workers);
+
+  // Add in numbered order (001, 002, 003…).
+  for (let i = 0; i < total; i++) {
+    const blob = blobs[i];
+    if (blob) zip.file(entries[i].name, blob);
+  }
 
   const failedEntries = entries.filter((e) => !e.ok);
   const nl = "\r\n";
