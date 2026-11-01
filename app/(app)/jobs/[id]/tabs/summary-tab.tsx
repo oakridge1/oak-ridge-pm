@@ -18,6 +18,7 @@ import {
 } from "./summary-tab-actions";
 import type { Role } from "@/app/generated/prisma/client";
 import { ApproveDesignFeeButton, DesignFeePaymentButton } from "./DesignFeeButtons";
+import { CloseoutReminder } from "./CloseoutReminder";
 
 // ── Scope section builder (mirrors ProposalTab) ────────────────────────────────
 interface ScopeSection { id: string; title: string; items: string[] }
@@ -178,6 +179,8 @@ interface SummaryTabProps {
   role: Role;
   companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
   overheadAllocation?: number;
+  // Switches the job page to another tab (used by the closeout reminder popup).
+  onSwitchTab?: (tabId: string) => void;
 }
 
 function fmt$(n: number | null | undefined) {
@@ -1295,9 +1298,10 @@ function ScheduleOfValuesCard({ job, role, grossBilling, computed }: {
 
 // ── Invoice Log Card ──────────────────────────────────────────────────────────
 
-function InvoiceLogCard({ job, role, grossBilling, computed }: {
+function InvoiceLogCard({ job, role, grossBilling, computed, onSwitchTab }: {
   job: SummaryTabProps["job"];
   role: Role;
+  onSwitchTab?: (tabId: string) => void;
   grossBilling: number;
   computed: {
     laborCost: number | null;
@@ -1320,6 +1324,8 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
   const [duplicateWarning, setDuplicateWarning] = useState<{ invoiceNumber: number; date: string } | null>(null);
   const [sheetsLoading, setSheetsLoading] = useState<string | null>(null);
   const [sheetsError, setSheetsError] = useState<string | null>(null);
+  // Closeout reminder popup, shown after an invoice download starts.
+  const [showCloseout, setShowCloseout] = useState(false);
 
   // New invoice form state
   const [invType, setInvType] = useState<"STANDARD" | "AIA">("STANDARD");
@@ -1537,6 +1543,13 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
         </div>
       )}
 
+      {showCloseout && (
+        <CloseoutReminder
+          onClose={() => setShowCloseout(false)}
+          onGoToTab={onSwitchTab ? (tabId) => onSwitchTab(tabId) : undefined}
+        />
+      )}
+
       {/* Invoice list */}
       {invoices.length === 0 ? (
         <p className="text-sm text-gray-400 py-3">No invoices created yet.</p>
@@ -1584,6 +1597,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                   <div className="flex flex-wrap gap-2">
                     {/* PDF download */}
                     <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
+                      onClick={() => setShowCloseout(true)}
                       className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                       <FileText className="w-3.5 h-3.5" /> Download PDF
                     </a>
@@ -1592,6 +1606,7 @@ function InvoiceLogCard({ job, role, grossBilling, computed }: {
                       <a href={`/api/jobs/${job.id}/pdf/invoice/${inv.id}/docx`}
                         target="_blank" rel="noopener noreferrer"
                         download={`Invoice_${job.jobNumber}-${String(inv.invoiceNumber).padStart(3, "0")}.docx`}
+                        onClick={() => setShowCloseout(true)}
                         className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1e3a8a] border border-gray-200 hover:border-[#1e3a8a]/30 px-2.5 py-1.5 rounded-lg transition-colors bg-white">
                         <FileText className="w-3.5 h-3.5" /> Download Word
                       </a>
@@ -2426,7 +2441,7 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
 
 // ── Main SummaryTab ───────────────────────────────────────────────────────────
 
-export function SummaryTab({ job, role, companyRates = null, overheadAllocation = 0 }: SummaryTabProps) {
+export function SummaryTab({ job, role, companyRates = null, overheadAllocation = 0, onSwitchTab }: SummaryTabProps) {
   const router = useRouter();
 
   useEffect(() => {
@@ -2576,6 +2591,7 @@ export function SummaryTab({ job, role, companyRates = null, overheadAllocation 
       <InvoiceLogCard
         job={job}
         role={role}
+        onSwitchTab={onSwitchTab}
         grossBilling={grossBilling}
         computed={{ laborCost, materialsCost, subCost, equipmentCost, otherTotal, laborMarkup, subMarkup, equipMarkup, materialMarkup, otherMarkup }}
       />

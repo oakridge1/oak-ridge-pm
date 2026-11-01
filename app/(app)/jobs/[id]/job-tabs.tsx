@@ -226,7 +226,7 @@ export function JobTabs({
           <DocumentsTab job={job} role={role} />
         )}
         {activeTab === "summary" && (
-          <SummaryTab job={job} role={role} companyRates={companyRates} overheadAllocation={overheadAllocation} />
+          <SummaryTab job={job} role={role} companyRates={companyRates} overheadAllocation={overheadAllocation} onSwitchTab={(tabId) => { setActiveTab(tabId); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
         )}
       </div>
     </div>
