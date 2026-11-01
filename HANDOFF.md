@@ -132,7 +132,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 - `/api/pdf/proposal` — **FIXED (branch `fix/pdf-proposal-active-check`, 2026-10-31):** `/api/pdf/proposal` (and any other `/api/pdf` routes listed in the commit) require an active user (401). It was the only route under `app/api/pdf/`.
 - Id-only API routes — **FIXED (branch `fix/active-user-checks`, 2026-10-31):** All id-only API routes now require an active user (401): `jobs/[id]/summary`, `jobs/[id]/crib`, `jobs/[id]/inspections`, `jobs/[id]/rfis`, `jobs/[id]/documents`, `documents/zip`, `documents/move`, `documents/categories`, `documents/upload-url` (23 handlers). Role checks and ownership logic were not changed.
 - `jobs/[id]/summary` GET returns invoices/payments/labor to any active role incl. TEAMMATE (siblings block TEAMMATE).
-- `jobs/lighting-quote` and `gear-quote` POST send email from company Gmail for any active user; should require ADMIN or estimatingPermission.
+- `jobs/lighting-quote` and `gear-quote` — **FIXED (branch `fix/quote-email-estimators-only`, 2026-10-31):** `jobs/lighting-quote` and `jobs/gear-quote` require ADMIN or estimatingPermission (403). Still to do: HTML-escape item text and check vendorEmail against real suppliers.
 - cron `daily-report`, `billing-reminder`, `receipt-reminder` skip the secret check if CRON_SECRET is unset (fail-open). CRON_SECRET is currently set for Production and Preview.
 - cron `generate-overhead` exports only POST; Vercel cron calls GET, so monthly overhead likely never runs automatically.
 - `jobs/[id]/crib` DELETE has no owner check (sibling `stock-requests/[requestId]` does).
