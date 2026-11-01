@@ -8,7 +8,7 @@ interface Params { params: Promise<{ id: string }> }
 export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const rfis = await prisma.rfi.findMany({
     where: { jobId: id },
     orderBy: { rfiNumber: "desc" },
@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: Params) {
 export async function POST(req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const last = await prisma.rfi.findFirst({ where: { jobId: id }, orderBy: { rfiNumber: "desc" } });
   const rfiNumber = (last?.rfiNumber ?? 0) + 1;
@@ -44,7 +44,7 @@ export async function POST(req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   const { id: _jobId } = await params;
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -61,7 +61,7 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(req: Request, { params }: Params) {
   const { id: _jobId } = await params;
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
