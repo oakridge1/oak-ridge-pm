@@ -9,6 +9,7 @@ export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role === "TEAMMATE") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const [sov, invoices, payments, changeOrders, laborEntries, materials] = await Promise.all([
     prisma.scheduleOfValues.findUnique({ where: { jobId: id } }),
