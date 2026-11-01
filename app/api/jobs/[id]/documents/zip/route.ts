@@ -23,7 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export async function POST(req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !session.user.active) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

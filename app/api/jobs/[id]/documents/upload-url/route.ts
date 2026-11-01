@@ -12,7 +12,7 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB — Supabase free tier max
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

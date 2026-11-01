@@ -8,7 +8,7 @@ interface Params { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !session.user.active) {
     return NextResponse.json([], { status: 401 });
   }
   const { id: jobId } = await params;
@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function POST(req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !session.user.active) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id: jobId } = await params;
