@@ -2,9 +2,14 @@ import Link from "next/link";
 import type { Job, JobStatus } from "@/app/generated/prisma/client";
 import { MapPin, User, Calendar } from "lucide-react";
 
-type JobWithRelations = Job & {
+// Only the fields the card (and the dashboard search/TEST badge) actually read.
+// The dashboard selects exactly these, so money columns never reach the browser.
+type JobWithRelations = Pick<
+  Job,
+  "id" | "jobNumber" | "jobName" | "status" | "gcCompany" | "city" | "state" | "completionDate" | "excludeFromPL"
+> & {
   foreman: { name: string | null } | null;
-  _count: { laborEntries: number; materials: number; photos: number };
+  _count: { laborEntries: number; photos: number };
 };
 
 const statusConfig: Record<

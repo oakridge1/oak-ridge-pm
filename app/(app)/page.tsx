@@ -23,6 +23,23 @@ const STATUS_BADGE: Record<string, string> = {
   ARCHIVED: "bg-gray-100 text-gray-400",
 };
 
+// Only what the job cards, search and grouping use. Keeps contract value,
+// budgets, rates and contact details out of the page data sent to every role.
+const JOB_CARD_SELECT = {
+  id: true,
+  jobNumber: true,
+  jobName: true,
+  status: true,
+  jobType: true,
+  gcCompany: true,
+  city: true,
+  state: true,
+  completionDate: true,
+  excludeFromPL: true,
+  foreman: { select: { name: true } },
+  _count: { select: { laborEntries: true, photos: true } },
+} as const;
+
 export default async function DashboardPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -37,19 +54,13 @@ export default async function DashboardPage() {
     prisma.job.findMany({
       where: { archived: false },
       orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
-      include: {
-        foreman: { select: { name: true } },
-        _count: { select: { laborEntries: true, materials: true, photos: true } },
-      },
+      select: JOB_CARD_SELECT,
     }),
     isAdmin
       ? prisma.job.findMany({
           where: { archived: true },
           orderBy: { updatedAt: "desc" },
-          include: {
-            foreman: { select: { name: true } },
-            _count: { select: { laborEntries: true, materials: true, photos: true } },
-          },
+          select: JOB_CARD_SELECT,
         })
       : Promise.resolve([]),
     canEstimate
