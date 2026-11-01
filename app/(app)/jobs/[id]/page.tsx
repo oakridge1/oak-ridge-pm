@@ -196,7 +196,12 @@ export default async function JobPage({ params }: PageProps) {
     designFeePaid: job.designFeePaid?.toNumber() ?? null,
     subcontractorCost: job.subcontractorCost?.toNumber() ?? null,
     equipmentCost: job.equipmentCost?.toNumber() ?? null,
-    materials: job.materials.map((m) => ({ ...m, amount: m.amount.toNumber() })),
+    // Crew get no PO amounts or markup (null); the Purchase Orders tab hides them.
+    materials: job.materials.map((m) =>
+      canViewSummary
+        ? { ...m, amount: m.amount.toNumber() }
+        : { ...m, amount: null, markupPct: null },
+    ),
     changeOrders: job.changeOrders.map((co) => ({
       ...co,
       estimatedLaborCost: co.estimatedLaborCost?.toNumber() ?? null,
