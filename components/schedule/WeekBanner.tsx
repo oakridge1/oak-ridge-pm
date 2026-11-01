@@ -39,8 +39,6 @@ function weekLabel(mon: Date, sun: Date): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function WeekBanner() {
-  console.log("WeekBanner rendering");
-
   // Initialise dates client-side only to avoid SSR/hydration mismatch.
   const [todayStr, setTodayStr]       = useState<string>("");
   const [weekStart, setWeekStart]     = useState<Date | null>(null);
