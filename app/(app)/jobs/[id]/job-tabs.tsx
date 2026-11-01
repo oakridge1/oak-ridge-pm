@@ -177,7 +177,7 @@ export function JobTabs({
           />
         )}
         {activeTab === "invoices" && (
-          <MaterialsTab job={job} role={role} />
+          <MaterialsTab job={job} role={role} canViewMoney={canViewMoney} />
         )}
         {activeTab === "crib" && (
           <CribTab job={job} role={role} currentUserId={currentUserId} />

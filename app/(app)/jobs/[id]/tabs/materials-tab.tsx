@@ -22,8 +22,9 @@ type MaterialEntry = {
   vendor: string | null;
   poNumber: string | null;
   description: string;
-  amount: number;
-  markupPct: number;
+  // null for crew (no Summary access): the server withholds amount and markup.
+  amount: number | null;
+  markupPct: number | null;
   fileUrl: string | null;
   fileName: string | null;
   user: { name: string | null };
@@ -36,9 +37,11 @@ interface MaterialsTabProps {
     materials: MaterialEntry[];
   };
   role: Role;
+  canViewMoney?: boolean;
 }
 
-function fmtMoney(n: number) {
+function fmtMoney(n: number | null | undefined) {
+  if (n == null || Number.isNaN(n)) return "—";
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
@@ -67,7 +70,7 @@ function EditRow({
   const [vendor, setVendor] = useState(entry.vendor ?? "");
   const [poNumber, setPoNumber] = useState(entry.poNumber ?? "");
   const [description, setDescription] = useState(entry.description);
-  const [amount, setAmount] = useState(String(entry.amount));
+  const [amount, setAmount] = useState(String(entry.amount ?? ""));
   const [markupPct, setMarkupPct] = useState(String(entry.markupPct ?? 0));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -129,10 +132,12 @@ function EntryRow({
   entry,
   jobId,
   role,
+  canViewMoney,
 }: {
   entry: MaterialEntry;
   jobId: string;
   role: Role;
+  canViewMoney: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -172,17 +177,19 @@ function EntryRow({
             )}
           </a>
         )}
-        <div className="text-right">
-          {entry.markupPct > 0 ? (
-            <>
-              <p className="text-xs text-gray-400 tabular-nums">{fmtMoney(entry.amount)} base</p>
-              <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(entry.amount * (1 + entry.markupPct / 100))}</p>
-              <p className="text-xs text-gray-400">+{entry.markupPct}%</p>
-            </>
-          ) : (
-            <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(entry.amount)}</span>
-          )}
-        </div>
+        {canViewMoney && entry.amount != null && (
+          <div className="text-right">
+            {(entry.markupPct ?? 0) > 0 ? (
+              <>
+                <p className="text-xs text-gray-400 tabular-nums">{fmtMoney(entry.amount)} base</p>
+                <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(entry.amount * (1 + (entry.markupPct ?? 0) / 100))}</p>
+                <p className="text-xs text-gray-400">+{entry.markupPct}%</p>
+              </>
+            ) : (
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(entry.amount)}</span>
+            )}
+          </div>
+        )}
         {role === "ADMIN" && (
           <>
             <button onClick={() => setEditing(true)} className="p-1 text-gray-400 hover:text-[#1e3a8a] hover:bg-gray-100 rounded">
@@ -205,7 +212,7 @@ function EntryRow({
   );
 }
 
-function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
+function AddForm({ jobId, onDone, canViewMoney }: { jobId: string; onDone: () => void; canViewMoney: boolean }) {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
   const [vendor, setVendor] = useState("");
@@ -296,14 +303,16 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
           <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} step="0.01" min="0" placeholder="0.00" required
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Markup %</label>
-          <input type="number" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} step="0.5" min="0" placeholder="0"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          {parseFloat(markupPct) > 0 && parseFloat(amount) > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">Total: {fmtMoney(parseFloat(amount) * (1 + parseFloat(markupPct) / 100))}</p>
-          )}
-        </div>
+        {canViewMoney && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Markup %</label>
+            <input type="number" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} step="0.5" min="0" placeholder="0"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
+            {parseFloat(markupPct) > 0 && parseFloat(amount) > 0 && (
+              <p className="text-xs text-gray-400 mt-0.5">Total: {fmtMoney(parseFloat(amount) * (1 + parseFloat(markupPct) / 100))}</p>
+            )}
+          </div>
+        )}
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Receipt / Invoice</label>
           <label className="flex items-center gap-2 cursor-pointer border border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 hover:border-[#1e3a8a] hover:text-[#1e3a8a] transition-colors bg-white">
@@ -325,13 +334,13 @@ function AddForm({ jobId, onDone }: { jobId: string; onDone: () => void }) {
   );
 }
 
-export function MaterialsTab({ job, role }: MaterialsTabProps) {
+export function MaterialsTab({ job, role, canViewMoney = false }: MaterialsTabProps) {
   const [showForm, setShowForm] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
   const entries = job.materials.map((m) => ({ ...m, date: new Date(m.date) }));
   // Total ALWAYS includes all entries regardless of view — uses marked-up amounts
-  const total = entries.reduce((sum, e) => sum + e.amount * (1 + (e.markupPct ?? 0) / 100), 0);
+  const total = entries.reduce((sum, e) => sum + (e.amount ?? 0) * (1 + (e.markupPct ?? 0) / 100), 0);
   const budget = job.materialBudget;
   const remaining = budget != null ? budget - total : null;
 
@@ -341,7 +350,8 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
 
   return (
     <div className="p-5">
-      {/* Totals bar */}
+      {/* Totals bar (hidden for crew) */}
+      {canViewMoney && (
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="bg-gray-50 rounded-xl px-4 py-3 flex-1 min-w-[120px]">
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Total Spent</p>
@@ -362,9 +372,10 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
           </>
         )}
       </div>
+      )}
 
       {showForm ? (
-        <AddForm jobId={job.id} onDone={() => setShowForm(false)} />
+        <AddForm jobId={job.id} onDone={() => setShowForm(false)} canViewMoney={canViewMoney} />
       ) : (
         <button
           onClick={() => setShowForm(true)}
@@ -382,7 +393,7 @@ export function MaterialsTab({ job, role }: MaterialsTabProps) {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-4">
             {visibleEntries.map((entry) => (
-              <EntryRow key={entry.id} entry={entry} jobId={job.id} role={role} />
+              <EntryRow key={entry.id} entry={entry} jobId={job.id} role={role} canViewMoney={canViewMoney} />
             ))}
           </div>
           {!showAll && hiddenCount > 0 && (

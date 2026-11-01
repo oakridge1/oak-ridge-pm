@@ -31,7 +31,18 @@ export async function addMaterial(
 
   const amount = parseFloat(data.amount);
   if (isNaN(amount) || amount < 0) throw new Error("Invalid amount.");
-  const markupPct = data.markupPct ? parseFloat(data.markupPct) : 0;
+
+  // Only ADMIN, OFFICE, or the job's foreman/creator (the people who can view
+  // Summary) may set a markup. For everyone else any markup sent is ignored (0).
+  let canSetMarkup = session.user.role === "ADMIN" || session.user.role === "OFFICE";
+  if (!canSetMarkup && session.user.role === "FOREMAN") {
+    const owner = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { foremanId: true, createdById: true },
+    });
+    canSetMarkup = !!owner && (owner.foremanId === session.user.id || owner.createdById === session.user.id);
+  }
+  const markupPct = canSetMarkup && data.markupPct ? parseFloat(data.markupPct) : 0;
 
   await prisma.material.create({
     data: {
