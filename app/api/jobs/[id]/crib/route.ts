@@ -1,3 +1,5 @@
+// Unused legacy route (Crib tab uses stock-requests/stock-approval/stock-orders).
+// Locked to ADMIN 2026-10-31; candidate for removal after engineer review.
 import { generateId } from '@/lib/utils/uuid';
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -9,6 +11,7 @@ export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const [stockItems, pendingRequests, recentOrders] = await Promise.all([
     prisma.stockItem.findMany({
@@ -37,6 +40,7 @@ export async function POST(req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const request = await prisma.stockRequest.create({
@@ -63,6 +67,7 @@ export async function PUT(req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (session.user.role !== "ADMIN" && session.user.role !== "OFFICE" && session.user.role !== "FOREMAN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -101,6 +106,7 @@ export async function DELETE(req: Request, { params }: Params) {
   const { id: _jobId } = await params;
   const session = await auth();
   if (!session?.user?.id || !session.user.active) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const reqId = new URL(req.url).searchParams.get("reqId");
   if (!reqId) return NextResponse.json({ error: "Missing reqId" }, { status: 400 });
   await prisma.stockRequest.delete({ where: { id: reqId } });
