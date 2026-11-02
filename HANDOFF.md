@@ -119,6 +119,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 
 2026-11-02 feat/takeoff-items-step2: Build maps moved into public/takeoff-items.json; occ_sensor dead key fixed to occ_sensor_ceil. Recovery tag recovery-2026-11-02-pre-takeoff-items-step2.
 2026-11-02 feat/takeoff-items-step3: Counter + PDF tool read public/takeoff-items.json with built-in offline fallback; PDF library and run keys now save real keys. Recovery tag recovery-2026-11-02-pre-takeoff-items-step3.
+2026-11-02 fix/takeoff-import-merge: Takeoff imports can Add to or Replace existing counts (default Add), with a same-import warning. Recovery tag recovery-2026-11-02-pre-import-merge.
 
 ### Business rule: per-quote pricing
 

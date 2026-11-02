@@ -15,6 +15,56 @@ function normalizeAreas(
   return areas.map(a => ({ ...a, counts: normalizeTakeoffCounts(a.counts ?? {}) }));
 }
 
+type TakeoffArea = { areaName: string; counts: Record<string, number> };
+
+// A pending import waiting for the "Add / Replace / Cancel" choice.
+interface PendingImport {
+  totals:     Record<string, number>;   // already alias-normalized
+  areas:      TakeoffArea[];            // already alias-normalized
+  source:     string;
+  jobName:    string;
+  onApplied?: () => void;               // e.g. mark the sync as seen, offer labels
+}
+
+const LAST_IMPORT_KEY = 'ore_takeoff_last_import';
+
+// Same source + same totals => same import (key order does not matter).
+function importSignature(source: string, totals: Record<string, number>): string {
+  const sorted = Object.keys(totals).sort().map(k => [k, totals[k]]);
+  return JSON.stringify([source, sorted]);
+}
+
+function lastImportSignature(): string | null {
+  try { return localStorage.getItem(LAST_IMPORT_KEY); } catch { return null; }
+}
+
+function rememberImport(sig: string) {
+  try { localStorage.setItem(LAST_IMPORT_KEY, sig); } catch { /* private browsing — ignore */ }
+}
+
+function addCounts(
+  a: Record<string, number>, b: Record<string, number>,
+): Record<string, number> {
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b)) {
+    out[k] = typeof out[k] === 'number' && typeof v === 'number' ? out[k] + v : v;
+  }
+  return out;
+}
+
+// Areas with the same name (ignoring case/spacing) have their counts added;
+// new areas are appended.
+function addAreas(existing: TakeoffArea[], incoming: TakeoffArea[]): TakeoffArea[] {
+  const out = existing.map(a => ({ ...a, counts: { ...a.counts } }));
+  for (const inc of incoming) {
+    const name = (inc.areaName ?? '').trim().toLowerCase();
+    const hit = out.find(a => (a.areaName ?? '').trim().toLowerCase() === name);
+    if (hit) hit.counts = addCounts(hit.counts, inc.counts ?? {});
+    else out.push({ ...inc, counts: { ...(inc.counts ?? {}) } });
+  }
+  return out;
+}
+
 // Build buttons: which builder each item loads into (and with what) comes from the
 // "build" field in public/takeoff-items.json, read through ITEM_BUILD.
 
@@ -40,6 +90,8 @@ export function TakeoffTab() {
     area:       string;
     costCode:   string;
   } | null>(null);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
+  const [confirmSame,   setConfirmSame]   = useState(false);
 
   useEffect(() => {
     function checkSync() {
@@ -76,7 +128,31 @@ export function TakeoffTab() {
   const counts  = state.takeoffCounts;
   const hasData = Object.keys(counts).length > 0;
 
-  // ── Import handler ─────────────────────────────────────────────────────────
+  // ── Import: Add / Replace / Cancel ─────────────────────────────────────────
+
+  function applyImport(p: PendingImport, mode: 'add' | 'replace') {
+    setState(s => ({
+      ...s,
+      takeoffCounts: mode === 'add' ? addCounts(s.takeoffCounts, p.totals) : p.totals,
+      takeoffAreas:  mode === 'add' ? addAreas(s.takeoffAreas, p.areas)    : p.areas,
+      takeoffSource:
+        mode === 'add' && s.takeoffSource && !s.takeoffSource.includes(p.source)
+          ? `${s.takeoffSource} + ${p.source}`
+          : mode === 'add' && s.takeoffSource ? s.takeoffSource : p.source,
+      jobName:
+        s.jobName === 'New Job' || s.jobName === '' ? (p.jobName || s.jobName) : s.jobName,
+    }));
+    rememberImport(importSignature(p.source, p.totals));
+    setImportError(null);
+    p.onApplied?.();
+  }
+
+  // No existing counts: import straight away, as before. Otherwise ask first.
+  function requestImport(p: PendingImport) {
+    if (!hasData) { applyImport(p, 'replace'); return; }
+    setConfirmSame(false);
+    setPendingImport(p);
+  }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -90,19 +166,15 @@ export function TakeoffTab() {
           setImportError('Invalid file — missing totals object.');
           return;
         }
-        setState(s => ({
-          ...s,
-          takeoffCounts: normalizeTakeoffCounts(json.totals as Record<string, number>),
-          takeoffAreas:  Array.isArray(json.areas) ? normalizeAreas(json.areas) : [],
-          takeoffSource:
+        setImportError(null);
+        requestImport({
+          totals:  normalizeTakeoffCounts(json.totals as Record<string, number>),
+          areas:   Array.isArray(json.areas) ? normalizeAreas(json.areas) : [],
+          source:
             `Counter export — ${json.exportDate ?? 'unknown date'}` +
             (json.jobName ? ` (${json.jobName as string})` : ''),
-          jobName:
-            s.jobName === 'New Job' || s.jobName === ''
-              ? (json.jobName as string | undefined) ?? s.jobName
-              : s.jobName,
-        }));
-        setImportError(null);
+          jobName: (json.jobName as string | undefined) ?? '',
+        });
       } catch {
         setImportError('Failed to parse file — is it a valid counter JSON?');
       }
@@ -145,6 +217,56 @@ export function TakeoffTab() {
   return (
     <div className="space-y-4">
 
+      {/* ── IMPORT CHOICE DIALOG (only when counts already exist) ─────────── */}
+      {pendingImport && (() => {
+        const sameAsLast =
+          lastImportSignature() === importSignature(pendingImport.source, pendingImport.totals);
+        const close = () => { setPendingImport(null); setConfirmSame(false); };
+        const run = (mode: 'add' | 'replace') => { applyImport(pendingImport, mode); close(); };
+        const warn = confirmSame;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div role="dialog" aria-modal="true" className="bg-white rounded-lg shadow-xl max-w-md w-full p-5">
+              <div className="text-base font-semibold text-gray-800 mb-1">
+                {warn ? 'Same import as last time?' : 'Counts already exist'}
+              </div>
+              {warn ? (
+                <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-3">
+                  This looks like the same import as last time - add again? Adding it again will double these quantities.
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600 mb-3">
+                  Importing {Object.keys(pendingImport.totals).length} item{Object.keys(pendingImport.totals).length !== 1 ? 's' : ''} from{' '}
+                  <span className="font-medium">{pendingImport.source}</span>. You already have{' '}
+                  {Object.keys(counts).length} item{Object.keys(counts).length !== 1 ? 's' : ''} counted.
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => (sameAsLast && !warn ? setConfirmSame(true) : run('add'))}
+                  autoFocus
+                  className="px-3 py-2 text-sm font-semibold rounded bg-[#1e3a8a] text-white hover:bg-[#2e5a8c]"
+                >
+                  {warn ? 'Add again' : 'Add to existing counts'}
+                </button>
+                <button
+                  onClick={() => run('replace')}
+                  className="px-3 py-2 text-sm font-semibold rounded border border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  Replace all counts
+                </button>
+                <button
+                  onClick={close}
+                  className="px-3 py-2 text-sm rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── SYNC BANNER ───────────────────────────────────────────────────── */}
       {syncPayload && (
         <div className="flex items-center gap-3 bg-green-50 border border-green-300 rounded-lg px-4 py-3">
@@ -161,27 +283,29 @@ export function TakeoffTab() {
           </div>
           <button
             onClick={() => {
-              setState(s => ({
-                ...s,
-                takeoffCounts: normalizeTakeoffCounts(syncPayload.totals),
-                takeoffAreas:  normalizeAreas(syncPayload.areas ?? []),
-                takeoffSource: `${syncPayload.source === 'pdf-takeoff' ? 'PDF Takeoff' : 'Counter'} — ${syncPayload.jobName || syncPayload.source}`,
-                jobName: (s.jobName === 'New Job' || s.jobName === '')
-                  ? (syncPayload.jobName || s.jobName) : s.jobName,
-              }));
-              try {
-                localStorage.setItem('ore_estimator_sync_last', String(syncPayload.timestamp));
-              } catch { /* iOS private browsing — ignore */ }
-              // Labels carried in the SYNC payload → offer to apply them
-              const incomingLabels = {
-                bidPackage: syncPayload.activeBidPackage ?? '',
-                area:       syncPayload.activeArea       ?? '',
-                costCode:   syncPayload.activeCostCode   ?? '',
-              };
-              if (incomingLabels.bidPackage || incomingLabels.area || incomingLabels.costCode) {
-                setLabelConfirmPayload(incomingLabels);
-              }
-              setSyncPayload(null);
+              const payload = syncPayload;
+              requestImport({
+                totals:  normalizeTakeoffCounts(payload.totals),
+                areas:   normalizeAreas(payload.areas ?? []),
+                source:  `${payload.source === 'pdf-takeoff' ? 'PDF Takeoff' : 'Counter'} — ${payload.jobName || payload.source}`,
+                jobName: payload.jobName || '',
+                // Runs only once the import actually happens (not on Cancel).
+                onApplied: () => {
+                  try {
+                    localStorage.setItem('ore_estimator_sync_last', String(payload.timestamp));
+                  } catch { /* iOS private browsing — ignore */ }
+                  // Labels carried in the SYNC payload → offer to apply them
+                  const incomingLabels = {
+                    bidPackage: payload.activeBidPackage ?? '',
+                    area:       payload.activeArea       ?? '',
+                    costCode:   payload.activeCostCode   ?? '',
+                  };
+                  if (incomingLabels.bidPackage || incomingLabels.area || incomingLabels.costCode) {
+                    setLabelConfirmPayload(incomingLabels);
+                  }
+                  setSyncPayload(null);
+                },
+              });
             }}
             className="px-3 py-1.5 text-sm font-semibold rounded bg-green-600 text-white hover:bg-green-700 whitespace-nowrap"
           >
