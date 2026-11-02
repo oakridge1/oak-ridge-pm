@@ -197,6 +197,25 @@ export function JobInfoTab({ job, role, fieldUsers, canViewMoney = false }: JobI
                 defaultValue={job.contractValue ? job.contractValue.toString() : ""}
                 placeholder="0.00"
               />
+              {/* Billing rate: ADMIN and OFFICE only. Absent from the form for everyone
+                  else, so the server leaves the saved value untouched. */}
+              {(role === "ADMIN" || role === "OFFICE") && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    T&amp;M billing rate ($/hr charged to customer)
+                  </label>
+                  <input
+                    name="blendedLaborRate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue={job.blendedLaborRate != null ? String(job.blendedLaborRate) : ""}
+                    placeholder="e.g. 65.00"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Applies to all hours on this job.</p>
+                </div>
+              )}
             </>
           )}
 

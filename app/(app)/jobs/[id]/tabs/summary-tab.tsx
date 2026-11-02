@@ -372,7 +372,7 @@ function DirectCostsCard({ job, role, computed }: {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <SectionCard icon={<DollarSign className="w-4 h-4" />} title="Direct Costs (Reference Only)">
+    <SectionCard icon={<DollarSign className="w-4 h-4" />} title="Direct Costs">
       {error && <p className="text-xs text-red-500 py-2">{error}</p>}
 
       {role === "ADMIN" && (
@@ -409,7 +409,7 @@ function DirectCostsCard({ job, role, computed }: {
                   <input type="number" value={rateInput} onChange={e => setRateInput(e.target.value)}
                     placeholder="$/hr" step="0.01" min="0"
                     className="w-24 border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a8a]" />
-                  <span className="text-xs text-gray-400">/hr rate</span>
+                  <span className="text-xs text-gray-400">Billing rate ($/hr) · applies to all hours</span>
                 </div>
                 <MkupInput value={laborMkup} onChange={setLaborMkup} />
                 <div className="flex flex-col gap-1">
@@ -428,7 +428,7 @@ function DirectCostsCard({ job, role, computed }: {
             ) : (
               <p className="text-xs text-gray-400 mt-0.5">
                 {computed.totalHours.toFixed(1)} hrs
-                {job.blendedLaborRate != null ? ` @ $${job.blendedLaborRate.toFixed(2)}/hr` : " · set rate to calculate"}
+                {job.blendedLaborRate != null ? ` @ $${job.blendedLaborRate.toFixed(2)}/hr billing rate` : " · set billing rate to calculate"}
                 {laborMkupAmt != null && laborMkupAmt > 0 ? ` · +${fmt$(laborMkupAmt)} markup` : ""}
               </p>
             )}

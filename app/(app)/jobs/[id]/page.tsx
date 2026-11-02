@@ -154,6 +154,9 @@ export default async function JobPage({ params }: PageProps) {
     role === "FOREMAN" &&
     (job.foremanId === session.user.id || job.createdById === session.user.id);
   const canViewSummary = role === "ADMIN" || role === "OFFICE" || isForemanOnThisJob;
+  // Wages, burden and company bid rates are sent to the browser for ADMIN and
+  // OFFICE only. A foreman can see Summary but never receives worker pay data.
+  const canViewWages = role === "ADMIN" || role === "OFFICE";
   // Estimating access: ADMIN, or the estimatingPermission flag (same rule as the
   // Estimator link in app/(app)/layout.tsx).
   const isEstimator = role === "ADMIN" || session.user.estimatingPermission === true;
@@ -219,9 +222,9 @@ export default async function JobPage({ params }: PageProps) {
         approvedValue: canSeeAmounts ? (co.approvedValue?.toNumber() ?? null) : null,
       };
     }),
-    // Worker wages/burden are only used by the Summary tab; everyone else gets
-    // just id + name. Invoices and payments are likewise Summary-only.
-    laborEntries: canViewSummary
+    // Worker wages/burden are only used by the Profitability card (ADMIN/OFFICE);
+    // everyone else gets just id + name. Invoices and payments are Summary-only.
+    laborEntries: canViewWages
       ? job.laborEntries
       : job.laborEntries.map((e) => ({ ...e, user: { id: e.user.id, name: e.user.name } })),
     payments: canViewSummary
@@ -291,7 +294,7 @@ export default async function JobPage({ params }: PageProps) {
         canViewMoney={canViewSummary}
         canAddInspections={canAddInspections}
         canManagePanels={canManagePanelsFlag}
-        companyRates={canViewSummary && companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
+        companyRates={canViewWages && companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
         overheadAllocation={overheadAllocAmount}
       />
     </div>

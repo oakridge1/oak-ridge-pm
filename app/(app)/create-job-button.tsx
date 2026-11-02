@@ -124,7 +124,7 @@ export function CreateJobButton({ suggestedJobNumber = "" }: { suggestedJobNumbe
               {/* ── Blended Rate + Labor Budget ── */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Blended Rate ($/hr)
+                  T&amp;M billing rate ($/hr charged to customer)
                 </label>
                 <input
                   name="blendedLaborRate"
@@ -134,6 +134,7 @@ export function CreateJobButton({ suggestedJobNumber = "" }: { suggestedJobNumbe
                   placeholder="e.g. 65.00"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
                 />
+                <p className="text-xs text-gray-400 mt-1">Applies to all hours on this job.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
