@@ -105,6 +105,9 @@ interface JobTabsProps {
   orderingPermissions?: { scope: string; jobId: string | null }[];
   companyRates?: { defaultBurden: number; bidRates: Record<string, number> } | null;
   overheadAllocation?: number;
+  // ADMIN/OFFICE only (undefined for everyone else): bid crew picker data.
+  bidCrewOptions?: { id: string; name: string | null; title: string }[];
+  bidCrewNames?: string[];
 }
 
 export function JobTabs({
@@ -122,6 +125,8 @@ export function JobTabs({
   orderingPermissions = [],
   companyRates = null,
   overheadAllocation = 0,
+  bidCrewOptions,
+  bidCrewNames,
 }: JobTabsProps) {
   const [activeTab, setActiveTab] = useState("info");
 
@@ -166,7 +171,7 @@ export function JobTabs({
       {/* Tab content */}
       <div className="bg-white rounded-b-xl rounded-tr-xl border border-t-0 border-gray-200 shadow-sm">
         {activeTab === "info" && (
-          <JobInfoTab job={job} role={role} fieldUsers={fieldUsers} canViewMoney={canViewMoney} />
+          <JobInfoTab job={job} role={role} fieldUsers={fieldUsers} canViewMoney={canViewMoney} bidCrewOptions={bidCrewOptions} bidCrewNames={bidCrewNames} />
         )}
         {activeTab === "labor" && (
           <LaborTab

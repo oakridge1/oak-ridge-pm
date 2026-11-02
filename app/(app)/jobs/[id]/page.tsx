@@ -161,6 +161,30 @@ export default async function JobPage({ params }: PageProps) {
   // Estimator link in app/(app)/layout.tsx).
   const isEstimator = role === "ADMIN" || session.user.estimatingPermission === true;
 
+  // Bid crew picker data (ADMIN/OFFICE only): field crew by id, name and title
+  // only. Wages never leave the server. Also the names of the locked crew.
+  let bidCrewOptions: { id: string; name: string | null; title: string }[] = [];
+  let bidCrewNames: string[] = [];
+  if (canViewWages) {
+    const crewWages = await prisma.employeeWage.findMany({
+      where: { isFieldCrew: true, hourlyWage: { gt: 0 }, user: { active: true } },
+      select: { title: true, user: { select: { id: true, name: true } } },
+    });
+    bidCrewOptions = crewWages
+      .map((w) => ({ id: w.user.id, name: w.user.name, title: w.title }))
+      .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+    const lockedIds = Array.isArray(job.bidCrewIds)
+      ? job.bidCrewIds.filter((x): x is string => typeof x === "string")
+      : [];
+    if (lockedIds.length > 0) {
+      const lockedUsers = await prisma.user.findMany({
+        where: { id: { in: lockedIds } },
+        select: { name: true },
+      });
+      bidCrewNames = lockedUsers.map((u) => u.name ?? "Unknown");
+    }
+  }
+
   const savedTasks = await prisma.savedTask.findMany({
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
@@ -190,8 +214,18 @@ export default async function JobPage({ params }: PageProps) {
   }
 
   // Serialize Prisma Decimal objects — they can't be passed to Client Components
+  // The bid crew fields are cost data: removed from the object entirely unless
+  // the viewer is ADMIN/OFFICE (then converted to plain values).
+  const { bidCostRate, bidCrewIds, bidCostRateSetAt, ...jobBase } = job;
   const serializedJob = {
-    ...job,
+    ...jobBase,
+    ...(canViewWages
+      ? {
+          bidCostRate: bidCostRate?.toNumber() ?? null,
+          bidCrewIds: Array.isArray(bidCrewIds) ? bidCrewIds : null,
+          bidCostRateSetAt: bidCostRateSetAt?.toISOString() ?? null,
+        }
+      : {}),
     contractValue: canViewSummary ? (job.contractValue?.toNumber() ?? null) : null,
     // Crew (no Summary access) don't get the labor rate or budgets. The Labor
     // and Purchase Orders tabs treat null as "not set", so they still show hours.
@@ -296,6 +330,8 @@ export default async function JobPage({ params }: PageProps) {
         canManagePanels={canManagePanelsFlag}
         companyRates={canViewWages && companyRates ? { defaultBurden: companyRates.defaultBurden, bidRates: companyRates.bidRates as Record<string, number> } : null}
         overheadAllocation={overheadAllocAmount}
+        bidCrewOptions={canViewWages ? bidCrewOptions : undefined}
+        bidCrewNames={canViewWages ? bidCrewNames : undefined}
       />
     </div>
   );
