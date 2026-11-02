@@ -122,6 +122,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 2026-11-02 fix/takeoff-import-merge: Takeoff imports can Add to or Replace existing counts (default Add), with a same-import warning. Recovery tag recovery-2026-11-02-pre-import-merge.
 2026-11-02 fix/wage-leak-billing-rate: wages/bidRates sent to client only for ADMIN/OFFICE; blendedLaborRate relabeled as T&M billing rate and editable on Job Info (ADMIN/OFFICE). Recovery tag recovery-2026-11-02-pre-wage-leak-billing-rate.
 2026-11-02 feat/actual-cost-rate: Profitability card shows billing rate, actual field-crew cost rate and T&M profit per hour (display only). Recovery tag recovery-2026-11-02-pre-actual-cost-rate.
+2026-11-02 feat/bid-crew-rate: Job Info bid crew picker + "Lock in bid cost rate" (average field-crew wage x burden, frozen on Job.bidCostRate/bidCrewIds/bidCostRateSetAt); Summary Labor rates shows bid rate and actual vs bid. ADMIN/OFFICE only; fields stripped from the page for everyone else. The three columns were added by SQL on 2026-11-02 (nullable). Recovery tag recovery-2026-11-02-pre-bid-crew.
 
 ### Business rule: per-quote pricing
 

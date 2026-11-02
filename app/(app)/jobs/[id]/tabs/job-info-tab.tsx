@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { Job, Role } from "@/app/generated/prisma/client";
 import { updateJobInfo, archiveJob, unarchiveJob, deleteJob } from "../actions";
+import { lockBidCrew } from "../bid-crew-actions";
 import {
   Building2,
   Phone,
@@ -26,6 +27,9 @@ type JobInfoTabProps = {
   fieldUsers: { id: string; name: string | null; role: Role }[];
   // False for crew (no Summary access): the contract value input is not rendered.
   canViewMoney?: boolean;
+  // ADMIN/OFFICE only: field crew for the bid crew picker (id, name, title; no wages).
+  bidCrewOptions?: { id: string; name: string | null; title: string }[];
+  bidCrewNames?: string[];
 };
 
 function Field({
@@ -98,7 +102,106 @@ function InputField({
   );
 }
 
-export function JobInfoTab({ job, role, fieldUsers, canViewMoney = false }: JobInfoTabProps) {
+// Bid crew: pick field crew, then lock the average burdened cost as the job's bid
+// cost rate. ADMIN/OFFICE only (the parent passes `options` only to them). Shows
+// names and titles only; wages are never sent to the browser.
+function BidCrewSection({
+  jobId,
+  options,
+  lockedRate,
+  lockedAt,
+  lockedIds,
+  lockedNames,
+}: {
+  jobId: string;
+  options: { id: string; name: string | null; title: string }[];
+  lockedRate: number | null;
+  lockedAt: string | null;
+  lockedIds: string[];
+  lockedNames: string[];
+}) {
+  const [selected, setSelected] = useState<string[]>(lockedIds);
+  const [locked, setLocked] = useState<{ rate: number; at: string; names: string[] } | null>(
+    lockedRate != null && lockedAt ? { rate: lockedRate, at: lockedAt, names: lockedNames } : null,
+  );
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function toggle(id: string) {
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function handleLock() {
+    if (locked && !window.confirm("This replaces the locked bid rate. Continue?")) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        const res = await lockBidCrew(jobId, selected);
+        setLocked({
+          rate: res.bidCostRate,
+          at: res.bidCostRateSetAt,
+          names: options.filter((o) => res.bidCrewIds.includes(o.id)).map((o) => o.name ?? "Unknown"),
+        });
+        setSelected(res.bidCrewIds);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not lock the bid rate.");
+      }
+    });
+  }
+
+  return (
+    <div className="mt-8 pt-4 border-t border-gray-100">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Bid crew</p>
+      {locked ? (
+        <p className="text-sm text-gray-700 mb-3">
+          Bid cost rate: <span className="font-semibold">${locked.rate.toFixed(2)}/hr</span>, locked{" "}
+          {new Date(locked.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          {locked.names.length > 0 ? `, crew: ${locked.names.join(", ")}` : ""}
+        </p>
+      ) : (
+        <p className="text-xs text-gray-400 mb-3">
+          Pick the crew this job was bid with. The average burdened cost of the crew becomes the job&apos;s locked bid cost rate.
+        </p>
+      )}
+      {options.length === 0 ? (
+        <p className="text-xs text-orange-500">No field crew with a wage set. Set wages in Admin → Users.</p>
+      ) : (
+        <div className="space-y-1.5 mb-3">
+          {options.map((o) => (
+            <label key={o.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selected.includes(o.id)}
+                onChange={() => toggle(o.id)}
+                className="rounded border-gray-300"
+              />
+              {o.name ?? "Unknown"}
+              <span className="text-xs text-gray-400">{o.title}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+      <button
+        type="button"
+        onClick={handleLock}
+        disabled={pending || selected.length === 0}
+        className="px-3 py-2 rounded-lg text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a]/30 hover:bg-blue-50 disabled:opacity-50 transition-colors"
+      >
+        {pending ? "Saving…" : locked ? "Re-lock bid cost rate" : "Lock in bid cost rate"}
+      </button>
+    </div>
+  );
+}
+
+export function JobInfoTab({
+  job,
+  role,
+  fieldUsers,
+  canViewMoney = false,
+  bidCrewOptions,
+  bidCrewNames,
+}: JobInfoTabProps) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -522,6 +625,18 @@ export function JobInfoTab({ job, role, fieldUsers, canViewMoney = false }: JobI
             </div>
           )}
       </dl>
+
+      {bidCrewOptions && (
+        <BidCrewSection
+          jobId={job.id}
+          options={bidCrewOptions}
+          // The page converts these (Decimal -> number, Date -> ISO string) before sending.
+          lockedRate={(job.bidCostRate as unknown as number | null) ?? null}
+          lockedAt={(job.bidCostRateSetAt as unknown as string | null) ?? null}
+          lockedIds={Array.isArray(job.bidCrewIds) ? (job.bidCrewIds as string[]) : []}
+          lockedNames={bidCrewNames ?? []}
+        />
+      )}
 
       {/* ADMIN: Archive / Delete */}
       {role === "ADMIN" && (

@@ -153,6 +153,9 @@ interface SummaryTabProps {
     laborBudgetDollars: number | null;
     materialBudget: number | null;
     blendedLaborRate: number | null;
+    // Only present for ADMIN/OFFICE (the page removes them for everyone else).
+    bidCostRate?: number | null;
+    bidCostRateSetAt?: string | null;
     designFeePct: number | null;
     designFeeAmount: number | null;
     designFeeApproved: boolean;
@@ -2257,6 +2260,11 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
   }
   const actualCostRate = fieldCrewHours > 0 ? fieldCrewCost / fieldCrewHours : null;
   const billingRate = job.blendedLaborRate != null ? Number(job.blendedLaborRate) : null;
+  const bidCostRate = job.bidCostRate ?? null;
+  const bidLockedLabel = job.bidCostRateSetAt
+    ? new Date(job.bidCostRateSetAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+  const actualVsBid = bidCostRate != null && actualCostRate != null ? actualCostRate - bidCostRate : null;
   const isTMJob = job.jobType === "TIME_AND_MATERIALS";
   const profitPerHour =
     isTMJob && billingRate != null && actualCostRate != null ? billingRate - actualCostRate : null;
@@ -2307,6 +2315,24 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
                 {actualCostRate != null ? fmt$(actualCostRate) : <span className="text-gray-400 font-normal">No field crew hours yet</span>}
               </span>
             </div>
+            <div className="flex items-center justify-between py-1">
+              <p className="text-sm text-gray-600">
+                Bid cost rate{bidCostRate != null && bidLockedLabel ? ` (locked ${bidLockedLabel})` : ""}
+              </p>
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                {bidCostRate != null
+                  ? `${fmt$(bidCostRate)}/hr`
+                  : <span className="text-gray-400 font-normal">not set (pick a bid crew on Job Info)</span>}
+              </span>
+            </div>
+            {actualVsBid != null && (
+              <div className="flex items-center justify-between py-1">
+                <p className="text-sm text-gray-600">Actual vs bid</p>
+                <span className={`text-sm font-semibold tabular-nums ${actualVsBid > 0 ? "text-red-600" : "text-green-700"}`}>
+                  {actualVsBid >= 0 ? "+" : "-"}{fmt$(Math.abs(actualVsBid))}/hr {actualVsBid >= 0 ? "over" : "under"}
+                </span>
+              </div>
+            )}
             {isTMJob && (
               <div className="flex items-center justify-between py-1">
                 <p className="text-sm text-gray-600">Profit per hour</p>
