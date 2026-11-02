@@ -191,6 +191,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidde
   <button class="hb a" onclick="openPagePicker()">📷 SAVE DWG</button>
   <button class="hb" onclick="exportJSON()">↓ JSON</button>
   <span id="active-labels-display" style="font-size:11px;color:#aaa;margin-left:12px;align-self:center;white-space:nowrap;"></span>
+  <span id="list-note" style="display:none;font-size:10px;color:#7a808c;margin-left:8px;align-self:center;white-space:nowrap;" title="Could not load the shared item list; using the list built into this page.">offline list</span>
   <div style="display:flex;align-items:center;gap:4px;margin-left:8px;">
     <span style="font-size:10px;color:#9aa0ab;">Size</span>
     <input type="range" id="sym-size-slider" min="12" max="48" value="24" step="2"
@@ -1354,7 +1355,7 @@ function initAsmSearch(){
 
 function fillFromStdItem(it){
   document.getElementById('asm-name').value=it.name;
-  document.getElementById('asm-key').value=it.key;
+  document.getElementById('asm-key').value=realKey(it.key);
   document.getElementById('asm-cat').value=it.cat;
   selSymId=it.symId||DEFAULT_SYM;
   // auto-assign category color if no custom color set yet
@@ -1720,7 +1721,7 @@ function syncToCounter() {
   // Build totals from assembly counts
   var totals = {};
   assemblies.forEach(function(a) {
-    if (a.count > 0) totals[a.key] = (totals[a.key] || 0) + a.count;
+    if (a.count > 0) { var ak = realKey(a.key); totals[ak] = (totals[ak] || 0) + a.count; }
   });
 
   // Add run footage from runTypes
@@ -1739,7 +1740,10 @@ function syncToCounter() {
         var mcKey = (rt.mcType || '').toLowerCase().replace(/[^a-z0-9]/g, '_');
         key = 'mc_' + mcKey;
       }
-      if (key) totals[key] = (totals[key] || 0) + Math.round(stats.ft);
+      // key above is the old dropdown-text spelling (e.g. emt_1_2_, mc_mc_12_2);
+      // the shared list maps it to the real key (emt_12, mc_122). A size with no
+      // real key (or no shared list loaded) keeps the old spelling.
+      if (key) { key = realKey(key); totals[key] = (totals[key] || 0) + Math.round(stats.ft); }
     });
   }
 
@@ -1785,7 +1789,58 @@ function showToast(msg){var t=document.getElementById('_t_');if(!t){t=document.c
 document.addEventListener('keydown',function(e){if(['INPUT','SELECT','TEXTAREA'].indexOf(e.target.tagName)>=0)return;if(e.key==='c'||e.key==='C')setMode('count');if(e.key==='r'||e.key==='R')setMode('run');if(e.key==='p'||e.key==='P')setMode('pan');if(e.key==='Escape'){if(drawingRun){drawingRun=false;runPts=[];redrawMarkup();}if(measuring)cancelMeasure();}if(e.key==='Enter'&&mode==='run'&&drawingRun&&runPts.length>=2)finishRun();if(e.key==='+'||e.key==='=')zoom(.15);if(e.key==='-')zoom(-.15);var n=parseInt(e.key);if(!isNaN(n)&&n>=1){if(mode==='count'&&n<=assemblies.length){activeAsmIdx=n-1;renderAsms();}if(mode==='run'&&n<=runTypes.length){activeRtIdx=n-1;renderRts();}}});
 document.getElementById('dwg-name-inp').addEventListener('keydown',function(e){if(e.key==='Enter')confirmDwgLoad();});
 
+// ═══════════════════════════════════════
+// SHARED ITEM LIST (public/takeoff-items.json)
+// The built-in STD_ITEMS / default sidebar above are the offline fallback and
+// are used from the first moment. The shared list is fetched in the background
+// (3 s max). When it arrives: (1) its alias table lets realKey() translate old
+// spellings (cond_emt_12 -> emt_12), (2) any item the built-in library lacks is
+// added to the search library, (3) assemblies saved with old keys are updated.
+// If the fetch fails, times out or returns bad data, nothing changes and a small
+// "offline list" note shows; the tool behaves exactly as before.
+// ═══════════════════════════════════════
+var MASTER_ALIASES=null;
+function realKey(k){return(MASTER_ALIASES&&Object.prototype.hasOwnProperty.call(MASTER_ALIASES,k))?MASTER_ALIASES[k]:k;}
+function setListNote(offline){var el=document.getElementById('list-note');if(el)el.style.display=offline?'':'none';}
+var MASTER_CAT_LABELS={devices:'Devices',fixtures:'Fixtures',data_lv:'Data / LV',fa:'Fire Alarm',gear:'Gear',rough:'Boxes & Rough',conduit:'Conduit',mc:'MC Cable',racks:'Racks'};
+function applyMasterList(list){
+  if(!Array.isArray(list)||list.length<10)throw new Error('bad list');
+  var al={};
+  list.forEach(function(it){
+    if(!it||typeof it.key!=='string'||typeof it.name!=='string'||typeof it.category!=='string'||typeof it.unit!=='string'||!Array.isArray(it.aliases))throw new Error('bad item');
+    it.aliases.forEach(function(a){if(typeof a==='string')al[a]=it.key;});
+  });
+  MASTER_ALIASES=al;
+  // library: add anything the built-in list lacks (matched by real key)
+  var have={};
+  STD_ITEMS.forEach(function(s){have[realKey(s.key)]=true;});
+  list.forEach(function(it){
+    if(have[it.key])return;
+    var ft=it.unit==='ft';
+    STD_ITEMS.push({name:it.name,key:it.key,cat:MASTER_CAT_LABELS[it.category]||it.category,symId:ft?'conduit':DEFAULT_SYM,footage:ft?1:0});
+    have[it.key]=true;
+  });
+  // saved assemblies that still carry an old key
+  var changed=false;
+  assemblies.forEach(function(a){var rk=realKey(a.key);if(rk!==a.key){a.key=rk;changed=true;}});
+  if(changed)save();
+}
+function loadMasterList(){
+  var done=false,ctl=null;
+  function abort(){if(ctl){try{ctl.abort();}catch(e){}}}
+  function fail(){if(done)return;done=true;setListNote(true);abort();}
+  try{
+    ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+    setTimeout(fail,3000);
+    fetch('/takeoff-items.json',ctl?{signal:ctl.signal}:undefined)
+      .then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();})
+      .then(function(list){if(done)return;applyMasterList(list);done=true;setListNote(false);})
+      .catch(fail);
+  }catch(e){fail();}
+}
+
 window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();updateLabelDisplay();setAsmMode('ridge');renderRidgeList();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}
+  loadMasterList();
   // Ask the estimator for its current Ridge List (it re-broadcasts on PING)
   if(oreChannel){setTimeout(function(){oreChannel.postMessage({type:'PING',payload:{source:'pdf-takeoff'}});},500);}
 };
