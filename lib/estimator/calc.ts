@@ -1018,11 +1018,13 @@ export interface HighAmpReceptParams {
   diff: number;
 }
 
+// plateId was the missing id 'wn_ss'; the BOM has no high-amp/range plate, so
+// the closest existing item (dp1, 1G Receptacle Plate) is used.
 const HA_DEF: Record<string, { cableId: string; plateId: string; lhrEa: number }> = {
-  '30A':  { cableId: 'rm2', plateId: 'wn_ss',  lhrEa: 1.00 },
-  '50A':  { cableId: 'w1',  plateId: 'wn_ss',  lhrEa: 1.25 },
-  '240V': { cableId: 'w1',  plateId: 'wn_ss',  lhrEa: 1.00 },
-  twist:  { cableId: 'w3',  plateId: 'wn_ss',  lhrEa: 1.50 },
+  '30A':  { cableId: 'rm2', plateId: 'dp1',  lhrEa: 1.00 },
+  '50A':  { cableId: 'w1',  plateId: 'dp1',  lhrEa: 1.25 },
+  '240V': { cableId: 'w1',  plateId: 'dp1',  lhrEa: 1.00 },
+  twist:  { cableId: 'w3',  plateId: 'dp1',  lhrEa: 1.50 },
 };
 
 export function calcHighAmpRecept(p: HighAmpReceptParams): SavedAssembly | null {
@@ -1036,16 +1038,16 @@ export function calcHighAmpRecept(p: HighAmpReceptParams): SavedAssembly | null 
   addItem(acc, def.cableId, p.whipFeet * p.qty);
   // MC connectors (2 per whip)
   addItem(acc, 'mc1', 2 * p.qty);
-  // CJ6 cord grip
-  addItem(acc, 'cj6', p.qty);
+  // CJ6 (was missing id 'cj6'; BOM has it as 'bs2')
+  addItem(acc, 'bs2', p.qty);
   // Box hardware
   addItem(acc, 'b1', p.qty);      // 4" square box
   addItem(acc, 'bs2', p.qty);     // box support
   // Device (PER QUOTE) + plate + wire nuts + ground screw
   addManual(acc, `${p.receptType} receptacle (per quote)`, p.qty, 'EA', 0.01 * p.qty, 0);
   addItem(acc, def.plateId, p.qty);
-  addItem(acc, 'wn1', p.qty * 3); // wire nuts
-  addItem(acc, 'gs1', p.qty);     // ground screw
+  addItem(acc, 'wc1', p.qty * 3); // wire nuts (was missing id 'wn1')
+  addItem(acc, 'gr1', p.qty);     // ground screw (was missing id 'gs1')
 
   // Device install labor
   addManual(acc, `${p.receptType} install labor (${p.qty} × ${def.lhrEa}hr)`, p.qty, 'EA', 0,

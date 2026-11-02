@@ -113,6 +113,8 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 
 **CHANGED 2026-11-02:** Device/Fixture Builder labor now uses Oak Ridge shop standards (`lib/estimator/shopLabor.ts`), one labor line per assembly, parts carry material only, default crew adder 1.12, +25% per extra gang. Was 2.15 hr per 20A receptacle (double-counted NECA plus part hours). Saved estimates unchanged.
 
+**FIXED 2026-11-02:** estimator BOM id fixes (High-Amp cj6/wn1/gs1/wn_ss mapped to existing items; switch whip now 12/2 MC w1).
+
 ### Business rule: per-quote pricing
 
 - **Lighting fixtures and distribution gear have no stock prices. They are quoted per job.** Their $0.01 BOM prices (`lc1`–`lc15`, `fad17` and the "PER QUOTE" lines in the fire alarm, low voltage, gear, floor box and high-amp receptacle calculators) are intentional placeholders.
