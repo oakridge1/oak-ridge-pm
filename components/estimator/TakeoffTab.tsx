@@ -4,7 +4,7 @@ import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { useEffect, useRef, useState } from 'react';
 import {
   ITEM_LABELS, ITEM_CATEGORY, FOOTAGE_ITEMS,
-  CATEGORY_LABELS, CAT_ORDER, normalizeTakeoffCounts,
+  CATEGORY_LABELS, CAT_ORDER, normalizeTakeoffCounts, ITEM_BUILD,
 } from '@/lib/estimator/takeoffConstants';
 
 // Translate alias keys to real item ids in imported areas too, so the By Area
@@ -15,81 +15,8 @@ function normalizeAreas(
   return areas.map(a => ({ ...a, counts: normalizeTakeoffCounts(a.counts ?? {}) }));
 }
 
-// ── Takeoff → builder mappings ────────────────────────────────────────────────
-
-const FA_TAKEOFF_MAP: Record<string, string> = {
-  fa_smoke:       'fad2',
-  fa_heat:        'fad3',
-  fa_smoke_co:    'fad4',
-  fa_pull:        'fad1',
-  fa_horn_strobe: 'fad5',
-  fa_strobe:      'fad6',
-  fa_lf_sounder:  'fad7',
-  fa_beacon:      'fad8',
-  fa_ctrl_mod:    'fad9',
-  fa_monitor_mod: 'fad9',
-  fa_duct_smoke:  'fad10',
-  fa_annun:       'fad11',
-  fa_panel_sm:    'fad12',
-  fa_panel_md:    'fad13',
-  fa_panel_lg:    'fad14',
-  fa_radio:       'fad15',
-};
-
-const LV_TAKEOFF_MAP: Record<string, string> = {
-  camera_indoor:  'camera',
-  camera_outdoor: 'camera',
-  access_reader:  'reader',
-  intercom:       'intercom',
-  av_outlet:      'av',
-  speaker:        'speaker',
-  doorbell:       'doorbell',
-};
-
-const DATA_TAKEOFF_MAP: Record<string, number> = {
-  data_1port: 1,
-  data_2port: 2,
-  data_3port: 3,
-  data_4port: 4,
-};
-
-// Takeoff key → FixtureBuilderTab ASMS id (every id verified against ASMS)
-const FIXTURE_TAKEOFF_MAP: Record<string, string> = {
-  // Devices
-  recept_20a:          'r20',
-  recept_15a_tr:       'r15',
-  gfci_20a:            'gfci20',
-  gfci_15a_tr:         'gfci15',
-  switch_sp:           'sw1p',
-  switch_4way:         'sw4way',
-  dimmer:              'dim',
-  dimmer_010v:         'dim010',
-  occ_sensor:          'occ1',
-  // Fixtures
-  fixture_2x4:         'tb24',
-  fixture_2x2:         'tb22',
-  fixture_strip:       'st48',
-  fixture_strip_8:     'st96',
-  fixture_wrap_4:      'vt48',
-  fixture_wrap_8:      'vt96',
-  fixture_highbay:     'hbay',
-  fixture_highbay_lin: 'hbay_lin',
-  fixture_lowbay:      'lowbay',
-  fixture_pendant:     'pendant',
-  fixture_wall:        'sconce',
-  fixture_wallpack:    'ewp',
-  fixture_chain48:     'ch48',
-  fixture_chain96:     'ch96',
-  fixture_exit_ebu:    'exit',
-  fixture_emrg:        'emrg',
-  fixture_fan36:       'fan36',
-  fixture_fan48:       'fan48',
-  fixture_fan55:       'fan55',
-  fixture_fan60:       'fan60',
-};
-
-// 3-way switch is a footage item (traveler ft) — prefills the ThreeWayBuilder
-const THREEWAY_TAKEOFF_KEYS = new Set(['switch_3way']);
+// Build buttons: which builder each item loads into (and with what) comes from the
+// "build" field in public/takeoff-items.json, read through ITEM_BUILD.
 
 // ── TakeoffTab ─────────────────────────────────────────────────────────────────
 
@@ -479,41 +406,41 @@ export function TakeoffTab() {
                         {FOOTAGE_ITEMS.has(id) ? 'ft' : 'ea'}
                       </td>
                       <td className="px-2 py-2 text-right">
-                        {cat === 'fa' && id in FA_TAKEOFF_MAP && (
+                        {ITEM_BUILD[id]?.builder === 'fa' && (
                           <button
-                            onClick={() => { updateFAState({ deviceId: FA_TAKEOFF_MAP[id], qty }); setTab('assemblies'); }}
+                            onClick={() => { updateFAState({ deviceId: ITEM_BUILD[id].target as string, qty }); setTab(ITEM_BUILD[id].tab); }}
                             title="Load into FA Builder"
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-red-700 text-white hover:bg-red-800 whitespace-nowrap">
                             → Build
                           </button>
                         )}
-                        {cat === 'data_lv' && id in LV_TAKEOFF_MAP && (
+                        {ITEM_BUILD[id]?.builder === 'lv' && (
                           <button
-                            onClick={() => { updateLVState({ deviceType: LV_TAKEOFF_MAP[id], qty }); setTab('assemblies'); }}
+                            onClick={() => { updateLVState({ deviceType: ITEM_BUILD[id].target as string, qty }); setTab(ITEM_BUILD[id].tab); }}
                             title="Load into LV Builder"
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-teal-600 text-white hover:bg-teal-700 whitespace-nowrap">
                             → Build
                           </button>
                         )}
-                        {cat === 'data_lv' && id in DATA_TAKEOFF_MAP && (
+                        {ITEM_BUILD[id]?.builder === 'data' && (
                           <button
-                            onClick={() => { updateDataState({ ports: DATA_TAKEOFF_MAP[id] as (1 | 2 | 3 | 4) }); setTab('assemblies'); }}
+                            onClick={() => { updateDataState({ ports: ITEM_BUILD[id].ports as (1 | 2 | 3 | 4) }); setTab(ITEM_BUILD[id].tab); }}
                             title="Load into Data Builder"
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
                             → Build
                           </button>
                         )}
-                        {(cat === 'devices' || cat === 'fixtures') && id in FIXTURE_TAKEOFF_MAP && (
+                        {ITEM_BUILD[id]?.builder === 'fixture' && (
                           <button
-                            onClick={() => { updateFixtureState({ selectedId: FIXTURE_TAKEOFF_MAP[id], qty: Math.max(1, Math.round(qty)) }); setTab('fixtures'); }}
+                            onClick={() => { updateFixtureState({ selectedId: ITEM_BUILD[id].target as string, qty: Math.max(1, Math.round(qty)) }); setTab(ITEM_BUILD[id].tab); }}
                             title="Load into Fixture Builder"
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
                             → Build
                           </button>
                         )}
-                        {THREEWAY_TAKEOFF_KEYS.has(id) && (
+                        {ITEM_BUILD[id]?.builder === 'threeway' && (
                           <button
-                            onClick={() => { updateThreeWayState({ travelerFt: qty }); setTab('assemblies'); }}
+                            onClick={() => { updateThreeWayState({ travelerFt: qty }); setTab(ITEM_BUILD[id].tab); }}
                             title="Load traveler footage into 3-Way Builder"
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">
                             → Build
