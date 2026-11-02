@@ -7,6 +7,7 @@ import type { PanelBuilderState } from './panelBuilder';
 import { createPanelState } from './panelBuilder';
 import type { ProposalState } from './proposalState';
 import { createProposalState } from './proposalState';
+import { CREW_ADDER } from './shopLabor';
 import type { CustomAssemblyDef } from './customAssembly';
 import type {
   ConduitRunParams, RackParams, MCHomeRunParams,
@@ -119,9 +120,10 @@ export interface FixtureState {
   selectedId: string;
   whipFt:     number;
   qty:        number;
-  twoGang:    boolean;
+  twoGang:    boolean;  // legacy; gangs (below) wins when present
+  gangs?:     number;   // 1 | 2 | 3 (absent on jobs saved before 3-gang existed)
   romex:      boolean;
-  diff:       number;   // 1.00 normal / 1.25 difficult / 1.55 v.difficult
+  diff:       number;   // 1.12 crew adder (default) / 1.00 / 1.25 difficult / 1.55 v.difficult
 }
 
 export interface CustomAsmState {
@@ -422,7 +424,7 @@ export const DEFAULT_CUSTOM_ASM: CustomAsmState = {
 
 export const DEFAULT_FIXTURE: FixtureState = {
   selectedId: 'r20', whipFt: 20, qty: 1,
-  twoGang: false, romex: false, diff: 1.00,
+  twoGang: false, gangs: 1, romex: false, diff: CREW_ADDER,
 };
 
 export const DEFAULT_CUSTOM_DEV: CustomDevState = {
