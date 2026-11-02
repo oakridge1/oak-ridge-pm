@@ -74,6 +74,12 @@ export async function updateJobInfo(jobId: string, fd: FormData) {
       contractValue: canEditMoney ? optDecimal("contractValue") : undefined,
       laborBudgetDollars: canEditMoney ? optDecimal("laborBudgetDollars") : undefined,
       materialBudget: canEditMoney ? optDecimal("materialBudget") : undefined,
+      // Billing rate: ADMIN and OFFICE only (not the job's foreman). optDecimal
+      // returns undefined when the field is not in the form, so it is never blanked.
+      blendedLaborRate:
+        session.user.role === "ADMIN" || session.user.role === "OFFICE"
+          ? optDecimal("blendedLaborRate")
+          : undefined,
       calendarColor: getString("calendarColor"),
       ...(fd.get("excludeFromPL") !== null && session.user.role === "ADMIN"
         ? { excludeFromPL: fd.get("excludeFromPL") === "true" }
