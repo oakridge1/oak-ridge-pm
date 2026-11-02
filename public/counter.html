@@ -593,7 +593,7 @@ body {
 
 <!-- BOTTOM BAR -->
 <div id="bottom-bar">
-  <div id="summary-line">Total items counted: <span id="total-count">0</span></div>
+  <div id="summary-line">Total items counted: <span id="total-count">0</span><span id="list-note" style="display:none;margin-left:10px;font-size:10px;color:#999;" title="Could not load the shared item list; using the list built into this page.">offline list</span></div>
   <div id="bottom-actions">
     <button class="bottom-btn new-area" onclick="openAreas()">⊕ NEW AREA</button>
     <button class="bottom-btn export" onclick="exportJSON()">↓ EXPORT JSON</button>
@@ -1507,9 +1507,65 @@ function showToast(msg) {
 }
 
 // ============================================================
+//  SHARED ITEM LIST (public/takeoff-items.json)
+//  The CATEGORIES list above is the built-in / offline fallback and is
+//  what the page uses from the first moment. The shared list is fetched in
+//  the background (3 s max); anything in it that the built-in list lacks
+//  is added to the end of its category. Nothing is removed or reordered.
+//  If the fetch fails, times out or returns bad data, the page keeps the
+//  built-in list and shows a small "offline list" note.
+// ============================================================
+function setListNote(offline) {
+  var el = document.getElementById('list-note');
+  if (el) el.style.display = offline ? '' : 'none';
+}
+
+function mergeSharedItems(list) {
+  if (!Array.isArray(list) || list.length < 10) throw new Error('bad list');
+  var known = {};
+  CATEGORIES.forEach(function(c) { c.items.forEach(function(it) { known[it.id] = true; }); });
+  var added = 0;
+  list.forEach(function(it) {
+    if (!it || typeof it.key !== 'string' || typeof it.name !== 'string' ||
+        typeof it.category !== 'string' || typeof it.unit !== 'string') throw new Error('bad item');
+    if (known[it.key]) return;
+    var cat = CATEGORIES.filter(function(c) { return c.id === it.category; })[0];
+    if (!cat) { cat = { id: it.category, label: it.category, items: [] }; CATEGORIES.push(cat); }
+    cat.items.push(it.unit === 'ft'
+      ? { id: it.key, label: it.name, type: 'footage', unit: 'ft' }
+      : { id: it.key, label: it.name, type: 'count' });
+    known[it.key] = true;
+    added++;
+  });
+  return added;
+}
+
+function loadSharedItems() {
+  var done = false;
+  var failTimer = setTimeout(function() { if (!done) { done = true; setListNote(true); } }, 3000);
+  try {
+    var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    fetch('/takeoff-items.json', ctl ? { signal: ctl.signal } : undefined)
+      .then(function(r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(function(list) {
+        if (done) return;            // too late: already fell back
+        var added = mergeSharedItems(list);
+        done = true; clearTimeout(failTimer);
+        setListNote(false);
+        if (added > 0) { buildUI(); renderAll(); }
+      })
+      .catch(function() { if (!done) { done = true; clearTimeout(failTimer); setListNote(true); } if (ctl) { try { ctl.abort(); } catch (e) {} } });
+    setTimeout(function() { if (ctl) { try { ctl.abort(); } catch (e) {} } }, 3000);
+  } catch (e) {
+    done = true; clearTimeout(failTimer); setListNote(true);
+  }
+}
+
+// ============================================================
 //  INIT
 // ============================================================
 window.addEventListener('load', function() {
+  loadSharedItems();
   buildUI();
   autoLoad();
   renderAll();
