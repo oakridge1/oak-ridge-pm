@@ -2238,6 +2238,29 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
 
   const profitable = grossProfit >= 0;
 
+  // ── Labor rates (display only) ──────────────────────────────────────────────
+  // Actual cost rate = burdened cost of FIELD CREW hours / FIELD CREW hours.
+  // Field crew = wage row with isFieldCrew and a wage above $0. Everyone else's
+  // hours (office, owner, no wage row) are left out of both numbers. Uses
+  // current wages, like the rest of this card.
+  let fieldCrewHours = 0;
+  let fieldCrewCost = 0;
+  let nonFieldHours = 0;
+  for (const entry of job.laborEntries) {
+    const w = entry.user.wage;
+    if (w && w.isFieldCrew && w.hourlyWage > 0) {
+      fieldCrewHours += entry.hours;
+      fieldCrewCost += entry.hours * w.hourlyWage * (1 + w.burdenRate);
+    } else {
+      nonFieldHours += entry.hours;
+    }
+  }
+  const actualCostRate = fieldCrewHours > 0 ? fieldCrewCost / fieldCrewHours : null;
+  const billingRate = job.blendedLaborRate != null ? Number(job.blendedLaborRate) : null;
+  const isTMJob = job.jobType === "TIME_AND_MATERIALS";
+  const profitPerHour =
+    isTMJob && billingRate != null && actualCostRate != null ? billingRate - actualCostRate : null;
+
   if (role !== "ADMIN" && role !== "OFFICE") return null;
 
   return (
@@ -2267,6 +2290,36 @@ function ProfitabilityCard({ job, role, companyRates, computed, overheadAllocati
           <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 mb-3">
             <p className="text-xs font-semibold text-blue-800 mb-1">Revenue (Gross Billing)</p>
             <p className="text-lg font-bold text-[#1e3a8a] tabular-nums">{fmt$(computed.grossBilling)}</p>
+          </div>
+
+          {/* Labor rates (display only) */}
+          <div className="border border-gray-200 rounded-lg px-3 py-2.5 mb-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider pb-1">Labor rates</p>
+            <div className="flex items-center justify-between py-1">
+              <p className="text-sm text-gray-600">Billing rate ($/hr)</p>
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                {billingRate != null ? fmt$(billingRate) : <span className="text-gray-400 font-normal">not set</span>}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <p className="text-sm text-gray-600">Actual cost rate ($/hr)</p>
+              <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                {actualCostRate != null ? fmt$(actualCostRate) : <span className="text-gray-400 font-normal">No field crew hours yet</span>}
+              </span>
+            </div>
+            {isTMJob && (
+              <div className="flex items-center justify-between py-1">
+                <p className="text-sm text-gray-600">Profit per hour</p>
+                <span className={`text-sm font-bold tabular-nums ${
+                  profitPerHour == null ? "text-gray-400 font-normal" : profitPerHour >= 0 ? "text-green-700" : "text-red-600"
+                }`}>
+                  {profitPerHour != null ? fmt$(profitPerHour) : "—"}
+                </span>
+              </div>
+            )}
+            <p className="text-xs text-gray-400 pt-1">
+              Actual uses current wages; field crew only ({fieldCrewHours.toFixed(1)} hrs). Excluded: {nonFieldHours.toFixed(1)} hrs from non-field staff.
+            </p>
           </div>
 
           {/* Cost breakdown */}
