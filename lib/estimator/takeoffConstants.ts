@@ -5,12 +5,21 @@
 
 import items from '../../public/takeoff-items.json';
 
+/** Where an item's "→ Build" button sends it (optional "build" field in the JSON). */
+export interface BuildTarget {
+  tab:     string;   // estimator tab to open: 'assemblies' | 'fixtures'
+  builder: 'fa' | 'lv' | 'data' | 'fixture' | 'threeway';
+  target?: string;   // fa: FA device id | lv: LV device type | fixture: Fixture Builder assembly id
+  ports?:  number;   // data: port count to pre-fill
+}
+
 interface TakeoffItemDef {
   key:      string;
   name:     string;
   category: string;
   unit:     string;     // 'ea' | 'ft'
   aliases:  string[];   // old / alternate spellings (PDF tool library, PDF run tool)
+  build?:   BuildTarget;
 }
 
 const TAKEOFF_ITEMS = items as TakeoffItemDef[];
@@ -52,6 +61,11 @@ export const CAT_ORDER: string[] = [
   'devices', 'fixtures', 'data_lv', 'fa',
   'gear', 'rough', 'conduit', 'mc', 'racks',
 ];
+
+/** Item id -> Build target, for the items that have a "→ Build" button. */
+export const ITEM_BUILD: Record<string, BuildTarget> = Object.fromEntries(
+  TAKEOFF_ITEMS.filter(i => i.build).map(i => [i.key, i.build as BuildTarget]),
+);
 
 /** Alternate spelling -> real item id (e.g. cond_emt_12 -> emt_12). */
 export const ITEM_ALIASES: Record<string, string> = Object.fromEntries(
