@@ -4,8 +4,16 @@ import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { useEffect, useRef, useState } from 'react';
 import {
   ITEM_LABELS, ITEM_CATEGORY, FOOTAGE_ITEMS,
-  CATEGORY_LABELS, CAT_ORDER,
+  CATEGORY_LABELS, CAT_ORDER, normalizeTakeoffCounts,
 } from '@/lib/estimator/takeoffConstants';
+
+// Translate alias keys to real item ids in imported areas too, so the By Area
+// list agrees with the totals.
+function normalizeAreas(
+  areas: Array<{ areaName: string; counts: Record<string, number> }>,
+): Array<{ areaName: string; counts: Record<string, number> }> {
+  return areas.map(a => ({ ...a, counts: normalizeTakeoffCounts(a.counts ?? {}) }));
+}
 
 // ── Takeoff → builder mappings ────────────────────────────────────────────────
 
@@ -157,8 +165,8 @@ export function TakeoffTab() {
         }
         setState(s => ({
           ...s,
-          takeoffCounts: json.totals as Record<string, number>,
-          takeoffAreas:  Array.isArray(json.areas) ? json.areas : [],
+          takeoffCounts: normalizeTakeoffCounts(json.totals as Record<string, number>),
+          takeoffAreas:  Array.isArray(json.areas) ? normalizeAreas(json.areas) : [],
           takeoffSource:
             `Counter export — ${json.exportDate ?? 'unknown date'}` +
             (json.jobName ? ` (${json.jobName as string})` : ''),
@@ -228,8 +236,8 @@ export function TakeoffTab() {
             onClick={() => {
               setState(s => ({
                 ...s,
-                takeoffCounts: syncPayload.totals,
-                takeoffAreas:  syncPayload.areas ?? [],
+                takeoffCounts: normalizeTakeoffCounts(syncPayload.totals),
+                takeoffAreas:  normalizeAreas(syncPayload.areas ?? []),
                 takeoffSource: `${syncPayload.source === 'pdf-takeoff' ? 'PDF Takeoff' : 'Counter'} — ${syncPayload.jobName || syncPayload.source}`,
                 jobName: (s.jobName === 'New Job' || s.jobName === '')
                   ? (syncPayload.jobName || s.jobName) : s.jobName,
