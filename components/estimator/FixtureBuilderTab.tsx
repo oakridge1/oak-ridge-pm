@@ -7,6 +7,7 @@ import { LabelSelector } from '@/components/estimator/LabelSelector';
 import { getRates, applyMarkup, N5, N6 } from '@/lib/estimator/constants';
 import type { AssemblyLine, SavedAssembly } from '@/lib/estimator/constants';
 import { getBomItem, BOM } from '@/lib/estimator/bom';
+import { SHOP_LABOR, CREW_ADDER, gangFactor } from '@/lib/estimator/shopLabor';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
@@ -84,6 +85,7 @@ const WHIP_OPTIONS = [
 ];
 
 const DIFF_OPTIONS = [
+  { label: 'Crew adder (12%)', value: CREW_ADDER },
   { label: 'Normal',      value: 1.00 },
   { label: 'Difficult',   value: 1.25 },
   { label: 'V.Difficult', value: 1.55 },
@@ -98,7 +100,7 @@ function buildFixtureAsm(
   asm:     AsmDef,
   whipFt:  number,
   qty:     number,
-  twoGang: boolean,
+  gangs:   number,
   romex:   boolean,
   diff:    number,
 ): SavedAssembly {
@@ -106,21 +108,22 @@ function buildFixtureAsm(
   const lines: AssemblyLine[] = [];
   let mat = 0, lab = 0;
 
+  // Part lines carry material cost only. All labor comes from the single
+  // "Install labor (shop standard)" line below (hours in lib/estimator/shopLabor.ts).
   function addI(id: string, q: number, label?: string) {
     if (q <= 0) return;
     try {
       const item = getBomItem(id);
       const m = applyMarkup(item.mat * q, item.mk);
-      const l = item.lhr * q * R.labor;
-      mat += m; lab += l;
-      lines.push({ name: label ?? item.name, qty: q, unit: item.unit, mat: m, lab: l });
+      mat += m;
+      lines.push({ name: label ?? item.name, qty: q, unit: item.unit, mat: m, lab: 0 });
     } catch {
       // BOM item missing — add a zero-cost placeholder
       lines.push({ name: label ?? `[${id}]`, qty: q, unit: 'EA', mat: 0, lab: 0 });
     }
   }
 
-  const q = twoGang ? qty * 2 : qty;  // effective device quantity
+  const q = gangs * qty;  // effective device quantity
 
   if (asm.grp === 'Device') {
     // ── Whip cable ────────────────────────────────────────────────────
@@ -146,14 +149,19 @@ function buildFixtureAsm(
     }
     // ── Device + plate + hardware ─────────────────────────────────────
     addI(asm.devId, q, asm.lbl);
-    if (twoGang) addI('dp3', qty,  '2-gang plate');
-    else         addI(asm.plId, qty, 'cover plate');
+    if (gangs === 2)      addI('dp3', qty, '2-gang plate');
+    else if (gangs >= 3)  { addI('dp3', qty, '3-gang plate (2G part)'); addI(asm.plId, qty, '3-gang plate (1G part)'); } // no 3G plate in BOM
+    else                  addI(asm.plId, qty, 'cover plate');
     addI('wc1', 4 * qty, 'wire nuts x4');
     addI('gr1',     qty, 'ground screw');
-    // ── Device install labor ──────────────────────────────────────────
-    const labCost = asm.aHr * q * diff * R.labor;
+    // ── Device install labor (shop standard) ──────────────────────────
+    // Shop-standard devices: base hrs per box x gang factor. Others keep their
+    // old per-device hours (aHr x devices).
+    const shop = SHOP_LABOR[asm.id];
+    const hrs  = (shop !== undefined ? shop * gangFactor(gangs) * qty : asm.aHr * q) * diff;
+    const labCost = hrs * R.labor;
     lab += labCost;
-    lines.push({ name: 'Device install labor', qty: q, unit: 'EA', mat: 0, lab: labCost });
+    lines.push({ name: 'Install labor (shop standard)', qty, unit: 'EA', mat: 0, lab: labCost });
 
   } else {
     // ── Fixture ───────────────────────────────────────────────────────
@@ -171,12 +179,9 @@ function buildFixtureAsm(
       addI('bs2', 2 * qty, 'CJ6 x2');
     }
     // Fixture install labor
-    const fixLabCost = asm.iHr * qty * diff * R.labor;
+    const fixLabCost = (SHOP_LABOR[asm.id] ?? asm.iHr) * qty * diff * R.labor;
     lab += fixLabCost;
-    lines.push({
-      name: `Fixture install labor (${asm.iHr}hr x${qty})`,
-      qty, unit: 'EA', mat: 0, lab: fixLabCost,
-    });
+    lines.push({ name: 'Install labor (shop standard)', qty, unit: 'EA', mat: 0, lab: fixLabCost });
   }
 
   return {
@@ -194,7 +199,9 @@ export function FixtureBuilderTab() {
   const R = getRates();
 
   // Form state lives on EstimatorState so the Takeoff tab can prefill it
-  const { selectedId, whipFt, qty, twoGang, romex, diff } = state.fixtureState;
+  const { selectedId, whipFt, qty, romex, diff } = state.fixtureState;
+  // gangs is absent on jobs saved before 3-gang existed; fall back to twoGang
+  const gangs = state.fixtureState.gangs ?? (state.fixtureState.twoGang ? 2 : 1);
 
   const selectedAsm = ASMS.find(a => a.id === selectedId) ?? ASMS[0];
   const isDevice    = selectedAsm.grp === 'Device';
@@ -206,6 +213,7 @@ export function FixtureBuilderTab() {
     updateFixtureState({
       selectedId: id,
       twoGang:    false,
+      gangs:      1,
       romex:      false,
       whipFt:     asm.grp === 'Device' ? asm.wFt : 0,
     });
@@ -213,8 +221,8 @@ export function FixtureBuilderTab() {
 
   // Computed (pure) assembly from builder inputs
   const computed = useMemo(
-    () => buildFixtureAsm(selectedAsm, whipFt, qty, twoGang, romex, diff),
-    [selectedAsm, whipFt, qty, twoGang, romex, diff],
+    () => buildFixtureAsm(selectedAsm, whipFt, qty, gangs, romex, diff),
+    [selectedAsm, whipFt, qty, gangs, romex, diff],
   );
 
   // Editable copy — reset when computed changes
@@ -342,17 +350,20 @@ export function FixtureBuilderTab() {
         {/* Device-only toggles */}
         {isDevice && (
           <div className="flex flex-wrap gap-4 mb-4">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={twoGang}
-                onChange={e => updateFixtureState({ twoGang: e.target.checked })}
-                className="w-4 h-4 accent-[#1e3a8a]"
-              />
-              <span className="text-sm text-gray-700">
-                2-gang
-                <span className="ml-1 text-xs text-gray-400">(doubles device qty)</span>
-              </span>
+            <label className="flex items-center gap-2 select-none">
+              <select
+                value={gangs}
+                onChange={e => {
+                  const g = parseInt(e.target.value, 10);
+                  updateFixtureState({ gangs: g, twoGang: g >= 2 });
+                }}
+                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+              >
+                <option value={1}>1-gang</option>
+                <option value={2}>2-gang</option>
+                <option value={3}>3-gang</option>
+              </select>
+              <span className="text-xs text-gray-400">(devices x gangs; +25% labor per extra gang)</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
