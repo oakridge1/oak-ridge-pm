@@ -124,6 +124,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 2026-11-02 feat/actual-cost-rate: Profitability card shows billing rate, actual field-crew cost rate and T&M profit per hour (display only). Recovery tag recovery-2026-11-02-pre-actual-cost-rate.
 2026-11-02 feat/bid-crew-rate: Job Info bid crew picker + "Lock in bid cost rate" (average field-crew wage x burden, frozen on Job.bidCostRate/bidCrewIds/bidCostRateSetAt); Summary Labor rates shows bid rate and actual vs bid. ADMIN/OFFICE only; fields stripped from the page for everyone else. The three columns were added by SQL on 2026-11-02 (nullable). Recovery tag recovery-2026-11-02-pre-bid-crew.
 2026-11-03 feat/ridge-sync-step1: groundwork only, no visible change. Copies added by the live ASSEMBLY_PLACED message now carry fromPdf/pdfLabel (optional fields inside the estimate JSON, no schema change); new pure lib/estimator/ridgeSync.ts compareRidgeTally + node tests (node scripts/test-ridge-sync.mjs). Not wired to any UI yet. Recovery tag recovery-2026-11-03-pre-ridge-sync-1.
+2026-11-03 feat/ridge-sync-step3: PDF tool (public/pdf-takeoff.html only) now recounts Ridge placements per label across all drawings after every save and on load, writes localStorage ore_ridge_tally {estimateId, updatedAt, counts} and posts RIDGE_TALLY on the ore_tools channel. Nothing listens yet; ASSEMBLY_PLACED, marker storage and undo unchanged. Recovery tag recovery-2026-11-03-pre-ridge-sync-3.
 
 ### Business rule: per-quote pricing
 

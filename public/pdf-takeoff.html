@@ -747,7 +747,7 @@ try{
       updateLabelDisplay();
     }
     if(msg.type==='JOB_CONTEXT'){
-      if(msg.payload.estimateId)estimateId=msg.payload.estimateId;
+      if(msg.payload.estimateId){estimateId=msg.payload.estimateId;publishRidgeTally();}
     }
     if(msg.type==='RIDGE_LIST_UPDATE'){
       ridgeList=msg.payload.assemblies||[];
@@ -900,7 +900,21 @@ function hCountRidge(e){
 // ═══════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════
-function save(){try{var p={assemblies:assemblies,runTypes:runTypes,drawings:{},currentDwgId:currentDwgId};Object.keys(drawings).forEach(function(id){p.drawings[id]={name:drawings[id].name,markups:drawings[id].markups,pxPerFoot:drawings[id].pxPerFoot,pdfUrl:drawings[id].pdfUrl||null,pdfB64:drawings[id].pdfB64||null};});localStorage.setItem(SK,JSON.stringify(p));}catch(e){}}
+function save(){try{var p={assemblies:assemblies,runTypes:runTypes,drawings:{},currentDwgId:currentDwgId};Object.keys(drawings).forEach(function(id){p.drawings[id]={name:drawings[id].name,markups:drawings[id].markups,pxPerFoot:drawings[id].pxPerFoot,pdfUrl:drawings[id].pdfUrl||null,pdfB64:drawings[id].pdfB64||null};});localStorage.setItem(SK,JSON.stringify(p));}catch(e){}publishRidgeTally();}
+// Ridge tally: recount Ridge placements per label across ALL drawings (same data save() writes to ore_pdf_v4),
+// so place, undo, delete and clear are all covered. Never throws: placing must not break because of the tally.
+function publishRidgeTally(){
+  try{
+    var counts={};
+    Object.keys(drawings).forEach(function(id){
+      var ms=drawings[id]&&drawings[id].markups;if(!ms)return;
+      ms.forEach(function(m){if(m&&m.ridgeAsm){var l=m.label||m.asmId;if(l)counts[l]=(counts[l]||0)+1;}});
+    });
+    var payload={estimateId:estimateId||'standalone',updatedAt:new Date().toISOString(),counts:counts};
+    try{localStorage.setItem('ore_ridge_tally',JSON.stringify(payload));}catch(e){}
+    try{if(oreChannel)oreChannel.postMessage({type:'RIDGE_TALLY',payload:payload});}catch(e){}
+  }catch(e){}
+}
 function loadSaved(){try{var d=JSON.parse(localStorage.getItem(SK));if(!d)return;if(d.assemblies&&d.assemblies.length)assemblies=d.assemblies;if(d.runTypes&&d.runTypes.length)runTypes=d.runTypes;if(d.drawings)drawings=d.drawings;if(d.currentDwgId&&drawings[d.currentDwgId])currentDwgId=d.currentDwgId;recomputeCounts();rebuildDwgSel();renderAll();if(currentDwgId)updateScaleStatus();}catch(e){}}
 
 function curDwg(){return currentDwgId?drawings[currentDwgId]:null;}
@@ -1839,7 +1853,7 @@ function loadMasterList(){
   }catch(e){fail();}
 }
 
-window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();renderAll();updateHint();updateLabelDisplay();setAsmMode('ridge');renderRidgeList();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}
+window.onload=function(){buildCG('asm-cgrid',selAC,function(c){selAC=c;});buildCG('rt-cgrid',selRC,function(c){selRC=c;});buildSymGrid(selSymId);initAsmSearch();loadSaved();publishRidgeTally();renderAll();updateHint();updateLabelDisplay();setAsmMode('ridge');renderRidgeList();if(currentDwgId&&drawings[currentDwgId]&&(drawings[currentDwgId].pdfUrl||drawings[currentDwgId].pdfB64)){reloadDrawingPdf(currentDwgId);}
   loadMasterList();
   // Ask the estimator for its current Ridge List (it re-broadcasts on PING)
   if(oreChannel){setTimeout(function(){oreChannel.postMessage({type:'PING',payload:{source:'pdf-takeoff'}});},500);}
