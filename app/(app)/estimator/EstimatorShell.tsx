@@ -206,7 +206,9 @@ export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
     channel.onmessage = (e) => {
       const msg = e.data ?? {};
       if (msg.type === 'ASSEMBLY_PLACED' && msg.payload?.assembly) {
-        addPrebuiltRef.current(msg.payload.assembly as SavedAssembly);
+        const placed = msg.payload.assembly as SavedAssembly;
+        // Flag the copy so Ridge sync can count PDF-placed copies (pricing unchanged)
+        addPrebuiltRef.current({ ...placed, fromPdf: true, pdfLabel: placed.label });
       }
       if (msg.type === 'PING' || msg.type === 'PONG') {
         // Tool (re)connected — send it the current Ridge List
