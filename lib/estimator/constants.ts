@@ -124,6 +124,8 @@ export interface SavedAssembly {
   bidPackage?:  string;
   area?:        string;
   costCode?:    string;
+  fromPdf?:     boolean;                  // true if this copy was placed from the PDF tool (Ridge List)
+  pdfLabel?:    string;                   // label of the PDF item this copy counts toward
 }
 
 // ─────────────────────────────────────
