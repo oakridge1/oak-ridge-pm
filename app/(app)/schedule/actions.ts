@@ -204,14 +204,19 @@ export async function clockOut(scheduleId: string, lunchDeducted: boolean) {
   const hoursWorked = lunchDeducted ? Math.max(0, rawHours - 0.5) : rawHours;
   const roundedHours = Math.round(hoursWorked * 100) / 100;
 
-  // LaborEntry only stores jobId, userId, date, hours, submittedByName
-  const laborEntry = await prisma.laborEntry.create({
-    data: {
+  // If an auto-logged entry already exists for this shift and person, the real clock-out
+  // replaces its hours (and becomes source CLOCK) instead of failing on the unique index.
+  const laborEntry = await prisma.laborEntry.upsert({
+    where: { scheduleId_userId: { scheduleId, userId: session.user.id } },
+    update: { hours: roundedHours, source: "CLOCK" },
+    create: {
       jobId:           entry.schedule.job.id,
       userId:          session.user.id,
       date:            new Date(departedAt.toISOString().slice(0, 10) + "T12:00:00"),
       hours:           roundedHours,
       submittedByName: `Auto-logged via clock out — ${entry.schedule.job.jobName}`,
+      source:          "CLOCK",
+      scheduleId,
     },
   });
 
