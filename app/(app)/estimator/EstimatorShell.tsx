@@ -83,7 +83,7 @@ function categoryColor(label: string): string {
 }
 
 export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
-  const { state, setState, setTab, addPrebuiltAssembly } = useEstimatorContext();
+  const { state, setState, setTab } = useEstimatorContext();
   const tab = state.tab;
   const [jobsOpen,     setJobsOpen]     = useState(false);
   const [counterOpen,  setCounterOpen]  = useState(false);
@@ -196,8 +196,6 @@ export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
   // Keep latest callbacks reachable from the long-lived channel listener
   const broadcastRef = useRef(broadcastRidgeList);
   broadcastRef.current = broadcastRidgeList;
-  const addPrebuiltRef = useRef(addPrebuiltAssembly);
-  addPrebuiltRef.current = addPrebuiltAssembly;
 
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return;
@@ -205,11 +203,8 @@ export function EstimatorShell({ isAdmin = false }: { isAdmin?: boolean }) {
     channelRef.current = channel;
     channel.onmessage = (e) => {
       const msg = e.data ?? {};
-      if (msg.type === 'ASSEMBLY_PLACED' && msg.payload?.assembly) {
-        const placed = msg.payload.assembly as SavedAssembly;
-        // Flag the copy so Ridge sync can count PDF-placed copies (pricing unchanged)
-        addPrebuiltRef.current({ ...placed, fromPdf: true, pdfLabel: placed.label });
-      }
+      // ASSEMBLY_PLACED no longer adds anything to the estimate. PDF placement counts now flow
+      // through the "PDF tool placements" panel on the Takeoff tab (RIDGE_TALLY + Add/Remove buttons).
       if (msg.type === 'PING' || msg.type === 'PONG') {
         // Tool (re)connected — send it the current Ridge List
         broadcastRef.current();
