@@ -6,9 +6,11 @@ export function parseJobNumberAllowlist(raw: string | undefined | null): string[
   return [...new Set(raw.split(',').map((s) => s.trim()).filter(Boolean))];
 }
 
-/** Exact (trimmed) match. An empty allowlist allows nothing. */
+/** Trimmed, case-insensitive match. An empty allowlist allows nothing. */
 export function isJobAllowed(jobNumber: string, allowlist: string[]): boolean {
-  return allowlist.includes(jobNumber.trim());
+  const want = jobNumber.trim().toLowerCase();
+  if (!want) return false;
+  return allowlist.some((a) => a.trim().toLowerCase() === want);
 }
 
 /**

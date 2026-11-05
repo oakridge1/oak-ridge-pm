@@ -179,13 +179,25 @@ test('allowlist parsing: trims, drops blanks and duplicates; unset means empty',
   assert.deepEqual(parseJobNumberAllowlist(null), []);
 });
 
-test('isJobAllowed: exact match only; empty list allows nothing', () => {
+test('isJobAllowed: trimmed, case-insensitive, whole-number match; empty list allows nothing', () => {
   const list = ['training123', 'J-9'];
   assert.equal(isJobAllowed('training123', list), true);
   assert.equal(isJobAllowed(' J-9 ', list), true);
+  assert.equal(isJobAllowed('TRAINING123', list), true);
+  assert.equal(isJobAllowed('  Training123  ', list), true);
+  assert.equal(isJobAllowed('j-9', list), true);
   assert.equal(isJobAllowed('training1234', list), false);
-  assert.equal(isJobAllowed('TRAINING123', list), false);
+  assert.equal(isJobAllowed('training12', list), false);
   assert.equal(isJobAllowed('training123', []), false);
+  assert.equal(isJobAllowed('', ['']), false);
+  assert.equal(isJobAllowed('   ', list), false);
+});
+
+test('allowlist from env text is case-insensitive end to end', () => {
+  const list = parseJobNumberAllowlist(' Training123 , J-9 ');
+  assert.equal(isJobAllowed('TRAINING123', list), true);
+  assert.equal(isJobAllowed('training123', list), true);
+  assert.equal(isJobAllowed('j-10', list), false);
 });
 
 test('start date: on or after is allowed; before is not; unset is no limit', () => {
@@ -218,6 +230,75 @@ test('isUniqueViolation recognizes Prisma and Postgres unique errors only', () =
   assert.equal(isUniqueViolation(new Error('connection reset')), false);
   assert.equal(isUniqueViolation(null), false);
   assert.equal(isUniqueViolation('x'), false);
+});
+
+// ── step 5: cron secret check, "yesterday" at run time, summary email text ──
+import { checkCronAuth, shouldSendSummary, buildSummaryText, summarySubject } from '../lib/autolog/cronHelpers.ts';
+
+test('cron secret missing or empty: 500, nothing runs (even with a header that looks right)', () => {
+  for (const secret of [undefined, null, '']) {
+    const r = checkCronAuth(secret, 'Bearer undefined');
+    assert.equal(r.ok, false);
+    assert.equal(r.status, 500);
+  }
+  assert.equal(checkCronAuth(undefined, null).status, 500);
+  assert.equal(checkCronAuth('', 'Bearer ').status, 500);
+});
+
+test('cron secret set but header wrong or missing: 401', () => {
+  for (const header of [null, undefined, '', 'Bearer', 'Bearer wrong', 'bearer s3cret', 'Bearer s3cret ', ' Bearer s3cret', 's3cret', 'Basic s3cret']) {
+    const r = checkCronAuth('s3cret', header);
+    assert.equal(r.ok, false, `header ${JSON.stringify(header)}`);
+    assert.equal(r.status, 401);
+  }
+});
+
+test('cron secret set and header exactly right: ok', () => {
+  assert.deepEqual(checkCronAuth('s3cret', 'Bearer s3cret'), { ok: true });
+});
+
+test('cron run at 06:00 UTC processes yesterday in Eastern time (winter and summer)', () => {
+  assert.equal(yesterdayEastern(new Date('2026-11-06T06:00:00Z')), '2026-11-05'); // 01:00 EST
+  assert.equal(yesterdayEastern(new Date('2026-07-15T06:00:00Z')), '2026-07-14'); // 02:00 EDT
+});
+
+test('a run just after midnight UTC still counts the Eastern evening as "today"', () => {
+  // 00:05 UTC Nov 6 = 7:05 pm EST Nov 5, so yesterday is Nov 4 (UTC date math would give Nov 5).
+  assert.equal(yesterdayEastern(new Date('2026-11-06T00:05:00Z')), '2026-11-04');
+  // 00:05 UTC in July = 8:05 pm EDT the day before.
+  assert.equal(yesterdayEastern(new Date('2026-07-15T00:05:00Z')), '2026-07-13');
+  // Just after midnight Eastern (04:05 UTC in July) rolls over to a new Eastern day.
+  assert.equal(yesterdayEastern(new Date('2026-07-15T04:05:00Z')), '2026-07-14');
+});
+
+const item = (over = {}) => ({ scheduleId: 's1', jobId: 'j1', jobNumber: 'training123', jobName: 'Training', userId: 'u1', userName: 'Steven', date: D, hours: 8.5, reason: 'scheduled', clockEntryId: null, ...over });
+const sum = (over = {}) => ({ targetDate: D, logged: [], skipped: [], errors: [], ...over });
+
+test('summary email only when something was logged or errored', () => {
+  assert.equal(shouldSendSummary(sum()), false);
+  assert.equal(shouldSendSummary(sum({ skipped: [{ scheduleId: 's', userId: 'u', userName: 'x', jobNumber: 'j', reason: 'user_inactive' }] })), false);
+  assert.equal(shouldSendSummary(sum({ logged: [item()] })), true);
+  assert.equal(shouldSendSummary(sum({ errors: [{ scheduleId: 's', userId: 'u', userName: 'x', jobNumber: 'j', message: 'boom' }] })), true);
+});
+
+test('summary text: date, one line per entry, reasons, no dollar amounts', () => {
+  const text = buildSummaryText(sum({
+    logged: [item(), item({ userId: 'u2', userName: 'Tyler', hours: 8, reason: 'forgot_depart' })],
+    skipped: [
+      { scheduleId: 's1', userId: 'u3', userName: 'Caleb', jobNumber: 'TRAINING123', reason: 'labor_entry_exists' },
+      { scheduleId: 's9', userId: 'u4', userName: 'Other', jobNumber: 'J-99', reason: 'job_not_in_progress' },
+    ],
+    errors: [{ scheduleId: 's1', userId: 'u5', userName: 'Michael', jobNumber: 'training123', message: 'db down' }],
+  }), (jobNumber) => isJobAllowed(jobNumber, ['training123']));
+  assert.ok(text.includes(D));
+  assert.ok(text.includes('training123 Training - Steven - 8.5 hrs'));
+  assert.ok(text.includes('Tyler - 8 hrs (arrived, never departed'));
+  assert.ok(text.includes('Caleb - already has hours on this job that day'));
+  assert.ok(!text.includes('Other'), 'skips for jobs that are not enabled are left out');
+  assert.ok(text.includes('Michael - db down'));
+  assert.ok(!text.includes('$'));
+  assert.equal(summarySubject(sum({ logged: [item()], errors: [1] })), `Auto-log ${D}: 1 logged, 1 error`);
+  assert.equal(summarySubject(sum({ logged: [item(), item()] })), `Auto-log ${D}: 2 logged`);
 });
 
 console.log(`\n${n} tests passed`);

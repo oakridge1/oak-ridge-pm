@@ -23,6 +23,7 @@ export interface AutoLogRunError {
   scheduleId: string;
   userId: string;
   userName: string;
+  jobNumber: string;
   message: string;
 }
 
