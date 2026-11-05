@@ -585,9 +585,20 @@ model LaborEntry {
   hours           Float
   submittedByName String?  // name snapshot of who entered this record
   createdAt       DateTime @default(now())
+  source          LaborSource @default(MANUAL)
+  scheduleId      String?  // shift this entry was auto-logged for (one per shift and person)
 
-  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id])
+  job      Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id])
+  schedule Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  @@unique([scheduleId, userId])
+}
+
+enum LaborSource {
+  MANUAL
+  CLOCK
+  AUTO
 }
 
 // ── Materials ────────────────────────────────────────────────────────────────
@@ -861,6 +872,7 @@ model Schedule {
   createdBy   User     @relation("ScheduleCreatedBy", fields: [createdById], references: [id])
   assignments ScheduleAssignment[]
   clockEntries ClockEntry[]
+  laborEntries LaborEntry[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
