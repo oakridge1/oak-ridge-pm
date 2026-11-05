@@ -165,4 +165,59 @@ test('date-only labor entries (midnight UTC) keep their own day; noon clock-out 
   assert.equal(laborEntryDay('not a date'), '');
 });
 
+// ── step 4: write guards (pure helpers) ──
+import {
+  parseJobNumberAllowlist, isJobAllowed, isDateAllowed, autoLogBlockReason, isUniqueViolation,
+} from '../lib/autolog/autologGuards.ts';
+
+test('allowlist parsing: trims, drops blanks and duplicates; unset means empty', () => {
+  assert.deepEqual(parseJobNumberAllowlist('training123'), ['training123']);
+  assert.deepEqual(parseJobNumberAllowlist(' a, b ,, c ,a'), ['a', 'b', 'c']);
+  assert.deepEqual(parseJobNumberAllowlist(''), []);
+  assert.deepEqual(parseJobNumberAllowlist('  ,  '), []);
+  assert.deepEqual(parseJobNumberAllowlist(undefined), []);
+  assert.deepEqual(parseJobNumberAllowlist(null), []);
+});
+
+test('isJobAllowed: exact match only; empty list allows nothing', () => {
+  const list = ['training123', 'J-9'];
+  assert.equal(isJobAllowed('training123', list), true);
+  assert.equal(isJobAllowed(' J-9 ', list), true);
+  assert.equal(isJobAllowed('training1234', list), false);
+  assert.equal(isJobAllowed('TRAINING123', list), false);
+  assert.equal(isJobAllowed('training123', []), false);
+});
+
+test('start date: on or after is allowed; before is not; unset is no limit', () => {
+  assert.equal(isDateAllowed('2026-11-05', '2026-11-05'), true);
+  assert.equal(isDateAllowed('2026-11-06', '2026-11-05'), true);
+  assert.equal(isDateAllowed('2026-11-04', '2026-11-05'), false);
+  assert.equal(isDateAllowed('2026-11-04', undefined), true);
+  assert.equal(isDateAllowed('2026-11-04', ''), true);
+  assert.equal(isDateAllowed('2027-01-01', '2026-12-31'), true);
+});
+
+test('start date set but unreadable fails closed', () => {
+  assert.equal(isDateAllowed('2026-11-05', 'next tuesday'), false);
+  assert.equal(isDateAllowed('bad', '2026-11-05'), false);
+});
+
+test('autoLogBlockReason: unset list = disabled, early date = blocked, otherwise null', () => {
+  assert.equal(autoLogBlockReason('2026-11-05', {}), 'disabled');
+  assert.equal(autoLogBlockReason('2026-11-05', { jobNumbers: '', startDate: '2026-01-01' }), 'disabled');
+  assert.equal(autoLogBlockReason('2026-11-01', { jobNumbers: 'training123', startDate: '2026-11-05' }), 'before_start_date');
+  assert.equal(autoLogBlockReason('2026-11-05', { jobNumbers: 'training123', startDate: '2026-11-05' }), null);
+  assert.equal(autoLogBlockReason('2026-11-05', { jobNumbers: 'training123' }), null);
+});
+
+test('isUniqueViolation recognizes Prisma and Postgres unique errors only', () => {
+  assert.equal(isUniqueViolation({ code: 'P2002' }), true);
+  assert.equal(isUniqueViolation({ code: '23505' }), true);
+  assert.equal(isUniqueViolation(new Error('Unique constraint failed on the fields: (`scheduleId`,`userId`)')), true);
+  assert.equal(isUniqueViolation({ code: 'P2025' }), false);
+  assert.equal(isUniqueViolation(new Error('connection reset')), false);
+  assert.equal(isUniqueViolation(null), false);
+  assert.equal(isUniqueViolation('x'), false);
+});
+
 console.log(`\n${n} tests passed`);

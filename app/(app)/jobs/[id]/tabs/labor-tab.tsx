@@ -26,6 +26,7 @@ type LaborEntry = {
   date: Date;
   hours: number;
   submittedByName: string | null;
+  source?: "MANUAL" | "CLOCK" | "AUTO";
   user: { id: string; name: string | null };
 };
 
@@ -113,6 +114,11 @@ function EditableRow({
         <>
           <div className="flex-1 min-w-0">
             <span className="text-sm font-medium text-gray-900">{entry.user.name ?? "—"}</span>
+            {entry.source === "AUTO" && (
+              <span className="ml-2 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                Auto
+              </span>
+            )}
             {entry.submittedByName && entry.submittedByName !== entry.user.name && (
               <span className="text-xs text-gray-400 ml-2">via {entry.submittedByName}</span>
             )}

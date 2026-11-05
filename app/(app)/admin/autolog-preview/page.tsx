@@ -1,14 +1,12 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import {
-  computeAutoLog,
-  yesterdayEastern,
-  type AutoLogSchedule,
-} from "@/lib/autolog/computeAutoLog";
+import { computeAutoLog, yesterdayEastern } from "@/lib/autolog/computeAutoLog";
+import { loadAutoLogInput } from "@/lib/autolog/loadAutoLogInput";
+import { autoLogBlockReason, isJobAllowed, parseJobNumberAllowlist } from "@/lib/autolog/autologGuards";
+import { RunButton } from "./run-button";
 
-// ADMIN-only, READ-ONLY dry run of the nightly auto-log. It loads data and shows what WOULD be
-// logged. There is no button here that writes anything.
+// ADMIN-only preview of the auto-log. The tables are read-only; the single "Run for this date"
+// button (server action, re-checks ADMIN) writes only for jobs in AUTO_LOG_JOB_NUMBERS.
 
 const REASON_TEXT: Record<string, string> = {
   job_not_in_progress: "Job is not In Progress",
@@ -34,65 +32,32 @@ export default async function AutoLogPreviewPage({
   const requested = sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : null;
   const targetDate = requested ?? yesterdayEastern(new Date());
 
-  const dayStart = new Date(`${targetDate}T00:00:00.000Z`);
-  if (Number.isNaN(dayStart.getTime())) redirect("/admin/autolog-preview");
+  if (Number.isNaN(new Date(`${targetDate}T00:00:00.000Z`).getTime())) redirect("/admin/autolog-preview");
 
-  const schedules = await prisma.schedule.findMany({
-    where: { date: dayStart },
-    select: {
-      id: true,
-      date: true,
-      startTime: true,
-      endTime: true,
-      job: { select: { id: true, jobNumber: true, jobName: true, status: true, archived: true } },
-      assignments: { select: { userId: true, user: { select: { name: true, active: true } } } },
-    },
-  });
+  const { toLog, skipped } = computeAutoLog(await loadAutoLogInput(targetDate));
 
-  const scheduleIds = schedules.map((s) => s.id);
-  const jobIds = [...new Set(schedules.map((s) => s.job.id))];
-  const dayMs = 24 * 60 * 60 * 1000;
-
-  const [clockEntries, laborEntries] = await Promise.all([
-    prisma.clockEntry.findMany({
-      where: { scheduleId: { in: scheduleIds } },
-      select: { id: true, scheduleId: true, userId: true, arrivedAt: true, departedAt: true },
-    }),
-    prisma.laborEntry.findMany({
-      // wide window so Eastern-time conversion can't miss an entry; the function does the exact match
-      where: {
-        jobId: { in: jobIds },
-        date: { gte: new Date(dayStart.getTime() - dayMs), lt: new Date(dayStart.getTime() + 2 * dayMs) },
-      },
-      select: { id: true, jobId: true, userId: true, date: true, scheduleId: true },
-    }),
-  ]);
-
-  const input: AutoLogSchedule[] = schedules.map((s) => ({
-    id: s.id,
-    date: s.date.toISOString().slice(0, 10),
-    startTime: s.startTime,
-    endTime: s.endTime,
-    job: s.job,
-    assignments: s.assignments.map((a) => ({
-      userId: a.userId,
-      userName: a.user.name ?? "Unknown",
-      userActive: a.user.active,
-    })),
-  }));
-
-  const { toLog, skipped } = computeAutoLog({ targetDate, schedules: input, clockEntries, laborEntries });
+  const envJobs = process.env.AUTO_LOG_JOB_NUMBERS;
+  const envStart = process.env.AUTO_LOG_START_DATE;
+  const allowlist = parseJobNumberAllowlist(envJobs);
+  const eligibleCount = toLog.filter((i) => isJobAllowed(i.jobNumber, allowlist)).length;
+  const block = autoLogBlockReason(targetDate, { jobNumbers: envJobs, startDate: envStart });
+  const disabledReason =
+    block === "disabled"
+      ? "Disabled: AUTO_LOG_JOB_NUMBERS is not set."
+      : block === "before_start_date"
+        ? "Disabled: this date is before AUTO_LOG_START_DATE."
+        : null;
   const totalHours = toLog.reduce((s, i) => s + i.hours, 0);
 
-  const flagJobs = process.env.AUTO_LOG_JOB_NUMBERS?.trim() || "(not set: auto-log is off)";
-  const flagStart = process.env.AUTO_LOG_START_DATE?.trim() || "(not set)";
+  const flagJobs = envJobs?.trim() || "(not set: auto-log is off)";
+  const flagStart = envStart?.trim() || "(not set)";
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Auto-log preview (dry run)</h1>
         <p className="text-sm text-gray-500">
-          Shows what the nightly auto-log would add for one day. Nothing is saved from this page.
+          Shows what the nightly auto-log would add for one day. Nothing is saved unless you press Run.
         </p>
       </div>
 
@@ -112,7 +77,7 @@ export default async function AutoLogPreviewPage({
       </form>
 
       <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded px-3 py-2">
-        Settings for the real run (not applied to this preview): AUTO_LOG_JOB_NUMBERS = {flagJobs};
+        Run settings (the tables below ignore them; the Run button obeys them): AUTO_LOG_JOB_NUMBERS = {flagJobs};
         AUTO_LOG_START_DATE = {flagStart}.
       </div>
 
@@ -150,8 +115,10 @@ export default async function AutoLogPreviewPage({
         )}
       </section>
 
+      <RunButton targetDate={targetDate} eligibleCount={eligibleCount} disabledReason={disabledReason} />
+
       <section>
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Skipped: {skipped.length}</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">Skipped:{skipped.length}</h2>
         {skipped.length === 0 ? (
           <div className="text-sm text-gray-400">Nothing skipped.</div>
         ) : (
@@ -180,3 +147,4 @@ export default async function AutoLogPreviewPage({
     </div>
   );
 }
+
