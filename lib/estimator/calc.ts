@@ -13,6 +13,8 @@ import {
   type BomItem, type ConduitMapEntry,
 } from './bom';
 
+import { CREW_ADDER } from './shopLabor';
+
 // ─────────────────────────────────────
 // Core accumulator helpers (module-private)
 // ─────────────────────────────────────
@@ -1020,9 +1022,10 @@ export interface HighAmpReceptParams {
 
 // plateId was the missing id 'wn_ss'; the BOM has no high-amp/range plate, so
 // the closest existing item (dp1, 1G Receptacle Plate) is used.
+// Cables: 30A = w3 (10/2 MC Glide), 50A = w4c (6/3 MC Cable). 240V and twist-lock unchanged.
 const HA_DEF: Record<string, { cableId: string; plateId: string; lhrEa: number }> = {
-  '30A':  { cableId: 'rm2', plateId: 'dp1',  lhrEa: 1.00 },
-  '50A':  { cableId: 'w1',  plateId: 'dp1',  lhrEa: 1.25 },
+  '30A':  { cableId: 'w3',  plateId: 'dp1',  lhrEa: 1.00 },
+  '50A':  { cableId: 'w4c', plateId: 'dp1',  lhrEa: 1.25 },
   '240V': { cableId: 'w1',  plateId: 'dp1',  lhrEa: 1.00 },
   twist:  { cableId: 'w3',  plateId: 'dp1',  lhrEa: 1.50 },
 };
@@ -1049,9 +1052,10 @@ export function calcHighAmpRecept(p: HighAmpReceptParams): SavedAssembly | null 
   addItem(acc, 'wc1', p.qty * 3); // wire nuts (was missing id 'wn1')
   addItem(acc, 'gr1', p.qty);     // ground screw (was missing id 'gs1')
 
-  // Device install labor
-  addManual(acc, `${p.receptType} install labor (${p.qty} × ${def.lhrEa}hr)`, p.qty, 'EA', 0,
-    def.lhrEa * p.qty * p.diff * R.labor);
+  // Device install labor: per-device hours x crew adder (same as the Fixture builder), then difficulty
+  const hrsEa = def.lhrEa * CREW_ADDER;
+  addManual(acc, `${p.receptType} install labor (${p.qty} × ${hrsEa.toFixed(2)}hr, incl. crew adder)`, p.qty, 'EA', 0,
+    hrsEa * p.qty * p.diff * R.labor);
 
   const label = `High-amp recept — ${p.receptType} — ${p.whipFeet}ft whip — ${p.qty}ea`;
   return toAsm(acc, label, p as unknown as Record<string, unknown>);

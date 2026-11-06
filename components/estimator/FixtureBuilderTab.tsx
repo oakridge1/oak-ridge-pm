@@ -8,6 +8,7 @@ import { getRates, applyMarkup, N5, N6 } from '@/lib/estimator/constants';
 import type { AssemblyLine, SavedAssembly } from '@/lib/estimator/constants';
 import { getBomItem, BOM } from '@/lib/estimator/bom';
 import { SHOP_LABOR, CREW_ADDER, gangFactor } from '@/lib/estimator/shopLabor';
+import { mudRingFor, REC_CAN_FIXTURE_ID } from '@/lib/estimator/fixRules';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ const ASMS: AsmDef[] = [
   { id:'fan48',    grp:'Fixture', lbl:'Ceiling Fan 48"',              fixId:'lc15', iHr:N5.fan48        },
   { id:'fan55',    grp:'Fixture', lbl:'Ceiling Fan 55"',              fixId:'lc15', iHr:N5.fan55        },
   { id:'fan60',    grp:'Fixture', lbl:'Ceiling Fan 60"',              fixId:'lc15', iHr:N5.fan60        },
-  { id:'rec_can',  grp:'Fixture', lbl:'Recessed Can',                 fixId:'lc16', iHr:0.70            },
+  { id:'rec_can',  grp:'Fixture', lbl:'Recessed Can',                 fixId:REC_CAN_FIXTURE_ID, iHr:0.70 },
 ];
 
 const WHIP_OPTIONS = [
@@ -144,7 +145,8 @@ function buildFixtureAsm(
     } else {
       addI('b1',  qty, '4" square deep box');
       addI('bs1', qty, 'C23 bracket');
-      addI('mr1', qty, 'SG mud ring');
+      const ring = mudRingFor(gangs);
+      addI(ring.id, qty, ring.name);
       addI('bs2', 2 * qty, 'CJ6 x2');
     }
     // ── Device + plate + hardware ─────────────────────────────────────

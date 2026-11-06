@@ -361,6 +361,10 @@ export const BOM: BomItem[] = [
   { id:'lc16', cat:'Lighting', name:'Wafer Rough-In Frame Kit 4"',   unit:'EA', mat:5.29, lhr:0, mk:'light', gc:true },
   { id:'lc17', cat:'Lighting', name:'Tek Screw to T-Bar',            unit:'EA', mat:0.25, lhr:0, mk:'bulk'           },
 
+  // ── FLOOR BOX ─────────────────────────────────────────────────────────────
+  // fb_mnt: price-needed placeholder (mat:0.01 triggers the "⚠ Price needed" flag), like lc1–lc15.
+  { id:'fb_mnt', cat:'Floor Box', name:'Floor Box Mounting Material', unit:'EA', mat:0.01, lhr:0, mk:'bulk' },
+
   // ── HEATING & HVAC ────────────────────────────────────────────────────────
   { id:'h1',  cat:'Heating & HVAC', name:'Electric Baseboard 48"',             unit:'EA', mat:72.00,  lhr:N9.bb48,  mk:'bulk' },
   { id:'h2',  cat:'Heating & HVAC', name:'Electric Baseboard 96"',             unit:'EA', mat:132.00, lhr:N9.bb96,  mk:'bulk' },
