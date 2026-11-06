@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { getRates, applyMarkup, type SavedAssembly } from '@/lib/estimator/constants';
 import { BOM, type BomItem } from '@/lib/estimator/bom';
+import { isPriceNeeded } from '@/lib/estimator/priceNeeded';
 import type { EstimatorState } from '@/lib/estimator/state';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { LabelSelector } from '@/components/estimator/LabelSelector';
@@ -72,7 +73,7 @@ function AssemblyRow({
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
   const fmtH = (dollars: number) => (dollars / laborRate).toFixed(2) + 'h';
-  const hasMissingPrice = item.lines.some(l => l.mat > 0 && l.mat < 0.10);
+  const hasMissingPrice = item.lines.some(isPriceNeeded);
 
   function showSaveFeedback(msg: string) {
     setSaveFeedback(msg);
@@ -227,7 +228,7 @@ function AssemblyRow({
                       );
                     }
 
-                    const isMissingPrice = line.mat > 0 && line.mat < 0.10;
+                    const isMissingPrice = isPriceNeeded(line);
                     // Red border: line has no mat AND no lab — a descriptive placeholder
                     // the user added without filling in any costs.
                     const isNonBom = line.mat === 0 && line.lab === 0;
@@ -482,7 +483,7 @@ export function BidItemsTab() {
   const totalMat = allItems.reduce((s, i) => s + i.mat, 0);
   const totalLab = allItems.reduce((s, i) => s + i.lab, 0);
   const missingPriceCount = allItems.filter(item =>
-    item.lines.some(l => l.mat > 0 && l.mat < 0.10)
+    item.lines.some(isPriceNeeded)
   ).length;
 
   // ── Empty state ──────────────────────────────────────────────────────────────
