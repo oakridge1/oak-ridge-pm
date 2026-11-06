@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getRates, applyMarkup, type SavedAssembly, type AssemblyLine } from '@/lib/estimator/constants';
 import { BOM, type BomItem } from '@/lib/estimator/bom';
+import { isPriceNeeded } from '@/lib/estimator/priceNeeded';
 
 // ── EditablePreview ─────────────────────────────────────────────────────────────
 // Replaces the read-only preview table in calc-driven builders. Seeds editable
@@ -141,6 +142,10 @@ export function EditablePreview({
         </div>
       )}
 
+      {editedLines.some(isPriceNeeded) && (
+        <p className="text-xs text-yellow-700 font-semibold mb-1">⚠ Price needed</p>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
@@ -155,7 +160,12 @@ export function EditablePreview({
           </thead>
           <tbody>
             {editedLines.map((line, i) => (
-              <tr key={i} className="border-b border-gray-50 hover:bg-blue-50/40">
+              <tr
+                key={i}
+                className={`border-b border-gray-50 hover:bg-blue-50/40 ${
+                  isPriceNeeded(line) ? 'bg-yellow-50 border-l-2 border-yellow-400' : ''
+                }`}
+              >
                 <td className="py-0.5 pr-2">
                   <input
                     key={`n-${i}-${line.name}`}

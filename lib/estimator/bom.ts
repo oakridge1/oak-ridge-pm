@@ -505,7 +505,8 @@ export function invalidateBomCache(): void {
 }
 
 export function getBomItem(id: string): BomItem {
-  const item = (_bomCache ?? BOM_MAP).get(id);
+  // Live rows win; any id missing from the live table falls back to the built-in list.
+  const item = _bomCache?.get(id) ?? BOM_MAP.get(id);
   if (!item) throw new Error(`BOM item not found: "${id}"`);
   return item;
 }
