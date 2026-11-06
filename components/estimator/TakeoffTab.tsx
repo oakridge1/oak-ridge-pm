@@ -3,6 +3,7 @@
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { useEffect, useRef, useState } from 'react';
 import { RidgeSyncPanel } from './RidgeSyncPanel';
+import { DropsPreviewPanel } from './DropsPreviewPanel';
 import {
   ITEM_LABELS, ITEM_CATEGORY, FOOTAGE_ITEMS,
   CATEGORY_LABELS, CAT_ORDER, normalizeTakeoffCounts, ITEM_BUILD,
@@ -219,6 +220,7 @@ export function TakeoffTab() {
     <div className="space-y-4">
 
       <RidgeSyncPanel />
+      <DropsPreviewPanel />
 
       {/* ── IMPORT CHOICE DIALOG (only when counts already exist) ─────────── */}
       {pendingImport && (() => {
