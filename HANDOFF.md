@@ -132,6 +132,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 2026-11-05 feat/autolog-step4 (auto-log step 4): flag-guarded idempotent writes, NO cron. lib/autolog/runAutoLog.ts writes LaborEntry source AUTO + scheduleId only for jobs in AUTO_LOG_JOB_NUMBERS (unset = nothing) and on/after AUTO_LOG_START_DATE; a unique-index violation counts as already logged; per-row try/catch. ADMIN-only "Run for this date" button (server action, confirm) on /admin/autolog-preview. clockOut now saves source CLOCK + scheduleId and updates an existing auto entry for that shift instead of failing. Labor tab shows an "Auto" tag. Pure guards in lib/autolog/autologGuards.ts + tests. No Vercel env vars set. Recovery tag recovery-2026-11-05-pre-autolog-4.
 Auto-log step 5: nightly cron 06:00 UTC runs yesterday (Eastern) for allowlisted jobs; requires CRON_SECRET; summary email to Justin, CC Sam.
 Drops preview step 2: view-only panel on the Takeoff tab showing the included whip ft per placed device; no writes.
+Job adders step 2: display-only preview card on Bid Summary; not in totals, not saved.
 
 ### Business rule: per-quote pricing
 
