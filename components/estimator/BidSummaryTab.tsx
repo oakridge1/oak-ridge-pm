@@ -6,6 +6,7 @@ import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { getRates } from '@/lib/estimator/constants';
 import { createJob } from '@/app/(app)/actions';
 import { fmt$ } from '@/lib/estimator/format';
+import { AddersPreviewPanel } from './AddersPreviewPanel';
 
 // ── Format helpers ─────────────────────────────────────────────────────────────
 
@@ -786,6 +787,8 @@ export function BidSummaryTab() {
           </div>
         </div>
       )}
+
+      {!isEmpty && <AddersPreviewPanel matTotal={matTotal} effectiveLaborTotal={effectiveLaborTotal} subtotal={subtotal} grandTotal={grandWithFee} rates={{ bulk: R.bulk, overhead: R.overhead, profit: R.profit, designFeePct }} />}
 
       {/* ── ACTIONS ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-3">
