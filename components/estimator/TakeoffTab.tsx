@@ -73,7 +73,7 @@ function addAreas(existing: TakeoffArea[], incoming: TakeoffArea[]): TakeoffArea
 // ── TakeoffTab ─────────────────────────────────────────────────────────────────
 
 export function TakeoffTab() {
-  const { state, setState, setTab, setActiveLabel, addLabel, updateFAState, updateLVState, updateDataState, updateFixtureState, updateThreeWayState } = useEstimatorContext();
+  const { state, setState, setTab, setActiveLabel, addLabel, updateFAState, updateLVState, updateDataState, updateFixtureState } = useEstimatorContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [editingId,   setEditingId]   = useState<string | null>(null);
@@ -569,8 +569,8 @@ export function TakeoffTab() {
                         )}
                         {ITEM_BUILD[id]?.builder === 'threeway' && (
                           <button
-                            onClick={() => { updateThreeWayState({ travelerFt: qty }); setTab(ITEM_BUILD[id].tab); }}
-                            title="Load traveler footage into 3-Way Builder"
+                            onClick={() => { setTab(ITEM_BUILD[id].tab); }}
+                            title="Open the 3-Way Builder. Enter traveler feet from the drawing. 2 switches = 1 assembly."
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap">
                             → Build
                           </button>

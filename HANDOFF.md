@@ -133,6 +133,7 @@ This section was written on 2026-10-31 from a read-only review of the repo. Ever
 Auto-log step 5: nightly cron 06:00 UTC runs yesterday (Eastern) for allowlisted jobs; requires CRON_SECRET; summary email to Justin, CC Sam.
 Drops preview step 2: view-only panel on the Takeoff tab showing the included whip ft per placed device; no writes.
 Job adders step 2: display-only preview card on Bid Summary; not in totals, not saved.
+Estimator fixes step 2: 30A/50A HAR cable, HAR crew adder, home run wire warning, 2G mud ring, 3-way Build button, fb_mnt and recessed can flagged Price needed. New builds only.
 
 ### Business rule: per-quote pricing
 

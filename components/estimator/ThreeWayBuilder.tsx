@@ -42,6 +42,9 @@ export function ThreeWayBuilder() {
               value={threeWayState.travelerFt === 0 ? '' : threeWayState.travelerFt}
               onChange={e => updateThreeWayState({ travelerFt: parseFloat(e.target.value) || 0 })} />
           </div>
+          <p className="text-xs text-gray-500 self-center max-w-xs">
+            Enter traveler feet from the drawing. 2 switches = 1 assembly.
+          </p>
           {threeWayState.swType === 'volt010' && (
             <div>
               <label className="block text-xs text-gray-500 mb-1">0-10V Cable Ft</label>

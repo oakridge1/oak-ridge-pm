@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
 import { calcMCHomeRun } from '@/lib/estimator/calc';
+import { homeRunWireWarning } from '@/lib/estimator/fixRules';
 import { EditablePreview } from './EditablePreview';
 
 const DIFF_OPTIONS = [
@@ -23,6 +24,7 @@ export function MCHomeRunBuilder() {
   const { mcHRState } = state;
 
   const preview = useMemo(() => calcMCHomeRun(mcHRState), [mcHRState]);
+  const wireWarning = homeRunWireWarning(mcHRState.wireSize, mcHRState.bkrSize);
 
   const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
   const inp = 'w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
@@ -106,6 +108,12 @@ export function MCHomeRunBuilder() {
             )}
           </div>
         </div>
+
+        {wireWarning && (
+          <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded px-3 py-2">
+            ⚠ {wireWarning} Check the wire size or breaker (you can still add it).
+          </div>
+        )}
 
         <EditablePreview
           assembly={mcHRState.feet > 0 ? preview : null}
