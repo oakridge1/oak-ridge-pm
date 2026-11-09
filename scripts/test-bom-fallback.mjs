@@ -74,5 +74,25 @@ await test('source check: BidItemsTab and EditablePreview use isPriceNeeded, old
   assert.match(prev, /isPriceNeeded/);
 });
 
+await test('fixture builder preview: recessed can (lc9 $0.01) is flagged, a normally priced line is not', async () => {
+  invalidateBomCache();
+  const { applyMarkup } = await import('../lib/estimator/constants.ts');
+  const { REC_CAN_FIXTURE_ID } = await import('../lib/estimator/fixRules.ts');
+  const mk = (id) => { const b = getBomItem(id); return { mat: applyMarkup(b.mat * 1, b.mk) }; };
+  assert.equal(REC_CAN_FIXTURE_ID, 'lc9');
+  assert.equal(isPriceNeeded(mk('lc9')), true);   // same line the builder preview builds for 1 can
+  assert.equal(isPriceNeeded(mk('w1')), false);   // normally priced part
+  assert.equal(isPriceNeeded(mk('mr1')), false);
+});
+
+await test('source check: FixtureBuilderTab uses isPriceNeeded for the row highlight and label', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(new URL('../components/estimator/FixtureBuilderTab.tsx', import.meta.url), 'utf8');
+  assert.match(src, /import \{ isPriceNeeded \} from '@\/lib\/estimator\/priceNeeded'/);
+  assert.match(src, /preview\.lines\.some\(isPriceNeeded\)/);
+  assert.match(src, /isPriceNeeded\(line\) \? 'bg-yellow-50 border-l-2 border-yellow-400'/);
+  assert.match(src, /⚠ Price needed/);
+});
+
 invalidateBomCache();
 console.log(`\n${n} tests passed`);

@@ -9,6 +9,7 @@ import type { AssemblyLine, SavedAssembly } from '@/lib/estimator/constants';
 import { getBomItem, BOM } from '@/lib/estimator/bom';
 import { SHOP_LABOR, CREW_ADDER, gangFactor } from '@/lib/estimator/shopLabor';
 import { mudRingFor, REC_CAN_FIXTURE_ID } from '@/lib/estimator/fixRules';
+import { isPriceNeeded } from '@/lib/estimator/priceNeeded';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
 
@@ -424,6 +425,10 @@ export function FixtureBuilderTab() {
           )}
         </div>
 
+        {preview.lines.some(isPriceNeeded) && (
+          <p className="text-xs text-yellow-700 font-semibold mb-1">⚠ Price needed</p>
+        )}
+
         <table className="w-full text-xs mb-2">
           <thead>
             <tr className="text-gray-400 font-semibold border-b border-gray-100">
@@ -437,7 +442,12 @@ export function FixtureBuilderTab() {
           </thead>
           <tbody>
             {preview.lines.map((line, i) => (
-              <tr key={i} className="border-b border-gray-50 group">
+              <tr
+                key={i}
+                className={`border-b border-gray-50 group ${
+                  isPriceNeeded(line) ? 'bg-yellow-50 border-l-2 border-yellow-400' : ''
+                }`}
+              >
                 {/* Name */}
                 <td className="py-0.5 pr-2">
                   <input
