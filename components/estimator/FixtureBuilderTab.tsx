@@ -8,7 +8,7 @@ import { getRates, applyMarkup, N5, N6 } from '@/lib/estimator/constants';
 import type { AssemblyLine, SavedAssembly } from '@/lib/estimator/constants';
 import { getBomItem, BOM } from '@/lib/estimator/bom';
 import { SHOP_LABOR, CREW_ADDER, gangFactor } from '@/lib/estimator/shopLabor';
-import { mudRingFor, REC_CAN_FIXTURE_ID } from '@/lib/estimator/fixRules';
+import { mudRingFor, REC_CAN_FIXTURE_ID, GENERIC_FIXTURE_ID, fixtureLineLabel } from '@/lib/estimator/fixRules';
 import { isPriceNeeded } from '@/lib/estimator/priceNeeded';
 
 // ── Format helper ──────────────────────────────────────────────────────────────
@@ -75,6 +75,8 @@ const ASMS: AsmDef[] = [
   { id:'fan55',    grp:'Fixture', lbl:'Ceiling Fan 55"',              fixId:'lc15', iHr:N5.fan55        },
   { id:'fan60',    grp:'Fixture', lbl:'Ceiling Fan 60"',              fixId:'lc15', iHr:N5.fan60        },
   { id:'rec_can',  grp:'Fixture', lbl:'Recessed Can',                 fixId:REC_CAN_FIXTURE_ID, iHr:0.70 },
+  // Generic per-quote fixture (Type D, exit signs, etc.). $0.01 lc8 placeholder -> "Price needed". Hours default 0.75.
+  { id:GENERIC_FIXTURE_ID, grp:'Fixture', lbl:'Other Fixture (per quote)', fixId:'lc8', iHr:0.75 },
 ];
 
 const WHIP_OPTIONS = [
@@ -105,6 +107,7 @@ function buildFixtureAsm(
   gangs:   number,
   romex:   boolean,
   diff:    number,
+  typeTag?: string,
 ): SavedAssembly {
   const R = getRates();
   const lines: AssemblyLine[] = [];
@@ -168,7 +171,7 @@ function buildFixtureAsm(
 
   } else {
     // ── Fixture ───────────────────────────────────────────────────────
-    addI(asm.fixId, qty, `${asm.lbl} — PER QUOTE`);
+    addI(asm.fixId, qty, fixtureLineLabel(asm.id, asm.lbl, typeTag));
     // Whip cable
     if (whipFt > 0) {
       addI('w1',  whipFt * qty, `12/2 MC whip (${whipFt}ft x${qty})`);
@@ -203,6 +206,7 @@ export function FixtureBuilderTab() {
 
   // Form state lives on EstimatorState so the Takeoff tab can prefill it
   const { selectedId, whipFt, qty, romex, diff } = state.fixtureState;
+  const typeTag = state.fixtureState.typeTag ?? '';
   // gangs is absent on jobs saved before 3-gang existed; fall back to twoGang
   const gangs = state.fixtureState.gangs ?? (state.fixtureState.twoGang ? 2 : 1);
 
@@ -224,8 +228,8 @@ export function FixtureBuilderTab() {
 
   // Computed (pure) assembly from builder inputs
   const computed = useMemo(
-    () => buildFixtureAsm(selectedAsm, whipFt, qty, gangs, romex, diff),
-    [selectedAsm, whipFt, qty, gangs, romex, diff],
+    () => buildFixtureAsm(selectedAsm, whipFt, qty, gangs, romex, diff, typeTag),
+    [selectedAsm, whipFt, qty, gangs, romex, diff, typeTag],
   );
 
   // Editable copy — reset when computed changes
@@ -349,6 +353,21 @@ export function FixtureBuilderTab() {
             />
           </div>
         </div>
+
+        {/* Type tag — generic per-quote fixture only */}
+        {selectedAsm.id === GENERIC_FIXTURE_ID && (
+          <div className="mb-4">
+            <label className="block text-xs text-gray-500 mb-1">Type tag (e.g. Type D)</label>
+            <input
+              type="text"
+              value={typeTag}
+              maxLength={40}
+              placeholder="Type D"
+              onChange={e => updateFixtureState({ typeTag: e.target.value })}
+              className="border border-gray-300 rounded px-2 py-1.5 text-sm bg-white w-full sm:w-64"
+            />
+          </div>
+        )}
 
         {/* Device-only toggles */}
         {isDevice && (

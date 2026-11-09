@@ -4,6 +4,15 @@
 /** Recessed can fixture line: the same $0.01 "Price needed" placeholder as the other PER QUOTE lines. */
 export const REC_CAN_FIXTURE_ID = 'lc9';
 
+/** Generic per-quote fixture (Type D, exit signs, etc.): id in the Fixture builder's list. Priced from the $0.01 lc8 placeholder. */
+export const GENERIC_FIXTURE_ID = 'generic_fix';
+
+/** Per-quote fixture line name: "<tag> — PER QUOTE" for the generic fixture when a tag is typed, else "<label> — PER QUOTE". */
+export function fixtureLineLabel(asmId: string, asmLabel: string, typeTag?: string): string {
+  const tag = asmId === GENERIC_FIXTURE_ID && typeof typeTag === 'string' ? typeTag.trim() : '';
+  return `${tag || asmLabel} — PER QUOTE`;
+}
+
 export interface MudRingPick {
   id: 'mr1' | 'mr2';
   /** Line name for the assembly. */
