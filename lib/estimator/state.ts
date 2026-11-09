@@ -123,6 +123,7 @@ export interface FixtureState {
   twoGang:    boolean;  // legacy; gangs (below) wins when present
   gangs?:     number;   // 1 | 2 | 3 (absent on jobs saved before 3-gang existed)
   romex:      boolean;
+  typeTag?:   string;   // optional tag for the generic per-quote fixture (e.g. "Type D"); missing = blank
   diff:       number;   // 1.12 crew adder (default) / 1.00 / 1.25 difficult / 1.55 v.difficult
 }
 

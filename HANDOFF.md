@@ -137,6 +137,7 @@ Estimator fixes step 2: 30A/50A HAR cable, HAR crew adder, home run wire warning
 Estimator fixes step 3: parts missing from the live price list fall back to the built-in list (fixes fb_mnt). Price needed flag now shows in builder previews too.
 Estimator fixes step 4: Fixture builder preview now shows the Price needed flag (it has its own table, not EditablePreview).
 Data builder: quantity field so N identical data outlets can be added at once. Footage stays per outlet. Patch panel stays once per assembly. Takeoff Build now passes qty.
+Fixture builder: Other Fixture (per quote) with an optional type tag (e.g. Type D). Price stays the placeholder so it flags Price needed. Install hours default to 0.75.
 
 ### Business rule: per-quote pricing
 
