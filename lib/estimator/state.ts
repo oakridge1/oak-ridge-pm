@@ -379,7 +379,7 @@ export const DEFAULT_THREE_WAY: ThreeWayState = {
 
 export const DEFAULT_DATA: DataState = {
   ports: 1, emtDrop: false, support: 'J-Hook Small',
-  feet: 0, makeup: 0, patchPanel: 'none', diff: 1.0,
+  feet: 0, makeup: 0, patchPanel: 'none', diff: 1.0, qty: 1,
 };
 
 export const DEFAULT_FA: FireAlarmState = {

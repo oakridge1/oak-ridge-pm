@@ -553,7 +553,7 @@ export function TakeoffTab() {
                         )}
                         {ITEM_BUILD[id]?.builder === 'data' && (
                           <button
-                            onClick={() => { updateDataState({ ports: ITEM_BUILD[id].ports as (1 | 2 | 3 | 4) }); setTab(ITEM_BUILD[id].tab); }}
+                            onClick={() => { updateDataState({ ports: ITEM_BUILD[id].ports as (1 | 2 | 3 | 4), qty: Math.max(1, Math.round(qty)) }); setTab(ITEM_BUILD[id].tab); }}
                             title="Load into Data Builder"
                             className="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
                             → Build
