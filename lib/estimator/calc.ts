@@ -500,6 +500,7 @@ export interface DataParams {
   makeup:     number;   // 0 | 3 | 5 | 10 | 12 | 18 | 24
   patchPanel: 'none' | 'small' | 'medium' | 'large';
   diff:       number;
+  qty?:       number;   // number of identical outlets; absent/invalid = 1
 }
 
 export function calcData(p: DataParams): SavedAssembly | null {
@@ -507,37 +508,42 @@ export function calcData(p: DataParams): SavedAssembly | null {
   const acc = newAcc();
   if (p.feet <= 0) return null;
 
-  // Cat6 cable — round up to nearest 10ft
-  const cableFt = Math.ceil((p.feet * p.ports + p.makeup * p.ports) / 10) * 10;
-  addItem(acc, 'w14', cableFt, `Cat6 (${cableFt}ft)`);
+  // N identical outlets. Footage (p.feet) stays per outlet; parts and labor scale by q.
+  // The patch panel is NOT scaled (once per assembly).
+  const q = Number.isFinite(p.qty) && (p.qty as number) >= 1 ? Math.round(p.qty as number) : 1;
+
+  // Cat6 cable — one run rounded up to nearest 10ft, then q identical runs
+  const runFt   = Math.ceil((p.feet * p.ports + p.makeup * p.ports) / 10) * 10;
+  const cableFt = runFt * q;
+  addItem(acc, 'w14', cableFt, q > 1 ? `Cat6 (${runFt}ft × ${q} = ${cableFt}ft)` : `Cat6 (${cableFt}ft)`);
 
   // Keystones: 2 per port (wall end + patch panel end)
-  addItem(acc, 'dp7', p.ports * 2, `Cat6 keystone x${p.ports * 2}`);
+  addItem(acc, 'dp7', p.ports * 2 * q, `Cat6 keystone x${p.ports * 2 * q}`);
 
   // Wall plate
   if (p.ports <= 2) {
-    addItem(acc, 'dp8',  1, '2-port keystone plate');
+    addItem(acc, 'dp8',  q, '2-port keystone plate');
   } else {
-    addItem(acc, 'dp10', Math.ceil(p.ports / 4), 'keystone plate');
+    addItem(acc, 'dp10', Math.ceil(p.ports / 4) * q, 'keystone plate');
   }
 
-  // Cable support every 4ft + 2 at ends
-  const suppQty = Math.ceil(p.feet / 4) + 2;
+  // Cable support every 4ft + 2 at ends (per outlet run)
+  const suppQty = (Math.ceil(p.feet / 4) + 2) * q;
   if      (p.support === 'J-Hook Small') addItem(acc, 'lv2', suppQty, `J-hook sm (${suppQty})`);
   else if (p.support === 'J-Hook Large') addItem(acc, 'lv3', suppQty, `J-hook lg (${suppQty})`);
   // Zip Tie = consumable, no line item
 
   // Box hardware
   if (p.emtDrop) {
-    addItem(acc, 'e1',       1, '1/2" EMT 10ft (stub)');
-    addItem(acc, 'ef1',      2, '1/2" EMT connector x2');
-    addItem(acc, 'sp_emt12', 2, '1/2" strap x2');
-    addItem(acc, 'mr1',      1, 'SG mud ring');
-    addManual(acc, 'EMT stub field bend labor', 1, 'EA', 0,
-      0.10 * p.diff * R.labor);
+    addItem(acc, 'e1',       1 * q, '1/2" EMT 10ft (stub)');
+    addItem(acc, 'ef1',      2 * q, '1/2" EMT connector x2');
+    addItem(acc, 'sp_emt12', 2 * q, '1/2" strap x2');
+    addItem(acc, 'mr1',      1 * q, 'SG mud ring');
+    addManual(acc, 'EMT stub field bend labor', q, 'EA', 0,
+      0.10 * q * p.diff * R.labor);
   } else {
-    addItem(acc, 'bs2', 3, 'CJ6 x3 (flush mount)');
-    addItem(acc, 'mr1', 1, 'SG mud ring');
+    addItem(acc, 'bs2', 3 * q, 'CJ6 x3 (flush mount)');
+    addItem(acc, 'mr1', 1 * q, 'SG mud ring');
   }
 
   // Patch panel
@@ -549,11 +555,11 @@ export function calcData(p: DataParams): SavedAssembly | null {
 
   // Labor: 0.15 hrs/port termination + 0.30 base
   addManual(acc, `Cat6 termination labor (${p.ports} ports × 0.15hr)`,
-    p.ports, 'EA', 0, 0.15 * p.ports * p.diff * R.labor);
-  addManual(acc, 'Data location base labor', 1, 'EA', 0,
-    0.30 * p.diff * R.labor);
+    p.ports * q, 'EA', 0, 0.15 * p.ports * q * p.diff * R.labor);
+  addManual(acc, 'Data location base labor', q, 'EA', 0,
+    0.30 * q * p.diff * R.labor);
 
-  const label = `${p.ports}-port Cat6 — ${p.feet}ft — ${p.support}`;
+  const label = `${p.ports}-port Cat6 — ${p.feet}ft — ${p.support}` + (q > 1 ? ` × ${q}` : '');
   return toAsm(acc, label, p as unknown as Record<string, unknown>);
 }
 

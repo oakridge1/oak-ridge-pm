@@ -60,6 +60,12 @@ export function DataBuilder() {
               onChange={e => updateDataState({ feet: parseFloat(e.target.value) || 0 })} />
           </div>
           <div>
+            <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+            <input type="number" min={1} step={1} className={inp}
+              value={dataState.qty ?? 1}
+              onChange={e => updateDataState({ qty: Math.max(1, parseInt(e.target.value, 10) || 1) })} />
+          </div>
+          <div>
             <label className="block text-xs text-gray-500 mb-1">Makeup/End</label>
             <select className={sel} value={dataState.makeup}
               onChange={e => updateDataState({ makeup: parseInt(e.target.value) })}>

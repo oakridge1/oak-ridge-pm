@@ -136,6 +136,7 @@ Job adders step 2: display-only preview card on Bid Summary; not in totals, not 
 Estimator fixes step 2: 30A/50A HAR cable, HAR crew adder, home run wire warning, 2G mud ring, 3-way Build button, fb_mnt and recessed can flagged Price needed. New builds only.
 Estimator fixes step 3: parts missing from the live price list fall back to the built-in list (fixes fb_mnt). Price needed flag now shows in builder previews too.
 Estimator fixes step 4: Fixture builder preview now shows the Price needed flag (it has its own table, not EditablePreview).
+Data builder: quantity field so N identical data outlets can be added at once. Footage stays per outlet. Patch panel stays once per assembly. Takeoff Build now passes qty.
 
 ### Business rule: per-quote pricing
 
