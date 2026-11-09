@@ -135,6 +135,7 @@ Drops preview step 2: view-only panel on the Takeoff tab showing the included wh
 Job adders step 2: display-only preview card on Bid Summary; not in totals, not saved.
 Estimator fixes step 2: 30A/50A HAR cable, HAR crew adder, home run wire warning, 2G mud ring, 3-way Build button, fb_mnt and recessed can flagged Price needed. New builds only.
 Estimator fixes step 3: parts missing from the live price list fall back to the built-in list (fixes fb_mnt). Price needed flag now shows in builder previews too.
+Estimator fixes step 4: Fixture builder preview now shows the Price needed flag (it has its own table, not EditablePreview).
 
 ### Business rule: per-quote pricing
 
