@@ -17,47 +17,48 @@ const close = (a, b, msg) => assert.ok(Math.abs(a - b) < 1e-6, `${msg}: ${a} vs 
 let n = 0;
 const test = async (name, fn) => { await fn(); n++; console.log('ok -', name); };
 
-// Output of calcMCHomeRun BEFORE this change (captured from main), default rates.
+// Output of calcMCHomeRun with the double-counted "MC pull labor" line removed (the old line
+// is gone; lab totals are the earlier values minus that line). Default rates.
 // Each: [params, label, mat, lab, [[line name, qty, mat, lab], ...]]
 const GOLD = [
   [{ suppType: 'Staple', feet: 80, makeup: 5, diff: 1, wireSize: '#12', numCond: 2, bkrSize: '20A' },
-    '#12/2 MC — 80ft — 20A', 76.25067520000002, 229.91000000000003, [
+    '#12/2 MC — 80ft — 20A', 76.25067520000002, 229.91000000000003 - 39.839999999999996, [
       ['#12/2 MC (90ft)', 90, 58.589999999999996, 97.11], ['MC connector x2', 2, 7.423787, 9.959999999999999],
       ['4" square deep box', 1, 2.7125, 12.45], ['C23 bracket', 1, 3.0359385, 4.15], ['SG mud ring', 1, 1.3739355, 6.225],
       ['CJ6 x2', 2, 1.438927, 2.4899999999999998], ['wire nuts', 3, 0.283185, 4.9799999999999995],
       ['ground screw', 1, 0.14973, 1.6600000000000001], ['staples (22)', 22, 1.2426722000000001, 18.26],
-      ['20A breaker termination labor', 1, 0, 14.110000000000001], ['MC pull labor (80ft)', 80, 0, 39.839999999999996],
+      ['20A breaker termination labor', 1, 0, 14.110000000000001],
       ['Box termination & makeup labor', 1, 0, 18.675]]],
   [{ suppType: 'Strap', feet: 80, makeup: 5, diff: 1.25, wireSize: '#10', numCond: 3, bkrSize: '30A' },
-    '#10/3 MC — 80ft — 30A', 123.89528200000002, 295.79125, [
+    '#10/3 MC — 80ft — 30A', 123.89528200000002, 295.79125 - 62.25, [
       ['#10/3 MC (90ft)', 90, 102.5325, 119.52], ['MC connector x2', 2, 7.423787, 9.959999999999999],
       ['4" square deep box', 1, 2.7125, 12.45], ['C23 bracket', 1, 3.0359385, 4.15], ['SG mud ring', 1, 1.3739355, 6.225],
       ['CJ6 x2', 2, 1.438927, 2.4899999999999998], ['wire nuts', 4, 0.37757999999999997, 6.640000000000001],
       ['ground screw', 1, 0.14973, 1.6600000000000001], ['MC straps (22)', 22, 4.850383999999999, 27.389999999999997],
-      ['30A breaker termination labor', 1, 0, 19.7125], ['MC pull labor (80ft)', 80, 0, 62.25],
+      ['30A breaker termination labor', 1, 0, 19.7125],
       ['Box termination & makeup labor', 1, 0, 23.34375]]],
   [{ suppType: 'J-Hook', feet: 80, makeup: 5, diff: 1, wireSize: '#14', numCond: 2, bkrSize: '15A' },
-    '#14/2 MC — 80ft — 15A', 78.48000300000001, 190.89999999999998, [
+    '#14/2 MC — 80ft — 15A', 78.48000300000001, 190.89999999999998 - 33.2, [
       ['#14/2 MC (90ft)', 90, 27.342000000000002, 67.22999999999999], ['MC connector x2', 2, 7.423787, 9.959999999999999],
       ['4" square deep box', 1, 2.7125, 12.45], ['C23 bracket', 1, 3.0359385, 4.15], ['SG mud ring', 1, 1.3739355, 6.225],
       ['CJ6 x2', 2, 1.438927, 2.4899999999999998], ['wire nuts', 3, 0.283185, 4.9799999999999995],
       ['ground screw', 1, 0.14973, 1.6600000000000001], ['J-hooks', 8, 34.72, 16.6],
-      ['15A breaker termination labor', 1, 0, 13.280000000000001], ['MC pull labor (80ft)', 80, 0, 33.2],
+      ['15A breaker termination labor', 1, 0, 13.280000000000001],
       ['Box termination & makeup labor', 1, 0, 18.675]]],
   [{ suppType: 'Staple', feet: 120, makeup: 10, diff: 1, wireSize: '#10', numCond: 2, bkrSize: '30A' },
-    '#10/2 MC — 120ft — 30A', 136.7075262, 346.11, [
+    '#10/2 MC — 120ft — 30A', 136.7075262, 346.11 - 74.69999999999999, [
       ['#10/2 MC (140ft)', 140, 118.482, 168.49], ['MC connector x2', 2, 7.423787, 9.959999999999999],
       ['4" square deep box', 1, 2.7125, 12.45], ['C23 bracket', 1, 3.0359385, 4.15], ['SG mud ring', 1, 1.3739355, 6.225],
       ['CJ6 x2', 2, 1.438927, 2.4899999999999998], ['wire nuts', 3, 0.283185, 4.9799999999999995],
       ['ground screw', 1, 0.14973, 1.6600000000000001], ['staples (32)', 32, 1.8075232, 26.560000000000002],
-      ['30A breaker termination labor', 1, 0, 15.77], ['MC pull labor (120ft)', 120, 0, 74.69999999999999],
+      ['30A breaker termination labor', 1, 0, 15.77],
       ['Box termination & makeup labor', 1, 0, 18.675]]],
 ];
 
 const base = { suppType: 'Strap', feet: 80, makeup: 5, diff: 1.0 };
 const lineNamed = (a, re) => a.lines.find((l) => re.test(l.name));
 
-await test('#14, #12 and #10 totals, lines and labels are unchanged from before this change', () => {
+await test('#14, #12 and #10 totals, lines and labels match the new golden values (no pull line)', () => {
   for (const [p, label, mat, lab, lines] of GOLD) {
     const a = calcMCHomeRun({ ...p });
     assert.equal(a.label, label);
@@ -127,13 +128,32 @@ await test('the new $0.01 connector and strap rows are flagged Price needed', ()
   assert.ok(!isPriceNeeded(lineNamed(a, /straps/)), 'known limit: 22 straps at $0.01 is over the $0.10 flag rule');
 });
 
-await test('pull labor, 0.45 hr box makeup and other lines are unchanged at #8/#6', () => {
-  for (const [w, b, pull] of [['#8', '40A', 0.020], ['#6', '50A', 0.024]]) {
-    const a = calcMCHomeRun({ ...base, wireSize: w, numCond: 3, bkrSize: b });
-    close(lineNamed(a, /MC pull labor/).lab, pull * 80 * R.labor, `${w} pull`);
+await test('no MC pull labor line exists at any size; 0.45 hr box makeup and other lines are unchanged', () => {
+  for (const [w, c, b] of [['#14', 2, '15A'], ['#12', 2, '20A'], ['#10', 3, '30A'], ['#8', 3, '40A'], ['#6', 3, '50A']]) {
+    const a = calcMCHomeRun({ ...base, wireSize: w, numCond: c, bkrSize: b });
+    assert.ok(!a.lines.some((l) => /pull/i.test(l.name)), `${w}: pull line present`);
     close(lineNamed(a, /Box termination/).lab, 0.45 * R.labor, `${w} box makeup`);
     assert.ok(a.lines.some((l) => l.name === '4" square deep box'));
   }
+});
+
+await test('cable line labor = total feet x BOM hours per foot x labor rate', () => {
+  const cases = [['#12', 2, 'w1'], ['#10', 2, 'w3'], ['#10', 3, 'w4'], ['#8', 3, 'w4b'], ['#6', 3, 'w4c']];
+  for (const [w, c, id] of cases) {
+    const feet = 80, makeup = 5;
+    const a = calcMCHomeRun({ ...base, feet, makeup, wireSize: w, numCond: c, bkrSize: '50A' });
+    const totalFt = feet + makeup * 2;                // cable bought = run + makeup both ends
+    close(a.lines[0].lab, totalFt * getBomItem(id).lhr * R.labor, `${w}/${c} cable labor`);
+    assert.equal(a.lines[0].qty, totalFt);
+  }
+});
+
+await test('80 ft, straps, no makeup, normal difficulty: total hours are 4.540 / 4.820 / 5.940 / 6.640', () => {
+  const hrs = (w, c, b) => calcMCHomeRun({ ...base, makeup: 0, wireSize: w, numCond: c, bkrSize: b }).lab / R.labor;
+  close(hrs('#12', 2, '20A'), 4.540, '#12/2 20A');
+  close(hrs('#10', 2, '30A'), 4.820, '#10/2 30A');
+  close(hrs('#8', 3, '40A'), 5.940, '#8/3 40A');
+  close(hrs('#6', 3, '50A'), 6.640, '#6/3 50A');
 });
 
 await test('no cable for #8 or #6 with 2 conductors: calc returns null (UI shows a message)', () => {
