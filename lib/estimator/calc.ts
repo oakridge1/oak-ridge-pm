@@ -427,9 +427,7 @@ export function calcMCHomeRun(p: MCHomeRunParams): SavedAssembly | null {
   const bkrLab = (N4_BKR[BKR_KEY[p.bkrSize]] ?? 0.34) * p.diff * R.labor;
   addManual(acc, `${p.bkrSize} breaker termination labor`, 1, 'EA', 0, bkrLab);
 
-  const pullLhr = WIRE_PULL_LHR[p.wireSize] ?? 0.012;
-  addManual(acc, `MC pull labor (${p.feet}ft)`,
-    p.feet, 'FT', 0, pullLhr * p.feet * p.diff * R.labor);
+  // No separate pull-labor line: the cable's own BOM labor per foot already covers the install.
 
   addManual(acc, 'Box termination & makeup labor', 1, 'EA', 0,
     0.45 * p.diff * R.labor);
