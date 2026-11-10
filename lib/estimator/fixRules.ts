@@ -33,15 +33,29 @@ const awgNumber = (wire: string): number => {
   return Number.isFinite(n) ? n : NaN;
 };
 
+/** Minimum wire for each breaker size offered by the MC home run builder. */
+export const MC_BKR_MIN_WIRE: Record<number, string> = {
+  15: '#14', 20: '#12', 30: '#10', 40: '#8', 50: '#6',
+};
+
 /**
- * Warning (never blocking) when the wire looks too small for the breaker:
- * 30A needs #10 or larger; 40A and up needs #8 or larger. Returns null when fine.
+ * Warning (never blocking) when the wire looks too small for the breaker, using MC_BKR_MIN_WIRE
+ * (15A #14, 20A #12, 30A #10, 40A #8, 50A #6). Returns null when fine or the breaker is not in the table.
  */
 export function homeRunWireWarning(wireSize: string, bkrSize: string): string | null {
   const amps = parseInt(String(bkrSize), 10);
   const awg = awgNumber(wireSize);
   if (!Number.isFinite(amps) || !Number.isFinite(awg)) return null;
-  if (amps >= 40 && awg > 8) return `${amps}A breaker needs #8 wire or larger – ${wireSize} is too small.`;
-  if (amps >= 30 && amps < 40 && awg > 10) return `${amps}A breaker needs #10 wire or larger – ${wireSize} is too small.`;
+  const min = MC_BKR_MIN_WIRE[amps];
+  if (min === undefined) return null;
+  if (awg > awgNumber(min)) return `${amps}A breaker needs ${min} wire or larger – ${wireSize} is too small.`;
   return null;
+}
+
+/** MC home run: sizes with MC cable only in 3-conductor (#8, #6). */
+export const MC_THREE_COND_ONLY = ['#8', '#6'];
+
+/** Number of conductors the MC home run builder must use for a wire size (3 for #8/#6), or null when free to choose. */
+export function lockedMcConductors(wireSize: string): 3 | null {
+  return MC_THREE_COND_ONLY.includes(wireSize) ? 3 : null;
 }

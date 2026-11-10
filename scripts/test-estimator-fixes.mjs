@@ -85,18 +85,20 @@ test('home run warning: 30A with #12 or #14 warns; #10 does not', () => {
   assert.equal(homeRunWireWarning('#10', '30A'), null);
 });
 
-test('home run warning: 40A and up needs #8 or larger', () => {
+test('home run warning: 40A needs #8 or larger, 50A needs #6 or larger', () => {
   assert.ok(homeRunWireWarning('#10', '40A'));
   assert.ok(homeRunWireWarning('#12', '50A'));
+  assert.ok(homeRunWireWarning('#8', '50A'));
   assert.equal(homeRunWireWarning('#8', '40A'), null);
-  assert.equal(homeRunWireWarning('#6', '60A'), null);
+  assert.equal(homeRunWireWarning('#6', '40A'), null);
+  assert.equal(homeRunWireWarning('#6', '50A'), null);
+  assert.equal(homeRunWireWarning('#6', '60A'), null); // 60A is not offered: no rule, no warning
 });
 
-test('home run warning: 15A and 20A never warn; bad input does not warn or throw', () => {
-  for (const w of ['#14', '#12', '#10']) {
-    assert.equal(homeRunWireWarning(w, '15A'), null);
-    assert.equal(homeRunWireWarning(w, '20A'), null);
-  }
+test('home run warning: 15A needs #14, 20A needs #12; larger wire never warns; bad input does not warn or throw', () => {
+  for (const w of ['#14', '#12', '#10', '#8', '#6']) assert.equal(homeRunWireWarning(w, '15A'), null);
+  assert.ok(homeRunWireWarning('#14', '20A'));
+  for (const w of ['#12', '#10', '#8', '#6']) assert.equal(homeRunWireWarning(w, '20A'), null);
   assert.equal(homeRunWireWarning('', ''), null);
   assert.equal(homeRunWireWarning('xyz', '30A'), null);
 });
