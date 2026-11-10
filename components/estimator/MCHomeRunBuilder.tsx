@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import { useEstimatorContext } from '@/lib/estimator/EstimatorContext';
-import { calcMCHomeRun } from '@/lib/estimator/calc';
-import { homeRunWireWarning } from '@/lib/estimator/fixRules';
+import { calcMCHomeRun, type MCHomeRunParams } from '@/lib/estimator/calc';
+import { homeRunWireWarning, lockedMcConductors } from '@/lib/estimator/fixRules';
 import { EditablePreview } from './EditablePreview';
 
 const DIFF_OPTIONS = [
@@ -23,8 +23,16 @@ export function MCHomeRunBuilder() {
   const { state, updateMCHRState, setState } = useEstimatorContext();
   const { mcHRState } = state;
 
-  const preview = useMemo(() => calcMCHomeRun(mcHRState), [mcHRState]);
+  const preview = useMemo(
+    () => calcMCHomeRun({ ...mcHRState, numCond: lockedMcConductors(mcHRState.wireSize) ?? mcHRState.numCond }),
+    [mcHRState],
+  );
   const wireWarning = homeRunWireWarning(mcHRState.wireSize, mcHRState.bkrSize);
+  const lockedCond = lockedMcConductors(mcHRState.wireSize);
+  const bigWire = lockedCond !== null;
+  // Effective conductor count: #8 and #6 are 3-conductor only (even if older state says 2).
+  const condShown = lockedCond ?? mcHRState.numCond;
+  const noCable = mcHRState.feet > 0 && preview === null;
 
   const sel = 'border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
   const inp = 'w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]';
@@ -39,15 +47,21 @@ export function MCHomeRunBuilder() {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Wire Size</label>
             <select className={sel} value={mcHRState.wireSize}
-              onChange={e => updateMCHRState({ wireSize: e.target.value as '#14' | '#12' | '#10' })}>
+              onChange={e => {
+                const wireSize = e.target.value as MCHomeRunParams['wireSize'];
+                // #8 and #6 are 3-conductor only: lock the conductor count to 3
+                updateMCHRState(lockedMcConductors(wireSize) ? { wireSize, numCond: 3 } : { wireSize });
+              }}>
               <option value="#14">#14</option>
               <option value="#12">#12</option>
               <option value="#10">#10</option>
+              <option value="#8">#8</option>
+              <option value="#6">#6</option>
             </select>
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1"># Cond</label>
-            <select className={sel} value={mcHRState.numCond}
+            <select className={sel} value={condShown} disabled={bigWire}
               onChange={e => updateMCHRState({ numCond: parseInt(e.target.value) as 2 | 3 })}>
               <option value={2}>2</option>
               <option value={3}>3</option>
@@ -56,10 +70,12 @@ export function MCHomeRunBuilder() {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Breaker</label>
             <select className={sel} value={mcHRState.bkrSize}
-              onChange={e => updateMCHRState({ bkrSize: e.target.value as '15A' | '20A' | '30A' })}>
+              onChange={e => updateMCHRState({ bkrSize: e.target.value as MCHomeRunParams['bkrSize'] })}>
               <option value="15A">15A</option>
               <option value="20A">20A</option>
               <option value="30A">30A</option>
+              <option value="40A">40A</option>
+              <option value="50A">50A</option>
             </select>
           </div>
           <div>
@@ -108,6 +124,19 @@ export function MCHomeRunBuilder() {
             )}
           </div>
         </div>
+
+        {bigWire && (
+          <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 space-y-0.5">
+            <p>#8 and #6 use 3-conductor MC</p>
+            <p>Verify box size for large MC cable</p>
+          </div>
+        )}
+
+        {noCable && (
+          <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+            No MC cable is set up for {mcHRState.wireSize}/{mcHRState.numCond}. Pick a different wire size or conductor count.
+          </div>
+        )}
 
         {wireWarning && (
           <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded px-3 py-2">

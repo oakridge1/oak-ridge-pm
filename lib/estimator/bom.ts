@@ -89,6 +89,9 @@ export const BOM: BomItem[] = [
   // ── MC FITTINGS ───────────────────────────────────────────────────────────
   { id:'mc1',  cat:'MC Fittings',      name:'Duplex Snap-In 3/8" MC Connector', unit:'EA', mat:3.4211,    lhr:0.12,                mk:'bulk', gc:true  },
   { id:'mc2',  cat:'MC Fittings',      name:'Single Snap-In 1/2" MC Connector', unit:'EA', mat:1.4182,    lhr:0.12,                mk:'bulk', gc:true  },
+  // Large MC cable (#8 / #6) fittings: price-needed placeholders (mat 0.01 triggers the "⚠ Price needed" flag).
+  { id:'mc_big_conn',  cat:'MC Fittings', name:'3/4" MC Connector (large MC cable)', unit:'EA', mat:0.01, lhr:0.12, mk:'bulk' },
+  { id:'mc_big_strap', cat:'MC Fittings', name:'Large MC Strap 3/4" 1-Hole',         unit:'EA', mat:0.01, lhr:0.03, mk:'bulk' },
   { id:'mc4',  cat:'MC Fittings',      name:'3/8" MC Strap 1-Hole',             unit:'EA', mat:0.2032,    lhr:0.03,                mk:'bulk', gc:true  },
   { id:'mc5',  cat:'MC Fittings',      name:'3/4" 1-Hole EMT Strap',            unit:'EA', mat:0.39,      lhr:0.04,                mk:'bulk', gc:true  },
 

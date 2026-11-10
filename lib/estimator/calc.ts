@@ -367,10 +367,28 @@ export function calcRack(p: RackParams): SavedAssembly | null {
 // 3. calcMCHomeRun
 // ─────────────────────────────────────
 
+// MC home run cable by wire size and conductor count. #14 maps to NM-B ids (existing behavior).
+// #8 and #6 exist only as 3-conductor MC (8/3 = w4b, 6/3 = w4c).
+const MC_HR_CABLE: Record<string, Record<number, string>> = {
+  '#14': { 2: 'rm1', 3: 'rm5' },
+  '#12': { 2: 'w1',  3: 'w2'  },
+  '#10': { 2: 'w3',  3: 'w4'  },
+  '#8':  { 3: 'w4b' },
+  '#6':  { 3: 'w4c' },
+};
+
+/** Cable BOM id for an MC home run size/conductor combination, or undefined when the BOM has none. */
+export function mcHomeRunCableId(wireSize: string, numCond: number): string | undefined {
+  return MC_HR_CABLE[wireSize]?.[numCond];
+}
+
+// #8 and #6 MC cable needs a larger connector and strap (placeholder-priced rows).
+const MC_BIG_WIRE = new Set(['#8', '#6']);
+
 export interface MCHomeRunParams {
-  wireSize: '#14' | '#12' | '#10';
+  wireSize: '#14' | '#12' | '#10' | '#8' | '#6';
   numCond:  2 | 3;
-  bkrSize:  '15A' | '20A' | '30A';
+  bkrSize:  '15A' | '20A' | '30A' | '40A' | '50A';
   suppType: 'Staple' | 'Strap' | 'J-Hook';
   feet:     number;
   makeup:   number;   // extra footage per end: 0 | 3 | 5 | 10
@@ -382,18 +400,15 @@ export function calcMCHomeRun(p: MCHomeRunParams): SavedAssembly | null {
   const acc = newAcc();
   if (p.feet <= 0) return null;
 
-  const MC_ID: Record<string, Record<number, string>> = {
-    '#14': { 2: 'rm1', 3: 'rm5' },
-    '#12': { 2: 'w1',  3: 'w2'  },
-    '#10': { 2: 'w3',  3: 'w4'  },
-  };
-  const mcId = MC_ID[p.wireSize]?.[p.numCond];
+  const mcId = mcHomeRunCableId(p.wireSize, p.numCond);
   if (!mcId) return null;
+  const big = MC_BIG_WIRE.has(p.wireSize);
 
   const totalFt = p.feet + p.makeup * 2;
 
   addItem(acc, mcId, totalFt, `${p.wireSize}/${p.numCond} MC (${totalFt}ft)`);
-  addItem(acc, 'mc1', 2, 'MC connector x2');
+  if (big) addItem(acc, 'mc_big_conn', 2, '3/4" MC connector x2');
+  else     addItem(acc, 'mc1', 2, 'MC connector x2');
   addItem(acc, 'b1',  1, '4" square deep box');
   addItem(acc, 'bs1', 1, 'C23 bracket');
   addItem(acc, 'mr1', 1, 'SG mud ring');
@@ -403,11 +418,12 @@ export function calcMCHomeRun(p: MCHomeRunParams): SavedAssembly | null {
 
   const suppQty = Math.ceil(p.feet / 4) + 2;
   if      (p.suppType === 'Staple') addItem(acc, 'm2',  suppQty, `staples (${suppQty})`);
-  else if (p.suppType === 'Strap')  addItem(acc, 'mc4', suppQty, `MC straps (${suppQty})`);
+  else if (p.suppType === 'Strap')  addItem(acc, big ? 'mc_big_strap' : 'mc4', suppQty,
+    big ? `Large MC straps (${suppQty})` : `MC straps (${suppQty})`);
   else if (p.suppType === 'J-Hook') addItem(acc, 'lv2', Math.ceil(suppQty / 3), 'J-hooks');
 
   const BKR_KEY: Record<string, string> =
-    { '15A': '1p15', '20A': '1p20', '30A': '1p30' };
+    { '15A': '1p15', '20A': '1p20', '30A': '1p30', '40A': '2p30', '50A': '2p50' };
   const bkrLab = (N4_BKR[BKR_KEY[p.bkrSize]] ?? 0.34) * p.diff * R.labor;
   addManual(acc, `${p.bkrSize} breaker termination labor`, 1, 'EA', 0, bkrLab);
 

@@ -138,6 +138,7 @@ Estimator fixes step 3: parts missing from the live price list fall back to the 
 Estimator fixes step 4: Fixture builder preview now shows the Price needed flag (it has its own table, not EditablePreview).
 Data builder: quantity field so N identical data outlets can be added at once. Footage stays per outlet. Patch panel stays once per assembly. Takeoff Build now passes qty.
 Fixture builder: Other Fixture (per quote) with an optional type tag (e.g. Type D). Price stays the placeholder so it flags Price needed. Install hours default to 0.75.
+MC home run builder: #8 and #6 wire (3-conductor 8/3 and 6/3 MC), 40A and 50A breakers (2-pole hours), breaker-to-wire warning table, large MC connector and strap placeholders flag Price needed. #14, #12, #10 unchanged.
 
 ### Business rule: per-quote pricing
 
